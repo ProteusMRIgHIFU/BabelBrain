@@ -155,6 +155,9 @@ class H317(QWidget):
          self._MainApp.ThermalSim.setEnabled(True)
          Water=ReadFromH5py(self._WaterSolName)
          Skull=ReadFromH5py(self._FullSolName)
+         if self._MainApp._bInUseWithBrainsight:
+            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
+                f.write(self._MainApp._BrainsightInput) 
          self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
                                         CorY=Skull['AdjustmentInRAS'][1],
                                         CorZ=Skull['AdjustmentInRAS'][2])

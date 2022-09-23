@@ -28,7 +28,7 @@ def GetIDTrajectoryBrainsight(fname):
       'm2n0','m2n1','m2n2']
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names).iloc[0]  
     return df['Target name']
-    
+
 def ReadTrajectoryBrainsight(fname):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
@@ -49,17 +49,17 @@ if platform in ['linux','win32']:
     import cupy 
     import cupyx 
     from cupyx.scipy import ndimage as cndimage
-else:
-    MedianFilter=None
-    MedianCOMPUTING_BACKEND=''
-    def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
-        global MedianFilter
-        global MedianCOMPUTING_BACKEND
-        MedianFilter = Callback
-        if COMPUTING_BACKEND==2:
-            MedianCOMPUTING_BACKEND='OpenCL'
-        else:
-            MedianCOMPUTING_BACKEND='Metal'
+
+MedianFilter=None
+MedianCOMPUTING_BACKEND=''
+def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global MedianFilter
+    global MedianCOMPUTING_BACKEND
+    MedianFilter = Callback
+    if COMPUTING_BACKEND==2:
+        MedianCOMPUTING_BACKEND='OpenCL'
+    else:
+        MedianCOMPUTING_BACKEND='Metal'
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
 
