@@ -9,7 +9,11 @@ samuel.pichardo@ucalgary.ca
 www.neurofus.ca
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
-BabelBrain is a frontend application especially designed to work in tandem with neuronavigation  software to perform focused ultrasound research. BabelBrain uses extensively [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for calculations. BabelViscoFDTD is optimized to run in multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelViscoFDTD is focused for MacOS systems based on Apple ARM64 processors. However, BabelViscoFDTD can run in any system (Mac, Linux, Windows) that has a decent GPU from NVidia or AMD. 
+
+<img src="LGPI-target.png">
+BabelBrain is a frontend application especially designed to work in tandem with neuronavigation  software to perform focused 
+ultrasound research. BabelBrain uses extensively [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for calculations. BabelViscoFDTD is optimized to run in multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelViscoFDTD is focused for MacOS systems based on Apple ARM64 processors. However, BabelViscoFDTD can run in any system (Mac, Linux, Windows) that has a decent GPU from NVidia or AMD. 
+
 
 # Disclaimer
 This software is provided "as is" and it is intended exclusively for research purposes.
@@ -44,3 +48,5 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+

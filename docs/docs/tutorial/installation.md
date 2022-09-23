@@ -1,74 +1,35 @@
-# Installation
-> How to install MkDocs locally.
+# Standalone application
+Ready-to-use applications (no need of Python installation) for macOS are available in the Releases section. Download, open and drag "BabelBrain" into the Applications folder. The first time you will use you will be prompted to authorize it to run and to access directories. You may also need to authorize it in the Security settings of macOS.
+
+# Manual Installation for Development 
+If you prefer to run the code in a Python environment, the requirements are roughly a clean Python 3.9 environment and a healthy XCode installation. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
+# Requirements
+* Python 3.9. Anaconda/miniconda is recommended. - if running in Apple new ARM64 processors (M1, M1 Max, etc.), be sure of using a native ARM64 version. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for further details.
+* [Blender](www.blender.org)
+* [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki) 
 
 
-## Requirements
+Be sure FSL init scripts are properly activated in your .bash_profile or .zsh_profile.
 
-- [Python 3](https://www.python.org/)
-- [Make](https://www.gnu.org/software/make/) - standard on macOS and Linux but can be installed on Windows too.
+## Recommended settings
+Create first and activate a new environment with some basics libraries from Conda
 
+  `conda create --name babel python=3.9.13 numpy=1.23.3 scipy=1.9.1 matplotlib=3.6.0`
 
-## Install system dependencies
+  `activate babel`
 
-<script src="https://gist.github.com/MichaelCurrin/57caae30bd7b0991098e9804a9494c23.js"></script>
+Install dependencies with 
 
+`pip install -r requirements.txt`
 
-## Set up a new repo
+## Running
+If running from the Github source code, just change to the BabelBrain directory and run
 
-Follow the Tutorial page to set up a project from scratch.
+`python BabelBrain.py`
 
-Or click this create your own copy of the repo.
+## Building standalone application
+A Pyinstaller specification file is ready for use. To build the macOS application, just change to the BabelBrain directory and run
 
-[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=for-the-badge&logo=github)](https://github.com/MichaelCurrin/mkdocs-quickstart/generate)
+`pyinstaller BabelBrain.spec`
 
-Then clone your repo.
-
-e.g.
-
-```sh
-$ git clone git@github.com:MichaelCurrin/mkdocs-quickstart.git
-$ cd mkdocs-quickstart
-```
-
-
-## Install project dependencies
-> Install MkDocs locally
-
-For more info, see the [Installation](https://www.mkdocs.org/#installation) page on the MkDocs site.
-
-### Install in a virtual environment
-
-Create a virtual environment at the project root - this is used to isolate project packages from the global packages.
-
-```sh
-$ python3 -m venv venv
-```
-
-Activate the environment.
-
-```sh
-$ source venv/bin/activate
-```
-
-Install `mkdocs` - this is covered in the project requirements file.
-
-```sh
-$ cd docs
-$ make install
-```
-
-Note - `mkdocs` 1.2 causes a break on force pushes, so this is excluded in the requirements. See issue [#2447](https://github.com/mkdocs/mkdocs/issues/2447).
-
-### Install globally
-
-If you prefer to install MkDocs once and reuse it across projects, then you can install it globally instead.
-
-MkDocs is available using package managers like `apt-get`, `homebrew` and `yum`.
-
-Or you can install like this:
-
-```sh
-$ python3 -m pip install mkdocs
-```
-
-If you get prompted for `sudo` use, then cancel and run again with `-U` flag for user-level install.
+A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
