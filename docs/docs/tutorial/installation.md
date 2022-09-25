@@ -8,8 +8,9 @@ If you prefer to run the code in a Python environment, the requirements are roug
 * [Blender](www.blender.org)
 * [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki) 
 
-
 Be sure FSL init scripts are properly activated in your .bash_profile or .zsh_profile.
+
+
 
 ## Recommended settings
 Create first and activate a new environment with some basics libraries from Conda

@@ -1,47 +1,6 @@
 # Usage
-> Build and preview a site locally
-
-Make sure to run all commands from the `docs` directory, as that is where `Makefile` is.
-
-```sh
-$ cd docs
-```
-
-
-## CLI help
-
-```sh
-$ make help
-```
-```
-default: install
-all: install build
-h help:
-install:
-upgrade:
-s serve:
-b build:
-d deploy:
-```
-
-
-## Serve docs
-
-This will build the docs in memory (not to disk) and serve an auto-reloading server.
-
-```sh
-$ make serve
-```
-
-Then open in your browser:
-
-- [localhost:8000](http://localhost:8000)
-
-
-## Build docs
-
-Build docs site to `site` directory. This is useful for a CI flow.
-
-```sh
-$ make build
-```
+BabelBrain requires the following input data
+1. T1-weighted scan of a participant, preferably 1mm-isotropic.
+1. Processed data with [headreco](https://simnibs.github.io/simnibs/build/html/documentation/command_line/headreco.html) tool from [SimbNIBS](https://simnibs.github.io/simnibs/build/html/index.html). headreco is very complete processing that (among other subproducts) calculates the segmentation of skin, bone and brain tissue that are used by BabelBrain. See the limitations section for important information. Please note that for better results, headreco can use both T1W and T2W for the processing. headreco is a time-consuming process that can take up to a couple of hours in a modern system.
+1. A trajectory for LIFU delivery. BabelBrain uses T1W-space transformation matrix (4x4) to describe the orientation and target location where LIFU is concentrated. While BabelBrain uses a text format specific to Brainsight, the main repository includes a simple [tool](https://github.com/ProteusMRIgHIFU/BabelBrain/blob/main/BabelBrain/CalculateMaskProcess.py) to convert from trajectories (transformations) in [3D Slicer](https://www.slicer.org/) to the Brainsight format.
+1. 
