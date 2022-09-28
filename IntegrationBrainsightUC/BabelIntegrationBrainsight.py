@@ -251,7 +251,10 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
              bWaterOnly=False):
     OutNames=[]
     for target in targets:
-        subsamplingFactor=1 # Brainsight can't handle very large 3D files with high res, so we need to 
+        if 250e3 in Frequencies:
+            subsamplingFactor=1 
+        else:
+            subsamplingFactor=2# Brainsight can't handle very large 3D files with high res, so we need to 
         #sub sample when save the final results.
         for Frequency in Frequencies:
             alignments=['']
