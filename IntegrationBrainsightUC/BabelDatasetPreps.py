@@ -12,11 +12,13 @@ import numpy as np
 import os
 import trimesh
 import nibabel
+from nibabel import processing
 from scipy import ndimage
 from trimesh import creation 
 from scipy.spatial.transform import Rotation as R
 import time
 import gc
+import yaml
 
 import pandas as pd
 
@@ -133,6 +135,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 csf_stl='4007/4007_keep/m2m_4007_keep/csf.stl',
                                 skin_stl='4007/4007_keep/m2m_4007_keep/skin.stl',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
+                                CT_input=None,
+                                CT_quantification=10, #bits
                                 Mat4Brainsight=None,                                
                                 Foc=135.0, #Tx focal length
                                 FocFOV=165.0, #Tx focal length used for FOV subvolume
@@ -332,14 +336,15 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
     skin_mesh =trimesh.boolean.intersection((skin_mesh,Cone),engine='blender')
- 
     print('doing intersection voxelization...')
     t0=time.time()
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
+
     if VoxelizeFilter is None:  
         skin_grid = skin_mesh.voxelized(SpatialStep,max_iter=30).fill().points
     else:
         skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+
     print('time to voxelize',time.time()-t0)
     
     x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+SpatialStep,SpatialStep)
@@ -572,6 +577,37 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
     
+    if CT_input is not None:
+        rCT=nibabel.load(CT_input)
+        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
+        dataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+        BinMaskConformalSkullRot=np.ascontiguousarray(BinMaskConformalSkullRot)
+        dataCT[BinMaskConformalSkullRot==False]=0
+        CTBone=dataCT[BinMaskConformalSkullRot]
+        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
+        dataCT[BinMaskConformalSkullRot]=CTBone
+        maxData=dataCT[BinMaskConformalSkullRot].max()
+        minData=dataCT[BinMaskConformalSkullRot].min()
+
+        A=maxData-minData
+        M = 2**CT_quantification-1
+        ResStep=A/M 
+        qx = ResStep *  np.round( (M/A) * (dataCT[BinMaskConformalSkullRot]-minData) )+ minData
+        dataCT[BinMaskConformalSkullRot]=qx
+        UniqueHU=np.unique(dataCT[BinMaskConformalSkullRot])
+        print('Unique CT values',len(UniqueHU))
+        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        if MedianFilter is None:
+            dataCTMap=np.zeros(dataCT.shape,np.uint32)
+            for n,d in enumerate(UniqueHU):
+                dataCTMap[dataCT==d]=n
+            dataCTMap[BinMaskConformalSkullRot==False]=0
+        else:
+            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU)
+
+        nCT=nibabel.Nifti1Image(dataCTMap, nCT.affine, nCT.header)
+        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+        nCT.to_filename(outname)
     if bPlot:
         plt.figure()
         plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)

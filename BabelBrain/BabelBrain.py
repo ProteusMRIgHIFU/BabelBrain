@@ -143,6 +143,12 @@ class BabelBrain(QWidget):
                         T1W=Brainsight['T1W']
                         Mat4Brainsight=Brainsight['Mat4Brainsight']
                         ThermalProfile=prevConfig['ThermalProfile']
+                        if 'CT_input' in prevConfig:
+                            CT_input=prevConfig['CT_input']
+                            bUseCT=prevConfig['bUseCT']
+                        else:
+                            CT_input='...'
+                            bUseCT=False
                         print('Skipping showing dialog...')
                     else:
                         Brainsight['ThermalProfile']='...'
@@ -151,11 +157,16 @@ class BabelBrain(QWidget):
                         widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
                         widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Brainsight'])
                         widget.ui.ThermalProfilelineEdit.setText(Brainsight['ThermalProfile'])
+                        if 'CT_input' in prevConfig:
+                            widget.ui.CTlineEdit.setText(prevConfig['CT_input'])
+                            widget.ui.CTcheckBox.setChecked(prevConfig['bUseCT'])
                         widget.exec()
                         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
                         T1W=widget.ui.T1WlineEdit.text()
                         Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
                         ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
+                        CT_input=widget.ui.CTlineEdit.text()
+            bUseCT=bool(widget.ui.CTcheckBox.isChecked())
         elif not os.path.isdir(simbnibs_path) or not os.path.isfile(T1W) or not os.path.isfile(Mat4Brainsight)\
            or not os.path.isfile(ThermalProfile):
 
@@ -166,15 +177,22 @@ class BabelBrain(QWidget):
                 widget.ui.T1WlineEdit.setText(prevConfig['T1W'])
                 widget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Brainsight'])
                 widget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
+                if 'CT_input' in prevConfig:
+                    widget.ui.CTlineEdit.setText(prevConfig['CT_input'])
+                    widget.ui.CTcheckBox.setChecked(prevConfig['bUseCT'])
             widget.exec()
             simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
             T1W=widget.ui.T1WlineEdit.text()
+            CT_input=widget.ui.CTlineEdit.text()
+            bUseCT=bool(widget.ui.CTcheckBox.isChecked())
             Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
             ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
         self._simbnibs_path=simbnibs_path
         self._Mat4Brainsight=Mat4Brainsight
         self._ThermalProfile=ThermalProfile
         self._T1W=T1W
+        self._bUseCT=bUseCT
+        self._CT_input=CT_input
 
         self.SaveLatestSelection()
 
@@ -264,6 +282,8 @@ class BabelBrain(QWidget):
         if os.path.isdir(os.path.split(self._LastSelConfig)[0]):
             save={'simbnibs_path':self._simbnibs_path,
                   'T1W':self._T1W,
+                  'CT_input':self._CT_input,
+                  'bUseCT':self._bUseCT,
                   'Mat4Brainsight':self._Mat4Brainsight,
                   'ThermalProfile':self._ThermalProfile}
             with open(self._LastSelConfig,'w') as f:
@@ -505,6 +525,9 @@ class BabelBrain(QWidget):
         self.AcSim.setEnabled(True)
         Data=nibabel.load(self._outnameMask)
         self._DataMask=Data
+        if self._bUseCT:
+            self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
+            CTData=np.flip(self._CTnib.get_fdata(),axis=2)
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
         self._FinalMask=FinalMask
@@ -519,6 +542,7 @@ class BabelBrain(QWidget):
         CMapXZ=FinalMask[:,LocFocalPoint[1],:]
         CMapYZ=FinalMask[LocFocalPoint[0],:,:]
         CMapXY=FinalMask[:,:,LocFocalPoint[2]]
+        
 
         sr=['y:','w:']
 
@@ -526,17 +550,33 @@ class BabelBrain(QWidget):
         extentXZ=[x_vec.min(),x_vec.max(),z_vec.max(),z_vec.min()]
         extentYZ=[y_vec.min(),y_vec.max(),z_vec.max(),z_vec.min()]
         extentXY=[x_vec.min(),x_vec.max(),y_vec.max(),y_vec.min()]
+
+        CTMaps=[None,None,None]
+        if self._bUseCT:
+            CTMapXZ=CTData[:,LocFocalPoint[1],:]
+            CTMapYZ=CTData[LocFocalPoint[0],:,:]
+            CTMapXY=CTData[:,:,LocFocalPoint[2]]
+            CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
+
         if self._figMasks is not None:
-            for im,fig,CMap,extent in zip(self._imMasks,self._figMasks,
+            for im,imCT,fig,CMap,CTMap,extent in zip(self._imMasks,self._imCtMasks,
+                                    self._figMasks,
                                     [CMapXZ,CMapYZ,CMapXY],
+                                    CTMaps,
                                     [extentXZ,extentYZ,extentXY]):
                 im.set_data(CMap.T)
+                if CTMap is not None:
+                    Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
+                    imCT.set_data(Zm.T)
                 im.set_extent(extent)
                 fig.canvas.draw_idle()
         else:
             self._figMasks=[]
             self._imMasks=[]
-            for CMap,extent,wpl,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+            self._imCtMasks=[]
+
+            for CMap,CTMap,extent,wpl,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+                                    CTMaps,
                                     [extentXZ,extentYZ,extentXY],
                                     [self.Widget.USMask_plot1,self.Widget.USMask_plot2,self.Widget.USMask_plot3],
                                     [x_vec,y_vec,x_vec],
@@ -550,12 +590,17 @@ class BabelBrain(QWidget):
                 layout.addWidget(static_canvas)
                 static_ax = static_canvas.figure.subplots()
                 self._imMasks.append(static_ax.imshow(CMap.T,cmap=cm.jet,extent=extent,aspect='equal'))
-                XX,ZZ=np.meshgrid(vec1,vec2)
-                static_ax.contour(XX,ZZ,CMap.T,[0,1,2,3], cmap=plt.cm.gray)
+                if CTMap is not None:
+                    Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
+                    self._imCtMasks.append(static_ax.imshow(Zm.T,cmap=cm.gray,extent=extent,aspect='equal'))
+                else:
+                    self._imCtMasks.append(None)
+                    XX,ZZ=np.meshgrid(vec1,vec2)
+                    static_ax.contour(XX,ZZ,CMap.T,[0,1,2,3], cmap=plt.cm.gray)
 
                 static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)
-#                static_ax.set_xlabel('X (mm)')
-#                static_ax.set_ylabel('Z (mm)')
+    #                static_ax.set_xlabel('X (mm)')
+    #                static_ax.set_ylabel('Z (mm)')
                 self._figMasks[-1].set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
 
         self.UpdateAcousticTab()
@@ -619,6 +664,8 @@ class RunMaskGeneration(QObject):
         kargs['prefix']=prefix
         kargs['bPlot']=False
         kargs['bAlignToSkin']=True
+        if self._mainApp._bUseCT:
+            kargs['CT_input']=self._mainApp._CT_input
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 

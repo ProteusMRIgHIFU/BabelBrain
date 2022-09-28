@@ -73,6 +73,12 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         VoxelizeCOMPUTING_BACKEND='Metal'
 
+MapFilter=None
+
+def InitMappingGPUCallback(Callback=None):
+    global MapFilter
+    MapFilter = Callback
+
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
@@ -135,11 +141,13 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 skin_stl='4007/4007_keep/m2m_4007_keep/skin.stl',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 Mat4Brainsight=None,
+                                CT_input=None,
+                                CT_quantification=10, #bits
                                 Foc=135.0, #Tx focal length
                                 FocFOV=165.0, #Tx focal length used for FOV subvolume
                                 TxDiam=157.0, # Tx aperture diameter
                                 Location=[27.5, -42, 42],#RAS location of target ,
-                                TrabecularProportion=0.5, #proportion of trabecular bone
+                                TrabecularProportion=0.8, #proportion of trabecular bone
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
                                 bDoNotAlign=False, #Use this to just move the Tx to match the coordinate with Tx facing S-->I, otherwise it will simulate the aligment of the Tx to be normal to the skull surface
@@ -561,6 +569,38 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
     
+    if CT_input is not None:
+        rCT=nibabel.load(CT_input)
+        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
+        dataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+        BinMaskConformalSkullRot=np.ascontiguousarray(BinMaskConformalSkullRot)
+        dataCT[BinMaskConformalSkullRot==False]=0
+        CTBone=dataCT[BinMaskConformalSkullRot]
+        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
+        dataCT[BinMaskConformalSkullRot]=CTBone
+        maxData=dataCT[BinMaskConformalSkullRot].max()
+        minData=dataCT[BinMaskConformalSkullRot].min()
+
+        A=maxData-minData
+        M = 2**CT_quantification-1
+        ResStep=A/M 
+        qx = ResStep *  np.round( (M/A) * (dataCT[BinMaskConformalSkullRot]-minData) )+ minData
+        dataCT[BinMaskConformalSkullRot]=qx
+        UniqueHU=np.unique(dataCT[BinMaskConformalSkullRot])
+        print('Unique CT values',len(UniqueHU))
+        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        if MedianFilter is None:
+            dataCTMap=np.zeros(dataCT.shape,np.uint32)
+            for n,d in enumerate(UniqueHU):
+                dataCTMap[dataCT==d]=n
+            dataCTMap[BinMaskConformalSkullRot==False]=0
+        else:
+            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU)
+
+        nCT=nibabel.Nifti1Image(dataCTMap, nCT.affine, nCT.header)
+        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+        nCT.to_filename(outname)
+
     if bPlot:
         plt.figure()
         plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)

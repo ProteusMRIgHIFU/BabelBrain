@@ -661,8 +661,8 @@ class BabelFTD_Simulations(object):
         self._SIM_SETTINGS.CalculateRayleighFieldsForward(deviceName=deviceName)
         if bSkipSavingSTL ==False:
             n=1
-            for VertDisplay,FaceDisplay in zip(self._SIM_SETTINGS._TxRC['RingVertDisplay'],
-                                    self._SIM_SETTINGS._TxRC['RingFaceDisplay']):
+            for VertDisplay,FaceDisplay in zip(self._SIM_SETTINGS._TxRCOrig['RingVertDisplay'],
+                                    self._SIM_SETTINGS._TxRCOrig['RingFaceDisplay']):
                 #we also export the STL of the Tx for display in Brainsight or 3D slicer
                 TxVert=VertDisplay.T.copy()
                 TxVert/=self._SIM_SETTINGS.SpatialStep
@@ -674,7 +674,7 @@ class BabelFTD_Simulations(object):
                 TxVert[2,:]=-TxVert[2,:]
                 TxVert[0,:]+=LocSpot[0]
                 TxVert[1,:]+=LocSpot[1]
-                TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS.SpatialStep
+                TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
 
                 TxVert=np.dot(affine,TxVert)
 
@@ -741,14 +741,16 @@ class BabelFTD_Simulations(object):
     def Step10_GetResults(self,prefix='',subsamplingFactor=1,bMinimalSaving=False):
         ss=subsamplingFactor
         if self._bWaterOnly:
-            waterPrefix='_Water_'
+            waterPrefix='Water_'
         else:
             waterPrefix=''
         RayleighWater,RayleighWaterOverlay,\
             FullSolutionPressure,\
             FullSolutionPressureRefocus,\
-            DataForSim= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing)
+            DataForSim,\
+            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing)
         affine=self._SkullMask.affine.copy()
+        affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
         bdir=os.path.dirname(self._MASKFNAME)
         if bMinimalSaving==False:
@@ -757,12 +759,26 @@ class BabelFTD_Simulations(object):
 
             nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
             SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
-            if self._bDoRefocusing:
-                nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-                SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+
+        [mx,my,mz]=np.where(MaskCalcRegions)
+        locm=np.array([[mx[0],my[0],mz[0],1]]).T
+        NewOrig=affineSub @ locm
+        affineSub[0:3,3]=NewOrig[0:3,0]
+        mx=np.unique(mx.flatten())
+        my=np.unique(my.flatten())
+        mz=np.unique(mz.flatten())
+
+        if self._bDoRefocusing:
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
         SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+
+        nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
@@ -1191,16 +1207,21 @@ elif self._bTightNarrowBeamDomain:
         TxRC['VertDisplay'][:,2]+=self._FocalLength
         return TxRC
     
-    def GenTx(self):
-        print('self._InDiameters, self._OutDiameters,self._FocalLength',self._InDiameters, self._OutDiameters,self._FocalLength)
-        TxRC=GeneratedRingArrayTx(self._Frequency,self._FocalLength, 
-                             self._InDiameters, self._OutDiameters, SpeedofSoundWater(20.0))
-        TxRC['Aperture']=self._Aperture
+    def GenTx(self,bOrigDimensions=False):
+        fScaling=1.0
+        if bOrigDimensions:
+            fScaling=self._FactorEnlarge
+        print('self._InDiameters, self._OutDiameters,self._FocalLength',self._InDiameters/fScaling, self._OutDiameters/fScaling,self._FocalLength/fScaling)
+        TxRC=GeneratedRingArrayTx(self._Frequency,self._FocalLength/fScaling, 
+                             self._InDiameters/fScaling, 
+                             self._OutDiameters/fScaling, 
+                             SpeedofSoundWater(20.0))
+        TxRC['Aperture']=self._Aperture/fScaling
         TxRC['NumberElems']=len(self._InDiameters)
-        TxRC['center'][:,2]+=self._FocalLength
-        TxRC['elemcenter'][:,2]+=self._FocalLength
+        TxRC['center'][:,2]+=self._FocalLength/fScaling
+        TxRC['elemcenter'][:,2]+=self._FocalLength/fScaling
         for n in range(len(TxRC['RingVertDisplay'])):
-            TxRC['RingVertDisplay'][n][:,2]+=self._FocalLength
+            TxRC['RingVertDisplay'][n][:,2]+=self._FocalLength/fScaling
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
@@ -1209,6 +1230,7 @@ elif self._bTightNarrowBeamDomain:
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elemens
         self._TxRC=self.GenTx()
+        self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
@@ -1231,33 +1253,34 @@ elif self._bTightNarrowBeamDomain:
             ax.set_zlabel('z (mm)')
             plt.show()
         
-        for k in ['center','RingVertDisplay','elemcenter']:
-            if k == 'RingVertDisplay':
-                for n in range(len(self._TxRC[k])):
-                    self._TxRC[k][n][:,0]+=self._TxMechanicalAdjustmentX
-                    self._TxRC[k][n][:,1]+=self._TxMechanicalAdjustmentY
-                    self._TxRC[k][n][:,2]+=self._TxMechanicalAdjustmentZ
-                    if self._OrientationTx=='X':
-                        p=self._TxRC[k][n][:,0].copy()
-                        self._TxRC[k][n][:,0]=self._TxRC[k][:,2].copy()
-                        self._TxRC[k][n][:,2]=p
-                    elif self._OrientationTx=='Y':
-                        p=self._TxRC[k][n][:,1].copy()
-                        self._TxRC[k][n][:,1]=self._TxRC[k][:,2].copy()
-                        self._TxRC[k][n][:,2]=p
-                    
-            else:
-                self._TxRC[k][:,0]+=self._TxMechanicalAdjustmentX
-                self._TxRC[k][:,1]+=self._TxMechanicalAdjustmentY
-                self._TxRC[k][:,2]+=self._TxMechanicalAdjustmentZ
-            if self._OrientationTx=='X':
-                p=self._TxRC[k][:,0].copy()
-                self._TxRC[k][:,0]=self._TxRC[k][:,2].copy()
-                self._TxRC[k][:,2]=p
-            elif self._OrientationTx=='Y':
-                p=self._TxRC[k][:,1].copy()
-                self._TxRC[k][:,1]=self._TxRC[k][:,2].copy()
-                self._TxRC[k][:,2]=p
+        for Tx in [self._TxRC,self._TxRCOrig]:
+            for k in ['center','RingVertDisplay','elemcenter']:
+                if k == 'RingVertDisplay':
+                    for n in range(len(Tx[k])):
+                        Tx[k][n][:,0]+=self._TxMechanicalAdjustmentX
+                        Tx[k][n][:,1]+=self._TxMechanicalAdjustmentY
+                        Tx[k][n][:,2]+=self._TxMechanicalAdjustmentZ
+                        if self._OrientationTx=='X':
+                            p=Tx[k][n][:,0].copy()
+                            Tx[k][n][:,0]=Tx[k][:,2].copy()
+                            Tx[k][n][:,2]=p
+                        elif self._OrientationTx=='Y':
+                            p=Tx[k][n][:,1].copy()
+                            Tx[k][n][:,1]=Tx[k][:,2].copy()
+                            Tx[k][n][:,2]=p
+                        
+                else:
+                    Tx[k][:,0]+=self._TxMechanicalAdjustmentX
+                    Tx[k][:,1]+=self._TxMechanicalAdjustmentY
+                    Tx[k][:,2]+=self._TxMechanicalAdjustmentZ
+                if self._OrientationTx=='X':
+                    p=Tx[k][:,0].copy()
+                    Tx[k][:,0]=Tx[k][:,2].copy()
+                    Tx[k][:,2]=p
+                elif self._OrientationTx=='Y':
+                    p=Tx[k][:,1].copy()
+                    Tx[k][:,1]=Tx[k][:,2].copy()
+                    Tx[k][:,2]=p
         
       
         #we apply an homogeneous pressure 
@@ -1933,6 +1956,7 @@ elif self._bTightNarrowBeamDomain:
         RayleighWater=np.flip(RayleighWater,axis=2)
         #this one creates an overlay of skull and brain tissue that helps to show it Slicer or other visualization tools
         MaskSkull=np.flip(self._SkullMaskDataOrig.astype(np.float32),axis=2)
+        MaskCalcRegions=np.zeros(MaskSkull.shape,bool)
         RayleighWaterOverlay=RayleighWater+MaskSkull*RayleighWater.max()/10
         
         FullSolutionPressure=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
@@ -1943,6 +1967,8 @@ elif self._bTightNarrowBeamDomain:
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
         FullSolutionPressure=np.flip(FullSolutionPressure,axis=2)
+        MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
+        MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
         FullSolutionPressureRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         if bDoRefocusing:
             FullSolutionPressureRefocus[self._XShrink_L:upperXR,
@@ -1987,5 +2013,6 @@ elif self._bTightNarrowBeamDomain:
                 RayleighWaterOverlay,\
                 FullSolutionPressure,\
                 FullSolutionPressureRefocus,\
-                DataForSim
+                DataForSim,\
+                MaskCalcRegions
         

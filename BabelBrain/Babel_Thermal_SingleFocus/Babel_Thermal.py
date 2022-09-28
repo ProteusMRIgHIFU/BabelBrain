@@ -27,7 +27,7 @@ import shutil
 from datetime import datetime
 import time
 import yaml
-from IntegrationBrainsightTW.CalculateTemperatureEffects import CalculateTemperatureEffects,GetThermalOutName
+from IntegrationBrainsightTW.CalculateTemperatureEffects import GetThermalOutName
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
 
@@ -256,12 +256,17 @@ class RunThermalSim(QObject):
         kargs['deviceName']=self._mainApp.Config['ComputingDevice']
         kargs['COMPUTING_BACKEND']=self._mainApp.Config['ComputingBackend']
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
-        kargs['sel_p']='p_amp'
-        if self._mainApp.Config['TxSystem'] =='H317':
-            if self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
-                 kargs['sel_p']='p_amp_refocus'
-        
-       
+
+        kargs['TxSystem']=self._mainApp.Config['TxSystem']
+        if kargs['TxSystem']=='CTX_500':
+            kargs['sel_p']='p_amp'
+        else:
+            bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
+            if bRefocus:
+                kargs['sel_p']='p_amp_refocus'
+            else:
+                kargs['sel_p']='p_amp'
+
 
         # Start mask generation as separate process.
         queue=Queue()

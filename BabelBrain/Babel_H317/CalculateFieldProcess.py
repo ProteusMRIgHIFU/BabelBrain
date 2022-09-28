@@ -53,8 +53,9 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         XSteering=kargs['XSteering'],
                         bDoRefocusing=kargs['bDoRefocusing'],
                         DistanceConeToFocus=kargs['DistanceConeToFocus'],
+                        bUseCT=kargs['bUseCT'],
                         bDisplay=False)
-
+                        
         RunCases(Target,ID=kargs['ID'],
                         deviceName=kargs['deviceName'],
                         COMPUTING_BACKEND=COMPUTING_BACKEND,
@@ -71,8 +72,10 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         bWaterOnly=True,
                         bDoRefocusing=False,
                         DistanceConeToFocus=kargs['DistanceConeToFocus'],
+                        bUseCT=kargs['bUseCT'],
                         bDisplay=False)
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())
         print(str(e))
+

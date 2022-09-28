@@ -103,7 +103,7 @@ class CTX500(QWidget):
     @Slot()
     def RunSimulation(self):
         self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
-        self._WaterSolName=self._MainApp._prefix_path+'_Water_DataForSim.h5'
+        self._WaterSolName=self._MainApp._prefix_path+'Water_DataForSim.h5'
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
@@ -216,17 +216,18 @@ class CTX500(QWidget):
          Zvec-=Zvec[LocTarget[2]]
          Zvec+=DistanceToTarget
          XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T*Factor*20,np.arange(2,22,2),cmap=plt.cm.jet)
+         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T*Factor,np.arange(2,22,2)/20,cmap=plt.cm.jet)
          h=plt.colorbar(self._imContourf1,ax=static_ax1)
-         h.set_label('$I_{\mathrm{SPPA}}$ (W/cm$^2$)')
+         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
          static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
          static_ax1.set_aspect('equal')
          static_ax1.set_xlabel('X mm')
          static_ax1.set_ylabel('Z mm')
          static_ax1.invert_yaxis()
          static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
-         self._imContourf2=static_ax2.contourf(XX,ZZ,ISkull[LocTarget[0],:,:].T*Factor*20,np.arange(2,22,2),cmap=plt.cm.jet)
+         self._imContourf2=static_ax2.contourf(XX,ZZ,ISkull[LocTarget[0],:,:].T*Factor,np.arange(2,22,2)/20,cmap=plt.cm.jet)
          h=plt.colorbar(self._imContourf1,ax=static_ax2)
+         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
          static_ax2.contour(XX,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
          static_ax2.set_aspect('equal')
          static_ax2.set_xlabel('Y mm')

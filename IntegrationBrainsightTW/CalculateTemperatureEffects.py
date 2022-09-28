@@ -110,7 +110,7 @@ def CalculateTemperatureEffects(InputPData,
     
     if bCalculateLosses:
         assert(type(InputPData) is str) # we only do this for single focus
-        WaterInputPData=InputPData.replace('DataForSim.h5','_Water_DataForSim.h5')
+        WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
         print('Load water',WaterInputPData)
         InputWater=ReadFromH5py(WaterInputPData)
 
