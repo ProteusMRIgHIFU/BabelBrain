@@ -131,10 +131,10 @@ skin (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-5.000000000000000</double>
+    <double>-10.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>5.000000000000000</double>
+    <double>10.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -172,10 +172,10 @@ skin (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-5.000000000000000</double>
+    <double>-10.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>5.000000000000000</double>
+    <double>10.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -242,10 +242,10 @@ skin (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-5.000000000000000</double>
+    <double>-90.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>5.000000000000000</double>
+    <double>90.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
