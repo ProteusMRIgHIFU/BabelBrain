@@ -257,6 +257,10 @@ class RunThermalSim(QObject):
         kargs['COMPUTING_BACKEND']=self._mainApp.Config['ComputingBackend']
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
         kargs['sel_p']='p_amp'
+        if self._mainApp.Config['TxSystem'] =='H317':
+            if self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+                 kargs['sel_p']='p_amp_refocus'
+        
        
 
         # Start mask generation as separate process.

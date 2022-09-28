@@ -119,6 +119,9 @@ class H317(QWidget):
                 bCalcFields=True
             else:
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
+                self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
+                if 'DistanceConeToFocus' in Skull:
+                    self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
@@ -156,6 +159,9 @@ class H317(QWidget):
          Water=ReadFromH5py(self._WaterSolName)
          Skull=ReadFromH5py(self._FullSolName)
          if self._MainApp._bInUseWithBrainsight:
+            if Skull['bDoRefocusing']:
+                #we update the name to be loaded in BSight
+                self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
             with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
                 f.write(self._MainApp._BrainsightInput) 
          self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],

@@ -119,7 +119,7 @@ def CalculateTemperatureEffects(InputPData,
         yfr=Input['y_vec']
         zfr=Input['z_vec']
         
-        pAmpWater=np.ascontiguousarray(np.flip(InputWater[sel_p],axis=2))
+        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
         PlanAtMaximumWater=pAmpWater[:,:,2] 
         AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
         print('Water Acoustic Energy entering',AcousticEnergyWater)

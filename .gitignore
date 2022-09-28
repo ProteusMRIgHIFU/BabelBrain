@@ -122,3 +122,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+BabelBrain/.DS_Store
+.DS_Store
