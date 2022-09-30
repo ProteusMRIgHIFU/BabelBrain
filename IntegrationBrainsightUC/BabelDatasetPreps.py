@@ -74,6 +74,17 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         VoxelizeCOMPUTING_BACKEND='Metal'
 
+MapFilter=None
+MapFilterCOMPUTING_BACKEND=''
+def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global MapFilter
+    global MapFilterCOMPUTING_BACKEND
+    MapFilter = Callback
+    if COMPUTING_BACKEND==2:
+        MapFilterCOMPUTING_BACKEND='OpenCL'
+    else:
+        MapFilterCOMPUTING_BACKEND='Metal'
+
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
@@ -544,9 +555,55 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     gc.collect()
     
     FinalMask=BinMaskConformalSkinRot
-    FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
+
+    if CT_input is  None:
+        FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
+        
+    else:
+        rCT=nibabel.load(CT_input)
+        sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
+        sf2=np.round((np.ones(3)*3)/rCT.header.get_zooms()).astype(int)
+        fct=ndimage.median_filter(rCT.get_fdata()>200,sf,mode='constant',cval=np.min(rCT.get_fdata()))
+        fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
+        fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
+
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
+
+        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
+        nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
+        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
+        ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+        ndataCT[nfct==False]=0
+
+        FinalMask[nfct]=2  #cortical
+
+        CTBone=ndataCT[nfct]
+        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
+        ndataCT[nfct]=CTBone
+        maxData=ndataCT[nfct].max()
+        minData=ndataCT[nfct].min()
+
+        A=maxData-minData
+        M = 2**CT_quantification-1
+        ResStep=A/M 
+        qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
+        ndataCT[nfct]=qx
+        UniqueHU=np.unique(ndataCT[nfct])
+        print('Unique CT values',len(UniqueHU))
+        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        if MapFilter is None:
+            ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
+            for n,d in enumerate(UniqueHU):
+                ndataCTMap[ndataCT==d]=n
+            ndataCTMap[nfct==False]=0
+        else:
+            ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+
+        nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
+        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+        nCT.to_filename(outname)
+
     FinalMask[BinMaskConformalCSFRot==1]=4#brain
-    
     print('doing median_filter ...')
     t0=time.time()
     if platform in ['linux','win32']:
@@ -567,47 +624,14 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     DegreeErosion=int((LineViewBone.sum()*(1-TrabecularProportion)))
     print('DegreeErosion',DegreeErosion)
     Trabecula=ndimage.binary_erosion(BinMaskConformalSkullRot,iterations=DegreeErosion)
-   
+
     FinalMask[Trabecula]=3 #trabecula
     
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
-    
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
-    
+
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
-    
-    if CT_input is not None:
-        rCT=nibabel.load(CT_input)
-        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
-        dataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-        BinMaskConformalSkullRot=np.ascontiguousarray(BinMaskConformalSkullRot)
-        dataCT[BinMaskConformalSkullRot==False]=0
-        CTBone=dataCT[BinMaskConformalSkullRot]
-        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
-        dataCT[BinMaskConformalSkullRot]=CTBone
-        maxData=dataCT[BinMaskConformalSkullRot].max()
-        minData=dataCT[BinMaskConformalSkullRot].min()
-
-        A=maxData-minData
-        M = 2**CT_quantification-1
-        ResStep=A/M 
-        qx = ResStep *  np.round( (M/A) * (dataCT[BinMaskConformalSkullRot]-minData) )+ minData
-        dataCT[BinMaskConformalSkullRot]=qx
-        UniqueHU=np.unique(dataCT[BinMaskConformalSkullRot])
-        print('Unique CT values',len(UniqueHU))
-        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
-        if MedianFilter is None:
-            dataCTMap=np.zeros(dataCT.shape,np.uint32)
-            for n,d in enumerate(UniqueHU):
-                dataCTMap[dataCT==d]=n
-            dataCTMap[BinMaskConformalSkullRot==False]=0
-        else:
-            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU)
-
-        nCT=nibabel.Nifti1Image(dataCTMap, nCT.affine, nCT.header)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
-        nCT.to_filename(outname)
     if bPlot:
         plt.figure()
         plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)

@@ -74,10 +74,15 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         VoxelizeCOMPUTING_BACKEND='Metal'
 
 MapFilter=None
-
-def InitMappingGPUCallback(Callback=None):
+MapFilterCOMPUTING_BACKEND=''
+def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     global MapFilter
+    global MapFilterCOMPUTING_BACKEND
     MapFilter = Callback
+    if COMPUTING_BACKEND==2:
+        MapFilterCOMPUTING_BACKEND='OpenCL'
+    else:
+        MapFilterCOMPUTING_BACKEND='Metal'
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
@@ -589,13 +594,13 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         UniqueHU=np.unique(dataCT[BinMaskConformalSkullRot])
         print('Unique CT values',len(UniqueHU))
         np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
-        if MedianFilter is None:
+        if MapFilter is None:
             dataCTMap=np.zeros(dataCT.shape,np.uint32)
             for n,d in enumerate(UniqueHU):
                 dataCTMap[dataCT==d]=n
             dataCTMap[BinMaskConformalSkullRot==False]=0
         else:
-            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU)
+            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
         nCT=nibabel.Nifti1Image(dataCTMap, nCT.affine, nCT.header)
         outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'

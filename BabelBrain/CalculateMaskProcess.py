@@ -44,23 +44,16 @@ def CalculateMaskProcess(queue,TxSystem,COMPUTING_BACKEND,devicename,**kargs):
         
         if sys.platform not in ['linux','win32']:   
             from GPUMedianFilter import  MedianFilter
-            if 'arm64' in platform.platform():
-                #we will favour OpenCL implementation for this task
-                MedianFilter.InitOpenCL(DeviceName= devicename)
-                COMPUTING_BACKEND=2
-            else:
-                MedianFilter.InitMetal(DeviceName= devicename)
-                COMPUTING_BACKEND=3
-            DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilterSize7,COMPUTING_BACKEND)
-
             from GPUVoxelize import Voxelize
-            if 'arm64' in platform.platform():
-                Voxelize.InitOpenCL(DeviceName= devicename)
-                COMPUTING_BACKEND=2
-            else:
-                Voxelize.InitMetal(DeviceName= devicename)
-                COMPUTING_BACKEND=3
+            from GPUMapping import MappingFilter
+        
+            MedianFilter.InitMetal(DeviceName= devicename)
+            Voxelize.InitMetal(DeviceName= devicename)
+            MappingFilter.InitMetal(DeviceName= devicename)
+            COMPUTING_BACKEND=3
+            DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilterSize7,COMPUTING_BACKEND)
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
+            DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
 
         DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
     except BaseException as e:
