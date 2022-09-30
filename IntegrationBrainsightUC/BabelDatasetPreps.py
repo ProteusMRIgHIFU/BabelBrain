@@ -16,6 +16,7 @@ from nibabel import processing
 from scipy import ndimage
 from trimesh import creation 
 from scipy.spatial.transform import Rotation as R
+from skimage.measure import label, regionprops
 import time
 import gc
 import yaml
@@ -558,7 +559,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
 
     if CT_input is  None:
         FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
-        
+        FinalMask[BinMaskConformalCSFRot==1]=4#brain
     else:
         rCT=nibabel.load(CT_input)
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
@@ -575,7 +576,14 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
         ndataCT[nfct==False]=0
 
-        FinalMask[nfct]=2  #cortical
+        FinalMask[BinMaskConformalCSFRot==1]=4#brain
+        FinalMask[nfct]=2  #bone
+        #we do a cleanup of islands 
+        label_img = label(FinalMask==1)
+        regions= regionprops(label_img)
+        regions=sorted(regions,key=lambda d: d.area)
+        for l in regions[:-1]:
+            FinalMask[regions==l.label]=4
 
         CTBone=ndataCT[nfct]
         CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
@@ -603,7 +611,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
         nCT.to_filename(outname)
 
-    FinalMask[BinMaskConformalCSFRot==1]=4#brain
+    
     print('doing median_filter ...')
     t0=time.time()
     if platform in ['linux','win32']:
