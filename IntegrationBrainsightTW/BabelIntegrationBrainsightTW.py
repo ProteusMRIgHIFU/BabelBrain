@@ -333,6 +333,7 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
              bRunThroughFile=False,
              bWaterOnly=False,
              basePPW=[9],
+             bUseCT=False,
              Frequencies=[500e3]):
     OutNames=[]
     for target in targets:
@@ -353,6 +354,10 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
                     prefix=basedir+ID+os.sep
                     MASKFNAME=prefix+target+alignment+fstr+ppws+ 'BabelViscoInput.nii.gz'
                     print (MASKFNAME)
+                    if bUseCT:
+                        CTFNAME=prefix+target+alignment+fstr+ppws+ 'CT.nii.gz'
+                    else:
+                        CTFNAME=None
                     for noshear in [False]:
                         listAdjust=[0.0]
                         for AdjustDepthFocalSpot in listAdjust:
@@ -394,6 +399,7 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
                                 inparams['bMinimalSaving']=bMinimalSaving
                                 inparams['bForceRecalc']=bForceRecalc
                                 inparams['bRunThroughFile']=False
+                                inparams['CTFNAME']=CTFNAME
                                 
                                 with open('inputforsim','wb') as f:
                                     pickle.dump(inparams,f)
@@ -421,6 +427,7 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
                                                                TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
                                                                bDoRefocusing=bDoRefocusing,
                                                                ZSteering=ZSteering,
+                                                               CTFNAME=CTFNAME,
                                                                bDisplay=bDisplay)
                                 print('  Step 1')
 
@@ -590,7 +597,8 @@ class BabelFTD_Simulations(object):
                  TxMechanicalAdjustmentY=0,
                  TxMechanicalAdjustmentZ=0,
                  bDoRefocusing=True,
-                 bWaterOnly=False):
+                 bWaterOnly=False,
+                 CTFNAME=None):
         self._MASKFNAME=MASKFNAME
         
         if bNoShear:
@@ -614,6 +622,7 @@ class BabelFTD_Simulations(object):
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
         self._ZSteering=ZSteering
         self._bDoRefocusing=bDoRefocusing
+        self._CTFNAME=CTFNAME
 
 
     def Step1_InitializeConditions(self,AdjustDepthFocalSpot=0.,OrientationTx='Z'): #in case it is desired to move up or down in the Z direction the focal spot
@@ -627,6 +636,17 @@ class BabelFTD_Simulations(object):
             #SensorSubSampling=4
             #SensorSubSampling=9
             SensorSubSampling=1
+        DensityCTMap=None
+        if self._CTFNAME is not None and not self._bWaterOnly:
+            DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            AllBone = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
+            print('Range HU CT, Unique entries',AllBone.min(),AllBone.max(),len(AllBone))
+            DensityCT=HUtoDensity(AllBone)
+            
+            print('Range Density CT',DensityCT.min(),DensityCT.max())
+            print('Range SOS CT',DensityCT.min()*1.33 + 167,DensityCT.max()*1.33 + 167)
+            DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
+            print("maximum CT index map value",DensityCTMap.max())
             
         self._SIM_SETTINGS = SimulationConditions(baseMaterial=Material['Water'],
                                 basePPW=self._basePPW,
@@ -644,14 +664,35 @@ class BabelFTD_Simulations(object):
                                 TxMechanicalAdjustmentY=self._TxMechanicalAdjustmentY,
                                 TxMechanicalAdjustmentZ=self._TxMechanicalAdjustmentZ,
                                 ZSteering=self._ZSteering,
+                                DensityCTMap=DensityCTMap,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
-        for k in ['Skin','Cortical','Trabecular','Brain']:
-            SelM=MatFreq[self._Frequency][k]
-            self._SIM_SETTINGS.AddMaterial(SelM[0], #den
-                                           SelM[1],
-                                           SelM[2]*self._Shear,
-                                           SelM[3],
-                                           SelM[4]*self._Shear) #the attenuation came for 500 kHz, so we adjust with the one being used
+        if  self._CTFNAME is not None and not self._bWaterOnly:
+            for k in ['Skin','Brain']:
+                SelM=MatFreq[self._Frequency][k]
+                self._SIM_SETTINGS.AddMaterial(SelM[0], #den
+                                            SelM[1],
+                                            0,
+                                            SelM[3],
+                                            0) #the attenuation came for 500 kHz, so we adjust with the one being used
+                for d in DensityCT:
+                    SelM=MatFreq[self._Frequency]['Cortical']
+                    lSoS=1.33*d + 167 #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+                    self._SIM_SETTINGS.AddMaterial(d, #den
+                                            lSoS,
+                                            0,
+                                            SelM[3]/4, #we keep constant attenuation
+                                            0)
+
+                
+
+        else:
+            for k in ['Skin','Cortical','Trabecular','Brain']:
+                SelM=MatFreq[self._Frequency][k]
+                self._SIM_SETTINGS.AddMaterial(SelM[0], #den
+                                            SelM[1],
+                                            SelM[2]*self._Shear,
+                                            SelM[3],
+                                            SelM[4]*self._Shear) #the attenuation came for 500 kHz, so we adjust with the one being used
         
         self._SIM_SETTINGS.UpdateConditions(self._SkullMask,AlphaCFL=self._AlphaCFL,bWaterOnly=self._bWaterOnly)
         gc.collect()
@@ -767,7 +808,6 @@ class BabelFTD_Simulations(object):
         mx=np.unique(mx.flatten())
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
-
         if self._bDoRefocusing:
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
             SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
@@ -890,6 +930,7 @@ class SimulationConditions(object):
                       TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
                       ZSteering=0.0, # steering
+                      DensityCTMap=None, #use CT map   
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -930,7 +971,7 @@ class SimulationConditions(object):
         self._TxMechanicalAdjustmentY=TxMechanicalAdjustmentY
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
         self._ZSteering=ZSteering
-  
+        self._DensityCTMap=DensityCTMap
         
         
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
@@ -954,7 +995,7 @@ class SimulationConditions(object):
         print('MatArray\n',MatArray)
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=SmallestSOS[iS[0]]
+        SmallestSOS=np.min([SmallestSOS[iS[0]],SettingSmallestSOS(self._Frequency)])
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
@@ -1164,6 +1205,16 @@ elif self._bTightNarrowBeamDomain:
         ntSteps=(int(TimeVector.shape[0]/self._PPP)+1)*self._PPP
         self._TimeSimulation=self._TemporalStep*ntSteps
         TimeVector=np.arange(0,ntSteps)*self._TemporalStep
+        if self._PPP % self._SensorSubSampling !=0:
+            print('overwrriting  self._SensorSubSampling')
+            potential=np.arange(1,self._PPP).tolist()
+            result = np.array(list(filter(lambda x: (self._PPP % x == 0), potential)))
+            AllDiv=self._PPP/result
+            result=result[AllDiv>=4]
+            AllDiv=self._PPP/result
+            self._SensorSubSampling=int(result[-1])
+            assert(AllDiv[-1]<=10) 
+
         print('PPP, Subsampling, PPP for sensors ', self._PPP,self._SensorSubSampling, self._PPP/self._SensorSubSampling)
         assert((self._PPP%self._SensorSubSampling)==0)
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
@@ -1191,7 +1242,24 @@ elif self._bTightNarrowBeamDomain:
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
 
-            self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
+            if self._DensityCTMap is not None:
+                assert(self._DensityCTMap.dtype==np.uint32)
+                BoneRegion=(self._MaterialMap==2) | (self._MaterialMap==3)
+                self._MaterialMapNoCT=self._MaterialMap.copy()
+                SubCTMap=np.zeros_like(self._MaterialMap)
+                SubCTMap[self._XLOffset:-self._XROffset,
+                              self._YLOffset:-self._YROffset,
+                              self._ZLOffset:-self._ZROffset]=\
+                                self._DensityCTMap[self._XShrink_L:upperXR,
+                                                                         self._YShrink_L:upperYR,
+                                                                         self._ZShrink_L:upperZR]
+                self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
+                self._MaterialMap[self._MaterialMap==5]=2 # this is to make the focal spot location as brain tissue
+                assert(SubCTMap[BoneRegion].min()>=3)
+                assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().max())
+
+            else:
+                self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
         
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
@@ -1987,16 +2055,19 @@ elif self._bTightNarrowBeamDomain:
             DataForSim['p_amp_refocus']=self._InPeakValueRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
-            
-        MaterialMap=self._MaterialMap.copy()
+        if self._DensityCTMap is not None:
+            MaterialMap=self._MaterialMapNoCT.copy()
+            DataForSim['MaterialMapCT']=MaterialMap
+        else:
+            MaterialMap=self._MaterialMap.copy()
         MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=5.0
         
         DataForSim['MaterialMap']=MaterialMap[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
+        
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==5.0)).flatten()
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==5.0]=4.0 #we switch it back to soft tissue
-        
         
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
@@ -2015,4 +2086,5 @@ elif self._bTightNarrowBeamDomain:
                 FullSolutionPressureRefocus,\
                 DataForSim,\
                 MaskCalcRegions
+                
         
