@@ -141,22 +141,12 @@
       <double>6.000000000000000</double>
      </property>
     </widget>
-    <widget class="QWidget" name="USMask_plot2" native="true">
-     <property name="geometry">
-      <rect>
-       <x>600</x>
-       <y>44</y>
-       <width>330</width>
-       <height>400</height>
-      </rect>
-     </property>
-    </widget>
-    <widget class="QWidget" name="USMask_plot1" native="true">
+    <widget class="QWidget" name="USMask" native="true">
      <property name="geometry">
       <rect>
        <x>260</x>
        <y>44</y>
-       <width>330</width>
+       <width>1013</width>
        <height>400</height>
       </rect>
      </property>
@@ -179,16 +169,6 @@
      <property name="text">
       <string>Calculate planninng
 mask</string>
-     </property>
-    </widget>
-    <widget class="QWidget" name="USMask_plot3" native="true">
-     <property name="geometry">
-      <rect>
-       <x>940</x>
-       <y>44</y>
-       <width>330</width>
-       <height>400</height>
-      </rect>
      </property>
     </widget>
    </widget>

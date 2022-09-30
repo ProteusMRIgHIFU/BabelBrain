@@ -36,7 +36,7 @@ from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
-    FigureCanvas)
+    FigureCanvas,NavigationToolbar2QT)
 import time
 import yaml
 
@@ -203,6 +203,7 @@ class BabelBrain(QWidget):
 
         self.load_ui()
         self.InitApplication()
+        self.static_canvas=None
 
     def GetInputFromBrainsight(self):
         res=None
@@ -559,8 +560,7 @@ class BabelBrain(QWidget):
             CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
 
         if self._figMasks is not None:
-            for im,imCT,fig,CMap,CTMap,extent in zip(self._imMasks,self._imCtMasks,
-                                    self._figMasks,
+            for im,imCT,CMap,CTMap,extent in zip(self._imMasks,self._imCtMasks,
                                     [CMapXZ,CMapYZ,CMapXY],
                                     CTMaps,
                                     [extentXZ,extentYZ,extentXY]):
@@ -569,26 +569,38 @@ class BabelBrain(QWidget):
                     Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                     imCT.set_data(Zm.T)
                 im.set_extent(extent)
-                fig.canvas.draw_idle()
+            self._figMasks.canvas.draw_idle()
         else:
-            self._figMasks=[]
+            
             self._imMasks=[]
             self._imCtMasks=[]
 
-            for CMap,CTMap,extent,wpl,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+            self._figMasks = Figure(figsize=(18, 6))
+
+            if self.static_canvas is not None:
+                self._layout.removeItem(self._layout.itemAt(0))
+                self._layout.removeItem(self._layout.itemAt(0))
+            else:
+                self._layout = QVBoxLayout(self.Widget.USMask)
+
+            self.static_canvas = FigureCanvas(self._figMasks)
+            
+            toolbar=NavigationToolbar2QT(self.static_canvas,self)
+            self._layout.addWidget(toolbar)
+            self._layout.addWidget(self.static_canvas)
+
+            axes=self.static_canvas.figure.subplots(1,3)
+
+            for CMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
                                     CTMaps,
                                     [extentXZ,extentYZ,extentXY],
-                                    [self.Widget.USMask_plot1,self.Widget.USMask_plot2,self.Widget.USMask_plot3],
+                                    axes,
                                     [x_vec,y_vec,x_vec],
                                     [z_vec,z_vec,y_vec],
                                     [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                     [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-                layout = QVBoxLayout(wpl)
-                self._figMasks.append(Figure(figsize=(6, 6)))
-                static_canvas = FigureCanvas(self._figMasks[-1])
-                layout.addWidget(static_canvas)
-                static_ax = static_canvas.figure.subplots()
+
                 self._imMasks.append(static_ax.imshow(CMap.T,cmap=cm.jet,extent=extent,aspect='equal'))
                 if CTMap is not None:
                     Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
@@ -599,9 +611,7 @@ class BabelBrain(QWidget):
                     static_ax.contour(XX,ZZ,CMap.T,[0,1,2,3], cmap=plt.cm.gray)
 
                 static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)
-    #                static_ax.set_xlabel('X (mm)')
-    #                static_ax.set_ylabel('Z (mm)')
-                self._figMasks[-1].set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+            self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
 
         self.UpdateAcousticTab()
 
