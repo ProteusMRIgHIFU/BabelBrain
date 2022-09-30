@@ -4,7 +4,7 @@ Tools to generate files for acoustic/viscoleastic simulations for LIFU experimen
 ABOUT:
      author        - Samuel Pichardo
      date          - June 23, 2021
-     last update   - Nov 27, 2021
+     last update   - Sep 30, 2022
 
 '''
 import matplotlib.pyplot as plt
@@ -12,14 +12,19 @@ import numpy as np
 import os
 import trimesh
 import nibabel
+from nibabel import processing
 from scipy import ndimage
 from trimesh import creation 
 from scipy.spatial.transform import Rotation as R
+from skimage.measure import label, regionprops
 import time
+import gc
+import yaml
 
 import pandas as pd
 import platform
 import sys
+
 
 def GetIDTrajectoryBrainsight(fname):
     names=['Target name', 
@@ -44,23 +49,23 @@ def ReadTrajectoryBrainsight(fname):
     Mat4[:3,2]=df[9:]
     
     return Mat4
-from sys import platform
+
 if platform in ['linux','win32']:
     print('importing cupy')
     import cupy 
     import cupyx 
     from cupyx.scipy import ndimage as cndimage
-else:
-    MedianFilter=None
-    MedianCOMPUTING_BACKEND=''
-    def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
-        global MedianFilter
-        global MedianCOMPUTING_BACKEND
-        MedianFilter = Callback
-        if COMPUTING_BACKEND==2:
-            MedianCOMPUTING_BACKEND='OpenCL'
-        else:
-            MedianCOMPUTING_BACKEND='Metal'
+
+MedianFilter=None
+MedianCOMPUTING_BACKEND=''
+def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global MedianFilter
+    global MedianCOMPUTING_BACKEND
+    MedianFilter = Callback
+    if COMPUTING_BACKEND==2:
+        MedianCOMPUTING_BACKEND='OpenCL'
+    else:
+        MedianCOMPUTING_BACKEND='Metal'
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
 
@@ -145,9 +150,9 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 csf_stl='4007/4007_keep/m2m_4007_keep/csf.stl',
                                 skin_stl='4007/4007_keep/m2m_4007_keep/skin.stl',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
-                                Mat4Brainsight=None,
                                 CT_input=None,
                                 CT_quantification=10, #bits
+                                Mat4Brainsight=None,                                
                                 Foc=135.0, #Tx focal length
                                 FocFOV=165.0, #Tx focal length used for FOV subvolume
                                 TxDiam=157.0, # Tx aperture diameter
@@ -160,9 +165,9 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 InitialAligment='HF',
                                 bPlot=True,
                                 bAlignToSkin=False,
-                                factorEnlargeRadius=1.0,
+                                factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
-                                DeviceName=''):
+                                DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -174,7 +179,6 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
          last update   - Nov 27, 2021
     
     '''
-
     #load T1W
     T1Conformal=nibabel.load(T1Conformal_nii)
     baseaffine=T1Conformal.affine.copy()
@@ -185,17 +189,19 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     baseaffine[0,0]*=SpatialStep
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
-    
-    
-    
+
+
+
     #building a cone object representing acoustic beam pointing to desired location
     RadCone=TxDiam/2*factorEnlargeRadius
+    if type(Foc) is tuple:
+        Foc=Foc[0]
     HeightCone=np.sqrt(Foc**2-RadCone**2)
     print('HeightCone',HeightCone)
     
     InVAffine=np.linalg.inv(baseaffine)
     
-    if Mat4Brainsight is None:
+    if Mat4Brainsight is None:    
         print('*'*40+'\n calculating optimal orientation\n'+'*'*40)
 
         if InitialAligment == 'HF':
@@ -227,14 +233,14 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
             TransformationCone[2,3]=Location[2]
         else:
             raise ValueError('InitialAligment not supported ', InitialAligment)
-
+            
         Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
 
         if bAlignToSkin:
             reference_mesh = trimesh.load_mesh(skin_stl)
         else:
             reference_mesh = trimesh.load_mesh(skull_stl)
-
+        
         #we iterate a few times calculating the normal vectors of the regions being crossed 
         #through the skull to ensure maximizing normal incidence
         #the cone is initially pointing superior->inferior (note that in trimesh the cone is oriented from the tip,
@@ -242,7 +248,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         # by iterating a few times we can rotate the cone until the beam have an adequate normal
         #incident crossing through the skull. This could be improved using a minimization criteeria
         TransformationCone[2,3]=Location[2]
-        CumulativeTransform=TransformationCone.copy() 
+        CumulativeTransform=TransformationCone.copy()
         Cone.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_Base_cone.stl')
 
         if bDoNotAlign==False:
@@ -265,11 +271,11 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                 TransformationCone[0,3]=-Location[0]
                 TransformationCone[1,3]=-Location[1]
                 TransformationCone[2,3]=-Location[2]
-
+                
                 CumulativeTransform=TransformationCone@CumulativeTransform
 
                 Cone.apply_transform(TransformationCone)
-
+                
                 #now we prepare a new transformation matrix that will rotate towards the
                 #average normal vector of the surface of the skull being crossed and 
                 #translated back to the intended location
@@ -277,7 +283,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                 TransformationCone[0,3]=Location[0]
                 TransformationCone[1,3]=Location[1]
                 TransformationCone[2,3]=Location[2]
-
+                
                 #this calculates the transformation matrix to go from one vector to another
                 RMat=R.align_vectors(AvgNormal.reshape((1,3)),OrientVec)[0].as_matrix()
                 print('RMat',RMat,AvgNormal,OrientVec)
@@ -285,9 +291,9 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                 OrientVec=AvgNormal.reshape((1,3))
 
                 TransformationCone[0:3,0:3]=RMat
-
+                
                 Cone.apply_transform(TransformationCone)
-
+                
                 CumulativeTransform=TransformationCone@CumulativeTransform
             #we calculate the final transformation matrix that rotates from the S->I direction to the direction 
             # that ensures normal incidence
@@ -342,18 +348,19 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     #we save the final cone profile
     Cone.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_cone.stl')
-    
+      
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
     skin_mesh =trimesh.boolean.intersection((skin_mesh,Cone),engine='blender')
-
     print('doing intersection voxelization...')
     t0=time.time()
-    #we obtain the list of Cartesian voxels inside the skin region intersected by the cone  
+    #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
+
     if VoxelizeFilter is None:  
         skin_grid = skin_mesh.voxelized(SpatialStep,max_iter=30).fill().points
     else:
         skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+
     print('time to voxelize',time.time()-t0)
     
     x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+SpatialStep,SpatialStep)
@@ -362,7 +369,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     Corner1=np.array([x_vec[0],y_vec[0],z_vec[0],1]).reshape((4,1))
     Corner2=np.array([x_vec[-1],y_vec[-1],z_vec[-1],1]).reshape((4,1))
-    
+
     #we will produce one dataset (used only for sanity tests)
     # with the same orientation as the T1 scan and just enclosing the list of points intersected
     AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int).T
@@ -387,12 +394,10 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     InVAffine=np.linalg.inv(baseaffine)
     InVAffineRot=np.linalg.inv(baseaffineRot)
-    
-    
+
     XYZ=skin_grid
     #we make it a Nx4 array
     XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1)))).T
-    
     
     #now we prepare the new dataset that is perpendicular to the cone direction
     #first we calculate the indexes i,j,k
@@ -407,9 +412,9 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
     
     LocFocalPoint=AffIJK[-1,:3] #we recover the location in pixels of the intended target
-    
-   ## This is the box that covers the minimal volume
-    DimsBox=(np.max(AffIJK,axis=0)[:3]+1)*SpatialStep
+          
+    ## This is the box that covers the minimal volume
+    DimsBox=(np.max(AffIJK,axis=0)[:3]-np.min(AffIJK,axis=0)[:3]+1)*SpatialStep
     TransformationBox=np.eye(4)
     TransformationBox[2,3]=-DimsBox[2]/2
     TransformationBox[2,3]+=FocFOV-Foc
@@ -418,37 +423,37 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                         transform=TransformationBox)
     BoxFOV.apply_transform(CumulativeTransform)
     BoxFOV.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_box_FOV.stl')
-    
+      
     ##################### And we repeat and complete data extraction
     baseaffine=T1Conformal.affine.copy()
     baseaffine[0,0]*=SpatialStep
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
-    
+
     skull_mesh = trimesh.load_mesh(skull_stl)
     csf_mesh = trimesh.load_mesh(csf_stl)
-    skin_mesh = trimesh.load_mesh(skin_stl)
+    skin_mesh = trimesh.load_mesh(skin_stl)  
 
     if bApplyBOXFOV:
         skull_mesh=trimesh.boolean.intersection((skull_mesh,BoxFOV),engine='blender')
         csf_mesh  =trimesh.boolean.intersection((csf_mesh,  BoxFOV),engine='blender')
         skin_mesh =trimesh.boolean.intersection((skin_mesh, BoxFOV),engine='blender')
-
+    
     #we first substract to find the pure bone region
     if VoxelizeFilter is None:
         while(True):
             try:
                 print('doing skull voxelization...')
                 t0=time.time()
-                skull_grid = skull_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points
+                skull_grid = skull_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
                 print('time to voxelize',time.time()-t0)
                 print('doing csf voxelization...')
                 t0=time.time()
-                csf_grid = csf_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points
+                csf_grid = csf_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
                 print('time to voxelize',time.time()-t0)
                 print('doing skin voxelization...')
                 t0=time.time()
-                skin_grid = skin_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points
+                skin_grid = skin_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
                 print('time to voxelize',time.time()-t0)
                 break
             except AttributeError as err:
@@ -502,8 +507,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     InVAffine=np.linalg.inv(baseaffine)
     InVAffineRot=np.linalg.inv(baseaffineRot)
-    InVAffineRot=InVAffineRot.astype(skin_grid.dtype)
-    
+    InVAffineRot=InVAffineRot.astype(skin_grid.dtype)    
+
     t0=time.time()
     XYZ=skin_grid
     XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skin_grid.dtype))).T
@@ -513,7 +518,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     baseaffineRot[:,3]=NewOrig.flatten()
     InVAffineRot=np.linalg.inv(baseaffineRot)
     InVAffineRot=InVAffineRot.astype(skin_grid.dtype)
-    
+    del AffIJK
     ALoc=np.ones((4,1),dtype=skin_grid.dtype)
     ALoc[:3,0]=np.array(Location,dtype=skin_grid.dtype)
     XYZ=np.hstack((XYZ,ALoc))
@@ -525,6 +530,10 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     BinMaskConformalSkinRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
     
     print('time skin masking',time.time()-t0)
+    del XYZ
+    del skin_grid
+    gc.collect()
+
     t0=time.time()
 
     XYZ=skull_grid
@@ -533,16 +542,80 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     BinMaskConformalSkullRot=np.zeros_like(BinMaskConformalSkinRot)
     BinMaskConformalSkullRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
     print('time skull masking',time.time()-t0)
+    del AffIJK
+    del XYZ
+    del skull_grid
+    gc.collect()
+
     t0=time.time()
+
     XYZ=csf_grid
     XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
     AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
     BinMaskConformalCSFRot=np.zeros_like(BinMaskConformalSkinRot)
     BinMaskConformalCSFRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
     print('time csf masking',time.time()-t0)
+    del AffIJK
+    del XYZ
+    del csf_grid
+    gc.collect()
+    
     FinalMask=BinMaskConformalSkinRot
-    FinalMask[BinMaskConformalSkullRot==1.0]=2 #cortical
-    FinalMask[BinMaskConformalCSFRot==1.0]=4 #brain
+
+    if CT_input is  None:
+        FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
+        FinalMask[BinMaskConformalCSFRot==1]=4#brain
+    else:
+        rCT=nibabel.load(CT_input)
+        sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
+        sf2=np.round((np.ones(3)*3)/rCT.header.get_zooms()).astype(int)
+        fct=ndimage.median_filter(rCT.get_fdata()>200,sf,mode='constant',cval=np.min(rCT.get_fdata()))
+        fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
+        fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
+
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
+
+        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
+        nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
+        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
+        ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+        ndataCT[nfct==False]=0
+
+        FinalMask[BinMaskConformalCSFRot==1]=4#brain
+        FinalMask[nfct]=2  #bone
+        #we do a cleanup of islands 
+        label_img = label(FinalMask==1)
+        regions= regionprops(label_img)
+        regions=sorted(regions,key=lambda d: d.area)
+        for l in regions[:-1]:
+            FinalMask[regions==l.label]=4
+
+        CTBone=ndataCT[nfct]
+        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
+        ndataCT[nfct]=CTBone
+        maxData=ndataCT[nfct].max()
+        minData=ndataCT[nfct].min()
+
+        A=maxData-minData
+        M = 2**CT_quantification-1
+        ResStep=A/M 
+        qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
+        ndataCT[nfct]=qx
+        UniqueHU=np.unique(ndataCT[nfct])
+        print('Unique CT values',len(UniqueHU))
+        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        if MapFilter is None:
+            ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
+            for n,d in enumerate(UniqueHU):
+                ndataCTMap[ndataCT==d]=n
+            ndataCTMap[nfct==False]=0
+        else:
+            ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+
+        nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
+        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+        nCT.to_filename(outname)
+
     
     print('doing median_filter ...')
     t0=time.time()
@@ -556,56 +629,22 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         else:
             FinalMask=MedianFilter(FinalMask.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
     print('time to filter',time.time()-t0)
- 
+    
     #we extract back the bone part
-    BinMaskConformalSkullRot=FinalMask==2 
+    BinMaskConformalSkullRot=FinalMask==2
     LineViewBone=BinMaskConformalSkullRot[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]:]
     #we erode to establish the section of bone associated with trabecular
     DegreeErosion=int((LineViewBone.sum()*(1-TrabecularProportion)))
     print('DegreeErosion',DegreeErosion)
     Trabecula=ndimage.binary_erosion(BinMaskConformalSkullRot,iterations=DegreeErosion)
-   
+
     FinalMask[Trabecula]=3 #trabecula
     
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
-    
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
-    
+
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
-    
-    if CT_input is not None:
-        rCT=nibabel.load(CT_input)
-        nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
-        dataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-        BinMaskConformalSkullRot=np.ascontiguousarray(BinMaskConformalSkullRot)
-        dataCT[BinMaskConformalSkullRot==False]=0
-        CTBone=dataCT[BinMaskConformalSkullRot]
-        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
-        dataCT[BinMaskConformalSkullRot]=CTBone
-        maxData=dataCT[BinMaskConformalSkullRot].max()
-        minData=dataCT[BinMaskConformalSkullRot].min()
-
-        A=maxData-minData
-        M = 2**CT_quantification-1
-        ResStep=A/M 
-        qx = ResStep *  np.round( (M/A) * (dataCT[BinMaskConformalSkullRot]-minData) )+ minData
-        dataCT[BinMaskConformalSkullRot]=qx
-        UniqueHU=np.unique(dataCT[BinMaskConformalSkullRot])
-        print('Unique CT values',len(UniqueHU))
-        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
-        if MapFilter is None:
-            dataCTMap=np.zeros(dataCT.shape,np.uint32)
-            for n,d in enumerate(UniqueHU):
-                dataCTMap[dataCT==d]=n
-            dataCTMap[BinMaskConformalSkullRot==False]=0
-        else:
-            dataCTMap=MapFilter(dataCT,BinMaskConformalSkullRot.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
-
-        nCT=nibabel.Nifti1Image(dataCTMap, nCT.affine, nCT.header)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
-        nCT.to_filename(outname)
-
     if bPlot:
         plt.figure()
         plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)

@@ -35,12 +35,7 @@ def CalculateMaskProcess(queue,TxSystem,COMPUTING_BACKEND,devicename,**kargs):
     stdout = InOutputWrapper(queue,True)
     try:
 
-        if TxSystem =='CTX_500':
-            from IntegrationBrainsightTW import BabelDatasetPrepsTW as DataPreps
-
-
-        elif TxSystem =='H317':
-            from IntegrationBrainsightUC import BabelDatasetPreps as DataPreps
+        import BabelDatasetPreps as DataPreps
         
         if sys.platform not in ['linux','win32']:   
             from GPUMedianFilter import  MedianFilter

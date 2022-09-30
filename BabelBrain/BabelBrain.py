@@ -26,7 +26,7 @@ from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
 
-from IntegrationBrainsightTW.BabelDatasetPrepsTW import ReadTrajectoryBrainsight,GetIDTrajectoryBrainsight
+from BabelDatasetPreps import ReadTrajectoryBrainsight,GetIDTrajectoryBrainsight
 
 from SelFiles.SelFiles import SelFiles
 
@@ -306,19 +306,18 @@ class BabelBrain(QWidget):
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
         ## THIS WILL BE LOADED DYNAMICALLY in function of the active Tx
+        import BabelDatasetPreps as DataPreps
+        from BabelDatasetPreps import GetSkullMaskFromSimbNIBSSTL
+        
         if self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightTW import BabelDatasetPrepsTW as DataPreps
-            from IntegrationBrainsightTW.BabelDatasetPrepsTW import GetSkullMaskFromSimbNIBSSTL
             from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import SettingSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
             GetSmallestSOS=SettingSmallestSOS
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightUC import BabelDatasetPreps as DataPreps
-            from IntegrationBrainsightUC.BabelDatasetPreps import GetSkullMaskFromSimbNIBSSTL
             from IntegrationBrainsightUC.BabelIntegrationBrainsight import SettingSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
             GetSmallestSOS=SettingSmallestSOS
