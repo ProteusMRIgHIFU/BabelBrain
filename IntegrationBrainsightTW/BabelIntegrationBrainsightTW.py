@@ -120,7 +120,7 @@ for f in [250e3,500e3,700e3]:
 
 pprint(MatFreq)
 
-def SettingSmallestSOS(frequency):
+def GetSmallestSOS(frequency):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -995,7 +995,7 @@ class SimulationConditions(object):
         print('MatArray\n',MatArray)
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=np.min([SmallestSOS[iS[0]],SettingSmallestSOS(self._Frequency)])
+        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency)])
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)

@@ -312,15 +312,13 @@ class BabelBrain(QWidget):
         if self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import SettingSmallestSOS
+            from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import GetSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
-            GetSmallestSOS=SettingSmallestSOS
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightUC.BabelIntegrationBrainsight import SettingSmallestSOS
+            from IntegrationBrainsightUC.BabelIntegrationBrainsight import GetSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
-            GetSmallestSOS=SettingSmallestSOS
         else:
             self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
@@ -639,7 +637,7 @@ class RunMaskGeneration(QObject):
         T1W= self._mainApp._T1W
 
         Frequency=  Widget.USMaskkHzDropDown.property('UserData')
-        SmallestSoS= GetSmallestSOS(Frequency)
+        SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
 
         BasePPW=Widget.USPPWSpinBox.property('UserData')
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm

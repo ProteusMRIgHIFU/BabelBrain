@@ -123,7 +123,7 @@ for f in [250e3,500e3,700e3]:
 
 pprint(MatFreq)
 
-def SettingSmallestSOS(frequency):
+def GetSmallestSOS(frequency,bShear=False):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -131,7 +131,17 @@ def SettingSmallestSOS(frequency):
             SoS=SelFreq[k][1]
         if SelFreq[k][2]>0 and SelFreq[k][2] < SoS:
             SoS=SelFreq[k][2]
+    if bShear:
+        SoS=np.min([SoS,SSOSITRUST(HUtoDensity(np.array([0])))])
     return SoS
+
+def LSOSITRUST(density):
+    return density*1.33 + 167  #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+    
+def SSOSITRUST(density):
+    #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
+    return density*0.422 + 680.515  
+    
 
 def primeCheck(n):
     # 0, 1, even numbers greater than 2 are NOT PRIME
@@ -487,7 +497,8 @@ class BabelFTD_Simulations(object):
             DensityCT=HUtoDensity(AllBone)
             
             print('Range Density CT',DensityCT.min(),DensityCT.max())
-            print('Range SOS CT',DensityCT.min()*1.33 + 167,DensityCT.max()*1.33 + 167)
+            print('Range Long SOS CT',LSOSITRUST(DensityCT.min()),LSOSITRUST(DensityCT.max()))
+            # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
         
@@ -521,12 +532,14 @@ class BabelFTD_Simulations(object):
                                             0) #the attenuation came for 500 kHz, so we adjust with the one being used
                 for d in DensityCT:
                     SelM=MatFreq[self._Frequency]['Cortical']
-                    lSoS=1.33*d + 167 #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+                    lSoS=LSOSITRUST(d)
+                    # sSoS =SSOSITRUST(d)
+                    sSoS = 0
                     self._SIM_SETTINGS.AddMaterial(d, #den
                                             lSoS,
-                                            0,
+                                            sSoS,
                                             SelM[3]/4, #we keep constant attenuation
-                                            0)
+                                            0)#,SelM[4]/4)
 
                 
 
@@ -848,7 +861,7 @@ class SimulationConditions(object):
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=np.min([SmallestSOS[iS[0]],SettingSmallestSOS(self._Frequency)])
+        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
