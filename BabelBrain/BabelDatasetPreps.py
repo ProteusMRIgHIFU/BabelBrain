@@ -68,7 +68,7 @@ def ReadTrajectoryBrainsight(fname):
     
     return Mat4
 
-if platform in ['linux','win32']:
+if sys.platform in ['linux','win32']:
     print('importing cupy')
     import cupy 
     import cupyx 
@@ -629,7 +629,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
 
         with CodeTimer("CT median filter",unit='s'):
-            if platform in ['linux','win32']:
+            if sys.platform in ['linux','win32']:
                 gnfct=cupy.asarray(nfct.astype(np.uint8))
                 gnfct=cndimage.median_filter(gFinalMask,7)
                 nfct=gnfct.get()
@@ -693,7 +693,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         smct.export(outname)
 
     with CodeTimer("final median filter ",unit='s'):
-        if platform in ['linux','win32']:
+        if sys.platform in ['linux','win32']:
             gFinalMask=cupy.asarray(FinalMask.astype(np.uint8))
             gFinalMask=cndimage.median_filter(gFinalMask,7)
             FinalMask=gFinalMask.get()
