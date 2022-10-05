@@ -42,6 +42,8 @@ import yaml
 
 import nibabel
 import argparse
+from pathlib import Path
+ 
 
 from CalculateMaskProcess import CalculateMaskProcess
 import platform
@@ -50,7 +52,7 @@ _IS_MAC = platform.system() == 'Darwin'
 def resource_path():  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
     if not _IS_MAC:
-        return Path(__file__)
+        return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         bundle_dir = Path(sys._MEIPASS)
@@ -121,14 +123,14 @@ class BabelBrain(QWidget):
     '''
     def __init__(self,simbnibs_path='',T1W='',Mat4Brainsight='',ThermalProfile='',bInUseWithBrainsight=False):
         super(BabelBrain, self).__init__()
-
+        print('home',Path.home())
         #This file will store the main config
-        self._DefaultConfig=os.getenv('HOME')+os.sep+'.config/BabelBrain/default.yaml'
+        self._DefaultConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','default.yaml')
 
         #This file will store the last config selected
-        self._LastSelConfig=os.getenv('HOME')+os.sep+'.config/BabelBrain/lastselection.yaml'
+        self._LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
 
-        self._BrainsightSyncPath=os.getenv('HOME')+os.sep+'.BabelBrainSync'
+        self._BrainsightSyncPath=str(Path.home())+os.sep+'.BabelBrainSync'
 
         self._bInUseWithBrainsight=bInUseWithBrainsight #this will be use to sync input and output with Brainsight
         widget = SelFiles()
