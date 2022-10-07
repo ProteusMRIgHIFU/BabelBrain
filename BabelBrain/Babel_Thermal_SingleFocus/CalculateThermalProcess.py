@@ -35,7 +35,7 @@ def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
     stdout = InOutputWrapper(queue,True)
 
     try:
-        if platform not in ['linux','win32']:
+        if sys.platform not in ['linux','win32']:
             if 'arm64' in platform.platform():
                 InitMetal(kargs['deviceName'])
                 Backend='Metal'

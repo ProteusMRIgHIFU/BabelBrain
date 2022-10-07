@@ -4,9 +4,9 @@ TxDiam:                   157.0e-3 # Tx aperture diameter
 MinimalZSteering:      -20.0e-3  # in m
 MaximalZSteering:       20.0e-3  # in m
 
-MinimalDistanceConeToFocus:       27.0e-3  # in m
+MinimalDistanceConeToFocus:       20.0e-3  # in m
 MaximalDistanceConeToFocus:       95.5e-3  # in m
-DefaultDistanceConeToFocus:       95.5e-3  # in m
+DefaultDistanceConeToFocus:       25.0e-3  # in m
 
 USFrequencies:
     - 250000.0

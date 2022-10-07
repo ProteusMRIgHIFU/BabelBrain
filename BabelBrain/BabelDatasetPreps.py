@@ -80,10 +80,13 @@ def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     global MedianFilter
     global MedianCOMPUTING_BACKEND
     MedianFilter = Callback
-    if COMPUTING_BACKEND==2:
+    if COMPUTING_BACKEND==1:
+        MedianCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
         MedianCOMPUTING_BACKEND='OpenCL'
     else:
         MedianCOMPUTING_BACKEND='Metal'
+
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
 
@@ -91,7 +94,9 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     global VoxelizeFilter
     global VoxelizeCOMPUTING_BACKEND
     VoxelizeFilter = Callback
-    if COMPUTING_BACKEND==2:
+    if COMPUTING_BACKEND==1:
+        VoxelizeCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
         VoxelizeCOMPUTING_BACKEND='OpenCL'
     else:
         VoxelizeCOMPUTING_BACKEND='Metal'
@@ -102,7 +107,9 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     global MapFilter
     global MapFilterCOMPUTING_BACKEND
     MapFilter = Callback
-    if COMPUTING_BACKEND==2:
+    if COMPUTING_BACKEND==1:
+        MapFilterCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
         MapFilterCOMPUTING_BACKEND='OpenCL'
     else:
         MapFilterCOMPUTING_BACKEND='Metal'
@@ -573,10 +580,19 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
         sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
         with CodeTimer("median filter CT",unit='s'):
-            fct=ndimage.median_filter(rCT.get_fdata()>300,sf,mode='constant',cval=np.min(rCT.get_fdata()))
+            ThreshCT=300
+            if sys.platform in ['linux','win32']:
+                gfct=cupy.asarray((rCT.get_fdata()>ThreshCT))
+                gfct=cndimage.median_filter(gfct,sf)
+            else:
+                fct=ndimage.median_filter(rCT.get_fdata()>ThreshCT,sf,mode='constant',cval=0)
         
         with CodeTimer("binary closing CT",unit='s'):
-            fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
+            if sys.platform in ['linux','win32']:
+                gfct=cndimage.binary_closing(gfct,structure=cupy.ones(sf2,dtype=int))
+                fct=gfct.get()
+            else:
+                fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
         fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
 
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
@@ -656,8 +672,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         FinalMask[BinMaskConformalCSFRot]=4#brain
         FinalMask[nfct]=2  #bone
         #we do a cleanup of islands 
-        with CodeTimer("skin tissue islands",unit='s'):
-            label_img = label(FinalMask==1)
+        
+        label_img = label(FinalMask==1)
         regions= regionprops(label_img)
         print("number of skin region islands", len(regions))
         regions=sorted(regions,key=lambda d: d.area)
@@ -678,13 +694,14 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         UniqueHU=np.unique(ndataCT[nfct])
         print('Unique CT values',len(UniqueHU))
         np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
-        if MapFilter is None:
-            ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
-            for n,d in enumerate(UniqueHU):
-                ndataCTMap[ndataCT==d]=n
-            ndataCTMap[nfct==False]=0
-        else:
-            ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+        with CodeTimer("Mspping unique values",unit='s'):
+            if MapFilter is None:
+                ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
+                for n,d in enumerate(UniqueHU):
+                    ndataCTMap[ndataCT==d]=n
+                ndataCTMap[nfct==False]=0
+            else:
+                ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
         nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
         outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'

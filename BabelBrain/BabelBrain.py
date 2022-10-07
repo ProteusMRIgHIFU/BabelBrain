@@ -9,11 +9,18 @@ ABOUT:
 import multiprocessing
 multiprocessing.freeze_support()
 from multiprocessing import Process,Queue
+import sys
+if sys.platform =='linux':
+    try:
+        multiprocessing.set_start_method('spawn')
+    except RuntimeError:
+        pass
+
 
 import os
 import shutil
 from pathlib import Path
-import sys
+
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 print(sys.path)
@@ -43,7 +50,7 @@ import yaml
 import nibabel
 import argparse
 from pathlib import Path
- 
+
 
 from CalculateMaskProcess import CalculateMaskProcess
 import platform
