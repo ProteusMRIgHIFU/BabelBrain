@@ -25,13 +25,14 @@ sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 print(sys.path)
 
-from PySide6.QtWidgets import (QApplication, QWidget,
-                QVBoxLayout,QLineEdit,QDialog,
+from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
+                QVBoxLayout,QLineEdit,QDialog,QHBoxLayout,
                 QGridLayout, QInputDialog,
                 QMessageBox,QProgressBar)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
+from superqt import QLabeledDoubleRangeSlider 
 
 from BabelDatasetPreps import ReadTrajectoryBrainsight,GetIDTrajectoryBrainsight
 
@@ -50,8 +51,6 @@ import yaml
 import nibabel
 import argparse
 from pathlib import Path
-
-
 from CalculateMaskProcess import CalculateMaskProcess
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -353,6 +352,20 @@ class BabelBrain(QWidget):
         new_tab.setEnabled(False)
         self.ThermalSim=new_tab
 
+        slider=QLabeledDoubleRangeSlider(Qt.Orientation.Horizontal)
+        slider.setRange(0.05, 1.0)
+        slider.setValue((0.1, 0.6))
+        ZTE=self.Widget.CTZTETabs.widget(0)
+        LayRange=ZTE.findChildren(QVBoxLayout)[0]
+        LayRange.addWidget(slider)
+        self.Widget.ZTERangeSlider=slider
+        self.Widget.setStyleSheet("QTabBar::tab::disabled {width: 0; height: 0; margin: 0; padding: 0; border: none;} ")
+        if self._bUseCT == False:
+            self.Widget.CTZTETabs.hide()
+        elif self._CTType!=2:
+            self.Widget.CTZTETabs.setTabEnabled(0,False)
+        self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
+        
 
 
 
@@ -687,6 +700,9 @@ class RunMaskGeneration(QObject):
         if self._mainApp._bUseCT:
             kargs['CT_or_ZTE_input']=self._mainApp._CT_or_ZTE_input
             kargs['bIsZTE']=self._mainApp._CTType==2
+            if kargs['bIsZTE']:
+                kargs['RangeZTE']=self._mainApp.Widget.ZTERangeSlider.value()
+            kargs['HUThreshold']=self._mainApp.Widget.HUTreshold.value()
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 

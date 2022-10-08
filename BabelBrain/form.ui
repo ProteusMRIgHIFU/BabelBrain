@@ -81,6 +81,9 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
      <item>
       <property name="text">
        <string>500</string>
@@ -145,7 +148,7 @@
      <property name="geometry">
       <rect>
        <x>260</x>
-       <y>44</y>
+       <y>40</y>
        <width>1013</width>
        <height>400</height>
       </rect>
@@ -154,8 +157,8 @@
     <widget class="QPushButton" name="CalculatePlanningMask">
      <property name="geometry">
       <rect>
-       <x>72</x>
-       <y>225</y>
+       <x>71</x>
+       <y>352</y>
        <width>131</width>
        <height>81</height>
       </rect>
@@ -170,6 +173,94 @@
       <string>Calculate planninng
 mask</string>
      </property>
+    </widget>
+    <widget class="QTabWidget" name="CTZTETabs">
+     <property name="geometry">
+      <rect>
+       <x>22</x>
+       <y>173</y>
+       <width>219</width>
+       <height>145</height>
+      </rect>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="ZTEtab">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <attribute name="title">
+       <string>ZTE</string>
+      </attribute>
+      <widget class="QWidget" name="verticalLayoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>12</x>
+         <y>59</y>
+         <width>193</width>
+         <height>40</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="LayRange"/>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>36</x>
+         <y>24</y>
+         <width>165</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Normalized ZTE Range</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>CT</string>
+      </attribute>
+      <widget class="QDoubleSpinBox" name="HUThresholdSpinBox">
+       <property name="geometry">
+        <rect>
+         <x>60</x>
+         <y>46</y>
+         <width>97</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="decimals">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <double>5000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>10.000000000000000</double>
+       </property>
+       <property name="value">
+        <double>300.000000000000000</double>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_5">
+       <property name="geometry">
+        <rect>
+         <x>63</x>
+         <y>23</y>
+         <width>80</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>HU threshold</string>
+       </property>
+      </widget>
+     </widget>
     </widget>
    </widget>
   </widget>

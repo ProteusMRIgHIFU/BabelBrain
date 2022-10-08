@@ -178,6 +178,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
                                 bIsZTE = False,
+                                RangeZTE=(0.1,0.6),
+                                HUThreshold=300.0,
                                 CT_quantification=10, #bits
                                 Mat4Brainsight=None,                                
                                 Foc=135.0, #Tx focal length
@@ -583,18 +585,19 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
             with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
                 rT1,rZTE,rMask=ZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
-                rCT = ZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl))
+                rCT = ZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
+                    ThresoldsZTEBone=RangeZTE)
         else:
             rCT=nibabel.load(CT_or_ZTE_input)
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
         sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
         with CodeTimer("median filter CT",unit='s'):
-            ThreshCT=300
+            print('Theshold for bone',HUThreshold)
             if sys.platform in ['linux','win32']:
-                gfct=cupy.asarray((rCT.get_fdata()>ThreshCT))
+                gfct=cupy.asarray((rCT.get_fdata()>HUThreshold))
                 gfct=cndimage.median_filter(gfct,sf)
             else:
-                fct=ndimage.median_filter(rCT.get_fdata()>ThreshCT,sf,mode='constant',cval=0)
+                fct=ndimage.median_filter(rCT.get_fdata()>HUThreshold,sf,mode='constant',cval=0)
         
         with CodeTimer("binary closing CT",unit='s'):
             if sys.platform in ['linux','win32']:

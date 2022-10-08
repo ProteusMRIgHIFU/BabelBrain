@@ -58,6 +58,7 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     return T1fnameBiasCorrec,ZTEInT1W, T1Mask
 
 def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6]):
+    print('converting ZTE to pCT with range',ThresoldsZTEBone)
     InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
     SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
     CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
