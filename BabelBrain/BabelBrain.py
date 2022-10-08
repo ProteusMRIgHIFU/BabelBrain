@@ -152,11 +152,11 @@ class BabelBrain(QWidget):
                         T1W=Brainsight['T1W']
                         Mat4Brainsight=Brainsight['Mat4Brainsight']
                         ThermalProfile=prevConfig['ThermalProfile']
-                        if 'CT_input' in prevConfig:
-                            CT_input=prevConfig['CT_input']
+                        if 'CT_or_ZTE_input' in prevConfig:
+                            CT_or_ZTE_input=prevConfig['CT_or_ZTE_input']
                             bUseCT=prevConfig['bUseCT']
                         else:
-                            CT_input='...'
+                            CT_or_ZTE_input='...'
                             bUseCT=False
                         print('Skipping showing dialog...')
                     else:
@@ -166,16 +166,17 @@ class BabelBrain(QWidget):
                         widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
                         widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Brainsight'])
                         widget.ui.ThermalProfilelineEdit.setText(Brainsight['ThermalProfile'])
-                        if 'CT_input' in prevConfig:
-                            widget.ui.CTlineEdit.setText(prevConfig['CT_input'])
-                            widget.ui.CTcheckBox.setChecked(prevConfig['bUseCT'])
+                        if 'CT_or_ZTE_input' in prevConfig:
+                            widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
+                            widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
                         widget.exec()
                         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
                         T1W=widget.ui.T1WlineEdit.text()
                         Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
                         ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
-                        CT_input=widget.ui.CTlineEdit.text()
-            bUseCT=bool(widget.ui.CTcheckBox.isChecked())
+                        CT_or_ZTE_input=widget.ui.CTlineEdit.text()
+            bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
+            CTType=widget.ui.CTTypecomboBox.currentIndex()
         elif not os.path.isdir(simbnibs_path) or not os.path.isfile(T1W) or not os.path.isfile(Mat4Brainsight)\
            or not os.path.isfile(ThermalProfile):
 
@@ -186,14 +187,15 @@ class BabelBrain(QWidget):
                 widget.ui.T1WlineEdit.setText(prevConfig['T1W'])
                 widget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Brainsight'])
                 widget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
-                if 'CT_input' in prevConfig:
-                    widget.ui.CTlineEdit.setText(prevConfig['CT_input'])
-                    widget.ui.CTcheckBox.setChecked(prevConfig['bUseCT'])
+                if 'CT_or_ZTE_input' in prevConfig:
+                    widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
+                    widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
             widget.exec()
             simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
             T1W=widget.ui.T1WlineEdit.text()
-            CT_input=widget.ui.CTlineEdit.text()
-            bUseCT=bool(widget.ui.CTcheckBox.isChecked())
+            CT_or_ZTE_input=widget.ui.CTlineEdit.text()
+            bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
+            CTType=widget.ui.CTTypecomboBox.currentIndex()
             Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
             ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
         self._simbnibs_path=simbnibs_path
@@ -201,7 +203,8 @@ class BabelBrain(QWidget):
         self._ThermalProfile=ThermalProfile
         self._T1W=T1W
         self._bUseCT=bUseCT
-        self._CT_input=CT_input
+        self._CTType=widget.ui.CTTypecomboBox.currentIndex()
+        self._CT_or_ZTE_input=CT_or_ZTE_input
 
         self.SaveLatestSelection()
 
@@ -292,7 +295,8 @@ class BabelBrain(QWidget):
         if os.path.isdir(os.path.split(self._LastSelConfig)[0]):
             save={'simbnibs_path':self._simbnibs_path,
                   'T1W':self._T1W,
-                  'CT_input':self._CT_input,
+                  'CT_or_ZTE_input':self._CT_or_ZTE_input,
+                  'CTType':self._CTType,
                   'bUseCT':self._bUseCT,
                   'Mat4Brainsight':self._Mat4Brainsight,
                   'ThermalProfile':self._ThermalProfile}
@@ -681,7 +685,8 @@ class RunMaskGeneration(QObject):
         kargs['bPlot']=False
         kargs['bAlignToSkin']=True
         if self._mainApp._bUseCT:
-            kargs['CT_input']=self._mainApp._CT_input
+            kargs['CT_or_ZTE_input']=self._mainApp._CT_or_ZTE_input
+            kargs['bIsZTE']=self._mainApp._CTType==2
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 

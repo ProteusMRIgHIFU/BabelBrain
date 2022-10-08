@@ -14,7 +14,7 @@ import os
 
 
 class SelFiles(QDialog):
-    def __init__(self, parent=None,Trajectory='',T1W='',SimbNIBS='',bUseCT=False,CT=''):
+    def __init__(self, parent=None,Trajectory='',T1W='',SimbNIBS='',CTType=0,CT=''):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -25,7 +25,7 @@ class SelFiles(QDialog):
         self.ui.SelSimbNIBSpushButton.clicked.connect(self.SelectSimbNIBS)
         self.ui.SelTProfilepushButton.clicked.connect(self.SelectThermalProfile)
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
-        self.ui.CTcheckBox.stateChanged.connect(self.enableCT)
+        self.ui.CTTypecomboBox.currentIndexChanged.connect(self.selCTType)
 
         if len(Trajectory)>0:
             self.ui.TrajectorylineEdit.setText(Trajectory)
@@ -39,7 +39,7 @@ class SelFiles(QDialog):
         if len(CT)>0:
             self.ui.CTlineEdit.setText(CT)
             self.ui.CTlineEdit.setCursorPosition(len(CT))
-        self.ui.CTcheckBox.setChecked(bUseCT)
+        self.ui.CTTypecomboBox.setCurrentIndex(CTType)
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
@@ -86,15 +86,16 @@ class SelFiles(QDialog):
             self.ui.SimbNIBSlineEdit.setCursorPosition(len(fSimbNIBS))
 
     @Slot()
-    def enableCT(self,value):
-        self.ui.CTlineEdit.setEnabled(value)
-        self.ui.SelCTpushButton.setEnabled(value)
+    def selCTType(self,value):
+        bv = value >0
+        self.ui.CTlineEdit.setEnabled(bv)
+        self.ui.SelCTpushButton.setEnabled(bv)
 
     @Slot()
     def Continue(self):
         if not os.path.isfile(self.ui.TrajectorylineEdit.text()) or\
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
-           (self.ui.CTcheckBox.isChecked() and not os.path.isfile(self.ui.CTlineEdit.text())) or\
+           (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())) or\
            not os.path.isdir(self.ui.SimbNIBSlineEdit.text()) or\
            not os.path.isfile(self.ui.ThermalProfilelineEdit.text()) :
             msgBox = QMessageBox()

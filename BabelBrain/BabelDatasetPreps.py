@@ -27,6 +27,7 @@ import pandas as pd
 import platform
 import sys
 from linetimer import CodeTimer
+import ZTEProcessing
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -175,7 +176,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 csf_stl='4007/4007_keep/m2m_4007_keep/csf.stl',
                                 skin_stl='4007/4007_keep/m2m_4007_keep/skin.stl',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
-                                CT_input=None,
+                                CT_or_ZTE_input=None,
+                                bIsZTE = False,
                                 CT_quantification=10, #bits
                                 Mat4Brainsight=None,                                
                                 Foc=135.0, #Tx focal length
@@ -539,8 +541,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         
         LocFocalPoint=AffIJK[-1,:3]
         
-        BinMaskConformalSkinRot=np.zeros(np.max(AffIJK,axis=0)[:3]+1)
-        BinMaskConformalSkinRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
+        BinMaskConformalSkinRot=np.zeros(np.max(AffIJK,axis=0)[:3]+1,np.int8)
+        BinMaskConformalSkinRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
 
     del XYZ
     del skin_grid
@@ -552,7 +554,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skull_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
         BinMaskConformalSkullRot=np.zeros_like(BinMaskConformalSkinRot)
-        BinMaskConformalSkullRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
+        BinMaskConformalSkullRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
     del AffIJK
     del XYZ
     del skull_grid
@@ -562,8 +564,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         XYZ=csf_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
-        BinMaskConformalCSFRot=np.zeros(BinMaskConformalSkinRot.shape,bool)
-        BinMaskConformalCSFRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=True
+        BinMaskConformalCSFRot=np.zeros(BinMaskConformalSkinRot.shape,np.uint8)
+        BinMaskConformalCSFRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
    
     del AffIJK
     del XYZ
@@ -572,11 +574,18 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     FinalMask=BinMaskConformalSkinRot
 
-    if CT_input is  None:
+    if CT_or_ZTE_input is  None:
         FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
         FinalMask[BinMaskConformalCSFRot]=4#brain
     else:
-        rCT=nibabel.load(CT_input)
+        if bIsZTE:
+            print('Processing ZTE to pCT')
+            with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
+                rT1,rZTE,rMask=ZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
+            with CodeTimer("Conversion ZTE to pCT",unit='s'):
+                rCT = ZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl))
+        else:
+            rCT=nibabel.load(CT_or_ZTE_input)
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
         sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
         with CodeTimer("median filter CT",unit='s'):
@@ -642,7 +651,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
 
         nfct=np.zeros_like(FinalMask)
-        nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1.0
+        nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
 
         with CodeTimer("CT median filter",unit='s'):
             if sys.platform in ['linux','win32']:
@@ -654,6 +663,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                     nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
                 else:
                     nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+                nfct=nfct!=0
 
         del XYZ
         del ct_grid
@@ -663,18 +673,23 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         ############
         with CodeTimer("CT extrapol",unit='s'):
             nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
-        ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-        ndataCT[nfct==0]=0
+            ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+            ndataCT[nfct==False]=0
 
         with CodeTimer("CT binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
-
-        FinalMask[BinMaskConformalCSFRot]=4#brain
-        FinalMask[nfct]=2  #bone
+        with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
+            FinalMask[BinMaskConformalCSFRot]=4  
+        #brain
+        with CodeTimer("FinalMask[nfct]=2",unit='s'):
+            FinalMask[nfct]=2  #bone
         #we do a cleanup of islands 
-        
-        label_img = label(FinalMask==1)
-        regions= regionprops(label_img)
+        with CodeTimer("Labeling",unit='s'):
+            label_img = label(FinalMask==1)
+          
+        with CodeTimer("regionprops",unit='s'):
+            regions= regionprops(label_img)
+
         print("number of skin region islands", len(regions))
         regions=sorted(regions,key=lambda d: d.area)
         for l in regions[:-1]:
@@ -685,7 +700,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         ndataCT[nfct]=CTBone
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
-
+        
         A=maxData-minData
         M = 2**CT_quantification-1
         ResStep=A/M 
@@ -694,7 +709,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         UniqueHU=np.unique(ndataCT[nfct])
         print('Unique CT values',len(UniqueHU))
         np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
-        with CodeTimer("Mspping unique values",unit='s'):
+        with CodeTimer("Mapping unique values",unit='s'):
             if MapFilter is None:
                 ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
                 for n,d in enumerate(UniqueHU):
