@@ -576,7 +576,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
 
     if CT_or_ZTE_input is  None:
         FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
-        FinalMask[BinMaskConformalCSFRot]=4#brain
+        FinalMask[BinMaskConformalCSFRot==1]=4#brain
     else:
         if bIsZTE:
             print('Processing ZTE to pCT')
