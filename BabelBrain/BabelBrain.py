@@ -679,8 +679,8 @@ class RunMaskGeneration(QObject):
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
         preT1=ants.image_read(T1W)
-        isoT1=ants.set_spacing(1.0)
-        isoT1.image_write(T1WIso)
+        isoT1=isoT1.set_spacing(1.0)
+        ants.image_write(isoT1,T1WIso)
 
         kargs={}
         if self._mainApp.Config['TxSystem'] =='H317':
