@@ -53,6 +53,7 @@ import argparse
 from pathlib import Path
 from CalculateMaskProcess import CalculateMaskProcess
 import platform
+import ants
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
@@ -677,9 +678,12 @@ class RunMaskGeneration(QObject):
         print("_Mat4Brainsight",self._mainApp._Mat4Brainsight)
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
-        cmd='flirt -in "'+T1W + '" -ref "'+ T1W + '" -applyisoxfm 1.0 -nosearch -out "' +T1WIso+'"'
-        print(cmd)
-        os.system(cmd)
+        # cmd='flirt -in "'+T1W + '" -ref "'+ T1W + '" -applyisoxfm 1.0 -nosearch -out "' +T1WIso+'"'
+        # print(cmd)
+        # os.system(cmd)
+        preT1=ants.image_read(T1W)
+        isoT1=ants.set_spacing(1.0)
+        isoT1.image_write(T1WIso)
 
         kargs={}
         if self._mainApp.Config['TxSystem'] =='H317':

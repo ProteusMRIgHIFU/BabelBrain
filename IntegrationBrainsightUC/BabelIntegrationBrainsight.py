@@ -16,6 +16,7 @@ from BabelViscoFDTD.PropagationModel import PropagationModel
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL
 from scipy import ndimage
 import nibabel
+import ants
 from nibabel import processing
 from scipy import interpolate
 from skimage.draw import circle_perimeter,disk
@@ -253,12 +254,13 @@ def RunSpreadCase(targets,extrasuffix='',ZSteering=0.0,bRunThroughFile=True,**ka
     return ListPoints,fnames
 ##########################################
 
-def SaveNiftiFlirt(nii,fn):
+def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
-    res = '%6.5f' % (np.array(nii.header.get_zooms()).mean())
-    cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
-    print(cmd)
-    assert(os.system(cmd)==0)
+    newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
+    res = np.round(np.array(nii.header.get_zooms()).mean(),5)
+    pre=ants.image_read(fn)
+    pre.set_spacing([res,res,res])
+    ants.image_write(pre,newfn)
     os.remove(fn)
 
 def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
@@ -668,10 +670,10 @@ class BabelFTD_Simulations(object):
         bdir=os.path.dirname(self._MASKFNAME)
         if bMinimalSaving==False:
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
-            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
             
             nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -682,15 +684,15 @@ class BabelFTD_Simulations(object):
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiFlirt(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
