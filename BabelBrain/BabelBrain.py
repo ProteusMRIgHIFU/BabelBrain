@@ -142,38 +142,38 @@ class BabelBrain(QWidget):
         widget = SelFiles()
         if bInUseWithBrainsight:
             prevConfig=self.GetLatestSelection()
-            if bInUseWithBrainsight:
-                Brainsight=self.GetInputFromBrainsight()
-                if Brainsight is not None:
-                    if prevConfig is not None:
-                        Brainsight['ThermalProfile']=prevConfig['ThermalProfile']
-                        simbnibs_path=Brainsight['simbnibs_path']
-                        T1W=Brainsight['T1W']
-                        Mat4Brainsight=Brainsight['Mat4Brainsight']
-                        ThermalProfile=prevConfig['ThermalProfile']
-                        if 'CT_or_ZTE_input' in prevConfig:
-                            CT_or_ZTE_input=prevConfig['CT_or_ZTE_input']
-                            bUseCT=prevConfig['bUseCT']
-                        else:
-                            CT_or_ZTE_input='...'
-                            bUseCT=False
-                        print('Skipping showing dialog...')
-                    else:
-                        Brainsight['ThermalProfile']='...'
-                        print('Showing dialog...')
-                        widget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
-                        widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
-                        widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Brainsight'])
-                        widget.ui.ThermalProfilelineEdit.setText(Brainsight['ThermalProfile'])
-                        if 'CT_or_ZTE_input' in prevConfig:
-                            widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
-                            widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
-                        widget.exec()
-                        simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
-                        T1W=widget.ui.T1WlineEdit.text()
-                        Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
-                        ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
-                        CT_or_ZTE_input=widget.ui.CTlineEdit.text()
+            Brainsight=self.GetInputFromBrainsight()
+            assert(Brainsight is not None)
+            if prevConfig is not None:
+                Brainsight['ThermalProfile']=prevConfig['ThermalProfile']
+                simbnibs_path=Brainsight['simbnibs_path']
+                T1W=Brainsight['T1W']
+                Mat4Brainsight=Brainsight['Mat4Brainsight']
+                ThermalProfile=prevConfig['ThermalProfile']
+                if 'CT_or_ZTE_input' in prevConfig:
+                    CT_or_ZTE_input=prevConfig['CT_or_ZTE_input']
+                    CTType=prevConfig['CTType']
+                else:
+                    CT_or_ZTE_input='...'
+                    CTType=0
+            else:
+                ThermalProfile='...'
+                CT_or_ZTE_input='...'
+                CTType=0
+
+            print('Showing dialog...')
+            widget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
+            widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
+            widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Brainsight'])
+            widget.ui.ThermalProfilelineEdit.setText(ThermalProfile)
+            widget.ui.CTlineEdit.setText(CT_or_ZTE_input)
+            widget.ui.CTTypecomboBox.setCurrentIndex(CTType)
+            widget.exec()
+            simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
+            T1W=widget.ui.T1WlineEdit.text()
+            Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
+            ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
+            CT_or_ZTE_input=widget.ui.CTlineEdit.text()
             bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
             CTType=widget.ui.CTTypecomboBox.currentIndex()
         elif not os.path.isdir(simbnibs_path) or not os.path.isfile(T1W) or not os.path.isfile(Mat4Brainsight)\

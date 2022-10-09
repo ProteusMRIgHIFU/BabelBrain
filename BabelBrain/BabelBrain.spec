@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all,  collect_submodules
+from PyInstaller.utils.hooks import collect_all,  collect_submodules,collect_data_files
 from PyInstaller import compat
 from os import listdir
 import platform
@@ -12,6 +12,14 @@ datas=tmp_ret[0]
 tmp_ret = collect_all('trimesh')
 hiddenimports=tmp_ret[2]
 datas+=tmp_ret[0]
+
+tmp_ret = collect_all('itk')
+hiddenimports+=tmp_ret[2]
+
+hiddenimports+=['vtkmodules','vtkmodules.all','vtkmodules.qt.QVTKRenderWindowInteractor','vtkmodules.util','vtkmodules.util.numpy_support','vtkmodules.numpy_interface', 'vtkmodules.numpy_interface.dataset_adapter']
+
+itk_datas = collect_data_files('itk', include_py_files=True)
+datas+= [x for x in itk_datas if '__pycache__' not in x[0]]
 
 tmp_ret2 = collect_all('pydicom')
 hiddenimports+=tmp_ret2[2]

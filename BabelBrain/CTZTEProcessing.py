@@ -13,6 +13,30 @@ from skimage.measure import label, regionprops
 import numpy as np
 from operator import itemgetter
 
+def CTCorreg(InputT1,InputCT):
+    #Bias correction
+    img = ants.image_read(InputT1)
+    img_n4 = ants.n4_bias_field_correction(img)
+    T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
+    ants.image_write(img_n4,(T1fnameBiasCorrec))   
+
+    #coreg
+    parameters = itk.ParameterObject.New()
+
+    resolutions = 3
+    default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
+    parameters.AddParameterMap(default_rigid)
+
+    fixed_image = itk.imread(T1fnameBiasCorrec,itk.F)
+    moving_image = itk.imread(InputCT,itk.F)
+    
+    CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
+    registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
+    itk.imwrite(registered_image,CTInT1W)
+
+    return nibabel.load(CTInT1W) 
+
+
 def BiasCorrecAndCoreg(InputT1,InputZTE):
     #Bias correction
     img = ants.image_read(InputT1)

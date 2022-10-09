@@ -27,7 +27,8 @@ import pandas as pd
 import platform
 import sys
 from linetimer import CodeTimer
-import ZTEProcessing
+import CTZTEProcessing
+import tempfile
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -576,6 +577,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     FinalMask=BinMaskConformalSkinRot
 
+    #Now we deal if CT or ZTE has beegn given as input
     if CT_or_ZTE_input is  None:
         FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
         FinalMask[BinMaskConformalCSFRot==1]=4#brain
@@ -583,12 +585,12 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         if bIsZTE:
             print('Processing ZTE to pCT')
             with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
-                rT1,rZTE,rMask=ZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
+                rT1,rZTE,rMask=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
-                rCT = ZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
+                rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
                     ThresoldsZTEBone=RangeZTE)
         else:
-            rCT=nibabel.load(CT_or_ZTE_input)
+            rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input)
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
         sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
         with CodeTimer("median filter CT",unit='s'):
@@ -621,28 +623,33 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
             regions=sorted(regions,key=lambda d: d.area)
             nfct=label_img==regions[-1].label
 
-            pvvol=pv.wrap(nfct.astype(np.float32))
-            surface=pvvol.contour(isosurfaces=np.array([0.9]))
-            surface.save('__t.vtk')
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                pvvol=pv.wrap(nfct.astype(np.float32))
+                surface=pvvol.contour(isosurfaces=np.array([0.9]))
+                surface.save(tmpdirname+os.sep+'__t.vtk')
 
-            reader = vtk.vtkPolyDataReader()
-            reader.SetFileName('__t.vtk')
-            reader.ReadAllFieldsOn()
-            reader.Update()
+                reader = vtk.vtkPolyDataReader()
+                reader.SetFileName(tmpdirname+os.sep+'__t.vtk')
+                reader.ReadAllFieldsOn()
+                reader.Update()
 
-            writer = vtk.vtkSTLWriter()
-            writer.SetInputData(smooth(reader.GetOutput()))
-            writer.SetFileName('__t.stl')
-            writer.SetFileTypeToBinary()
-            writer.Update()
-            writer.Write()
+                writer = vtk.vtkSTLWriter()
+                writer.SetInputData(smooth(reader.GetOutput()))
+                writer.SetFileName(tmpdirname+os.sep+'__t.stl')
+                writer.SetFileTypeToBinary()
+                writer.Update()
+                writer.Write()
 
-            smct=trimesh.load_mesh('__t.stl')
-            nP=(baseaffineRot[:3,:3]@smct.vertices.T).T
-            nP[:,0]+=baseaffineRot[0,3]
-            nP[:,1]+=baseaffineRot[1,3]
-            nP[:,2]+=baseaffineRot[2,3]
-            smct.vertices=nP
+                smct=trimesh.load_mesh(tmpdirname+os.sep+'__t.stl')
+                nP=(baseaffineRot[:3,:3]@smct.vertices.T).T
+                nP[:,0]+=baseaffineRot[0,3]
+                nP[:,1]+=baseaffineRot[1,3]
+                nP[:,2]+=baseaffineRot[2,3]
+                smct.vertices=nP
+
+                os.remove(tmpdirname+os.sep+'__t.vtk')
+                os.remove(tmpdirname+os.sep+'__t.stl')
+                
         with CodeTimer("CT skull voxelization",unit='s'):
             if VoxelizeFilter is None:
                 ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
@@ -670,8 +677,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
 
         del XYZ
         del ct_grid
-        os.remove('__t.vtk')
-        os.remove('__t.stl')
+
 
         ############
         with CodeTimer("CT extrapol",unit='s'):
