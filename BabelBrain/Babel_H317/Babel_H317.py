@@ -201,12 +201,17 @@ class H317(QWidget):
          SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
          ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
 
+         IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
+         IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
+
          ISkull/=IWater[Skull['MaterialMap']==3].max()
          IWater/=IWater[Skull['MaterialMap']==3].max()
 
 
-         Factor=1.0/ISkull[Skull['MaterialMap']==3].max()
+         Factor=IWater[Skull['MaterialMap']==3].max()/ISkull[Skull['MaterialMap']==3].max()
          print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
+         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa (location)',IntWaterLocation/IntSkullLocation,'\n'+'*'*40+'\n'+'*'*40+'\n')
+         
          ISkull[Skull['MaterialMap']!=3]=0
          self._figAcField=Figure(figsize=(14, 12))
 

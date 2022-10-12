@@ -141,7 +141,7 @@
       <double>1.000000000000000</double>
      </property>
      <property name="value">
-      <double>6.000000000000000</double>
+      <double>9.000000000000000</double>
      </property>
     </widget>
     <widget class="QWidget" name="USMask" native="true">

@@ -275,6 +275,7 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
              XSteering=0.0,
              YSteering=0.0,
              ZSteering=0.0,
+             RotationZ=0.0,
              Frequencies= [700e3],
              bDisplay=True,
              bMinimalSaving=False,
@@ -383,6 +384,7 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
                                                            XSteering=XSteering,
                                                            YSteering=YSteering,
                                                            ZSteering=ZSteering,
+                                                           RotationZ=RotationZ,
                                                            DistanceConeToFocus=DistanceConeToFocus,
                                                            CTFNAME=CTFNAME,
                                                            bDisplay=bDisplay)
@@ -435,6 +437,7 @@ class BabelFTD_Simulations(object):
                  XSteering=0.0,
                  YSteering=0.0,
                  ZSteering=0.0,
+                 RotationZ=0.0,
                  TxMechanicalAdjustmentX=0,
                  TxMechanicalAdjustmentY=0,
                  TxMechanicalAdjustmentZ=0,
@@ -472,6 +475,7 @@ class BabelFTD_Simulations(object):
         self._MaximalDistanceFromOutPlane=MaximalDistanceFromOutPlane
         self._SensorSubSampling=SensorSubSampling
         self._CTFNAME=CTFNAME
+        self._RotationZ=RotationZ
 
 
     def Step1_InitializeConditions(self,
@@ -523,6 +527,7 @@ class BabelFTD_Simulations(object):
                                 ZSteering=self._ZSteering,
                                 DistanceConeToFocus=self._DistanceConeToFocus,
                                 DensityCTMap=DensityCTMap,
+                                RotationZ=self._RotationZ,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
@@ -804,6 +809,7 @@ class SimulationConditions(object):
                       XSteering=0.0, #lateral steering
                       YSteering=0.0,
                       ZSteering=0.0,
+                      RotationZ=0.0,#rotation of Tx over Z axis
                       DistanceConeToFocus=0.0,
                       DensityCTMap=None, #use CT map
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
@@ -841,6 +847,7 @@ class SimulationConditions(object):
         self._ZSteering=ZSteering
         self._DistanceConeToFocus=DistanceConeToFocus
         self._DensityCTMap=DensityCTMap
+        self._RotationZ=RotationZ
         
         
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
@@ -1147,7 +1154,7 @@ elif self._bTightNarrowBeamDomain:
             InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elemens
-        self._TxH317=GenerateH317Tx(Frequency=self._Frequency)
+        self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D

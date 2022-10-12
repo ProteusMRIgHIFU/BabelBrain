@@ -1,3 +1,4 @@
+from re import S
 import numpy as np
 #from mkl_fft import fft
 from numpy.fft import fft
@@ -70,10 +71,10 @@ def H317Locations(Foc=135e-3):
     radiusMm = Foc*1e3
     temp_positions = computeH317Geometry()
     temp_positions[:,2]=radiusMm-temp_positions[:,2]
-    transLoc = temp_positions/1000;
+    transLoc = temp_positions/1000
     return transLoc
 
-def GenerateH317Tx(Frequency=700e3):
+def GenerateH317Tx(Frequency=700e3,RotationZ=0):
 
 
     f=Frequency;
@@ -93,6 +94,17 @@ def GenerateH317Tx(Frequency=700e3):
 
 
     transLoc = H317Locations(Foc=Foc)
+    if RotationZ!=0:
+        theta=np.deg2rad(RotationZ)
+        ct=np.cos(theta)
+        st=np.sin(theta)
+        Rz=np.zeros((3,3))
+        Rz[0,0]=ct
+        Rz[0,1]=-st
+        Rz[1,0]=st 
+        Rz[1,1]=ct
+        Rz[2,2]=1
+        transloc=(Rz@transLoc.T).T
 
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc
@@ -159,13 +171,14 @@ bInitCuda=False
 
 
 class AcFieldH317(object):
-    def __init__(self):
+    def __init__(self,RotationZ=0):
         self.Data=loadmat('Oct252021-4V-XY-Scan.mat')
    
         
         self.Frequency=700e3
         self.SoS=1.4825e+03
         self.Foc=135e-3
+        self.RotationZ=RotationZ
         
         SpatialStep=self.SoS/self.Frequency/4
         self.SpatialStep=SpatialStep
@@ -209,7 +222,7 @@ class AcFieldH317(object):
 
         self.Amp=60e3 #60 kPa
         
-        self.TxH317=GenerateH317Tx()
+        self.TxH317=GenerateH317Tx(RotationZ=RotationZ)
 
     def BackPropagation(self):
         nxf=self.Data['lengtharray'].size
