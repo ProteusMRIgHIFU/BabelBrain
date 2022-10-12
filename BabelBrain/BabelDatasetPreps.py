@@ -666,14 +666,14 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         with CodeTimer("CT median filter",unit='s'):
             if sys.platform in ['linux','win32']:
                 gnfct=cupy.asarray(nfct.astype(np.uint8))
-                gnfct=cndimage.median_filter(gFinalMask,7)
+                gnfct=cndimage.median_filter(gnfct,7)
                 nfct=gnfct.get()
             else:
                 if MedianFilter is None:
                     nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
                 else:
                     nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
-                nfct=nfct!=0
+            nfct=nfct!=0
 
         del XYZ
         del ct_grid
