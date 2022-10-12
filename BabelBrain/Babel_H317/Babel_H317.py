@@ -106,9 +106,14 @@ class H317(QWidget):
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
             ZSteering=Skull['ZSteering']
+            if 'RotationZ' in Skull:
+                RotationZ=Skull['RotationZ']
+            else:
+                RotationZ=0.0
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "ZSteering=%3.2f\n" %(ZSteering*1e3)+
+                                    "ZRotation=%3.2f\n" %(RotationZ)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                     "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
@@ -119,6 +124,7 @@ class H317(QWidget):
                 bCalcFields=True
             else:
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
+                self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
                 if 'DistanceConeToFocus' in Skull:
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
@@ -295,8 +301,10 @@ class RunAcousticSim(QObject):
         ZSteering=self._mainApp.AcSim.Widget.ZSteeringSpinBox.value()/1e3  #Add here the final adjustment)
         XSteering=1e-6
         ##############
+        RotationZ=self._mainApp.AcSim.Widget.ZRotationSpinBox.value()
 
         print('ZSteering',ZSteering*1e3)
+        print('RotationZ',RotationZ)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
@@ -315,6 +323,7 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
         kargs['XSteering']=XSteering
         kargs['ZSteering']=ZSteering
+        kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus

@@ -20,7 +20,7 @@
    <property name="geometry">
     <rect>
      <x>31</x>
-     <y>180</y>
+     <y>211</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -74,7 +74,7 @@
    <property name="geometry">
     <rect>
      <x>239</x>
-     <y>130</y>
+     <y>161</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -96,7 +96,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>131</y>
+     <y>162</y>
      <width>150</width>
      <height>31</height>
     </rect>
@@ -119,7 +119,7 @@ skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>228</x>
-     <y>178</y>
+     <y>209</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -147,7 +147,7 @@ skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>210</y>
+     <y>241</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -160,7 +160,7 @@ skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>208</y>
+     <y>239</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -217,7 +217,7 @@ skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>241</y>
+     <y>272</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -230,7 +230,7 @@ skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>239</y>
+     <y>270</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -336,6 +336,47 @@ skin (mm) :</string>
    </property>
    <property name="text">
     <string>Distance Cone to Focus (mm)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_26">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>126</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Z Rotation (degrees)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="ZRotationSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>232</x>
+     <y>125</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-180.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>180.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
    </property>
   </widget>
  </widget>

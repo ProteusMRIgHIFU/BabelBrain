@@ -95,6 +95,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0):
 
     transLoc = H317Locations(Foc=Foc)
     if RotationZ!=0:
+        print('Applying rotation of %f degrees over Z' %(RotationZ))
         theta=np.deg2rad(RotationZ)
         ct=np.cos(theta)
         st=np.sin(theta)

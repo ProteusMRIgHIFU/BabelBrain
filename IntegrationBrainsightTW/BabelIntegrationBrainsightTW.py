@@ -333,7 +333,6 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
              bDisplay=True,
              bMinimalSaving=False,
              bForceRecalc=False,
-             bRunThroughFile=False,
              bWaterOnly=False,
              basePPW=[9],
              bUseCT=False,
@@ -385,83 +384,53 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
                                 OutNames.append(bdir+os.sep+outName+'DataForSim.h5')
                                 continue
                                 
-                            if bRunThroughFile:
-                                inparams={}
-                                inparams['targets']=targets
-                                inparams['deviceName']=deviceName
-                                inparams['COMPUTING_BACKEND']=COMPUTING_BACKEND
-                                inparams['ID']=ID
-                                inparams['bTightNarrowBeamDomain']=bTightNarrowBeamDomain
-                                inparams['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
-                                inparams['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
-                                inparams['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
-                                inparams['extrasuffix']=extrasuffix
-                                inparams['bDoRefocusing']=bDoRefocusing
-                                inparams['ZSteering']=ZSteering
-                                inparams['bDisplay']=bDisplay
-                                inparams['bMinimalSaving']=bMinimalSaving
-                                inparams['bForceRecalc']=bForceRecalc
-                                inparams['bRunThroughFile']=False
-                                inparams['CTFNAME']=CTFNAME
-                                
-                                with open('inputforsim','wb') as f:
-                                    pickle.dump(inparams,f)
-                                cmd='python RunSimViaFile.py'
-                                res=os.system(cmd)
-                                if res !=0:
-                                    raise SystemError("Something didn't work when trying to run simulation")
-                                with open('outputrunfromfile','rb') as f:
-                                    result=pickle.load(f)
-                                print('Done for ',result['ofname'])
-                                OutNames+=result['ofname']
-                            else:
 
-                                print('*'*50)
-                                print(target,'noshear',noshear,'AdjustDepthFocalSpot',AdjustDepthFocalSpot)
-                                TestClass=BabelFTD_Simulations(MASKFNAME=MASKFNAME,
-                                                               bNoShear=noshear,
-                                                               bTightNarrowBeamDomain=bTightNarrowBeamDomain,
-                                                               Frequency=Frequency,
-                                                               basePPW=PPW,
-                                                               AlphaCFL=AlphaCFL,
-                                                               bWaterOnly=bWaterOnly,
-                                                               TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
-                                                               TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
-                                                               TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
-                                                               bDoRefocusing=bDoRefocusing,
-                                                               ZSteering=ZSteering,
-                                                               CTFNAME=CTFNAME,
-                                                               bDisplay=bDisplay)
-                                print('  Step 1')
+                            print('*'*50)
+                            print(target,'noshear',noshear,'AdjustDepthFocalSpot',AdjustDepthFocalSpot)
+                            TestClass=BabelFTD_Simulations(MASKFNAME=MASKFNAME,
+                                                            bNoShear=noshear,
+                                                            bTightNarrowBeamDomain=bTightNarrowBeamDomain,
+                                                            Frequency=Frequency,
+                                                            basePPW=PPW,
+                                                            AlphaCFL=AlphaCFL,
+                                                            bWaterOnly=bWaterOnly,
+                                                            TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
+                                                            TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
+                                                            TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
+                                                            bDoRefocusing=bDoRefocusing,
+                                                            ZSteering=ZSteering,
+                                                            CTFNAME=CTFNAME,
+                                                            bDisplay=bDisplay)
+                            print('  Step 1')
 
-                                #with suppress_stdout():
-                                TestClass.Step1_InitializeConditions(AdjustDepthFocalSpot=AdjustDepthFocalSpot,
-                                                                     OrientationTx=OrientationTx)
-                                print('  Step 2')
-                                TestClass.Step2_CalculateRayleighFieldsForward(prefix=outName,
-                                                                               deviceName=deviceName,
-                                                                               bSkipSavingSTL= bMinimalSaving)
-                                
-                                print('  Step 3')
-                                TestClass.Step3_CreateSourceSignal_and_Sensor()
-                                print('  Step 4')
-                                TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                                print('  Step 5')
-                                TestClass.Step5_ExtractPhaseDataForwardandBack()
-                                if bDoRefocusing:
+                            #with suppress_stdout():
+                            TestClass.Step1_InitializeConditions(AdjustDepthFocalSpot=AdjustDepthFocalSpot,
+                                                                    OrientationTx=OrientationTx)
+                            print('  Step 2')
+                            TestClass.Step2_CalculateRayleighFieldsForward(prefix=outName,
+                                                                            deviceName=deviceName,
+                                                                            bSkipSavingSTL= bMinimalSaving)
+                            
+                            print('  Step 3')
+                            TestClass.Step3_CreateSourceSignal_and_Sensor()
+                            print('  Step 4')
+                            TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                            print('  Step 5')
+                            TestClass.Step5_ExtractPhaseDataForwardandBack()
+                            if bDoRefocusing:
 
-                                    print('  Step 6')
-                                    TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
-                                    print('  Step 7')
-                                    TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                                    print('  Step 8')
-                                    TestClass.Step8_ExtractPhaseDataRefocus()
-                                print('  Step 9')
-                                TestClass.Step9_PrepAndPlotData()
-                                print('  Step 10')
-                                oname=TestClass.Step10_GetResults(prefix=outName,subsamplingFactor=subsamplingFactor,
-                                                                 bMinimalSaving=bMinimalSaving)
-                                OutNames.append(oname)
+                                print('  Step 6')
+                                TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
+                                print('  Step 7')
+                                TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                                print('  Step 8')
+                                TestClass.Step8_ExtractPhaseDataRefocus()
+                            print('  Step 9')
+                            TestClass.Step9_PrepAndPlotData()
+                            print('  Step 10')
+                            oname=TestClass.Step10_GetResults(prefix=outName,subsamplingFactor=subsamplingFactor,
+                                                                bMinimalSaving=bMinimalSaving)
+                            OutNames.append(oname)
     return OutNames
  
     

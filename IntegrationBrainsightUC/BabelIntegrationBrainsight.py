@@ -215,7 +215,7 @@ def HUtoDensity(HUin):
 
 
 ############################################
-def RunSteeringCases(targets,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,bRunThroughFile=True,**kargs):
+def RunSteeringCases(targets,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
     ListPoints=CreateCircularCoverage(DiameterCoverage=DiameterCoverage)
     print(ListPoints)
     fnames=[]
@@ -228,13 +228,12 @@ def RunSteeringCases(targets,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0
                  YSteering=ListPoints[n,1],
                  ZSteering=ZSteering,
                  bDisplay=False,
-                 bRunThroughFile=bRunThroughFile,
                  **kargs)
         
                  
     return ListPoints,fnames
     
-def RunSpreadCase(targets,extrasuffix='',ZSteering=0.0,bRunThroughFile=True,**kargs):
+def RunSpreadCase(targets,extrasuffix='',ZSteering=0.0,**kargs):
     ListPoints=CreateSpreadFocus()
     print(ListPoints)
     fnames=[]
@@ -247,7 +246,6 @@ def RunSpreadCase(targets,extrasuffix='',ZSteering=0.0,bRunThroughFile=True,**ka
                  YSteering=ListPoints[n,1],
                  ZSteering=ZSteering,
                  bDisplay=False,
-                 bRunThroughFile=bRunThroughFile,
                  **kargs)
         
                  
@@ -280,7 +278,6 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
              bDisplay=True,
              bMinimalSaving=False,
              bForceRecalc=False,
-             bRunThroughFile=False,
              DistanceConeToFocus=27e-3,
              bUseCT=False,
              bWaterOnly=False):
@@ -337,86 +334,58 @@ def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
                             OutNames.append(bdir+os.sep+outName+'DataForSim.h5')
                             continue
 
-                        if bRunThroughFile:
-                            inparams={}
-                            inparams['targets']=targets
-                            inparams['deviceName']=deviceName
-                            inparams['COMPUTING_BACKEND']=COMPUTING_BACKEND
-                            inparams['ID']=ID
-                            inparams['bTightNarrowBeamDomain']=bTightNarrowBeamDomain
-                            inparams['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
-                            inparams['extrasuffix']=extrasuffix
-                            inparams['bDoRefocusing']=bDoRefocusing
-                            inparams['XSteering']=XSteering
-                            inparams['YSteering']=YSteering
-                            inparams['bDisplay']=bDisplay
-                            inparams['bMinimalSaving']=bMinimalSaving
-                            inparams['bForceRecalc']=bForceRecalc
-                            inparams['bRunThroughFile']=False
-                            inparams['CTFNAME']=CTFNAME
+                        
 
-                            with open('inputforsim','wb') as f:
-                                pickle.dump(inparams,f)
-                            cmd='python RunSimViaFile.py'
-                            res=os.system(cmd)
-                            if res !=0:
-                                raise SystemError("Something didn't work when trying to run simulation")
-                            with open('outputrunfromfile','rb') as f:
-                                result=pickle.load(f)
-                            print('Done for ',result['ofname'])
-                            OutNames+=result['ofname']
-                        else:
+                        print('*'*50)
+                        print(target,'noshear',noshear)
+                        TestClass=BabelFTD_Simulations(MASKFNAME=MASKFNAME,
+                                                        bNoShear=noshear,
+                                                        bTightNarrowBeamDomain=bTightNarrowBeamDomain,
+                                                        Frequency=Frequency,
+                                                        basePPW=PPW,
+                                                        SensorSubSampling=SensorSubSampling,
+                                                        AlphaCFL=AlphaCFL,
+                                                        bWaterOnly=bWaterOnly,
+                                                        TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
+                                                        TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
+                                                        TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
+                                                        bDoRefocusing=bDoRefocusing,
+                                                        XSteering=XSteering,
+                                                        YSteering=YSteering,
+                                                        ZSteering=ZSteering,
+                                                        RotationZ=RotationZ,
+                                                        DistanceConeToFocus=DistanceConeToFocus,
+                                                        CTFNAME=CTFNAME,
+                                                        bDisplay=bDisplay)
+                        print('  Step 1')
 
-                            print('*'*50)
-                            print(target,'noshear',noshear)
-                            TestClass=BabelFTD_Simulations(MASKFNAME=MASKFNAME,
-                                                           bNoShear=noshear,
-                                                           bTightNarrowBeamDomain=bTightNarrowBeamDomain,
-                                                           Frequency=Frequency,
-                                                           basePPW=PPW,
-                                                           SensorSubSampling=SensorSubSampling,
-                                                           AlphaCFL=AlphaCFL,
-                                                           bWaterOnly=bWaterOnly,
-                                                           TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
-                                                           TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
-                                                           TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
-                                                           bDoRefocusing=bDoRefocusing,
-                                                           XSteering=XSteering,
-                                                           YSteering=YSteering,
-                                                           ZSteering=ZSteering,
-                                                           RotationZ=RotationZ,
-                                                           DistanceConeToFocus=DistanceConeToFocus,
-                                                           CTFNAME=CTFNAME,
-                                                           bDisplay=bDisplay)
-                            print('  Step 1')
+                        #with suppress_stdout():
+                        TestClass.Step1_InitializeConditions(OrientationTx=OrientationTx)
+                        print('  Step 2')
+                        TestClass.Step2_CalculateRayleighFieldsForward(prefix=outName,
+                                                                        deviceName=deviceName,
+                                                                        bSkipSavingSTL= bMinimalSaving)
 
-                            #with suppress_stdout():
-                            TestClass.Step1_InitializeConditions(OrientationTx=OrientationTx)
-                            print('  Step 2')
-                            TestClass.Step2_CalculateRayleighFieldsForward(prefix=outName,
-                                                                           deviceName=deviceName,
-                                                                           bSkipSavingSTL= bMinimalSaving)
+                        print('  Step 3')
+                        TestClass.Step3_CreateSourceSignal_and_Sensor()
+                        print('  Step 4')
+                        TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                        print('  Step 5')
+                        TestClass.Step5_ExtractPhaseDataForwardandBack()
+                        if bDoRefocusing:
 
-                            print('  Step 3')
-                            TestClass.Step3_CreateSourceSignal_and_Sensor()
-                            print('  Step 4')
-                            TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                            print('  Step 5')
-                            TestClass.Step5_ExtractPhaseDataForwardandBack()
-                            if bDoRefocusing:
-
-                                print('  Step 6')
-                                TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
-                                print('  Step 7')
-                                TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                                print('  Step 8')
-                                TestClass.Step8_ExtractPhaseDataRefocus()
-                            print('  Step 9')
-                            TestClass.Step9_PrepAndPlotData()
-                            print('  Step 10')
-                            oname=TestClass.Step10_GetResults(prefix=outName,subsamplingFactor=subsamplingFactor,
-                                                             bMinimalSaving=bMinimalSaving)
-                            OutNames.append(oname)
+                            print('  Step 6')
+                            TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
+                            print('  Step 7')
+                            TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                            print('  Step 8')
+                            TestClass.Step8_ExtractPhaseDataRefocus()
+                        print('  Step 9')
+                        TestClass.Step9_PrepAndPlotData()
+                        print('  Step 10')
+                        oname=TestClass.Step10_GetResults(prefix=outName,subsamplingFactor=subsamplingFactor,
+                                                            bMinimalSaving=bMinimalSaving)
+                        OutNames.append(oname)
     return OutNames
     
 #############################################
@@ -598,7 +567,7 @@ class BabelFTD_Simulations(object):
             TxStl.save(bdir+os.sep+prefix+'Tx.stl')
         
         ##
-        RawH317=GenerateH317Tx(Frequency=self._Frequency)
+        RawH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         TxVert=RawH317['VertDisplay']*1e3
         TxVert[:,2]+=self._SIM_SETTINGS._FocalLength*1e3
         TxStl = mesh.Mesh(np.zeros(RawH317['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
@@ -719,6 +688,7 @@ class BabelFTD_Simulations(object):
         DataForSim['XSteering']=self._XSteering
         DataForSim['YSteering']=self._YSteering
         DataForSim['ZSteering']=self._ZSteering
+        DataForSim['RotationZ']=self._RotationZ
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['DistanceConeToFocus']=self._DistanceConeToFocus
 
