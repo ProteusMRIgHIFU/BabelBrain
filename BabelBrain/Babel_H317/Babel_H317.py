@@ -210,14 +210,16 @@ class H317(QWidget):
          IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
          IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
 
-         ISkull/=IWater[Skull['MaterialMap']==3].max()
+         EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
+         EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
+
+         ISkull/=ISkull[Skull['MaterialMap']==3].max()
          IWater/=IWater[Skull['MaterialMap']==3].max()
 
 
-         Factor=IWater[Skull['MaterialMap']==3].max()/ISkull[Skull['MaterialMap']==3].max()
+         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
          print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
-         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa (location)',IntWaterLocation/IntSkullLocation,'\n'+'*'*40+'\n'+'*'*40+'\n')
-         
+          
          ISkull[Skull['MaterialMap']!=3]=0
          self._figAcField=Figure(figsize=(14, 12))
 
@@ -239,7 +241,7 @@ class H317(QWidget):
          Zvec-=Zvec[LocTarget[2]]
          Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
          XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T*Factor,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
          h=plt.colorbar(self._imContourf1,ax=static_ax1)
          h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
          static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -251,7 +253,7 @@ class H317(QWidget):
 
          YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-         self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T*Factor,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+         self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
          h=plt.colorbar(self._imContourf1,ax=static_ax2)
          h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
          static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)

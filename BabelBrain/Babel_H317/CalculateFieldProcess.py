@@ -67,7 +67,7 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         TxMechanicalAdjustmentZ=kargs['TxMechanicalAdjustmentZ'],
                         TxMechanicalAdjustmentX=kargs['TxMechanicalAdjustmentX'],
                         TxMechanicalAdjustmentY=kargs['TxMechanicalAdjustmentY'],
-                        ZSteering=0,
+                        ZSteering=kargs['ZSteering'],
                         RotationZ=kargs['RotationZ'],
                         Frequencies=kargs['Frequencies'],
                         XSteering=1e-6,
