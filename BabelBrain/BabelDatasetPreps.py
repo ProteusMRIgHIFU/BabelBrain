@@ -27,7 +27,10 @@ import pandas as pd
 import platform
 import sys
 from linetimer import CodeTimer
-import CTZTEProcessing
+try:
+    import CTZTEProcessing
+except:
+    from . import CTZTEProcessing
 import tempfile
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
