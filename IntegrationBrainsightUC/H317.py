@@ -94,19 +94,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0):
 
 
     transLoc = H317Locations(Foc=Foc)
-    if RotationZ!=0:
-        print('Applying rotation of %f degrees over Z' %(RotationZ))
-        theta=np.deg2rad(RotationZ)
-        ct=np.cos(theta)
-        st=np.sin(theta)
-        Rz=np.zeros((3,3))
-        Rz[0,0]=ct
-        Rz[0,1]=-st
-        Rz[1,0]=st 
-        Rz[1,1]=ct
-        Rz[2,2]=1
-        transloc=(Rz@transLoc.T).T
-
+  
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc
 
@@ -115,6 +103,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0):
 
     theta=np.arcsin(XYNorm/VN)
     phi=np.arctan2(transLocDisplacedZ[:,1],transLocDisplacedZ[:,0])
+    phi+=np.deg2rad(RotationZ)
 
     TxH317={}
     TxH317['center'] = np.zeros((0,3))
