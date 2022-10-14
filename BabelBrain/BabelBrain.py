@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
-from superqt import QLabeledDoubleRangeSlider 
+from qtrangeslider import   QLabeledDoubleRangeSlider
 
 from BabelDatasetPreps import ReadTrajectoryBrainsight,GetIDTrajectoryBrainsight
 
@@ -353,7 +353,7 @@ class BabelBrain(QWidget):
         new_tab.setEnabled(False)
         self.ThermalSim=new_tab
 
-        slider=QLabeledDoubleRangeSlider(Qt.Orientation.Horizontal)
+        slider= QLabeledDoubleRangeSlider(Qt.Orientation.Horizontal)
         slider.setRange(0.05, 1.0)
         slider.setValue((0.1, 0.6))
         ZTE=self.Widget.CTZTETabs.widget(0)
