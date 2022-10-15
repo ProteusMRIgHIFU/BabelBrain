@@ -121,7 +121,7 @@ for f in [250e3,500e3,700e3]:
 
 pprint(MatFreq)
 
-def GetSmallestSOS(frequency):
+def GetSmallestSOS(frequency,bShear=False):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -129,8 +129,17 @@ def GetSmallestSOS(frequency):
             SoS=SelFreq[k][1]
         if SelFreq[k][2]>0 and SelFreq[k][2] < SoS:
             SoS=SelFreq[k][2]
+    if bShear:
+        SoS=np.min([SoS,SSOSITRUST(HUtoDensity(np.array([0])))])
     return SoS
 
+def LSOSITRUST(density):
+    return density*1.33 + 167  #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+    
+def SSOSITRUST(density):
+    #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
+    return density*0.422 + 680.515  
+    
 
 def primeCheck(n):
     # 0, 1, even numbers greater than 2 are NOT PRIME
@@ -315,11 +324,37 @@ def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
     res = np.round(np.array(nii.header.get_zooms()).mean(),5)
-    pre=ants.image_read(fn)
-    pre.set_spacing([res,res,res])
-    ants.image_writepre,newfn)
+    try:
+        pre=ants.image_read(fn)
+        pre.set_spacing([res,res,res])
+        ants.image_write(pre,newfn)
+    except:
+        res = '%6.5f' % (res)
+        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
+        print(cmd)
+        assert(os.system(cmd)==0)
+        os.remove(fn)
 
     os.remove(fn)
+
+def HUtoDensity(HUin):
+    #Adapted from hounsfield2density.m fromk k_wave
+    HU = HUin+1000.0 #not sure why in kWave air is 1000.0 HU
+    density = np.zeros_like(HU)
+
+    # apply conversion in several parts using linear fits to the data
+    # Part 1: Less than 930 Hounsfield Units
+    density[HU < 930] = np.poly1d([1.025793065681423, -5.680404011488714])(HU[HU < 930])
+
+    # Part 2: Between 930 and 1098 (soft tissue region)
+    density[(HU >= 930) & (HU <= 1098)] =  np.poly1d([0.9082709691264, 103.6151457847139])(HU[(HU >= 930) & (HU <= 1098)])
+
+    # Part 3: Between 1098 and 1260 (between soft tissue and bone)
+    density[(HU > 1098) & (HU < 1260)] =  np.poly1d([0.5108369316599, 539.9977189228704])(HU[(HU > 1098) & (HU < 1260)])
+
+    # Part 4: Greater than 1260 (bone region)
+    density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
+    return density
 
 def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,
              ID='LIFU1-01',
@@ -616,7 +651,8 @@ class BabelFTD_Simulations(object):
             DensityCT=HUtoDensity(AllBone)
             
             print('Range Density CT',DensityCT.min(),DensityCT.max())
-            print('Range SOS CT',DensityCT.min()*1.33 + 167,DensityCT.max()*1.33 + 167)
+            print('Range Long SOS CT',LSOSITRUST(DensityCT.min()),LSOSITRUST(DensityCT.max()))
+            # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
             
@@ -648,12 +684,14 @@ class BabelFTD_Simulations(object):
                                             0) #the attenuation came for 500 kHz, so we adjust with the one being used
                 for d in DensityCT:
                     SelM=MatFreq[self._Frequency]['Cortical']
-                    lSoS=1.33*d + 167 #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+                    lSoS=LSOSITRUST(d)
+                    # sSoS =SSOSITRUST(d)
+                    sSoS = 0
                     self._SIM_SETTINGS.AddMaterial(d, #den
                                             lSoS,
-                                            0,
+                                            sSoS,
                                             SelM[3]/4, #we keep constant attenuation
-                                            0)
+                                            0)#,SelM[4]/4)
 
                 
 
@@ -967,7 +1005,7 @@ class SimulationConditions(object):
         print('MatArray\n',MatArray)
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency)])
+        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)

@@ -256,10 +256,16 @@ def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
     res = np.round(np.array(nii.header.get_zooms()).mean(),5)
-    pre=ants.image_read(fn)
-    pre.set_spacing([res,res,res])
-    ants.image_write(pre,newfn)
-    os.remove(fn)
+    try:
+        pre=ants.image_read(fn)
+        pre.set_spacing([res,res,res])
+        ants.image_write(pre,newfn)
+    except:
+        res = '%6.5f' % (res)
+        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
+        print(cmd)
+        assert(os.system(cmd)==0)
+        os.remove(fn)
 
 def RunCases(targets,deviceName='A6000',COMPUTING_BACKEND=1,ID='LIFU1-01',
              basedir='../LIFU Clinical Trial Data/Participants/',
