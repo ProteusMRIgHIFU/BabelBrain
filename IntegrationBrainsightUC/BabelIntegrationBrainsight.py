@@ -138,7 +138,15 @@ def GetSmallestSOS(frequency,bShear=False):
 
 def LSOSITRUST(density):
     return density*1.33 + 167  #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
-    
+
+def LATTITRUST(frequency):
+    att=270*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
+    return att*frequency
+     
+def SATTITRUST(frequency):
+    att=540*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
+    return att*frequency
+
 def SSOSITRUST(density):
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
     return density*0.422 + 680.515  
@@ -520,7 +528,7 @@ class BabelFTD_Simulations(object):
                     self._SIM_SETTINGS.AddMaterial(d, #den
                                             lSoS,
                                             sSoS,
-                                            SelM[3]/4, #we keep constant attenuation
+                                            LATTITRUST(self._Frequency/1e6), #we keep constant attenuation
                                             0)#,SelM[4]/4)
 
                 
