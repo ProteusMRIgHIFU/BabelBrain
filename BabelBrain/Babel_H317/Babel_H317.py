@@ -160,110 +160,122 @@ class H317(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
-         self._MainApp.Widget.tabWidget.setEnabled(True)
-         self._MainApp.ThermalSim.setEnabled(True)
-         Water=ReadFromH5py(self._WaterSolName)
-         Skull=ReadFromH5py(self._FullSolName)
-         if self._MainApp._bInUseWithBrainsight:
+        self._MainApp.Widget.tabWidget.setEnabled(True)
+        self._MainApp.ThermalSim.setEnabled(True)
+        Water=ReadFromH5py(self._WaterSolName)
+        Skull=ReadFromH5py(self._FullSolName)
+        if self._MainApp._bInUseWithBrainsight:
             if Skull['bDoRefocusing']:
                 #we update the name to be loaded in BSight
                 self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
             with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
                 f.write(self._MainApp._BrainsightInput) 
-         self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+        self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
+                                    CorY=Skull['AdjustmentInRAS'][1],
+                                    CorZ=Skull['AdjustmentInRAS'][2])
 
-         LocTarget=Skull['TargetLocation']
-         print(LocTarget)
+        LocTarget=Skull['TargetLocation']
+        print(LocTarget)
 
-         if Skull['bDoRefocusing']:
-             SelP='p_amp_refocus'
-         else:
-             SelP='p_amp'
+        if Skull['bDoRefocusing']:
+            SelP='p_amp_refocus'
+        else:
+            SelP='p_amp'
 
-         for d in [Skull]:
-             for t in [SelP,'MaterialMap']:
-                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+        for d in [Skull]:
+            for t in [SelP,'MaterialMap']:
+                d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
-         for d in [Water]:
-             for t in ['p_amp','MaterialMap']:
-                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+        for d in [Water]:
+            for t in ['p_amp','MaterialMap']:
+                d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
-         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')*1e3
+        DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')*1e3
+        dx=  np.mean(np.diff(Skull['x_vec']))
 
-         Water['z_vec']*=1e3
-         Skull['z_vec']*=1e3
-         Skull['x_vec']*=1e3
-         Skull['y_vec']*=1e3
-         Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-         Skull['MaterialMap'][Skull['MaterialMap']==4]=3
+        Water['z_vec']*=1e3
+        Skull['z_vec']*=1e3
+        Skull['x_vec']*=1e3
+        Skull['y_vec']*=1e3
+        Skull['MaterialMap'][Skull['MaterialMap']==3]=2
+        Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-         DensityMap=Water['Material'][:,0][Water['MaterialMap']]
-         SoSMap=    Water['Material'][:,1][Water['MaterialMap']]
-         IWater=Water['p_amp']**2/2/DensityMap/SoSMap/1e4
+        IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-         DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-         SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-         ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
+        DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
+        SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
 
-         IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-         IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
+        ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
 
-         EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
-         EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
+        IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
+        IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
+        
+        ISkull[Skull['MaterialMap']!=3]=0
+        cxr,cyr,czr=np.where(ISkull==ISkull.max())
+        cxr=cxr[0]
+        cyr=cyr[0]
+        czr=czr[0]
 
-         ISkull/=ISkull[Skull['MaterialMap']==3].max()
-         IWater/=IWater[Skull['MaterialMap']==3].max()
+        EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
 
+        cxr,cyr,czr=np.where(IWater==IWater.max())
+        cxr=cxr[0]
+        cyr=cyr[0]
+        czr=czr[0]
 
-         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
-         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
-          
-         ISkull[Skull['MaterialMap']!=3]=0
-         self._figAcField=Figure(figsize=(14, 12))
+        EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
 
-         if self.static_canvas is not None:
-             self._layout.removeItem(self._layout.itemAt(0))
-             self._layout.removeItem(self._layout.itemAt(0))
-         else:
-             self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
+        
+        Factor=EnergyAtFocusWater/EnergyAtFocusSkull
+        print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
+        
+        ISkull/=ISkull.max()
+        IWater/=IWater.max()
 
-         self.static_canvas = FigureCanvas(self._figAcField)
-         self._layout.addWidget(self.static_canvas)
-         toolbar=NavigationToolbar2QT(self.static_canvas,self)
-         self._layout.addWidget(toolbar)
-         self._layout.addWidget(self.static_canvas)
-         static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+        self._figAcField=Figure(figsize=(14, 12))
 
-         dz=np.diff(Skull['z_vec']).mean()
-         Zvec=Skull['z_vec'].copy()
-         Zvec-=Zvec[LocTarget[2]]
-         Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
-         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-         h=plt.colorbar(self._imContourf1,ax=static_ax1)
-         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
-         static_ax1.set_aspect('equal')
-         static_ax1.set_xlabel('X mm')
-         static_ax1.set_ylabel('Z mm')
-         static_ax1.invert_yaxis()
-         static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
+        if self.static_canvas is not None:
+            self._layout.removeItem(self._layout.itemAt(0))
+            self._layout.removeItem(self._layout.itemAt(0))
+        else:
+            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
-         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
+        self.static_canvas = FigureCanvas(self._figAcField)
+        self._layout.addWidget(self.static_canvas)
+        toolbar=NavigationToolbar2QT(self.static_canvas,self)
+        self._layout.addWidget(toolbar)
+        self._layout.addWidget(self.static_canvas)
+        static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
 
-         self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-         h=plt.colorbar(self._imContourf1,ax=static_ax2)
-         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
-         static_ax2.set_aspect('equal')
-         static_ax2.set_xlabel('Y mm')
-         static_ax2.set_ylabel('Z mm')
-         static_ax2.invert_yaxis()
-         static_ax2.plot(0,DistanceToTarget,'+y',markersize=18)
-         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
-         self._figAcField.set_tight_layout(True)
+        dz=np.diff(Skull['z_vec']).mean()
+        Zvec=Skull['z_vec'].copy()
+        Zvec-=Zvec[LocTarget[2]]
+        Zvec+=DistanceToTarget
+        XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
+        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        h=plt.colorbar(self._imContourf1,ax=static_ax1)
+        h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
+        static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax1.set_aspect('equal')
+        static_ax1.set_xlabel('X mm')
+        static_ax1.set_ylabel('Z mm')
+        static_ax1.invert_yaxis()
+        static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
+
+        YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
+
+        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        h=plt.colorbar(self._imContourf1,ax=static_ax2)
+        h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
+        static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax2.set_aspect('equal')
+        static_ax2.set_xlabel('Y mm')
+        static_ax2.set_ylabel('Z mm')
+        static_ax2.invert_yaxis()
+        static_ax2.plot(0,DistanceToTarget,'+y',markersize=18)
+        self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
+        self._figAcField.set_tight_layout(True)
 
          #f.set_title('MAIN SIMULATION RESULTS')
 

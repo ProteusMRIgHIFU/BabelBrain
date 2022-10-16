@@ -141,8 +141,6 @@ def CalculateTemperatureEffects(InputPData,
         print('Location Max Pessure Tissue',cxr,cyr,czr,'\n',
               xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
         
-
-        
         PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
         AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
         print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
