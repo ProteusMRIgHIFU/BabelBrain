@@ -325,12 +325,12 @@ class BabelBrain(QWidget):
         if self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import GetSmallestSOS
+            from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from IntegrationBrainsightUC.BabelIntegrationBrainsight import GetSmallestSOS
+            from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
             GetSkullMask=GetSkullMaskFromSimbNIBSSTL
         else:
             self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")

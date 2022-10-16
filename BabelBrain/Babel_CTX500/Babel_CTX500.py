@@ -27,7 +27,6 @@ import shutil
 from datetime import datetime
 import time
 import yaml
-from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import RunCases,PlotFinalAnalysis
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateFieldProcess import CalculateFieldProcess
 

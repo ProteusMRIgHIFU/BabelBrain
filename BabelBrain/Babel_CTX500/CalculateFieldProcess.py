@@ -1,6 +1,6 @@
 import sys
 import platform
-from IntegrationBrainsightTW.BabelIntegrationBrainsightTW import RunCases
+from TranscranialModeling.BabelIntegrationBrainsightTW import RUN_SIM
 import traceback
 
 def CalculateFieldProcess(queue,Target,**kargs):
@@ -37,8 +37,8 @@ def CalculateFieldProcess(queue,Target,**kargs):
 
     try:
         COMPUTING_BACKEND=kargs['COMPUTING_BACKEND']
-
-        RunCases(Target, ID=kargs['ID'],
+        R=RUN_SIM()
+        R.RunCases(targets=Target, ID=kargs['ID'],
                         deviceName=kargs['deviceName'],
                         COMPUTING_BACKEND=COMPUTING_BACKEND,
                         bTightNarrowBeamDomain=True,
@@ -52,7 +52,7 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         Frequencies=kargs['Frequencies'],
                         bDisplay=False)
 
-        RunCases(Target, ID=kargs['ID'],
+        R.RunCases(targets=Target, ID=kargs['ID'],
                         deviceName=kargs['deviceName'],
                         COMPUTING_BACKEND=COMPUTING_BACKEND,
                         bTightNarrowBeamDomain=True,
