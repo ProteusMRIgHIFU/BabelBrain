@@ -1,6 +1,6 @@
 import sys
 import platform
-from TranscranialModeling.BabelIntegrationBrainsightTW import RUN_SIM
+from TranscranialModeling.BabelIntegrationTW import RUN_SIM
 import traceback
 
 def CalculateFieldProcess(queue,Target,**kargs):

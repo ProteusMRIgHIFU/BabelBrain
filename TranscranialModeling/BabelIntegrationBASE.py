@@ -219,7 +219,7 @@ class RUN_SIM_BASE(object):
                 bDoRefocusing=False,
                 extrasuffix='',
                 Frequencies= [700e3],
-                bDisplay=True,
+                bDisplay=False,
                 bMinimalSaving=False,
                 bForceRecalc=False,
                 bUseCT=False,
@@ -564,7 +564,7 @@ class BabelFTD_Simulations_BASE(object):
         self._SIM_SETTINGS.UpdateConditions(self._SkullMask,AlphaCFL=self._AlphaCFL,bWaterOnly=self._bWaterOnly)
         gc.collect()
 
-    def GenerateSTLTx(self):
+    def GenerateSTLTx(self,prefix):
         pass
         
     def Step2_CalculateRayleighFieldsForward(self,prefix='',deviceName='6800',bSkipSavingSTL=False):

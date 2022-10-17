@@ -272,21 +272,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._OutDiameters=OutDiameters*FactorEnlarge
         self._ZSteering=ZSteering
         
-        
-        
-    def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
-        self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
-        
-        
-    @property
-    def Wavelength(self):
-        return self._Wavelength
-        
-        
-    @property
-    def SpatialStep(self):
-        return self._SpatialStep
-        
     
     def GenTx(self,bOrigDimensions=False):
         fScaling=1.0
