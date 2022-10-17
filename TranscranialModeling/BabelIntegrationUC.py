@@ -112,7 +112,6 @@ class RUN_SIM(RUN_SIM_BASE):
         return ListPoints,fnames
 ##########################################
 
-
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,
@@ -139,6 +138,18 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                                     FocalLength=135e-3,
                                     **kargs)
+
+    def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
+        Target=np.array(np.where(SkullMaskDataOrig==5.0)).flatten()
+        LineSight=SkullMaskDataOrig[Target[0],Target[1],:]
+        Distance=(Target[2]-np.where(LineSight>0)[0][0])*voxelS[2]
+        print('*'*20+'\n'+'Distance to target from skin (mm)=',Distance*1e3)
+        print('*'*20+'\n')
+        self._TxMechanicalAdjustmentZ=   self._DistanceConeToFocus - Distance
+
+        print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
+        print('*'*20+'\n')
+
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
         TxVert=self._SIM_SETTINGS._TxH317['VertDisplay'].T.copy()

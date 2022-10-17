@@ -32,8 +32,6 @@ import os
 import pickle
 import os
 
-from symbol import pass_stmt
-
 try:
     import mkl_fft as fft
 except:
@@ -223,7 +221,8 @@ class RUN_SIM_BASE(object):
                 bMinimalSaving=False,
                 bForceRecalc=False,
                 bUseCT=False,
-                bWaterOnly=False):
+                bWaterOnly=False,
+                **kargs):
         OutNames=[]
         for target in targets:
             if 250e3 in Frequencies:
@@ -293,7 +292,8 @@ class RUN_SIM_BASE(object):
                                                             TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
                                                             bDoRefocusing=bDoRefocusing,
                                                             CTFNAME=CTFNAME,
-                                                            bDisplay=bDisplay)
+                                                            bDisplay=bDisplay,
+                                                            **kargs)
                             print('  Step 1')
 
                             #with suppress_stdout():
@@ -491,7 +491,7 @@ class BabelFTD_Simulations_BASE(object):
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
 
-    def AdjustMechanicalSettings(self):
+    def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
         #in some Tx settings, we adjust here settings of distance
         pass
 
@@ -501,7 +501,7 @@ class BabelFTD_Simulations_BASE(object):
         voxelS=np.array(self._SkullMask.header.get_zooms())*1e-3
         Dims=np.array(SkullMaskDataOrig.shape)*voxelS
         
-        self.AdjustMechanicalSettings()
+        self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
         if self._CTFNAME is not None and not self._bWaterOnly:
@@ -1291,10 +1291,10 @@ elif self._bTightNarrowBeamDomain:
         
             
     def BackPropagationRayleigh(self,deviceName='6800'):
-        pass 
+        raise NotImplementedError("Need to implement this") 
         
     def CreateSourcesRefocus(self,ramp_length=4):
-        pass
+        raise NotImplementedError("Need to implement this")
         
     def PlotResultsPlanePartial(self):
   
