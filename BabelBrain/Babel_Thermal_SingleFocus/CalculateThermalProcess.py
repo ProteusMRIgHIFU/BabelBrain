@@ -6,7 +6,7 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from scipy.io import savemat
 import numpy as np
 
-from IntegrationBrainsightTW.CalculateTemperatureEffects import CalculateTemperatureEffects
+from ThermalModeling.CalculateTemperatureEffects import CalculateTemperatureEffects
 
 def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
     class InOutputWrapper(object):

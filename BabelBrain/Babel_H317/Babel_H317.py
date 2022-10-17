@@ -191,7 +191,6 @@ class H317(QWidget):
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')*1e3
-        dx=  np.mean(np.diff(Skull['x_vec']))
 
         Water['z_vec']*=1e3
         Skull['z_vec']*=1e3
@@ -200,39 +199,27 @@ class H317(QWidget):
         Skull['MaterialMap'][Skull['MaterialMap']==3]=2
         Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-        IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
+        DensityMap=Water['Material'][:,0][Water['MaterialMap']]
+        SoSMap=    Water['Material'][:,1][Water['MaterialMap']]
+        IWater=Water['p_amp']**2/2/DensityMap/SoSMap/1e4
 
         DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
         SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-
-        ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
+        ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
 
         IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
         IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-        
-        ISkull[Skull['MaterialMap']!=3]=0
-        cxr,cyr,czr=np.where(ISkull==ISkull.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
 
-        EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
+        EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
+        EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
 
-        cxr,cyr,czr=np.where(IWater==IWater.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
+        ISkull/=ISkull[Skull['MaterialMap']==3].max()
+        IWater/=IWater[Skull['MaterialMap']==3].max()
 
-        EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
-
-        print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
-        
         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
         
-        ISkull/=ISkull.max()
-        IWater/=IWater.max()
-
+        ISkull[Skull['MaterialMap']!=3]=0
         self._figAcField=Figure(figsize=(14, 12))
 
         if self.static_canvas is not None:
@@ -251,7 +238,7 @@ class H317(QWidget):
         dz=np.diff(Skull['z_vec']).mean()
         Zvec=Skull['z_vec'].copy()
         Zvec-=Zvec[LocTarget[2]]
-        Zvec+=DistanceToTarget
+        Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
         self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
@@ -277,7 +264,6 @@ class H317(QWidget):
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
         self._figAcField.set_tight_layout(True)
 
-         #f.set_title('MAIN SIMULATION RESULTS')
 
 
 class RunAcousticSim(QObject):

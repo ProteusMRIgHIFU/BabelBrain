@@ -27,7 +27,7 @@ import shutil
 from datetime import datetime
 import time
 import yaml
-from IntegrationBrainsightTW.CalculateTemperatureEffects import GetThermalOutName
+from ThermalModeling.CalculateTemperatureEffects import GetThermalOutName
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
 

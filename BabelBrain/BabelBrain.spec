@@ -30,7 +30,7 @@ datas+=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_H317/form.ui','./Babel_H317'),
         ('Babel_CTX500/form.ui','./Babel_CTX500'),
         ('form.ui','./'),
-        ('../IntegrationBrainsightUC/H-317 XYZ Coordinates_revB update 1.18.22.csv','./IntegrationBrainsightUC'),
+        ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
         ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
 
 
