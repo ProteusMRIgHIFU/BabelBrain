@@ -13,28 +13,43 @@ from skimage.measure import label, regionprops
 import numpy as np
 from operator import itemgetter
 
-def CTCorreg(InputT1,InputCT):
+def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
+    # CoregCT_MRI =0, do not coregister, just load data
+    # CoregCT_MRI =1 , coregister CT-->MRI space
+    # CoregCT_MRI =2 , coregister MRI-->CT space
     #Bias correction
-    img = ants.image_read(InputT1)
-    img_n4 = ants.n4_bias_field_correction(img)
-    T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-    ants.image_write(img_n4,(T1fnameBiasCorrec))   
+    if CoregCT_MRI==0:
+        return nibabel.load(InputCT)
+    else:
+        img = ants.image_read(InputT1)
+        img_n4 = ants.n4_bias_field_correction(img)
+        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
+        ants.image_write(img_n4,(T1fnameBiasCorrec))   
 
-    #coreg
-    parameters = itk.ParameterObject.New()
+        #coreg
+        parameters = itk.ParameterObject.New()
 
-    resolutions = 3
-    default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
-    parameters.AddParameterMap(default_rigid)
+        resolutions = 3
+        default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
+        parameters.AddParameterMap(default_rigid)
+        if CoregCT_MRI==1:
+            fixed_image = itk.imread(T1fnameBiasCorrec,itk.F)
+            moving_image = itk.imread(InputCT,itk.F)
+            
+            CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
+            registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
+            itk.imwrite(registered_image,CTInT1W)
 
-    fixed_image = itk.imread(T1fnameBiasCorrec,itk.F)
-    moving_image = itk.imread(InputCT,itk.F)
-    
-    CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
-    registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
-    itk.imwrite(registered_image,CTInT1W)
+            return nibabel.load(CTInT1W)
+        else:
+            fixed_image = itk.imread(InputCT,itk.F)
+            moving_image = itk.imread(T1fnameBiasCorrec,itk.F)
+            
+            T1WinCT=os.path.splitext(InputT1)[0] + '_InCT.nii.gz'
+            registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
+            itk.imwrite(registered_image,T1WinCT)
 
-    return nibabel.load(CTInT1W) 
+            return nibabel.load(InputCT)
 
 
 def BiasCorrecAndCoreg(InputT1,InputZTE):
