@@ -679,6 +679,12 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
 
         nfct=np.zeros_like(FinalMask)
+
+        inds=(AffIJK[:,0]<nfct.shape[0])&\
+             (AffIJK[:,1]<nfct.shape[1])&\
+             (AffIJK[:,2]<nfct.shape[2])
+        AffIJK=AffIJK[inds,:]
+
         nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
 
         with CodeTimer("CT median filter",unit='s'):

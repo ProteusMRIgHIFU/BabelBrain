@@ -152,7 +152,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
-        TxVert=self._SIM_SETTINGS._TxH317['VertDisplay'].T.copy()
+        TxVert=self._SIM_SETTINGS._TxH317_Orig['VertDisplay'].T.copy()
         TxVert/=self._SIM_SETTINGS.SpatialStep
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
@@ -162,14 +162,14 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxVert[2,:]=-TxVert[2,:]
         TxVert[0,:]+=LocSpot[0]
         TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS.SpatialStep
+        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep
 
         TxVert=np.dot(affine,TxVert)
 
-        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxH317['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
 
         TxVert=TxVert.T[:,:3]
-        for i, f in enumerate(self._SIM_SETTINGS._TxH317['FaceDisplay']):
+        for i, f in enumerate(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay']):
             TxStl.vectors[i*2][0] = TxVert[f[0],:]
             TxStl.vectors[i*2][1] = TxVert[f[1],:]
             TxStl.vectors[i*2][2] = TxVert[f[3],:]
@@ -184,7 +184,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         ##
         RawH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         TxVert=RawH317['VertDisplay']*1e3
-        TxVert[:,2]+=self._SIM_SETTINGS._FocalLength*1e3
+        TxVert[:,2]+=self._SIM_SETTINGS._OrigFocalLength*1e3
         TxStl = mesh.Mesh(np.zeros(RawH317['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
 
         for i, f in enumerate(RawH317['FaceDisplay']):
@@ -211,7 +211,8 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
+    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
+                      Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                       FocalLength=135e-3,
                       XSteering=0.0, #lateral steering
                       YSteering=0.0,
@@ -219,7 +220,12 @@ class SimulationConditions(SimulationConditionsBASE):
                       RotationZ=0.0,#rotation of Tx over Z axis
                       DistanceConeToFocus=0.0,
                       **kargs):
-        super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
+        super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=FocalLength*FactorEnlarge,**kargs)
+        self._FactorEnlarge=FactorEnlarge
+        self._OrigAperture=Aperture
+        self._OrigFocalLength=FocalLength
+        self._Aperture=Aperture*FactorEnlarge
+        self._FocalLength=FocalLength*FactorEnlarge
         self._XSteering=XSteering
         self._YSteering=YSteering
         self._ZSteering=ZSteering
@@ -231,7 +237,8 @@ class SimulationConditions(SimulationConditionsBASE):
             InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elemens
-        self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D

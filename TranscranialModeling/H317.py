@@ -74,12 +74,12 @@ def H317Locations(Foc=135e-3):
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateH317Tx(Frequency=700e3,RotationZ=0):
+def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
 
 
     f=Frequency;
-    Foc=135e-3
-    Diameter=9.5e-3
+    Foc=135e-3*FactorEnlarge
+    Diameter=9.5e-3*FactorEnlarge
 
     #%This is the indiv tx element
     TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])

@@ -240,7 +240,9 @@ class H317(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        slice = ISkull[:,LocTarget[1],:]
+        slice/=slice.max()
+        self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -251,8 +253,9 @@ class H317(QWidget):
         static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        slice = ISkull[LocTarget[0],:,:]
+        slice/=slice.max()
+        self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
