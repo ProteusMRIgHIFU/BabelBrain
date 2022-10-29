@@ -330,7 +330,7 @@ class SimulationConditions(SimulationConditionsBASE):
             plt.subplot(1,2,2)
         
             plt.imshow((np.abs(u2[self._FocalSpotLocation[0],:,:]).T+
-                                    self._MaterialMap[self._FocalSpotLocation[0],:,:].T*
+                                    ((self._MaterialMap[self._FocalSpotLocation[0],:,:].T>=3).astype(float))*
                                     np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
                                     extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
                                     cmap=plt.cm.jet)

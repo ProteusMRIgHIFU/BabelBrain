@@ -8,6 +8,7 @@ ABOUT:
 
 '''
 import numpy as np
+np.seterr(divide='raise')
 from sys import platform
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -123,7 +124,7 @@ for f in [250e3,500e3,700e3]:
 
 pprint(MatFreq)
 
-def GetSmallestSOS(frequency,bShear=False):
+def GetSmallestSOS(frequency,HULowThreshold=300,HUHighThreshold=2100,bShear=False):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -131,8 +132,12 @@ def GetSmallestSOS(frequency,bShear=False):
             SoS=SelFreq[k][1]
         if SelFreq[k][2]>0 and SelFreq[k][2] < SoS:
             SoS=SelFreq[k][2]
+    
     if bShear:
-        SoS=np.min([SoS,SSOSITRUST(HUtoDensity(np.array([0])))])
+        Porosity = HUtoPorosity(np.array([HULowThreshold,HUHighThreshold],dtype=float))
+        Density= PorositytoDensity(Porosity)
+        SoS=np.min([SoS,np.min(SSOSITRUST(Density))])
+        print('GetSmallestSOS',SoS)
     return SoS
 
 def LSOSITRUST(density):
@@ -165,9 +170,9 @@ def primeCheck(n):
         return True
     
 
-def HUtoDensity(HUin):
+def HUtoDensityKWave(HUin):
     #Adapted from hounsfield2density.m fromk k_wave
-    HU = HUin+1000.0 #not sure why in kWave air is 1000.0 HU
+    HU = HUin+1000
     density = np.zeros_like(HU)
 
     # apply conversion in several parts using linear fits to the data
@@ -184,7 +189,23 @@ def HUtoDensity(HUin):
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
 
+def HUtoPorosity(HUin):
+    Phi = 1.0 - HUin/HUin.max()
+    return Phi
 
+def PorositytoDensity(Phi):
+    Density = 1000.0 * Phi + 2200*(1.0-Phi)
+    return Density
+
+def PorositytoLSOS(Phi):
+    SoS = 1500 * Phi + 3100*(1.0-Phi)
+    return SoS
+
+def PorositytoLAtt(Phi,Frequency):
+    amin= 2.302555836 *Frequency/1e6
+    amax= 92.10223344 *Frequency/1e6
+    Att = amin + (amax - amin)*(Phi**0.5)
+    return Att
 
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
@@ -508,13 +529,18 @@ class BabelFTD_Simulations_BASE(object):
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
             AllBone = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBone.min(),AllBone.max(),len(AllBone))
-            DensityCT=HUtoDensity(AllBone)
-            
+            #DensityCT=HUtoDensityKWave(AllBone)
+            Porosity=HUtoPorosity(AllBone)
+            print('Range Porosity, Unique entries',Porosity.min(),Porosity.max(),len(Porosity),len(np.unique(Porosity)))
+            DensityCT = PorositytoDensity(Porosity)
             print('Range Density CT',DensityCT.min(),DensityCT.max())
-            print('Range Long SOS CT',LSOSITRUST(DensityCT.min()),LSOSITRUST(DensityCT.max()))
+            print('Range Long SOS CT',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
+            print('Range Long Att CT',PorositytoLAtt(Porosity.max(),self._Frequency),PorositytoLAtt(Porosity.min(),self._Frequency))
+            
             # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
+            print(" CT Map unique values",np.unique(DensityCTMap).shape)
         
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
                                 basePPW=self._basePPW,
@@ -539,17 +565,21 @@ class BabelFTD_Simulations_BASE(object):
                                             0,
                                             SelM[3],
                                             0) #the attenuation came for 500 kHz, so we adjust with the one being used
-                for d in DensityCT:
-                    SelM=MatFreq[self._Frequency]['Cortical']
-                    lSoS=LSOSITRUST(d)
-                    # sSoS =SSOSITRUST(d)
-                    sSoS = 0
-                    self._SIM_SETTINGS.AddMaterial(d, #den
-                                            lSoS,
-                                            sSoS,
-                                            LATTITRUST(self._Frequency/1e6), #we keep constant attenuation
-                                            0)#,SelM[4]/4)
+            for phi in Porosity:
+                d=PorositytoDensity(phi)
+                SelM=MatFreq[self._Frequency]['Cortical']
+                lSoS=PorositytoLSOS(phi)
+                LAtt=PorositytoLAtt(phi,self._Frequency)
+                # sSoS =SSOSITRUST(d)
+                sSoS = 0
+                self._SIM_SETTINGS.AddMaterial(d, #den
+                                        lSoS,
+                                        sSoS,
+                                        LAtt,
+                                        0)#,SelM[4]/4)
 
+            
+            print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
                 
 
         else:

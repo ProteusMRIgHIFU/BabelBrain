@@ -22,7 +22,7 @@ import pyvista as pv
 import time
 import gc
 import yaml
-
+from histoprint import text_hist, print_hist
 import pandas as pd
 import platform
 import sys
@@ -185,6 +185,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                                 CoregCT_MRI=0, #if using CT, 0 does not coreg (assuming this was done previously), 1 from CT to MRI
                                 RangeZTE=(0.1,0.6),
                                 HUThreshold=300.0,
+                                HUCapThreshold=2100.0,
                                 CT_quantification=10, #bits
                                 Mat4Brainsight=None,                                
                                 Foc=135.0, #Tx focal length
@@ -561,6 +562,10 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skull_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
         BinMaskConformalSkullRot=np.zeros_like(BinMaskConformalSkinRot)
+        inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
+             (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
+             (AffIJK[:,2]<BinMaskConformalSkullRot.shape[2])
+        AffIJK=AffIJK[inds,:]
         BinMaskConformalSkullRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
     del AffIJK
     del XYZ
@@ -572,6 +577,10 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
         BinMaskConformalCSFRot=np.zeros(BinMaskConformalSkinRot.shape,np.uint8)
+        inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
+             (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
+             (AffIJK[:,2]<BinMaskConformalSkullRot.shape[2])
+        AffIJK=AffIJK[inds,:]
         BinMaskConformalCSFRot[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
    
     del AffIJK
@@ -595,15 +604,20 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
                     ThresoldsZTEBone=RangeZTE)
         else:
             rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
+        rCTdata=rCT.get_fdata()
+        hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
+        print('*'*40)
+        print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
+        rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
         sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
         sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
         with CodeTimer("median filter CT",unit='s'):
             print('Theshold for bone',HUThreshold)
             if sys.platform in ['linux','win32']:
-                gfct=cupy.asarray((rCT.get_fdata()>HUThreshold))
+                gfct=cupy.asarray((rCTdata>HUThreshold))
                 gfct=cndimage.median_filter(gfct,sf)
             else:
-                fct=ndimage.median_filter(rCT.get_fdata()>HUThreshold,sf,mode='constant',cval=0)
+                fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
         
         with CodeTimer("binary closing CT",unit='s'):
             if sys.platform in ['linux','win32']:
@@ -685,8 +699,12 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
 
         ############
         with CodeTimer("CT extrapol",unit='s'):
-            nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCT.get_fdata().min())
+            print('rCTdata range',rCTdata.min(),rCTdata.max())
+            rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
+            nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+            ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
+            print('ndataCT range',ndataCT.min(),ndataCT.max())
             ndataCT[nfct==False]=0
 
         with CodeTimer("CT binary_dilation",unit='s'):
