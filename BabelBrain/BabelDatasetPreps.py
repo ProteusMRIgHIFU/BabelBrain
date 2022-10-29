@@ -413,15 +413,12 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     
     
     print('baseaffine',baseaffine)
-    baseaffineRot=baseaffine.copy()
     RMat4=np.eye(4)
     RMat4[:3,:3]=RMat*SpatialStep
     print('RMat4',RMat4)
+   
+    baseaffineRot=RMat4   
     
-    #now we prepare a rotated afffine matrix that will be aligned perpendicular to the cone
-    tempnifti = nibabel.as_closest_canonical(T1Conformal)
-    
-    baseaffineRot=RMat4@tempnifti.affine
     
     print('baseaffineRot',baseaffineRot)
     
@@ -521,10 +518,8 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     RMat4[:3,:3]=RMat*SpatialStep
     print('RMat4',RMat4)
     
-    #now we prepare a rotated afffine matrix that will be aligned perpendicular to the cone
-    tempnifti = nibabel.as_closest_canonical(T1Conformal)
     
-    baseaffineRot=RMat4@tempnifti.affine
+    baseaffineRot=RMat4
     
     print('baseaffineRot',baseaffineRot)
     
