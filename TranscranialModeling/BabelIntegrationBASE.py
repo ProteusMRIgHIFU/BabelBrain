@@ -124,7 +124,7 @@ for f in [250e3,500e3,700e3]:
 
 pprint(MatFreq)
 
-def GetSmallestSOS(frequency,HULowThreshold=300,HUHighThreshold=2100,bShear=False):
+def GetSmallestSOS(frequency,bShear=False):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -134,9 +134,7 @@ def GetSmallestSOS(frequency,HULowThreshold=300,HUHighThreshold=2100,bShear=Fals
             SoS=SelFreq[k][2]
     
     if bShear:
-        Porosity = HUtoPorosity(np.array([HULowThreshold,HUHighThreshold],dtype=float))
-        Density= PorositytoDensity(Porosity)
-        SoS=np.min([SoS,np.min(SSOSITRUST(Density))])
+        SoS=np.min([SoS,SSOSITRUST(1000.0)])
         print('GetSmallestSOS',SoS)
     return SoS
 
@@ -145,11 +143,11 @@ def LSOSITRUST(density):
 
 def LATTITRUST(frequency):
     att=270*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
-    return att*frequency
+    return att*frequency/1e6
      
 def SATTITRUST(frequency):
     att=540*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
-    return att*frequency
+    return att*frequency/1e6
 
 def SSOSITRUST(density):
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
@@ -531,11 +529,16 @@ class BabelFTD_Simulations_BASE(object):
             print('Range HU CT, Unique entries',AllBone.min(),AllBone.max(),len(AllBone))
             #DensityCT=HUtoDensityKWave(AllBone)
             Porosity=HUtoPorosity(AllBone)
+            
             print('Range Porosity, Unique entries',Porosity.min(),Porosity.max(),len(Porosity),len(np.unique(Porosity)))
             DensityCT = PorositytoDensity(Porosity)
+            DensityCTIT=HUtoDensityKWave(AllBone)
             print('Range Density CT',DensityCT.min(),DensityCT.max())
+            print('Range Density CT IT',DensityCTIT.min(),DensityCTIT.max())
             print('Range Long SOS CT',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
+            print('Range Long SOS CT IT',LSOSITRUST(DensityCTIT.min()),LSOSITRUST(DensityCTIT.max()))
             print('Range Long Att CT',PorositytoLAtt(Porosity.max(),self._Frequency),PorositytoLAtt(Porosity.min(),self._Frequency))
+            print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             
             # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
@@ -565,18 +568,21 @@ class BabelFTD_Simulations_BASE(object):
                                             0,
                                             SelM[3],
                                             0) #the attenuation came for 500 kHz, so we adjust with the one being used
-            for phi in Porosity:
-                d=PorositytoDensity(phi)
+            # for phi in Porosity:
+                # d=PorositytoDensity(phi)
+            for d in DensityCTIT:
                 SelM=MatFreq[self._Frequency]['Cortical']
-                lSoS=PorositytoLSOS(phi)
-                LAtt=PorositytoLAtt(phi,self._Frequency)
-                # sSoS =SSOSITRUST(d)
-                sSoS = 0
+                # lSoS=PorositytoLSOS(phi)
+                lSoS=LSOSITRUST(d)
+                # LAtt=PorositytoLAtt(phi,self._Frequency)
+                LAtt=LATTITRUST(self._Frequency)
+                SSoS = 0
+                SAtt = 0
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
-                                        sSoS,
+                                        SSoS,
                                         LAtt,
-                                        0)#,SelM[4]/4)
+                                        SAtt)#,SelM[4]/4)
 
             
             print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
