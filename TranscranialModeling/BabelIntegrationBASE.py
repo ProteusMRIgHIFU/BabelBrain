@@ -576,8 +576,8 @@ class BabelFTD_Simulations_BASE(object):
                 lSoS=LSOSITRUST(d)
                 # LAtt=PorositytoLAtt(phi,self._Frequency)
                 LAtt=LATTITRUST(self._Frequency)
-                SSoS = 0
-                SAtt = 0
+                SSoS = SSOSITRUST(d)
+                SAtt = SATTITRUST(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
                                         SSoS,
@@ -1068,6 +1068,7 @@ elif self._bTightNarrowBeamDomain:
                 assert(self._DensityCTMap.dtype==np.uint32)
                 BoneRegion=(self._MaterialMap==2) | (self._MaterialMap==3)
                 self._MaterialMapNoCT=self._MaterialMap.copy()
+                self._MaterialMap[self._MaterialMap>=4]=2 # Brain region is in material 2
                 SubCTMap=np.zeros_like(self._MaterialMap)
                 SubCTMap[self._XLOffset:-self._XROffset,
                               self._YLOffset:-self._YROffset,
@@ -1076,7 +1077,6 @@ elif self._bTightNarrowBeamDomain:
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
-                self._MaterialMap[self._MaterialMap==5]=2 # this is to make the focal spot location as brain tissue
                 assert(SubCTMap[BoneRegion].min()>=3)
                 assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().max())
 
@@ -1490,7 +1490,9 @@ elif self._bTightNarrowBeamDomain:
                                        self._ZLOffset:-self._ZROffset].copy()
         if self._DensityCTMap is not None:
             MaterialMap=self._MaterialMapNoCT.copy()
-            DataForSim['MaterialMapCT']=MaterialMap
+            DataForSim['MaterialMapCT']=self._MaterialMap[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset].copy()
         else:
             MaterialMap=self._MaterialMap.copy()
         MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=5.0

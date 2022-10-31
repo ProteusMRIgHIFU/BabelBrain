@@ -35,7 +35,7 @@ datas+=[('Babel_H317/default.yaml','./Babel_H317'),
 
 
 if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
-
+    hiddenimports+=['histoprint']
     libdir = compat.base_prefix + "/lib"
     mkllib = filter(lambda x : x.startswith('libmkl_'), listdir(libdir))
     if mkllib != []: 
