@@ -576,8 +576,8 @@ class BabelFTD_Simulations_BASE(object):
                 lSoS=LSOSITRUST(d)
                 # LAtt=PorositytoLAtt(phi,self._Frequency)
                 LAtt=LATTITRUST(self._Frequency)
-                SSoS = SSOSITRUST(d)
-                SAtt = SATTITRUST(self._Frequency)
+                SSoS = 0 # SSOSITRUST(d)
+                SAtt = 0 # SATTITRUST(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
                                         SSoS,
