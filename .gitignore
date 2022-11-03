@@ -128,3 +128,5 @@ BabelBrain/__t.vtk
 BabelBrain/__t.stl
 .DS_Store
 BabelBrain/.DS_Store
+
+*.dmg
