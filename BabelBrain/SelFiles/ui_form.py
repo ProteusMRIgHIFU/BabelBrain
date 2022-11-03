@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.3.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -80,6 +80,11 @@ class Ui_Dialog(object):
         self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.setObjectName(u"CTTypecomboBox")
         self.CTTypecomboBox.setGeometry(QRect(80, 96, 82, 30))
+        self.SimbNIBSTypecomboBox = QComboBox(Dialog)
+        self.SimbNIBSTypecomboBox.addItem("")
+        self.SimbNIBSTypecomboBox.addItem("")
+        self.SimbNIBSTypecomboBox.setObjectName(u"SimbNIBSTypecomboBox")
+        self.SimbNIBSTypecomboBox.setGeometry(QRect(5, 35, 110, 30))
 
         self.retranslateUi(Dialog)
 
@@ -104,6 +109,9 @@ class Ui_Dialog(object):
         self.CTTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"NO", None))
         self.CTTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"real CT", None))
         self.CTTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"ZTE", None))
+
+        self.SimbNIBSTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"charm", None))
+        self.SimbNIBSTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"headreco", None))
 
     # retranslateUi
 

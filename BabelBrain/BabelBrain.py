@@ -120,7 +120,7 @@ class OutputWrapper(QObject):
             pass
 
 #Pointers to functions
-GetSkullMask=None
+
 GetSmallestSOS=None
 
 class BabelBrain(QWidget):
@@ -157,6 +157,15 @@ class BabelBrain(QWidget):
                 else:
                     CT_or_ZTE_input='...'
                     CTType=0
+                if 'SimbNIBSType' in prevConfig:
+                    SimbNIBSType=prevConfig['SimbNIBSType']
+                    if SimbNIBSType =='charm':
+                        SimbNIBSTypeint=0
+                    else:
+                        SimbNIBSTypeint=1
+                else:
+                    SimbNIBSType='charm'
+                    SimbNIBSTypeint=0
             else:
                 ThermalProfile='...'
                 CT_or_ZTE_input='...'
@@ -169,6 +178,7 @@ class BabelBrain(QWidget):
             widget.ui.ThermalProfilelineEdit.setText(ThermalProfile)
             widget.ui.CTlineEdit.setText(CT_or_ZTE_input)
             widget.ui.CTTypecomboBox.setCurrentIndex(CTType)
+            widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
             widget.exec()
             simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
             T1W=widget.ui.T1WlineEdit.text()
@@ -177,6 +187,10 @@ class BabelBrain(QWidget):
             CT_or_ZTE_input=widget.ui.CTlineEdit.text()
             bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
             CTType=widget.ui.CTTypecomboBox.currentIndex()
+            if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
+                SimbNIBSType ='charm'
+            else:
+                SimbNIBSType ='headreco'
         elif not os.path.isdir(simbnibs_path) or not os.path.isfile(T1W) or not os.path.isfile(Mat4Brainsight)\
            or not os.path.isfile(ThermalProfile):
 
@@ -190,6 +204,13 @@ class BabelBrain(QWidget):
                 if 'CT_or_ZTE_input' in prevConfig:
                     widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
                     widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
+                if 'SimbNIBSType' in prevConfig:
+                    SimbNIBSType=prevConfig['SimbNIBSType']
+                    if SimbNIBSType =='charm':
+                        SimbNIBSTypeint=0
+                    else:
+                        SimbNIBSTypeint=1
+                    widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
             widget.exec()
             simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
             T1W=widget.ui.T1WlineEdit.text()
@@ -198,7 +219,12 @@ class BabelBrain(QWidget):
             CTType=widget.ui.CTTypecomboBox.currentIndex()
             Mat4Brainsight=widget.ui.TrajectorylineEdit.text()
             ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
+            if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
+                SimbNIBSType ='charm'
+            else:
+                SimbNIBSType ='headreco'
         self._simbnibs_path=simbnibs_path
+        self._SimbNIBSType=SimbNIBSType
         self._Mat4Brainsight=Mat4Brainsight
         self._ThermalProfile=ThermalProfile
         self._T1W=T1W
@@ -294,6 +320,7 @@ class BabelBrain(QWidget):
                 return
         if os.path.isdir(os.path.split(self._LastSelConfig)[0]):
             save={'simbnibs_path':self._simbnibs_path,
+                  'SimbNIBSType':self._SimbNIBSType,
                   'T1W':self._T1W,
                   'CT_or_ZTE_input':self._CT_or_ZTE_input,
                   'CTType':self._CTType,
@@ -309,7 +336,6 @@ class BabelBrain(QWidget):
 
 
     def load_ui(self):
-        global GetSkullMask
         global GetSmallestSOS
         loader = QUiLoader()
         #path = os.fspath(Path(__file__).resolve().parent / "form.ui")
@@ -320,18 +346,16 @@ class BabelBrain(QWidget):
         ui_file.close()
         ## THIS WILL BE LOADED DYNAMICALLY in function of the active Tx
         import BabelDatasetPreps as DataPreps
-        from BabelDatasetPreps import GetSkullMaskFromSimbNIBSSTL
-        
+
         if self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
             from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
-            GetSkullMask=GetSkullMaskFromSimbNIBSSTL
+            
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
             from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
-            GetSkullMask=GetSkullMaskFromSimbNIBSSTL
         else:
             self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
@@ -669,10 +693,6 @@ class RunMaskGeneration(QObject):
         BasePPW=Widget.USPPWSpinBox.property('UserData')
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
-        skull_stl=os.path.join(self._mainApp._simbnibs_path,'bone.stl')
-        csf_stl=os.path.join(self._mainApp._simbnibs_path,'csf.stl')
-        skin_stl=os.path.join(self._mainApp._simbnibs_path,'skin.stl')
-
 
         prefix=self._mainApp._prefix
         print("_Mat4Brainsight",self._mainApp._Mat4Brainsight)
@@ -685,9 +705,8 @@ class RunMaskGeneration(QObject):
         kargs={}
         if self._mainApp.Config['TxSystem'] =='H317':
             kargs['Foc']=self._mainApp.AcSim.Config['TxFoc']*1e3, # in mm
-        kargs['skull_stl']=skull_stl
-        kargs['csf_stl']=csf_stl
-        kargs['skin_stl']=skin_stl
+        kargs['SimbNIBSDir']=self._mainApp._simbnibs_path
+        kargs['SimbNIBSType']=self._mainApp._SimbNIBSType
         kargs['Mat4Brainsight']=self._mainApp._Mat4Brainsight #Path to trajectory file
         kargs['T1Conformal_nii']=T1WIso
         kargs['nIterationsAlign']=10
@@ -698,6 +717,7 @@ class RunMaskGeneration(QObject):
         kargs['prefix']=prefix
         kargs['bPlot']=False
         kargs['bAlignToSkin']=True
+        
         if self._mainApp._bUseCT:
             kargs['CT_or_ZTE_input']=self._mainApp._CT_or_ZTE_input
             kargs['bIsZTE']=self._mainApp._CTType==2

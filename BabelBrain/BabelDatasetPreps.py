@@ -49,6 +49,36 @@ def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=
     
     return smoothing.GetOutput()
 
+def MaskToStl(binmask,affine):
+    pvvol=pv.wrap(binmask.astype(np.float32))
+    surface=pvvol.contour(isosurfaces=np.array([0.9]))
+    
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        surface.save(tmpdirname+os.sep+'__t.vtk')
+
+        reader = vtk.vtkPolyDataReader()
+        reader.SetFileName(tmpdirname+os.sep+'__t.vtk')
+        reader.ReadAllFieldsOn()
+        reader.Update()
+
+        writer = vtk.vtkSTLWriter()
+        writer.SetInputData(smooth(reader.GetOutput()))
+        writer.SetFileName(tmpdirname+os.sep+'__t.stl')
+        writer.SetFileTypeToBinary()
+        writer.Update()
+        writer.Write()
+
+        meshsurface=trimesh.load_mesh(tmpdirname+os.sep+'__t.stl')
+        nP=(affine[:3,:3]@meshsurface.vertices.T).T
+        nP[:,0]+=affine[0,3]
+        nP[:,1]+=affine[1,3]
+        nP[:,2]+=affine[2,3]
+        meshsurface.vertices=nP
+
+        os.remove(tmpdirname+os.sep+'__t.vtk')
+        os.remove(tmpdirname+os.sep+'__t.stl')
+    return meshsurface
+
 def GetIDTrajectoryBrainsight(fname):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
@@ -176,9 +206,8 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     return subjectcoordinates
 
 #process first with SimbNIBS
-def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl',
-                                csf_stl='4007/4007_keep/m2m_4007_keep/csf.stl',
-                                skin_stl='4007/4007_keep/m2m_4007_keep/skin.stl',
+def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
+                                SimbNIBSType='charm',# indicate if processing was done with charm or headreco
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
                                 bIsZTE = False,
@@ -207,7 +236,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
     
-
+    
     ABOUT:
          author        - Samuel Pichardo
          date          - June 23, 2021
@@ -225,6 +254,26 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
+    skull_stl=SimbNIBSDir+'bone.stl'
+    csf_stl=SimbNIBSDir+'csf.stl'
+    skin_stl=SimbNIBSDir+'skin.stl'
+
+    if SimbNIBSType=='charm':
+
+        #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
+        charminput = SimbNIBSDir+os.sep+'final_tissues.nii.gz'
+        charm= nibabel.load(charminput)
+        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+        AllTissueRegion=charmdata>0 #this mimics what the old headreco does for skin
+        BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
+        CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
+        with CodeTimer("charm surface recon",unit='s'):
+            skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
+            csf_mesh=MaskToStl(CSFRegion,charm.affine)
+            skull_mesh=MaskToStl(BoneRegion,charm.affine)
+            skin_mesh.export(skin_stl)
+            csf_mesh.export(csf_stl)
+            skull_mesh.export(skull_stl)
 
 
     #building a cone object representing acoustic beam pointing to desired location
@@ -235,148 +284,47 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     print('HeightCone',HeightCone)
     
     InVAffine=np.linalg.inv(baseaffine)
+
+    print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
+    RMat=ReadTrajectoryBrainsight(Mat4Brainsight)
+    print('Brainsight Matrix\n',RMat)
+    Location=RMat[:3,3].tolist()
+    print('Location',Location)
     
-    if Mat4Brainsight is None:    
-        print('*'*40+'\n calculating optimal orientation\n'+'*'*40)
+    #Ok maybe a bit too lacking of simplification..... 
+    TransformationCone=np.eye(4)
+    TransformationCone[2,2]=-1
+    OrientVec=np.array([0,0,1]).reshape((1,3))
+    TransformationCone[0,3]=Location[0]
+    TransformationCone[1,3]=Location[1]
+    TransformationCone[2,3]=Location[2]+HeightCone
+    Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
 
-        if InitialAligment == 'HF':
-            TransformationCone=np.eye(4)
-            TransformationCone[2,2]=-1
-            OrientVec=np.array([0,0,1]).reshape((1,3))
-            TransformationCone[0,3]=Location[0]
-            TransformationCone[1,3]=Location[1]
-            TransformationCone[2,3]=Location[2]+HeightCone
-        elif InitialAligment =='RL':
-            TransformationCone=np.zeros((4,4))
-            TransformationCone[0,2]=-1
-            TransformationCone[1,1]=1
-            TransformationCone[2,0]=1
-            TransformationCone[3,3]=1
-            OrientVec=np.array([1,0,0]).reshape((1,3))
-            TransformationCone[0,3]=Location[0]+HeightCone
-            TransformationCone[1,3]=Location[1]
-            TransformationCone[2,3]=Location[2]
-        elif InitialAligment == 'LR':
-            TransformationCone=np.zeros((4,4))
-            TransformationCone[0,2]=1
-            TransformationCone[1,1]=1
-            TransformationCone[2,0]=-1
-            TransformationCone[3,3]=1
-            OrientVec=np.array([-1,0,0]).reshape((1,3))
-            TransformationCone[0,3]=Location[0]-HeightCone
-            TransformationCone[1,3]=Location[1]
-            TransformationCone[2,3]=Location[2]
-        else:
-            raise ValueError('InitialAligment not supported ', InitialAligment)
-            
-        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
+    TransformationCone[2,3]=Location[2]
+    CumulativeTransform=TransformationCone.copy() 
+    
+    TransformationCone=np.eye(4)
+    TransformationCone[0,3]=-Location[0]
+    TransformationCone[1,3]=-Location[1]
+    TransformationCone[2,3]=-Location[2]
 
-        if bAlignToSkin:
-            reference_mesh = trimesh.load_mesh(skin_stl)
-        else:
-            reference_mesh = trimesh.load_mesh(skull_stl)
-        
-        #we iterate a few times calculating the normal vectors of the regions being crossed 
-        #through the skull to ensure maximizing normal incidence
-        #the cone is initially pointing superior->inferior (note that in trimesh the cone is oriented from the tip,
-        #so in practice we use rather a [0,0,1] vector), 
-        # by iterating a few times we can rotate the cone until the beam have an adequate normal
-        #incident crossing through the skull. This could be improved using a minimization criteeria
-        TransformationCone[2,3]=Location[2]
-        CumulativeTransform=TransformationCone.copy()
-        Cone.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_Base_cone.stl')
+    CumulativeTransform=TransformationCone@CumulativeTransform
 
-        if bDoNotAlign==False:
-            for n in range(nIterationsAlign):
-                #intersection of cone and skull surface
-                reference_mesh_p1 =trimesh.boolean.intersection((reference_mesh,Cone),engine='blender')
-                normals=reference_mesh_p1.face_normals #we recover normal vectors of intersected surface
+    Cone.apply_transform(TransformationCone)
+    
+    
+    RMat=RMat[:3,:3]
+    
+    TransformationCone=np.eye(4)
+    TransformationCone[0,3]=Location[0]
+    TransformationCone[1,3]=Location[1]
+    TransformationCone[2,3]=Location[2]
+    
+    TransformationCone[0:3,0:3]=RMat
 
+    Cone.apply_transform(TransformationCone)
 
-                DNorm=np.dot(normals,OrientVec.T)
-                SelNorm=DNorm>0.0 #we ignore any face pointing downwards
-                print('SelNorm',SelNorm.sum(),DNorm.shape,DNorm[SelNorm].mean(),np.std(DNorm[SelNorm]))
-                normals=normals[SelNorm.flatten(),:]
-                AvgNormal=normals.mean(axis=0)
-                AvgNormal=AvgNormal/np.linalg.norm(AvgNormal)
-                print('avgNormal',AvgNormal)
-
-                #we move the tip of the cone back to the isocenter first
-                TransformationCone=np.eye(4)
-                TransformationCone[0,3]=-Location[0]
-                TransformationCone[1,3]=-Location[1]
-                TransformationCone[2,3]=-Location[2]
-                
-                CumulativeTransform=TransformationCone@CumulativeTransform
-
-                Cone.apply_transform(TransformationCone)
-                
-                #now we prepare a new transformation matrix that will rotate towards the
-                #average normal vector of the surface of the skull being crossed and 
-                #translated back to the intended location
-                TransformationCone=np.eye(4)
-                TransformationCone[0,3]=Location[0]
-                TransformationCone[1,3]=Location[1]
-                TransformationCone[2,3]=Location[2]
-                
-                #this calculates the transformation matrix to go from one vector to another
-                RMat=R.align_vectors(AvgNormal.reshape((1,3)),OrientVec)[0].as_matrix()
-                print('RMat',RMat,AvgNormal,OrientVec)
-
-                OrientVec=AvgNormal.reshape((1,3))
-
-                TransformationCone[0:3,0:3]=RMat
-                
-                Cone.apply_transform(TransformationCone)
-                
-                CumulativeTransform=TransformationCone@CumulativeTransform
-            #we calculate the final transformation matrix that rotates from the S->I direction to the direction 
-            # that ensures normal incidence
-            RMat=R.align_vectors(AvgNormal.reshape((1,3)),[[0,0,1]])[0].as_matrix()
-        else:
-            RMat=np.eye(3)
-        print('DONE with iterations')
-    else:
-        print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
-        RMat=ReadTrajectoryBrainsight(Mat4Brainsight)
-        print('Brainsight Matrix\n',RMat)
-        Location=RMat[:3,3].tolist()
-        print('Location',Location)
-        
-        #Ok maybe a bit too lacking of simplification..... 
-        TransformationCone=np.eye(4)
-        TransformationCone[2,2]=-1
-        OrientVec=np.array([0,0,1]).reshape((1,3))
-        TransformationCone[0,3]=Location[0]
-        TransformationCone[1,3]=Location[1]
-        TransformationCone[2,3]=Location[2]+HeightCone
-        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
-
-        TransformationCone[2,3]=Location[2]
-        CumulativeTransform=TransformationCone.copy() 
-        
-        TransformationCone=np.eye(4)
-        TransformationCone[0,3]=-Location[0]
-        TransformationCone[1,3]=-Location[1]
-        TransformationCone[2,3]=-Location[2]
-
-        CumulativeTransform=TransformationCone@CumulativeTransform
-
-        Cone.apply_transform(TransformationCone)
-        
-        
-        RMat=RMat[:3,:3]
-        
-        TransformationCone=np.eye(4)
-        TransformationCone[0,3]=Location[0]
-        TransformationCone[1,3]=Location[1]
-        TransformationCone[2,3]=Location[2]
-        
-        TransformationCone[0:3,0:3]=RMat
-
-        Cone.apply_transform(TransformationCone)
-
-        CumulativeTransform=TransformationCone@CumulativeTransform
+    CumulativeTransform=TransformationCone@CumulativeTransform
 
     print('Final RMAT')
     print(RMat)
@@ -460,9 +408,11 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
+
     skull_mesh = trimesh.load_mesh(skull_stl)
     csf_mesh = trimesh.load_mesh(csf_stl)
     skin_mesh = trimesh.load_mesh(skin_stl)  
+
 
     if bApplyBOXFOV:
         skull_mesh=trimesh.boolean.intersection((skull_mesh,BoxFOV),engine='blender')
@@ -635,33 +585,7 @@ def GetSkullMaskFromSimbNIBSSTL(skull_stl='4007/4007_keep/m2m_4007_keep/bone.stl
             regions= regionprops(label_img)
             regions=sorted(regions,key=lambda d: d.area)
             nfct=label_img==regions[-1].label
-
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                pvvol=pv.wrap(nfct.astype(np.float32))
-                surface=pvvol.contour(isosurfaces=np.array([0.9]))
-                surface.save(tmpdirname+os.sep+'__t.vtk')
-
-                reader = vtk.vtkPolyDataReader()
-                reader.SetFileName(tmpdirname+os.sep+'__t.vtk')
-                reader.ReadAllFieldsOn()
-                reader.Update()
-
-                writer = vtk.vtkSTLWriter()
-                writer.SetInputData(smooth(reader.GetOutput()))
-                writer.SetFileName(tmpdirname+os.sep+'__t.stl')
-                writer.SetFileTypeToBinary()
-                writer.Update()
-                writer.Write()
-
-                smct=trimesh.load_mesh(tmpdirname+os.sep+'__t.stl')
-                nP=(baseaffineRot[:3,:3]@smct.vertices.T).T
-                nP[:,0]+=baseaffineRot[0,3]
-                nP[:,1]+=baseaffineRot[1,3]
-                nP[:,2]+=baseaffineRot[2,3]
-                smct.vertices=nP
-
-                os.remove(tmpdirname+os.sep+'__t.vtk')
-                os.remove(tmpdirname+os.sep+'__t.stl')
+            smct=MaskToStl(nfct,baseaffineRot)
                 
         with CodeTimer("CT skull voxelization",unit='s'):
             if VoxelizeFilter is None:

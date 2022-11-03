@@ -236,6 +236,26 @@ profile ...</string>
     </property>
    </item>
   </widget>
+  <widget class="QComboBox" name="SimbNIBSTypecomboBox">
+   <property name="geometry">
+    <rect>
+     <x>5</x>
+     <y>35</y>
+     <width>110</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>charm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>headreco</string>
+    </property>
+   </item>
+  </widget>
  </widget>
  <resources/>
  <connections/>
