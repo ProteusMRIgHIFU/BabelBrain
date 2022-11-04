@@ -254,9 +254,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
-    skull_stl=SimbNIBSDir+'bone.stl'
-    csf_stl=SimbNIBSDir+'csf.stl'
-    skin_stl=SimbNIBSDir+'skin.stl'
+    skull_stl=SimbNIBSDir+os.sep+'bone.stl'
+    csf_stl=SimbNIBSDir+os.sep+'csf.stl'
+    skin_stl=SimbNIBSDir+os.sep+'skin.stl'
 
     if SimbNIBSType=='charm':
 
