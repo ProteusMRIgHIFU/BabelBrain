@@ -275,7 +275,7 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp._Mat4Brainsight)[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp._T1W)[0])
         basedir+=os.sep
         Target=[self._mainApp._ID]
 

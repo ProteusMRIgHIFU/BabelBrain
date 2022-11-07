@@ -256,6 +256,26 @@ profile ...</string>
     </property>
    </item>
   </widget>
+  <widget class="QComboBox" name="TrajectoryTypecomboBox">
+   <property name="geometry">
+    <rect>
+     <x>5</x>
+     <y>10</y>
+     <width>110</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>Brainsight</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Slicer</string>
+    </property>
+   </item>
+  </widget>
  </widget>
  <resources/>
  <connections/>

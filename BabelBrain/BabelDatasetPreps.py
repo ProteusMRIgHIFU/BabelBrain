@@ -33,6 +33,8 @@ except:
     from . import CTZTEProcessing
 import tempfile
 
+from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
     """
@@ -79,29 +81,7 @@ def MaskToStl(binmask,affine):
         os.remove(tmpdirname+os.sep+'__t.stl')
     return meshsurface
 
-def GetIDTrajectoryBrainsight(fname):
-    names=['Target name', 
-      'Loc. X','Loc. Y','Loc. Z',
-      'm0n0','m0n1','m0n2',
-      'm1n0','m1n1','m1n2',
-      'm2n0','m2n1','m2n2']
-    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names).iloc[0]  
-    return df['Target name']
 
-def ReadTrajectoryBrainsight(fname):
-    names=['Target name', 
-      'Loc. X','Loc. Y','Loc. Z',
-      'm0n0','m0n1','m0n2',
-      'm1n0','m1n1','m1n2',
-      'm2n0','m2n1','m2n2']
-    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:]).iloc[0].to_numpy()
-    Mat4=np.eye(4)
-    Mat4[:3,3]=df[:3]
-    Mat4[:3,0]=df[3:6]
-    Mat4[:3,1]=df[6:9]
-    Mat4[:3,2]=df[9:]
-    
-    return Mat4
 
 if sys.platform in ['linux','win32']:
     print('importing cupy')
@@ -216,7 +196,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 HUThreshold=300.0,
                                 HUCapThreshold=2100.0,
                                 CT_quantification=10, #bits
-                                Mat4Brainsight=None,                                
+                                Mat4Trajectory=None, 
+                                TrajectoryType='brainsight',                               
                                 Foc=135.0, #Tx focal length
                                 FocFOV=165.0, #Tx focal length used for FOV subvolume
                                 TxDiam=157.0, # Tx aperture diameter
@@ -285,12 +266,20 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     InVAffine=np.linalg.inv(baseaffine)
 
-    print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
-    RMat=ReadTrajectoryBrainsight(Mat4Brainsight)
-    print('Brainsight Matrix\n',RMat)
+    if TrajectoryType =='brainsight':
+        print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
+        RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+        
+    else:
+        inMat=read_itk_affine_transform(Mat4Trajectory)
+         #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
+         #to the feet direction , while in SlicerIGT it starts with a vector towards the head
+        print('*'*40+'\n Reading orientation and target location directly from Slicer export\n'+'*'*40)
+        RMat = itk_to_BSight(inMat)
+
+    print('Trajectory Matrix\n',RMat)
     Location=RMat[:3,3].tolist()
     print('Location',Location)
-    
     #Ok maybe a bit too lacking of simplification..... 
     TransformationCone=np.eye(4)
     TransformationCone[2,2]=-1

@@ -85,6 +85,11 @@ class Ui_Dialog(object):
         self.SimbNIBSTypecomboBox.addItem("")
         self.SimbNIBSTypecomboBox.setObjectName(u"SimbNIBSTypecomboBox")
         self.SimbNIBSTypecomboBox.setGeometry(QRect(5, 35, 110, 30))
+        self.TrajectoryTypecomboBox = QComboBox(Dialog)
+        self.TrajectoryTypecomboBox.addItem("")
+        self.TrajectoryTypecomboBox.addItem("")
+        self.TrajectoryTypecomboBox.setObjectName(u"TrajectoryTypecomboBox")
+        self.TrajectoryTypecomboBox.setGeometry(QRect(5, 10, 110, 30))
 
         self.retranslateUi(Dialog)
 
@@ -112,6 +117,9 @@ class Ui_Dialog(object):
 
         self.SimbNIBSTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"charm", None))
         self.SimbNIBSTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"headreco", None))
+
+        self.TrajectoryTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Brainsight", None))
+        self.TrajectoryTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"Slicer", None))
 
     # retranslateUi
 
