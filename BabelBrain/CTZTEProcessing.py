@@ -6,6 +6,7 @@ IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10),
 '''
 import ants
 import nibabel
+from nibabel import processing
 import itk
 import os
 import scipy
@@ -29,11 +30,16 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
         #coreg
         parameters = itk.ParameterObject.New()
 
-        resolutions = 3
+        resolutions = 4
         default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
         parameters.AddParameterMap(default_rigid)
         if CoregCT_MRI==1:
-            fixed_image = itk.imread(T1fnameBiasCorrec,itk.F)
+            #we first upsample the T1W to the same resolution as CT
+            fixed_image=nibabel.load(T1fnameBiasCorrec)
+            fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
+            T1fname_CTRes=os.path.splitext(InputT1)[0] + '_BiasCorrec_CT_res.nii.gz'
+            fixed_image.to_filename(T1fname_CTRes)
+            fixed_image = itk.imread(T1fname_CTRes,itk.F)
             moving_image = itk.imread(InputCT,itk.F)
             
             CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'

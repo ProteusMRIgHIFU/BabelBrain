@@ -14,7 +14,7 @@ import os
 
 
 class SelFiles(QDialog):
-    def __init__(self, parent=None,Trajectory='',T1W='',SimbNIBS='',CTType=0,CT='',SimbNIBSType=0,TrajectoryType=0):
+    def __init__(self, parent=None,Trajectory='',T1W='',SimbNIBS='',CTType=0,CoregCT=0,CT='',SimbNIBSType=0,TrajectoryType=0):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -42,6 +42,7 @@ class SelFiles(QDialog):
         self.ui.CTTypecomboBox.setCurrentIndex(CTType)
         self.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSType)
         self.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryType)
+        self.ui.CoregCTcomboBox.setCurrentIndex(CoregCT)
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
@@ -92,6 +93,8 @@ class SelFiles(QDialog):
         bv = value >0
         self.ui.CTlineEdit.setEnabled(bv)
         self.ui.SelCTpushButton.setEnabled(bv)
+        self.ui.CoregCTlabel.setEnabled(bv)
+        self.ui.CoregCTcomboBox.setEnabled(bv)
 
     @Slot()
     def Continue(self):

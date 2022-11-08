@@ -141,111 +141,56 @@ class BabelBrain(QWidget):
 
         self._bInUseWithBrainsight=bInUseWithBrainsight #this will be use to sync input and output with Brainsight
         widget = SelFiles()
+    
+        prevConfig=self.GetLatestSelection()
+        
+        if prevConfig is not None:
+            widget.ui.SimbNIBSlineEdit.setText(prevConfig['simbnibs_path'])
+            widget.ui.T1WlineEdit.setText(prevConfig['T1W'])
+            widget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Trajectory'])
+            widget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
+            if 'CT_or_ZTE_input' in prevConfig:
+                widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
+                widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
+            if 'SimbNIBSType' in prevConfig:
+                SimbNIBSType=prevConfig['SimbNIBSType']
+                if SimbNIBSType =='charm':
+                    SimbNIBSTypeint=0
+                else:
+                    SimbNIBSTypeint=1
+                widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
+            if 'TrajectoryType' in prevConfig:
+                TrajectoryType=prevConfig['TrajectoryType']
+                if TrajectoryType =='brainsight':
+                    TrajectoryTypeint=0
+                else:
+                    TrajectoryTypeint=1
+                widget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
+            if 'CoregCT_MRI' in prevConfig:
+                widget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])
         if bInUseWithBrainsight:
-            prevConfig=self.GetLatestSelection()
             Brainsight=self.GetInputFromBrainsight()
             assert(Brainsight is not None)
-            if prevConfig is not None:
-                Brainsight['ThermalProfile']=prevConfig['ThermalProfile']
-                simbnibs_path=Brainsight['simbnibs_path']
-                T1W=Brainsight['T1W']
-                Mat4Trajectory=Brainsight['Mat4Trajectory']
-                ThermalProfile=prevConfig['ThermalProfile']
-                if 'CT_or_ZTE_input' in prevConfig:
-                    CT_or_ZTE_input=prevConfig['CT_or_ZTE_input']
-                    CTType=prevConfig['CTType']
-                else:
-                    CT_or_ZTE_input='...'
-                    CTType=0
-                if 'SimbNIBSType' in prevConfig:
-                    SimbNIBSType=prevConfig['SimbNIBSType']
-                    if SimbNIBSType =='charm':
-                        SimbNIBSTypeint=0
-                    else:
-                        SimbNIBSTypeint=1
-                else:
-                    SimbNIBSType='charm'
-                    SimbNIBSTypeint=0
-                if 'TrajectoryType' in prevConfig:
-                    TrajectoryType=prevConfig['TrajectoryType']
-                    if TrajectoryType =='brainsight':
-                        TrajectoryTypeint=0
-                    else:
-                        TrajectoryTypeint=1
-                else:
-                    TrajectoryType='brainsight'
-                    TrajectoryTypeint=0
-            else:
-                ThermalProfile='...'
-                CT_or_ZTE_input='...'
-                CTType=0
-
-            print('Showing dialog...')
             widget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
             widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
             widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
-            widget.ui.ThermalProfilelineEdit.setText(ThermalProfile)
-            widget.ui.CTlineEdit.setText(CT_or_ZTE_input)
-            widget.ui.CTTypecomboBox.setCurrentIndex(CTType)
-            widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
-            widget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
-            widget.exec()
-            simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
-            T1W=widget.ui.T1WlineEdit.text()
-            Mat4Trajectory=widget.ui.TrajectorylineEdit.text()
-            ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
-            CT_or_ZTE_input=widget.ui.CTlineEdit.text()
-            bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
-            CTType=widget.ui.CTTypecomboBox.currentIndex()
-            if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
-                SimbNIBSType ='charm'
-            else:
-                SimbNIBSType ='headreco'
-            if widget.ui.TrajectoryTypecomboBox.currentIndex()==0:
-                TrajectoryType ='brainsight'
-            else:
-                TrajectoryType ='slicer'
+
+        widget.exec()
+        simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
+        T1W=widget.ui.T1WlineEdit.text()
+        CT_or_ZTE_input=widget.ui.CTlineEdit.text()
+        bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
+        CTType=widget.ui.CTTypecomboBox.currentIndex()
+        Mat4Trajectory=widget.ui.TrajectorylineEdit.text()
+        ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
+        if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
+            SimbNIBSType ='charm'
         else:
-            prevConfig=self.GetLatestSelection()
-            
-            if prevConfig is not None:
-                widget.ui.SimbNIBSlineEdit.setText(prevConfig['simbnibs_path'])
-                widget.ui.T1WlineEdit.setText(prevConfig['T1W'])
-                widget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Trajectory'])
-                widget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
-                if 'CT_or_ZTE_input' in prevConfig:
-                    widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
-                    widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
-                if 'SimbNIBSType' in prevConfig:
-                    SimbNIBSType=prevConfig['SimbNIBSType']
-                    if SimbNIBSType =='charm':
-                        SimbNIBSTypeint=0
-                    else:
-                        SimbNIBSTypeint=1
-                    widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
-                if 'TrajectoryType' in prevConfig:
-                    TrajectoryType=prevConfig['TrajectoryType']
-                    if TrajectoryType =='brainsight':
-                        TrajectoryTypeint=0
-                    else:
-                        TrajectoryTypeint=1
-                    widget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
-            widget.exec()
-            simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
-            T1W=widget.ui.T1WlineEdit.text()
-            CT_or_ZTE_input=widget.ui.CTlineEdit.text()
-            bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
-            CTType=widget.ui.CTTypecomboBox.currentIndex()
-            Mat4Trajectory=widget.ui.TrajectorylineEdit.text()
-            ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
-            if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
-                SimbNIBSType ='charm'
-            else:
-                SimbNIBSType ='headreco'
-            if widget.ui.TrajectoryTypecomboBox.currentIndex()==0:
-                TrajectoryType ='brainsight'
-            else:
-                TrajectoryType ='slicer'
+            SimbNIBSType ='headreco'
+        if widget.ui.TrajectoryTypecomboBox.currentIndex()==0:
+            TrajectoryType ='brainsight'
+        else:
+            TrajectoryType ='slicer'
         self._simbnibs_path=simbnibs_path
         self._SimbNIBSType=SimbNIBSType
         self._TrajectoryType=TrajectoryType
@@ -254,6 +199,7 @@ class BabelBrain(QWidget):
         self._T1W=T1W
         self._bUseCT=bUseCT
         self._CTType=widget.ui.CTTypecomboBox.currentIndex()
+        self._CoregCT_MRI=widget.ui.CoregCTcomboBox.currentIndex()
         self._CT_or_ZTE_input=CT_or_ZTE_input
 
         self.SaveLatestSelection()
@@ -352,6 +298,7 @@ class BabelBrain(QWidget):
                   'T1W':self._T1W,
                   'CT_or_ZTE_input':self._CT_or_ZTE_input,
                   'CTType':self._CTType,
+                  'CoregCT_MRI':self._CoregCT_MRI,
                   'bUseCT':self._bUseCT,
                   'Mat4Trajectory':self._Mat4Trajectory,
                   'ThermalProfile':self._ThermalProfile}
@@ -760,6 +707,7 @@ class RunMaskGeneration(QObject):
             kargs['Foc']=self._mainApp.AcSim.Config['TxFoc']*1e3, # in mm
         kargs['SimbNIBSDir']=self._mainApp._simbnibs_path
         kargs['SimbNIBSType']=self._mainApp._SimbNIBSType
+        kargs['CoregCT_MRI']=self._mainApp._CoregCT_MRI
         kargs['TrajectoryType']=self._mainApp._TrajectoryType
         kargs['Mat4Trajectory']=self._mainApp._Mat4Trajectory #Path to trajectory file
         kargs['T1Conformal_nii']=T1WIso

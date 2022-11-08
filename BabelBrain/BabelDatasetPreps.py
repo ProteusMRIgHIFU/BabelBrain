@@ -537,7 +537,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
                     ThresoldsZTEBone=RangeZTE)
         else:
-            rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
+            with CodeTimer("Coregistration CT to T1",unit='s'):
+                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
         rCTdata=rCT.get_fdata()
         hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
         print('*'*40)
