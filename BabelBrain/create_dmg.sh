@@ -1,5 +1,6 @@
 # Since create-dmg does not clobber, be sure to delete previous DMG
 [[ -f BabelBrain.dmg ]] && rm BabelBrain.dmg
+[[ -d dist/BabelBrain ]] && rm -rf dist/BabelBrain
 
 # Create the DMG
 create-dmg \
