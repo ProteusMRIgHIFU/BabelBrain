@@ -27,7 +27,9 @@ If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenu
 # Workflow
 Once imaging data is ready, the simulation for transcranial ultrasound is done in 2 main steps: Planning and simulation
 ## Planning
-The goal of the planning step is to produce a **trajectory** that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix transformation applied to a "virtual" needle that describes the location and orientation where focused ultrasound is desired to be concentrated. The details using 3DSlicer can illustrate this.
+<img src="Pipeline-1.png" height=300px>
+
+The goal of the planning step is to produce a **trajectory** that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix applied to a "virtual" needle that describes the **location** and **orientation** where focused ultrasound is desired to be concentrated. The tip of the trajectory needs to be at the intended tarjet.The position of the transducer will relative to the tip location. The details using 3DSlicer can illustrate this.
 
 ### Planning with 3DSlicer
 1. Install the **SlicerIGT** extension in 3DSlicer (restart 3DSlicer if requested)
@@ -51,11 +53,11 @@ Apply the transform to the needle model and be sure the transformation is set to
 <img src="Planning-9.png" height=70px>
 3. Select one view to be "Inplane" and the other to be "Inplane 90"
 <img src="Planning-10.png" height=100px>
-3. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned to the needle 
+3. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the needle 
 <img src="Planning-11.png" height=400px>
 3. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the needle to your area of interest.
 <img src="Planning-12.png" height=200px>
-3. Adjust the rotation of the needle (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Hint: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
+3. Adjust the rotation of the needle (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
 <img src="Planning-13.png" height=400px>
 Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. 
 4. Save transformation in text format. Select "Save data" and select text format for the transform. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimbNIBS output is located. 
