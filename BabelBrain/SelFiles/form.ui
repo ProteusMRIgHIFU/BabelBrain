@@ -6,108 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>998</width>
-    <height>219</height>
+    <width>1025</width>
+    <height>369</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QPushButton" name="SelTrajectorypushButton">
-   <property name="geometry">
-    <rect>
-     <x>235</x>
-     <y>8</y>
-     <width>135</width>
-     <height>32</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Select Trajectory ...</string>
-   </property>
-   <property name="autoDefault">
-    <bool>false</bool>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="TrajectorylineEdit">
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>13</y>
-     <width>607</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>...</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="SelSimbNIBSpushButton">
-   <property name="geometry">
-    <rect>
-     <x>235</x>
-     <y>34</y>
-     <width>135</width>
-     <height>32</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Select SimbNIBS ...</string>
-   </property>
-   <property name="autoDefault">
-    <bool>false</bool>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="SimbNIBSlineEdit">
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>39</y>
-     <width>607</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>...</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="T1WlineEdit">
-   <property name="geometry">
-    <rect>
-     <x>381</x>
-     <y>66</y>
-     <width>607</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>...</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="SelT1WpushButton">
-   <property name="geometry">
-    <rect>
-     <x>236</x>
-     <y>61</y>
-     <width>135</width>
-     <height>32</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Select T1W ...</string>
-   </property>
-   <property name="autoDefault">
-    <bool>false</bool>
-   </property>
-   <property name="flat">
-    <bool>false</bool>
-   </property>
-  </widget>
   <widget class="QPushButton" name="ContinuepushButton">
    <property name="geometry">
     <rect>
-     <x>459</x>
-     <y>180</y>
+     <x>378</x>
+     <y>336</y>
      <width>239</width>
      <height>32</height>
     </rect>
@@ -116,204 +26,520 @@
     <string>CONTINUE</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="SelTProfilepushButton">
+  <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>227</x>
-     <y>130</y>
-     <width>131</width>
-     <height>56</height>
+     <x>6</x>
+     <y>3</y>
+     <width>1014</width>
+     <height>237</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <bold>false</bold>
-    </font>
+   <property name="autoFillBackground">
+    <bool>false</bool>
    </property>
-   <property name="text">
-    <string>Select Thermal
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="title">
+    <string>Imaging input</string>
+   </property>
+   <widget class="QLabel" name="CoregCTlabel">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>134</y>
+      <width>58</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Correg.?</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="SelT1WpushButton">
+    <property name="geometry">
+     <rect>
+      <x>256</x>
+      <y>93</y>
+      <width>135</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>Select T1W ...</string>
+    </property>
+    <property name="autoDefault">
+     <bool>false</bool>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="SelCTpushButton">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>305</x>
+      <y>127</y>
+      <width>84</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>Select</string>
+    </property>
+    <property name="autoDefault">
+     <bool>false</bool>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="SimbNIBSlineEdit">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>71</y>
+      <width>607</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="SelTProfilepushButton">
+    <property name="geometry">
+     <rect>
+      <x>247</x>
+      <y>162</y>
+      <width>131</width>
+      <height>56</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>Select Thermal
 profile ...</string>
-   </property>
-   <property name="autoDefault">
-    <bool>false</bool>
-   </property>
-   <property name="flat">
-    <bool>false</bool>
-   </property>
+    </property>
+    <property name="autoDefault">
+     <bool>false</bool>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="ThermalProfilelineEdit">
+    <property name="geometry">
+     <rect>
+      <x>402</x>
+      <y>182</y>
+      <width>607</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="CTlineEdit">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>132</y>
+      <width>607</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+    <property name="cursorPosition">
+     <number>3</number>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="T1WlineEdit">
+    <property name="geometry">
+     <rect>
+      <x>401</x>
+      <y>98</y>
+      <width>607</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="CTTypecomboBox">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>130</y>
+      <width>82</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string>NO</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>real CT</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>ZTE</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QPushButton" name="SelSimbNIBSpushButton">
+    <property name="geometry">
+     <rect>
+      <x>255</x>
+      <y>66</y>
+      <width>135</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>Select SimbNIBS ...</string>
+    </property>
+    <property name="autoDefault">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>135</y>
+      <width>58</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Use CT?</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="SelTrajectorypushButton">
+    <property name="geometry">
+     <rect>
+      <x>255</x>
+      <y>40</y>
+      <width>135</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>Select Trajectory ...</string>
+    </property>
+    <property name="autoDefault">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="TrajectorylineEdit">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>45</y>
+      <width>607</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>...</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="TrajectoryTypecomboBox">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>42</y>
+      <width>110</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string>Brainsight</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Slicer</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="CoregCTcomboBox">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>205</x>
+      <y>129</y>
+      <width>97</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string>NO</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>CT to MRI</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QComboBox" name="SimbNIBSTypecomboBox">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>67</y>
+      <width>110</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string>charm</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>headreco</string>
+     </property>
+    </item>
+   </widget>
   </widget>
-  <widget class="QLineEdit" name="ThermalProfilelineEdit">
+  <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
-     <x>382</x>
-     <y>150</y>
-     <width>607</width>
-     <height>21</height>
+     <x>8</x>
+     <y>243</y>
+     <width>1010</width>
+     <height>92</height>
     </rect>
    </property>
-   <property name="text">
-    <string>...</string>
+   <property name="styleSheet">
+    <string notr="true"/>
    </property>
-  </widget>
-  <widget class="QLineEdit" name="CTlineEdit">
-   <property name="enabled">
-    <bool>false</bool>
+   <property name="title">
+    <string>Transducer and GPU engine</string>
    </property>
-   <property name="geometry">
-    <rect>
-     <x>380</x>
-     <y>100</y>
-     <width>607</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>...</string>
-   </property>
-   <property name="cursorPosition">
-    <number>3</number>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="SelCTpushButton">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>285</x>
-     <y>95</y>
-     <width>84</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Select</string>
-   </property>
-   <property name="autoDefault">
-    <bool>false</bool>
-   </property>
-   <property name="flat">
-    <bool>false</bool>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>13</x>
-     <y>103</y>
-     <width>58</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Use CT?</string>
-   </property>
-  </widget>
-  <widget class="QComboBox" name="CTTypecomboBox">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>98</y>
-     <width>82</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <item>
-    <property name="text">
-     <string>NO</string>
+   <widget class="QComboBox" name="TrajectoryTypecomboBox_2">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>34</y>
+      <width>116</width>
+      <height>30</height>
+     </rect>
     </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>real CT</string>
+    <property name="styleSheet">
+     <string notr="true"/>
     </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>ZTE</string>
+    <item>
+     <property name="text">
+      <string>CTX-500</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>H317</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>40</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
     </property>
-   </item>
-  </widget>
-  <widget class="QComboBox" name="SimbNIBSTypecomboBox">
-   <property name="geometry">
-    <rect>
-     <x>120</x>
-     <y>35</y>
-     <width>110</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <item>
     <property name="text">
-     <string>charm</string>
+     <string>Transducer</string>
     </property>
-   </item>
-   <item>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>211</x>
+      <y>39</y>
+      <width>71</width>
+      <height>16</height>
+     </rect>
+    </property>
     <property name="text">
-     <string>headreco</string>
+     <string>GPU name</string>
     </property>
-   </item>
-  </widget>
-  <widget class="QComboBox" name="TrajectoryTypecomboBox">
-   <property name="geometry">
-    <rect>
-     <x>120</x>
-     <y>10</y>
-     <width>110</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <item>
+   </widget>
+   <widget class="QLineEdit" name="ThermalProfilelineEdit_2">
+    <property name="geometry">
+     <rect>
+      <x>284</x>
+      <y>37</y>
+      <width>79</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
     <property name="text">
-     <string>Brainsight</string>
+     <string>M1</string>
     </property>
-   </item>
-   <item>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>369</x>
+      <y>28</y>
+      <width>172</width>
+      <height>45</height>
+     </rect>
+    </property>
     <property name="text">
-     <string>Slicer</string>
+     <string>Type GPU string ID such as &quot;M1&quot;, &quot;M2&quot;, &quot;A6000&quot;, etc. </string>
     </property>
-   </item>
-  </widget>
-  <widget class="QComboBox" name="CoregCTcomboBox">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>198</x>
-     <y>97</y>
-     <width>82</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <item>
+    <property name="wordWrap">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="TrajectoryTypecomboBox_3">
+    <property name="geometry">
+     <rect>
+      <x>688</x>
+      <y>35</y>
+      <width>104</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="currentText">
+     <string>Metal</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>CPU</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>CUDA</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>OpenCL</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Metal</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>573</x>
+      <y>41</y>
+      <width>116</width>
+      <height>16</height>
+     </rect>
+    </property>
     <property name="text">
-     <string>NO</string>
+     <string>GPU/CPU backend</string>
     </property>
-   </item>
-   <item>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>791</x>
+      <y>27</y>
+      <width>207</width>
+      <height>59</height>
+     </rect>
+    </property>
     <property name="text">
-     <string>CT to MRI</string>
+     <string>Select Metal for Mac systems (both ARM and AMD), OpenCL for AMD  in Linux/Win, CUDA for NVidia in Linux/Win</string>
     </property>
-   </item>
-  </widget>
-  <widget class="QLabel" name="CoregCTlabel">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>142</x>
-     <y>102</y>
-     <width>58</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Correg.?</string>
-   </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+    <property name="wordWrap">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>
