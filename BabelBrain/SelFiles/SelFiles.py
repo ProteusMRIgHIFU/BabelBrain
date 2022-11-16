@@ -9,12 +9,16 @@ from PySide6.QtCore import Slot, Qt
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_Dialog
-
+import platform
 import os
 
 
 class SelFiles(QDialog):
-    def __init__(self, parent=None,Trajectory='',T1W='',SimbNIBS='',CTType=0,CoregCT=0,CT='',SimbNIBSType=0,TrajectoryType=0):
+    def __init__(self, parent=None,Trajectory='',T1W='',
+                    SimbNIBS='',CTType=0,CoregCT=0,CT='',
+                    SimbNIBSType=0,TrajectoryType=0,
+                    GPU='CPU',
+                    Backend='Metal'):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -43,10 +47,67 @@ class SelFiles(QDialog):
         self.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSType)
         self.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryType)
         self.ui.CoregCTcomboBox.setCurrentIndex(CoregCT)
+
+        self._GPUs=self.GetAvailableGPUs()
+
+        if len(self._GPUs)==1: #only CPU
+            msgBox = QMessageBox()
+            msgBox.setText("No GPUs were detected!, only CPU will be available")
+            msgBox.exec()
+
+        for dev in self._GPUs:
+            self.ui.ComputingEnginecomboBox.addItem(dev[0] + ' -- ' + dev[1])
+        for sel,dev in enumerate(self._GPUs):
+            if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
+                self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
+                break
+
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
+    def SelectComputingEngine(self,GPU='CPU',Backend=''):
+        for sel,dev in enumerate(self._GPUs):
+            if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
+                self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
+                break
+    def SelectTxSystem(self,TxSystem='CTX-500'):
+        index = self.ui.TransducerTypecomboBox.findText(TxSystem)
+        if index >=0:
+            self.ui.TransducerTypecomboBox.setCurrentIndex(index)
+
+    def GetSelectedComputingEngine(self):
+        index = self.ui.ComputingEnginecomboBox.currentIndex()
+        return self._GPUs[index]
+            
+
+    def GetAvailableGPUs(self):
+        AllDevices=[['CPU','']]
+        if 'Darwin' in platform.system():
+            from BabelViscoFDTD.StaggeredFDTD_3D_With_Relaxation_METAL import ListDevices
+            devices=ListDevices()
+            print('Available Metal Devices',devices)
+            for dev in devices:
+                AllDevices.append([dev,'Metal'])
+        else:
+            #we try to import CUDA and OpenCL in Win/Linux systems, if it fails, it means some drivers are not correctly installed
+            try:
+                from BabelViscoFDTD.StaggeredFDTD_3D_With_Relaxation_CUDA import ListDevices
+                devices=ListDevices()
+                print('Available CUDA Devices',devices)
+                for dev in devices:
+                    AllDevices.append([dev,'CUDA'])
+            except:
+                pass
+            try:
+                from BabelViscoFDTD.StaggeredFDTD_3D_With_Relaxation_OPENCL import ListDevices
+                devices=ListDevices()
+                print('Available OPENCL Devices',devices)
+                for dev in devices:
+                    AllDevices.append([dev,'OpenCL'])
+            except:
+                pass 
+        return AllDevices
 
     @Slot()
     def SelectTrajectory(self):
@@ -109,6 +170,7 @@ class SelFiles(QDialog):
         else:
             self.accept()
 if __name__ == "__main__":
+    
     app = QApplication(sys.argv)
     widget = SelFiles()
     widget.show()

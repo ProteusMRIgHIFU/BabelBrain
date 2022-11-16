@@ -283,9 +283,9 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp._T1W)[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1W'])[0])
         basedir+=os.sep
-        Target=[self._mainApp._ID]
+        Target=[self._mainApp.Config['ID']]
 
         InputSim=self._mainApp._outnameMask
 
@@ -330,7 +330,7 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
-        kargs['bUseCT']=self._mainApp._bUseCT
+        kargs['bUseCT']=self._mainApp.Config['bUseCT']
 
         # Start mask generation as separate process.
         queue=Queue()

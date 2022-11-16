@@ -79,7 +79,7 @@ class Babel_Thermal(QWidget):
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
 
-        with open(self._MainApp._ThermalProfile, 'r') as file:
+        with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
         print("Thermal configuration:")
         print(config)

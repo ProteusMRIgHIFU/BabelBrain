@@ -389,9 +389,9 @@ profile ...</string>
     <string notr="true"/>
    </property>
    <property name="title">
-    <string>Transducer and GPU engine</string>
+    <string>Transducer and Computing engine</string>
    </property>
-   <widget class="QComboBox" name="TrajectoryTypecomboBox_2">
+   <widget class="QComboBox" name="TransducerTypecomboBox">
     <property name="geometry">
      <rect>
       <x>90</x>
@@ -405,7 +405,7 @@ profile ...</string>
     </property>
     <item>
      <property name="text">
-      <string>CTX-500</string>
+      <string>CTX_500</string>
      </property>
     </item>
     <item>
@@ -430,114 +430,27 @@ profile ...</string>
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>211</x>
-      <y>39</y>
-      <width>71</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>GPU name</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="ThermalProfilelineEdit_2">
-    <property name="geometry">
-     <rect>
-      <x>284</x>
+      <x>293</x>
       <y>37</y>
-      <width>79</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true"/>
-    </property>
-    <property name="text">
-     <string>M1</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_4">
-    <property name="geometry">
-     <rect>
-      <x>369</x>
-      <y>28</y>
-      <width>172</width>
-      <height>45</height>
+      <width>151</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
-     <string>Type GPU string ID such as &quot;M1&quot;, &quot;M2&quot;, &quot;A6000&quot;, etc. </string>
-    </property>
-    <property name="wordWrap">
-     <bool>true</bool>
+     <string>Computing backend</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="TrajectoryTypecomboBox_3">
+   <widget class="QComboBox" name="ComputingEnginecomboBox">
     <property name="geometry">
      <rect>
-      <x>688</x>
-      <y>35</y>
-      <width>104</width>
+      <x>422</x>
+      <y>34</y>
+      <width>275</width>
       <height>30</height>
      </rect>
     </property>
     <property name="styleSheet">
      <string notr="true"/>
-    </property>
-    <property name="currentText">
-     <string>Metal</string>
-    </property>
-    <item>
-     <property name="text">
-      <string>CPU</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>CUDA</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>OpenCL</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Metal</string>
-     </property>
-    </item>
-   </widget>
-   <widget class="QLabel" name="label_5">
-    <property name="geometry">
-     <rect>
-      <x>573</x>
-      <y>41</y>
-      <width>116</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>GPU/CPU backend</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_6">
-    <property name="geometry">
-     <rect>
-      <x>791</x>
-      <y>27</y>
-      <width>207</width>
-      <height>59</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Select Metal for Mac systems (both ARM and AMD), OpenCL for AMD  in Linux/Win, CUDA for NVidia in Linux/Win</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-    <property name="wordWrap">
-     <bool>true</bool>
     </property>
    </widget>
   </widget>
