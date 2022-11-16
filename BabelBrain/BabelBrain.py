@@ -131,9 +131,6 @@ class BabelBrain(QWidget):
     def __init__(self,simbnibs_path='',T1W='',Mat4Trajectory='',ThermalProfile='',bInUseWithBrainsight=False):
         super(BabelBrain, self).__init__()
         print('home',Path.home())
-        #This file will store the main config
-        self._DefaultConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','default.yaml')
-
         #This file will store the last config selected
         self._LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
 
@@ -168,6 +165,24 @@ class BabelBrain(QWidget):
                 widget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
             if 'CoregCT_MRI' in prevConfig:
                 widget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])
+            if 'ComputingBackend' in prevConfig:
+                if prevConfig['ComputingBackend']==0:
+                    Backend==''
+                    GPU='CPU'
+                else:
+                    GPU=prevConfig['ComputingDevice']
+                    if prevConfig['ComputingBackend']==1:
+                        Backend='CUDA'
+                    elif prevConfig['ComputingBackend']==2:
+                        Backend='OpenCL'
+                    elif prevConfig['ComputingBackend']==3:
+                        Backend='Metal'
+
+                widget.SelectComputingEngine(GPU=GPU,Backend=Backend)
+
+            if 'TxSystem' in prevConfig:
+                widget.SelectTxSystem(prevConfig['TxSystem'])
+
         if bInUseWithBrainsight:
             Brainsight=self.GetInputFromBrainsight()
             assert(Brainsight is not None)
@@ -191,23 +206,38 @@ class BabelBrain(QWidget):
             TrajectoryType ='brainsight'
         else:
             TrajectoryType ='slicer'
-        self._simbnibs_path=simbnibs_path
-        self._SimbNIBSType=SimbNIBSType
-        self._TrajectoryType=TrajectoryType
-        self._Mat4Trajectory=Mat4Trajectory
-        self._ThermalProfile=ThermalProfile
-        self._T1W=T1W
-        self._bUseCT=bUseCT
-        self._CTType=widget.ui.CTTypecomboBox.currentIndex()
-        self._CoregCT_MRI=widget.ui.CoregCTcomboBox.currentIndex()
-        self._CT_or_ZTE_input=CT_or_ZTE_input
+        
+        self.Config={}
+        ComputingDevice,Backend =widget.GetSelectedComputingEngine()
+        if ComputingDevice=='CPU':
+            ComputingBackend=0
+        elif Backend=='CUDA':
+            ComputingBackend=1
+        elif Backend=='OpenCL':
+            ComputingBackend=2
+        elif Backend=='Metal':
+            ComputingBackend=3
+
+        self.Config['ComputingBackend']=ComputingBackend
+        self.Config['ComputingDevice']=ComputingDevice
+        self.Config['TxSystem']=widget.ui.TransducerTypecomboBox.currentText()
+
+        self.Config['simbnibs_path']=simbnibs_path
+        self.Config['SimbNIBSType']=SimbNIBSType
+        self.Config['TrajectoryType']=TrajectoryType
+        self.Config['Mat4Trajectory']=Mat4Trajectory
+        self.Config['ThermalProfile']=ThermalProfile
+        self.Config['T1W']=T1W
+        self.Config['bUseCT']=bUseCT
+        self.Config['CTType']=widget.ui.CTTypecomboBox.currentIndex()
+        self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
+        self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
+        self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
+        self.Config['T1WIso']= self.Config['T1W'].replace('.nii.gz','-isotropic.nii.gz')
+        
 
         self.SaveLatestSelection()
 
-        self._ID = os.path.splitext(os.path.split(self._Mat4Trajectory)[1])[0]
-        self._T1WIso= self._T1W.replace('.nii.gz','-isotropic.nii.gz')
-
-        self.DefaultConfig()
 
         self.load_ui()
         self.InitApplication()
@@ -267,22 +297,6 @@ class BabelBrain(QWidget):
                 res = None
         return res
 
-    def SaveDefaultConfig(self):
-        if not os.path.isfile(self._DefaultConfig):
-            try:
-                os.makedirs(os.path.split(self._DefaultConfig)[0],exist_ok=True)
-            except BaseException as e:
-                print('Unable to save selection')
-                print(e)
-                return
-        if os.path.isdir(os.path.split(self._DefaultConfig)[0]):
-            with open(self._DefaultConfig,'w') as f:
-                try:
-                    res=yaml.safe_dump(self.Config,f)
-                except BaseException as e:
-                    print('Unable to save selection')
-                    print(e)
-
     def SaveLatestSelection(self):
         if not os.path.isfile(self._LastSelConfig):
             try:
@@ -292,19 +306,9 @@ class BabelBrain(QWidget):
                 print(e)
                 return
         if os.path.isdir(os.path.split(self._LastSelConfig)[0]):
-            save={'simbnibs_path':self._simbnibs_path,
-                  'SimbNIBSType':self._SimbNIBSType,
-                  'TrajectoryType':self._TrajectoryType,
-                  'T1W':self._T1W,
-                  'CT_or_ZTE_input':self._CT_or_ZTE_input,
-                  'CTType':self._CTType,
-                  'CoregCT_MRI':self._CoregCT_MRI,
-                  'bUseCT':self._bUseCT,
-                  'Mat4Trajectory':self._Mat4Trajectory,
-                  'ThermalProfile':self._ThermalProfile}
             with open(self._LastSelConfig,'w') as f:
                 try:
-                    res=yaml.safe_dump(save,f)
+                    res=yaml.safe_dump(self.Config,f)
                 except BaseException as e:
                     print('Unable to save selection')
                     print(e)
@@ -360,9 +364,9 @@ class BabelBrain(QWidget):
         LayRange.addWidget(slider)
         self.Widget.ZTERangeSlider=slider
         self.Widget.setStyleSheet("QTabBar::tab::disabled {width: 0; height: 0; margin: 0; padding: 0; border: none;} ")
-        if self._bUseCT == False:
+        if self.Config['bUseCT'] == False:
             self.Widget.CTZTETabs.hide()
-        elif self._CTType!=2:
+        elif self.Config['CTType']!=2:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
         
@@ -394,11 +398,11 @@ class BabelBrain(QWidget):
             self.Widget.USMaskkHzDropDown.insertItem(0, '%i'%(f/1e3))
 
 
-        self.setWindowTitle('BabelBrain - ' + self._ID + ' - ' + self.Config['TxSystem'] +
-                            ' - ' + os.path.split(self._ThermalProfile)[1].split('.yaml')[0])
-        self.Widget.IDLabel.setText(self._ID)
+        self.setWindowTitle('BabelBrain - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
+                            ' - ' + os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+        self.Widget.IDLabel.setText(self.Config['ID'])
         self.Widget.TXLabel.setText(self.Config['TxSystem'])
-        self.Widget.ThermalProfileLabel.setText(os.path.split(self._ThermalProfile)[1].split('.yaml')[0])
+        self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
 
         #we connect callbacks
         self.Widget.CalculatePlanningMask.clicked.connect(self.GenerateMask)
@@ -433,30 +437,6 @@ class BabelBrain(QWidget):
          msgBox.exec()
          raise SystemError(msg)
 
-    def DefaultConfig(self):
-        config=None
-        bNeedtoSave=False
-        if os.path.isfile(self._DefaultConfig):
-            with open(self._DefaultConfig, 'r') as file:
-                config = yaml.safe_load(file)
-            #we check for keys that may not be present in the home dir config
-            with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
-                Defconfig = yaml.safe_load(file)
-            for k in Defconfig:
-                if k not in config:
-                    bNeedtoSave=True
-                    config[k]=Defconfig[k]
-            
-        else:
-            with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
-                config = yaml.safe_load(file)
-            bNeedtoSave=True
-        print("GLOBAL configuration:")
-        print(config)
-        self.Config=config
-
-        if bNeedtoSave:
-            self.SaveDefaultConfig()
 
 
     @Slot(float)
@@ -472,8 +452,8 @@ class BabelBrain(QWidget):
         Frequency=  self.Widget.USMaskkHzDropDown.property('UserData')
         BasePPW=self.Widget.USPPWSpinBox.property('UserData')
 
-        self._prefix= self._ID + '_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
-        self._prefix_path=os.path.dirname(self._T1WIso)+os.sep+self._prefix
+        self._prefix= self.Config['ID'] + '_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
+        self._prefix_path=os.path.dirname(self.Config['T1WIso'])+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
         self._BrainsightInput=self._prefix_path+'FullElasticSolution.nii.gz'
 
@@ -512,14 +492,14 @@ class BabelBrain(QWidget):
 
     #this will modify the coordinates of the trajectory
     def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0):
-        newFName=os.path.join(os.path.split(self._Mat4Trajectory)[0],'_mod_'+os.path.split(self._Mat4Trajectory)[1])
+        newFName=os.path.join(os.path.split(self.Config['Mat4Trajectory'])[0],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
             
-        if self._TrajectoryType=='brainsight':
-            OrigTraj=ReadTrajectoryBrainsight(self._Mat4Trajectory)
+        if self.Config['TrajectoryType']=='brainsight':
+            OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])
             OrigTraj[0,3]+=CorX
             OrigTraj[1,3]+=CorY
             OrigTraj[2,3]+=CorZ
-            with open(self._Mat4Trajectory,'r') as f:
+            with open(self.Config['Mat4Trajectory'],'r') as f:
                 allLines=f.readlines()
             for n,l in enumerate(allLines):
                 if l[0]!='#':
@@ -533,7 +513,7 @@ class BabelBrain(QWidget):
             with open(newFName,'w') as f:
                 f.writelines(allLines)
         else:
-            inMat=read_itk_affine_transform(self._Mat4Trajectory)
+            inMat=read_itk_affine_transform(self.Config['Mat4Trajectory'])
             OrigTraj = itk_to_BSight(inMat)
             OrigTraj[0,3]+=CorX
             OrigTraj[1,3]+=CorY
@@ -574,7 +554,7 @@ class BabelBrain(QWidget):
         self.AcSim.setEnabled(True)
         Data=nibabel.load(self._outnameMask)
         self._DataMask=Data
-        if self._bUseCT:
+        if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
             CTData=np.flip(self._CTnib.get_fdata(),axis=2)
         FinalMask=Data.get_fdata()
@@ -601,7 +581,7 @@ class BabelBrain(QWidget):
         extentXY=[x_vec.min(),x_vec.max(),y_vec.max(),y_vec.min()]
 
         CTMaps=[None,None,None]
-        if self._bUseCT:
+        if self.Config['bUseCT']:
             CTMapXZ=CTData[:,LocFocalPoint[1],:]
             CTMapYZ=CTData[LocFocalPoint[0],:,:]
             CTMapXY=CTData[:,:,LocFocalPoint[2]]
@@ -684,8 +664,8 @@ class RunMaskGeneration(QObject):
 
         Widget=self._mainApp.Widget
 
-        T1WIso= self._mainApp._T1WIso
-        T1W= self._mainApp._T1W
+        T1WIso= self._mainApp.Config['T1WIso']
+        T1W= self._mainApp.Config['T1W']
 
         Frequency=  Widget.USMaskkHzDropDown.property('UserData')
         SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
@@ -695,7 +675,7 @@ class RunMaskGeneration(QObject):
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 
         prefix=self._mainApp._prefix
-        print("_Mat4Trajectory",self._mainApp._Mat4Trajectory)
+        print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
         preT1=ants.image_read(T1W)
@@ -705,11 +685,11 @@ class RunMaskGeneration(QObject):
         kargs={}
         if self._mainApp.Config['TxSystem'] =='H317':
             kargs['Foc']=self._mainApp.AcSim.Config['TxFoc']*1e3, # in mm
-        kargs['SimbNIBSDir']=self._mainApp._simbnibs_path
-        kargs['SimbNIBSType']=self._mainApp._SimbNIBSType
-        kargs['CoregCT_MRI']=self._mainApp._CoregCT_MRI
-        kargs['TrajectoryType']=self._mainApp._TrajectoryType
-        kargs['Mat4Trajectory']=self._mainApp._Mat4Trajectory #Path to trajectory file
+        kargs['SimbNIBSDir']=self._mainApp.Config['simbnibs_path']
+        kargs['SimbNIBSType']=self._mainApp.Config['SimbNIBSType']
+        kargs['CoregCT_MRI']=self._mainApp.Config['CoregCT_MRI']
+        kargs['TrajectoryType']=self._mainApp.Config['TrajectoryType']
+        kargs['Mat4Trajectory']=self._mainApp.Config['Mat4Trajectory'] #Path to trajectory file
         kargs['T1Conformal_nii']=T1WIso
         kargs['nIterationsAlign']=10
         kargs['TxDiam']=self._mainApp.AcSim.Config['TxDiam']*1e3 # in mm
@@ -720,9 +700,9 @@ class RunMaskGeneration(QObject):
         kargs['bPlot']=False
         kargs['bAlignToSkin']=True
         
-        if self._mainApp._bUseCT:
-            kargs['CT_or_ZTE_input']=self._mainApp._CT_or_ZTE_input
-            kargs['bIsZTE']=self._mainApp._CTType==2
+        if self._mainApp.Config['bUseCT']:
+            kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
+            kargs['bIsZTE']=self._mainApp.Config['CTType']==2
             if kargs['bIsZTE']:
                 kargs['RangeZTE']=self._mainApp.Widget.ZTERangeSlider.value()
             kargs['HUThreshold']=self._mainApp.Widget.HUTreshold.value()
