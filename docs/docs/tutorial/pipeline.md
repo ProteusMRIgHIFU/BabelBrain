@@ -32,7 +32,7 @@ Once imaging data is ready, the simulation for transcranial ultrasound is done i
 The goal of the planning step is to produce a **trajectory** that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix applied to a "virtual" needle that describes the **location** and **orientation** where focused ultrasound is desired to be concentrated. The tip of the trajectory needs to be at the intended target. The position of the transducer will be relative to the tip location. The details using 3DSlicer can illustrate this.
 
 #### Acoustic path STL helpers
-BabelBrain includes a series of complementary STL files representing the "acoustic" path. Each STL file includes a group of circular meshes that represent the acoustic cone at different depths. As noted in the instructions below, these meshes can be used to verify a correct alignment with the skin.
+BabelBrain includes a series of complementary STL files representing the "acoustic" path. Each STL file includes a group of circular meshes combined with a target needle that represent the acoustic cross sections of a field produced with a transducer with F#=1.0 at different depths. As noted in the instructions below, these meshes help to verify a correct alignment with the skin.
 
 ### Planning with 3DSlicer
 1. Install the **SlicerIGT** extension in 3DSlicer (restart 3DSlicer if requested)
@@ -40,17 +40,16 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 <img src="Planning-1.png">
 2. In the IGT extension menu, select "Create Models"
 <img src="Planning-2.png" height=200px>
-2. Create a needle with a length of 100 mm. 
+2. Load one of the STL helpers as a `model` with `RAS` coordinate convention. The model will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
+<img src="Planning-4b.png" height=200px>
+Alternatively, you can create a needle with a length of 100 mm. 
 <img src="Planning-3.png" height=100px>
-Needle will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
-2. Recommended: Load one of the p. 
-
 <img src="Planning-4.png" height=200px>
-1. Select the needle in the data panel and edit the properties to make it appear in the "Slice Display"
+1. Select the mdoel in the data panel and edit the properties to make it appear in the "Slice Display"
 <img src="Planning-5.png" height=200px>
 1. Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.
 <img src="Planning-6.png" height=100px>
-Apply the transform to the needle model and be sure the transformation is set to "local" (little button next to the "invert" button)
+Apply the transform to the needle model and be sure the transformation is set to `local` (little button next to the "invert" button)
 <img src="Planning-7.png" height=300px>
 2. Select "Volume Reslice Driver" in the IGT module menu
 <img src="Planning-8.png" height=400px>
@@ -58,13 +57,13 @@ Apply the transform to the needle model and be sure the transformation is set to
 <img src="Planning-9.png" height=70px>
 3. Select one view to be "Inplane" and the other to be "Inplane 90"
 <img src="Planning-10.png" height=100px>
-3. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the needle 
-<img src="Planning-11.png" height=400px>
-3. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the needle to your area of interest.
+3. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the model 
+<img src="Planning-11b.png" height=400px>
+3. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the model to your area of interest.
 <img src="Planning-12.png" height=200px>
-3. Adjust the rotation of the needle (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
+3. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
 <img src="Planning-13.png" height=400px>
-Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. 
+Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
 4. Save transformation in text format. Select "Save data" and select text format for the transform. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimbNIBS output is located. 
 
 ### Planning with Brainsight
