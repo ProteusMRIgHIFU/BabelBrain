@@ -17,7 +17,7 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
     `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. 
 * **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standarized space (e.g. MNI) to T1W space.
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
-* *Optional*:: ZTE scan of the participant. A pseudo CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifi file of the ZTE scan. BabelBrain will do the transformation to pseudo CT as detailed in Miscouridou *et al.*. A Nifti file with the pseudo CT will be generated.
+* *Optional*:: ZTE scan of the participant. A pseudo CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo CT will be generated.
 
 ### Important disclaimer on using exclusively T1W and T2W imaging vs. using CT/ZTE scans
 If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti (see output files section) file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
@@ -29,7 +29,10 @@ Once imaging data is ready, the simulation for transcranial ultrasound is done i
 ## Planning
 <img src="Pipeline-1.png" height=300px>
 
-The goal of the planning step is to produce a **trajectory** that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix applied to a "virtual" needle that describes the **location** and **orientation** where focused ultrasound is desired to be concentrated. The tip of the trajectory needs to be at the intended tarjet.The position of the transducer will relative to the tip location. The details using 3DSlicer can illustrate this.
+The goal of the planning step is to produce a **trajectory** that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix applied to a "virtual" needle that describes the **location** and **orientation** where focused ultrasound is desired to be concentrated. The tip of the trajectory needs to be at the intended target. The position of the transducer will be relative to the tip location. The details using 3DSlicer can illustrate this.
+
+#### Acoustic path STL helpers
+BabelBrain includes a series of complementary STL files representing the "acoustic" path. Each STL file includes a group of circular meshes that represent the acoustic cone at different depths. As noted in the instructions below, these meshes can be used to verify a correct alignment with the skin.
 
 ### Planning with 3DSlicer
 1. Install the **SlicerIGT** extension in 3DSlicer (restart 3DSlicer if requested)
@@ -40,6 +43,8 @@ The goal of the planning step is to produce a **trajectory** that provides the l
 2. Create a needle with a length of 100 mm. 
 <img src="Planning-3.png" height=100px>
 Needle will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
+2. Recommended: Load one of the p. 
+
 <img src="Planning-4.png" height=200px>
 1. Select the needle in the data panel and edit the properties to make it appear in the "Slice Display"
 <img src="Planning-5.png" height=200px>
