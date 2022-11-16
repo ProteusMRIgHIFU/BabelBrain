@@ -71,7 +71,7 @@ class SelFiles(QDialog):
             if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
                 break
-    def SelectTxSystem(self,TxSystem='CTX-500'):
+    def SelectTxSystem(self,TxSystem='CTX_500'):
         index = self.ui.TransducerTypecomboBox.findText(TxSystem)
         if index >=0:
             self.ui.TransducerTypecomboBox.setCurrentIndex(index)
