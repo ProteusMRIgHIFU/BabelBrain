@@ -99,6 +99,6 @@ Now that planning is done, open BabelBrain either from the Applications menu in 
                 PRF: 10.0
                 Duration: 40.0
         ```
-        This definition helps in the step of thermal simulation with BabelBrain.
+        This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no-recalculations) based on this value.
     6. Once all inputs are set, then click on "CONTINUE"
-2. The first step is to create the simulation domain. Depending  
+2. The first step is to create the simulation domain. Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans
