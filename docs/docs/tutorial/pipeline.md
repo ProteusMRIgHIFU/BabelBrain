@@ -3,6 +3,12 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 
 <img src="Basics-1.png">
 
+Currently, these two transducers are supported:
+* **H317**. This is a 128-element phased array with focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
+* **CTX_500**. This is popular device commercialized by the company NeuroFUS that has 4 ring-elements, with a focal length of 63.2 mm and F# = 0.98.
+
+The specific capabilities of each transducer are considered during the simulations. More transducers, especially devices with simple configurations, will be added in function of user requirements.
+
 ## Preliminary steps
 * **Mandatory**: Collect T1W and T2W imaging of a participant. Highly recommended to use 3D isotropic (1mm resolution) scans.
 * **Mandatory**: Execute  SimbNIBS 3.x `headreco` or SimbNIBS 4.x `charm` processing tool:
@@ -20,7 +26,7 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 * *Optional*:: ZTE scan of the participant. A pseudo CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo CT will be generated.
 
 ### Important disclaimer on using exclusively T1W and T2W imaging vs. using CT/ZTE scans
-If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti (see output files section) file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
+If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti  file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
 
 If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.
 
@@ -45,11 +51,11 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 Alternatively, you can create a needle with a length of 100 mm. 
 <img src="Planning-3.png" height=100px>
 <img src="Planning-4.png" height=200px>
-1. Select the mdoel in the data panel and edit the properties to make it appear in the "Slice Display"
+1. Select the model in the data panel and edit the properties to make it appear in the "Slice Display"
 <img src="Planning-5.png" height=200px>
 1. Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.
 <img src="Planning-6.png" height=100px>
-Apply the transform to the needle model and be sure the transformation is set to `local` (little button next to the "invert" button)
+Apply the transform to the  model and be sure the transformation is set to `local` (little button next to the "invert" button)
 <img src="Planning-7.png" height=300px>
 2. Select "Volume Reslice Driver" in the IGT module menu
 <img src="Planning-8.png" height=400px>
@@ -85,20 +91,69 @@ Brainsight is a proprietary software by Rogue Research (Montreal, Canada) for th
 ## Simulation with BabelBrain
 Now that planning is done, open BabelBrain either from the Applications menu in macOS if the DMG installer was used or with `python BabelBrain.py` as indicated in the installation section.
 <img src="Simulation-1.png" height=100px>
-1. An input dialog will prompt the different input files required for the simulation.
+
+### Input data
+An input dialog will prompt the different input files required for the simulation.
 <img src="Simulation-2.png" height=150px>
-    1. Specify the path to the trajectory file and the source (Slicer or Brainsight)
-    2. Select the SimNIBS output directory associated to this test and indicate what tool was used to generate it (`headreco` or `charm`)
-    3. Select the path to the T1W Nifti file
-    4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
-    5. Select a thermal profile file for simulation. This is a simple YAML file where timings of transcranial ultrasound are specified. For example:
-        ```YAML
-        BaseIsppa: 5.0 # W/cm2
-        AllDC_PRF_Duration: #All combinations of timing that will be considered
-            -   DC: 0.3
-                PRF: 10.0
-                Duration: 40.0
-        ```
-        This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no-recalculations) based on this value.
-    6. Once all inputs are set, then click on "CONTINUE"
-2. The first step is to create the simulation domain. Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans
+
+1. Specify the path to the trajectory file and the source (Slicer or Brainsight)
+2. Select the SimNIBS output directory associated to this test and indicate what tool was used to generate it (`headreco` or `charm`)
+3. Select the path to the T1W Nifti file
+4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
+5. Select a thermal profile file for simulation. This is a simple YAML file where timings of transcranial ultrasound are specified. For example:
+    ```YAML
+    BaseIsppa: 5.0 # W/cm2
+    AllDC_PRF_Duration: #All combinations of timing that will be considered
+        -   DC: 0.3
+            PRF: 10.0
+            Duration: 40.0
+    ```
+    This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no-recalculations) based on this value.
+6. Once all inputs are set, then click on "CONTINUE"
+### Domain generation
+The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other [numerical tools](https://asa.scitation.org/doi/10.1121/10.0013426).
+ Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) for details on the "classical" approach to convert from ZTE to pseudo-CT.
+ The execution time in M1 Max processor can take from 1 minute of minutes up to 10 minutes depending on the resolution and availability of ZTE/CT scans.
+ When initiating the calculations, a detailed log output will appear in the bottom region of the window. In case of any error during processing, a dialog message will prompt indicating to consult this window for more details. Once executed, orthogonal views of the domain will be shown.
+<img src="Simulation-3.png" height=350px>
+Once executed, a Nifti file containing the mask describing the different tissue regions will be produced in the directory where the T1W Nifit file is located. It will have a file with the following structure:
+`<Name of target file>_<Frequency>_<PPW>_BabelViscoInput.nii.gz`, for example `LinearTransform_500kHz_6PPW_BabelViscoInput.nii.gz`. The mask will be in T1W space, facilitating its inspection as overlay with T1W data. The mask has values of 1 for skin, 2 for cortical bone, 3 for trabecular and 4 for brain tissue. A single voxel with a value of 5 indicates the location of the target. The raw data inside the Nifti file is organized in a 3D Cartesian volume that is aligned to the transducer acoustic axis. The Nifti affine matrix ensures the mask can be inspected in T1W space.
+
+It is very important to inspect this file in tools such as Brainsight or 3DSlicer to ensure no over/under- estimation of the skull region has occurred.  
+
+| <img src="Simulation-4.png" height=250px> |
+|:-:|
+|*Inspection of mask generation in 3DSlicer*|
+
+If a CT or ZTE dataset is indicated as input, the skull mask will be created using this scan than the output of headreco or charm. 
+
+Please note if a `<Name of target file>_<Frequency>_<PPW>_BabelViscoInput.nii.gz` file exists, the GUI will ask confirmation to recalculate the mask. Selecting "No" will load the previous mask. 
+
+If using output from `headreco`, the STL files for skin, csf and bone are used to produce the high-resolution mask via GPU-accelerated voxelization. 
+
+If using output from `charm` (which does not produces STL files), equivalent STL files are produced from the file `final_tissues.nii.gz` created by charm. Meshes are created and smoothed (Laplace filtering), and the mask for simulation is calculated via GPU-accelerated voxelization. The STL files of skin, csf and bone will be saved in the output directory of SimNIBS by BabelBrain. 
+
+
+
+### Transcranial ultrasound simulation
+The second tab in the GUI of Babelbrain shows the ultrasound simulation step. The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected target intensity at the target.
+
+### CTX_500
+For the CTX_500 transducer, the initial assumption is that this type transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+<img src="Simulation-5.png" height=350px>
+
+The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
+
+It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Simulation should take a couple of minutes in a M1 Max system.
+
+| <img src="Simulation-6.png" height=350px> |
+|:-:|
+|*Simulation results with default values*|
+
+The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main focus is to ensure a correct spatial focusing at the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations there will be a report in which direction in the T1W space this adjustment translates. 
+
+After doing the adjustments, the simulation can be repeated.
+
+| <img src="Simulation-7.png" height=350px> |
+|:-:|
+|*Simulation results after correction*|
