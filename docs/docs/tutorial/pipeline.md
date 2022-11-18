@@ -139,7 +139,28 @@ If using output from `charm` (which does not produces STL files), equivalent STL
 The second tab in the GUI of Babelbrain shows the ultrasound simulation step. The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected target intensity at the target.
 
 ### CTX_500
-For the CTX_500 transducer, the initial assumption is that this type transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+<img src="Simulation-5.png" height=350px>
+
+The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
+
+It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Simulation should take a couple of minutes in a M1 Max system.
+
+| <img src="Simulation-6.png" height=350px> |
+|:-:|
+|*Simulation results with default values*|
+
+The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main focus is to ensure a correct spatial focusing at the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations there will be a report in which direction in the T1W space this adjustment translates. 
+
+After doing the adjustments, the simulation can be repeated.
+
+| <img src="Simulation-7.png" height=350px> |
+|:-:|
+|*Simulation results after correction*|
+
+### H317
+The H317 is a large transducer that uses a coupling cone that is in contact with the skin 
+ 
 <img src="Simulation-5.png" height=350px>
 
 The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
