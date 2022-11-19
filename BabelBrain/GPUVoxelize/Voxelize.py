@@ -241,8 +241,12 @@ kernel void voxelize_triangle_solid(const device float* triangle_data [[ buffer(
         
         for (int y = bbox_min_grid.x; y <= bbox_max_grid.x; y++)
         {
+            if ((y<0) || (y>=info.gridsize.y))
+                continue; 
             for (int z = bbox_min_grid.y; z <= bbox_max_grid.y; z++)
             {
+                if ((z<0) || (y>=info.gridsize.z))
+                    continue;
                  #if defined(_OPENCL)
                 float2 point = (float2)((y + 0.5)*info.unit.y, (z + 0.5)*info.unit.z);
                 #endif
@@ -255,6 +259,8 @@ kernel void voxelize_triangle_solid(const device float* triangle_data [[ buffer(
                     int xmax = (int)(get_x_coordinate(n, v0, point) / info.unit.x - 0.5);
                     for (int x = 0; x <= xmax; x++)
                     {
+                        if (x>=info.gridsize.x)
+                            continue;
                         size_t location =
                             (size_t)(x) +
                             ((size_t)(y) * (size_t)(info.gridsize.x)) +

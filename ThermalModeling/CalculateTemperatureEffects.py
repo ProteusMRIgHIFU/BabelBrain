@@ -28,6 +28,7 @@ def CalculateTemperatureEffects(InputPData,
                                 bPlot=True,
                                 PRF=1500,
                                 DurationUS=40,
+                                DurationOff=40,
                                 bForceRecalc=False,
                                 OutTemperature=37,
                                 bCalculateLosses=False,
@@ -68,6 +69,7 @@ def CalculateTemperatureEffects(InputPData,
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
     TotalDurationSteps=int((DurationUS+.001)/dt)
     nStepsOn=int(DurationUS/dt) 
+    TotalDurationStepsOff=int((DurationOff+.001)/dt)
 
     xf=Input['x_vec']
     yf=Input['y_vec']
@@ -179,28 +181,49 @@ def CalculateTemperatureEffects(InputPData,
                                                       dt=dt,
                                                       DutyCycle=DutyCycle,
                                                       Backend=Backend)
-    
 
-    #SaveDict['ResTemp']=ResTemp
+    FinalTemp,FinalDose,MonitorSliceOff,dum=BHTE(pAmp*0,
+                                                      MaterialMap,
+                                                      MaterialList,
+                                                      (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                      TotalDurationStepsOff,
+                                                      0,
+                                                      cy,
+                                                      nFactorMonitoring=nFactorMonitoring,
+                                                      dt=dt,
+                                                      DutyCycle=DutyCycle,
+                                                      Backend=Backend,
+                                                      initT0=ResTemp,
+                                                      initDose=ResDose)
+    
     SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
+    SaveDict['p_map']=pAmp*PressureRatio
+    SaveDict['p_map_central']=pAmp[:,cy,:]*PressureRatio
+    SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
+    SaveDict['MaterialMap']=MaterialMap
     
-    SaveDict['p_map']=pAmp[:,cy,:].copy()*PressureRatio
-    SaveDict['MaterialMap']=MaterialMap[:,cy,:]
+    SelBrain=MaterialMap==4
+
+    SelSkin =MaterialMap==1
+
+    SelSkull =(MaterialMap>1) &\
+                (MaterialMap<4)
+
+    TI=ResTemp[SelBrain].max()
     
-    SelBrain=MaterialMap[:,cy,:]==4
+    TIS=ResTemp[SelSkin].max()
 
-    SelSkin = MaterialMap[:,cy,:]==1
-
-    SelSkull = (MaterialMap[:,cy,:]>1) &\
-                (MaterialMap[:,cy,:]<4)
-
-    TI=(MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1][SelBrain]).max()
-
-    TIS=(MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1][SelSkin]).max()
-
-    TIC=(MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1][SelSkull]).max()
+    TIC=ResTemp[SelSkull].max()
     
-    print('TI,TIS,TIC',TI-37,TIS-37,TIC-37);
+    print('TI,TIS,TIC',TI-37,TIS-37,TIC-37)
+
+    CEMBrain=FinalDose[SelBrain].max()/60 # in min
+    
+    CEMSkin=FinalDose[SelSkin].max()/60 # in min
+
+    CEMSkull=FinalDose[SelSkull].max()/60 # in min
+    
+    print('CEMBrain,CEMSkin,CEMSkull',CEMBrain,CEMSkin,CEMSkull)
 
     MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
     MI=MaxBrainPressure/1e6/np.sqrt(0.7)
@@ -211,8 +234,11 @@ def CalculateTemperatureEffects(InputPData,
     Ispta =DutyCycle*Isppa
 
     SaveDict['MaxBrainPressure']=MaxBrainPressure
-    SaveDict['TempProfileTarget']=MonitorSlice[cy,zl,:]
-    SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt*nFactorMonitoring;
+    TempProfile=np.zeros(MonitorSlice.shape[2]+MonitorSliceOff.shape[2])
+    TempProfile[:MonitorSlice.shape[2]]=MonitorSlice[cy,zl,:]
+    TempProfile[MonitorSlice.shape[2]:]=MonitorSliceOff[cy,zl,:]
+    SaveDict['TempProfileTarget']=TempProfile
+    SaveDict['TimeProfileTarget']=np.arange(TempProfile.size)*dt*nFactorMonitoring;
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3
@@ -220,12 +246,17 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['TI']=TI-37.0
     SaveDict['TIC']=TIC-37.0
     SaveDict['TIS']=TIS-37.0
+    SaveDict['CEMBrain']=CEMBrain
+    SaveDict['CEMSkin']=CEMSkin
+    SaveDict['CEMSkull']=CEMSkull
     SaveDict['MaxIsppa']=MaxIsppa
     SaveDict['MaxIspta']=MaxIspta
     SaveDict['Isppa']=Isppa
     SaveDict['Ispta']=Ispta
     SaveDict['TempEndFUS']=ResTemp
     SaveDict['DoseEndFUS']=ResDose
+    SaveDict['FinalTemp']=FinalTemp
+    SaveDict['FinalDose']=FinalDose
     #we carry over these params to simplify analysis later
     SaveDict['ZSteering']=Input['ZSteering']
     SaveDict['AdjustmentInRAS']=Input['AdjustmentInRAS']
@@ -243,10 +274,10 @@ def CalculateTemperatureEffects(InputPData,
  
         AllContours=[]
         #skin
-        contours,_ = cv.findContours((SaveDict['MaterialMap']==1).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        contours,_ = cv.findContours((SaveDict['MaterialMap_central']==1).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         AllContours.append(contours)   
         #skull
-        contours,_ = cv.findContours(((SaveDict['MaterialMap']==2)|(SaveDict['MaterialMap']==3)).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        contours,_ = cv.findContours(((SaveDict['MaterialMap_central']==2)|(SaveDict['MaterialMap_central']==3)).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         AllContours.append(contours)  
                 
         plt.figure(figsize=(12,6))

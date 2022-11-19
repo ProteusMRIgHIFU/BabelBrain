@@ -178,18 +178,19 @@ class Babel_Thermal(QWidget):
         xf=SaveDict['x_vec']
         zf=SaveDict['z_vec']
 
-        SkinZ=np.array(np.where(SaveDict['MaterialMap']==1)).T.min(axis=0)[1]
+        SkinZ=np.array(np.where(SaveDict['MaterialMap_central']==1)).T.min(axis=0)[1]
         zf-=zf[SkinZ]
 
 
         IsppaRatio=SelIsspa/self.Config['BaseIsppa']
+        print('IsppaRatio',IsppaRatio)
         PresRatio=np.sqrt(IsppaRatio)
 
         AdjustedIsspa = SelIsspa/SaveDict['RatioLosses']
 
-        DensityMap=SaveDict['MaterialList']['Density'][SaveDict['MaterialMap']]
-        SoSMap=    SaveDict['MaterialList']['SoS'][SaveDict['MaterialMap']]
-        IntensityMap=SaveDict['p_map']**2/2/DensityMap/SoSMap/1e4*IsppaRatio
+        DensityMap=SaveDict['MaterialList']['Density'][SaveDict['MaterialMap_central']]
+        SoSMap=    SaveDict['MaterialList']['SoS'][SaveDict['MaterialMap_central']]
+        IntensityMap=SaveDict['p_map_central']**2/2/DensityMap/SoSMap/1e4*IsppaRatio
         Tmap=(SaveDict['MonitorSlice']-37.0)*IsppaRatio+37.0
 
         TargetLocation=SaveDict['TargetLocation']
@@ -201,7 +202,7 @@ class Babel_Thermal(QWidget):
 
 
         XX,ZZ=np.meshgrid(xf,zf)
-        static_ax1.contour(XX,ZZ,SaveDict['MaterialMap'].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax1.contour(XX,ZZ,SaveDict['MaterialMap_central'].T,[0,1,2,3], cmap=plt.cm.gray)
 
         static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -211,8 +212,7 @@ class Babel_Thermal(QWidget):
         static_ax2.set_title('Temperature ($^{\circ}$C)')
 #        static_ax2.set_yticklabels([])
         plt.colorbar(self._ThermalIm,ax=static_ax2)
-        static_ax2.contour(XX,ZZ,SaveDict['MaterialMap'].T,[0,1,2,3], cmap=plt.cm.gray)
-
+        static_ax2.contour(XX,ZZ,SaveDict['MaterialMap_central'].T,[0,1,2,3], cmap=plt.cm.gray)
 
         self._figIntThermalFields.set_tight_layout(True)
 
@@ -226,12 +226,27 @@ class Babel_Thermal(QWidget):
         self.Widget.IsptaLabel.setProperty('UserData',SelIsspa*DutyCycle)
         self.Widget.IsptaLabel.setText('%4.2f' % self.Widget.IsptaLabel.property('UserData'))
 
+        # In the case we are *always* below a maximal temperature of 43C
+        # Integral ( 0.25 ^( 43 - A *(37-T)+#7 *t),dt,0->TotalTime) / Integral ( 0.25 ^( 43 - A *T *t,dt,0->TotalTime)) =
+        # e^(51.2929(1-A) +1.38629 TotalTime(- 1.0 + A))/A
+        TotalDuration=80.0 
+        DoseThermalFactor= np.exp(51.2929 *(1.0 - IsppaRatio) + 1.38629 *TotalDuration*(IsppaRatio-1.0))/IsppaRatio
+        print('DoseThermalFactor',DoseThermalFactor)
+
         self.Widget.MILabel.setProperty('UserData',SaveDict['MI']*PresRatio)
         self.Widget.TIBrainLabel.setProperty('UserData',SaveDict['TI']*IsppaRatio)
         self.Widget.TICLabel.setProperty('UserData',SaveDict['TIC']*IsppaRatio)
         self.Widget.TISkinLabel.setProperty('UserData',SaveDict['TIS']*IsppaRatio)
+
+        self.Widget.CEMBrainLabel.setProperty('UserData',SaveDict['CEMBrain']*DoseThermalFactor)
+        self.Widget.CEMSkullLabel.setProperty('UserData',SaveDict['CEMSkull']*DoseThermalFactor)
+        self.Widget.CEMSkinLabel.setProperty('UserData',SaveDict['CEMSkin']*DoseThermalFactor)
+
         self.Widget.AdjustRASLabel.setProperty('UserData',SaveDict['AdjustmentInRAS'])
-        for obj in [self.Widget.MILabel,self.Widget.TIBrainLabel,self.Widget.TICLabel,self.Widget.TISkinLabel]:
+        for obj in [self.Widget.MILabel,self.Widget.TIBrainLabel,
+                    self.Widget.TICLabel,self.Widget.TISkinLabel,
+                    self.Widget.CEMBrainLabel,self.Widget.CEMSkullLabel,
+                    self.Widget.CEMSkinLabel]:
             obj.setText('%3.2f' % obj.property('UserData'))
         self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
                                                            formatter={'float_kind':lambda x: "%3.2f" % x}))
