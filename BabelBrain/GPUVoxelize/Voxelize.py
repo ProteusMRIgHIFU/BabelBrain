@@ -387,7 +387,7 @@ def InitOpenCL(DeviceName='AMD'):
     ctx = cl.Context([SelDevice])
     queue = cl.CommandQueue(ctx)
 
-def InitCUDA(DeviceName='AMD'):
+def InitCUDA(DeviceName='A6000'):
     import pycuda.driver as cuda
     from pycuda.compiler import SourceModule
     global Platforms
