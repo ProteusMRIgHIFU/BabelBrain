@@ -38,21 +38,16 @@ def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
     stdout = InOutputWrapper(queue,True)
 
     try:
-        if sys.platform not in ['linux','win32']:
-            if 'arm64' in platform.platform():
-                InitMetal(kargs['deviceName'])
-                Backend='Metal'
-            else:
-                InitOpenCL(kargs['deviceName'])
-                Backend='OpenCL'
+        if kargs['COMPUTING_BACKEND']==1:
+            InitCuda()
+            Backend='CUDA'
+        elif kargs['COMPUTING_BACKEND']==2:
+            InitOpenCL(kargs['deviceName'])
+            Backend='OpenCL'
         else:
-            if kargs['COMPUTING_BACKEND']==1:
-                InitCuda()
-                Backend='CUDA'
-            elif kargs['COMPUTING_BACKEND']==2:
-                InitOpenCL(kargs['deviceName'])
-                Backend='OpenCL'
-            
+            InitMetal(kargs['deviceName'])
+            Backend='Metal'
+
         AllCases=[]
         lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','MonitorSlice','TI','TIC','TIS','TempProfileTarget',\
             'TimeProfileTarget','p_map_central','Isppa','Ispta','MI']

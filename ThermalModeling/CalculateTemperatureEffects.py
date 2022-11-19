@@ -38,6 +38,8 @@ def CalculateTemperatureEffects(InputPData,
     outfname=GetThermalOutName(InputPData,DurationUS,DutyCycle,Isppa,PRF)
 
     print(outfname)
+
+    print('Thermal sim with Backend',Backend)
     if bForceRecalc==False:
         if isfile(outfname+'.h5'):
             print('skipping', outfname)
@@ -169,7 +171,17 @@ def CalculateTemperatureEffects(InputPData,
     #PressureRatio=np.sqrt(IntensityRatio)
     PressureRatio=PressureAdjust/PressureTarget
     print('IntensityRatio,PressureRatio',IntensityRatio,PressureRatio)
-    
+
+    SelBrain=MaterialMap==4
+
+    SelSkin=MaterialMap==1
+
+    SelSkull =(MaterialMap>1) &\
+                (MaterialMap<4)
+
+    ##We calculate first for 1s, to find the hottest locations in each region
+    TotalDurationSteps1s=int(1.0/dt)
+    nStepsOn1s=TotalDurationSteps1s
     ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
                                                       MaterialMap,
                                                       MaterialList,
@@ -182,7 +194,32 @@ def CalculateTemperatureEffects(InputPData,
                                                       DutyCycle=DutyCycle,
                                                       Backend=Backend)
 
-    FinalTemp,FinalDose,MonitorSliceOff,dum=BHTE(pAmp*0,
+    ResTempSkin=ResTemp * SelSkin.astype(np.float32)
+    ResTempBrain=ResTemp * SelBrain.astype(np.float32)
+    ResTempSkull=ResTemp * SelSkull.astype(np.float32)
+    mxSkin,mySkin,mzSkin=np.unravel_index(np.argmax(ResTempSkin, axis=None), ResTempSkin.shape)
+    mxBrain,myBrain,mzBrain=np.unravel_index(np.argmax(ResTempBrain, axis=None), ResTempBrain.shape)
+    mxSkull,mySkull,mzSkull=np.unravel_index(np.argmax(ResTempSkull, axis=None), ResTempSkull.shape)
+
+    MonitoringPointsMap=np.zeros(MaterialMap.shape,np.uint32)
+    MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
+    MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
+    MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
+
+    ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
+                                                      MaterialMap,
+                                                      MaterialList,
+                                                      (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                      TotalDurationSteps,
+                                                      nStepsOn,
+                                                      cy,
+                                                      nFactorMonitoring=nFactorMonitoring,
+                                                      dt=dt,
+                                                      DutyCycle=DutyCycle,
+                                                      Backend=Backend,
+                                                      MonitoringPointsMap=MonitoringPointsMap)
+
+    FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
                                                       MaterialMap,
                                                       MaterialList,
                                                       (Input['x_vec'][1]-Input['x_vec'][0]),
@@ -194,20 +231,21 @@ def CalculateTemperatureEffects(InputPData,
                                                       DutyCycle=DutyCycle,
                                                       Backend=Backend,
                                                       initT0=ResTemp,
-                                                      initDose=ResDose)
+                                                      initDose=ResDose,
+                                                      MonitoringPointsMap=MonitoringPointsMap)
     
+    TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+
     SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
+    SaveDict['TemperaturePoints']=TemperaturePoints
+    SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
+    SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
+    SaveDict['mSkull']=np.array([mxSkull,mySkull,mzSkull]).astype(int)
+    SaveDict['dt']=dt
     SaveDict['p_map']=pAmp*PressureRatio
     SaveDict['p_map_central']=pAmp[:,cy,:]*PressureRatio
     SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
     SaveDict['MaterialMap']=MaterialMap
-    
-    SelBrain=MaterialMap==4
-
-    SelSkin =MaterialMap==1
-
-    SelSkull =(MaterialMap>1) &\
-                (MaterialMap<4)
 
     TI=ResTemp[SelBrain].max()
     
