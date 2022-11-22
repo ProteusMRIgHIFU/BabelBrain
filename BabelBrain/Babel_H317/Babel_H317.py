@@ -157,6 +157,15 @@ class H317(QWidget):
         msgBox.setText("There was an error in execution -\nconsult log window for details")
         msgBox.exec()
 
+    def GetExport(self):
+        Export={}
+        Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
+        for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
+            Export[k]=getattr(self.Widget,k+'SpinBox').value()
+            if 'ZRotation' != k:
+                Export[k]*=1e3 # in mm
+        return Export
+
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file

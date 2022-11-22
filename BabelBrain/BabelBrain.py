@@ -370,7 +370,8 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
         
-
+    def GetExport(self):
+        return self.Config
 
 
     @Slot()
