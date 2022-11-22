@@ -370,10 +370,7 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
         
-    def GetExport(self):
-        return self.Config
-
-
+    
     @Slot()
     def handleOutput(self, text, stdout):
         color = self.Widget.outputTerminal.textColor()
@@ -644,6 +641,15 @@ class BabelBrain(QWidget):
 
         self.UpdateAcousticTab()
 
+    def GetExport(self):
+        ExtraConfig ={}
+        ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
+        if self.Config['bUseCT']:
+            ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
+            if self.Config['CTType']==2 : #ZTE
+                ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
+        return self.Config | ExtraConfig
+
 class RunMaskGeneration(QObject):
 
     finished = Signal()
@@ -705,7 +711,7 @@ class RunMaskGeneration(QObject):
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
             kargs['bIsZTE']=self._mainApp.Config['CTType']==2
             if kargs['bIsZTE']:
-                kargs['RangeZTE']=self._mainApp.Widget.ZTERangeSlider.value()
+                kargs['ZTERange']=self._mainApp.Widget.ZTERangeSlider.value()
             kargs['HUThreshold']=self._mainApp.Widget.HUTreshold.value()
         # Start mask generation as separate process.
         queue=Queue()

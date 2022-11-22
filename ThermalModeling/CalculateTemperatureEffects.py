@@ -17,8 +17,8 @@ from scipy.io import loadmat,savemat
 from platform import platform
 from os.path import isfile
 
-def GetThermalOutName(InputPData,DurationUS,DutyCycle,Isppa,PRF):
-    return InputPData.split('.h5')[0]+'-ThermalField-Duration-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DutyCycle*1000,Isppa,PRF)
+def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF):
+    return InputPData.split('.h5')[0]+'-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
 
 
 def CalculateTemperatureEffects(InputPData,
@@ -35,7 +35,7 @@ def CalculateTemperatureEffects(InputPData,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
     
-    outfname=GetThermalOutName(InputPData,DurationUS,DutyCycle,Isppa,PRF)
+    outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF)
 
     print(outfname)
 

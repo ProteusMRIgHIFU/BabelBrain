@@ -30,7 +30,7 @@ import yaml
 from ThermalModeling.CalculateTemperatureEffects import GetThermalOutName
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
-
+import pandas as pd
 import platform
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -76,7 +76,7 @@ class Babel_Thermal(QWidget):
             self.Widget.SelCombinationDropDown.removeItem(0)
 
         for c in self.Config['AllDC_PRF_Duration']:
-            self.Widget.SelCombinationDropDown.addItem('%3.1fs %3.1f%% %3.1fHz' %(c['Duration'],c['DC']*100,c['PRF']))
+            self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
@@ -102,6 +102,7 @@ class Babel_Thermal(QWidget):
         PrevFiles=[]
         for combination in self.Config['AllDC_PRF_Duration']:
             ThermalName=GetThermalOutName(BaseField,combination['Duration'],
+                                                    combination['DurationOff'],
                                                     combination['DC'],
                                                     self.Config['BaseIsppa'],
                                                     combination['PRF'])+'.h5'
@@ -158,7 +159,7 @@ class Babel_Thermal(QWidget):
         self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[value]))
 
     @Slot()
-    def UpdateThermalResults(self):
+    def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
@@ -168,46 +169,31 @@ class Babel_Thermal(QWidget):
         if len(self._ThermalResults)==0:
             for combination in self.Config['AllDC_PRF_Duration']:
                 ThermalName=GetThermalOutName(BaseField,combination['Duration'],
+                                                        combination['DurationOff'],
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
                                                         combination['PRF'])+'.h5'
 
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
         
-        bNewMap=False
-        if self._LastTMap==-1:
-            bNewMap=True
-        else:
-            if self.Widget.SelCombinationDropDown.currentIndex()!=self._LastTMap:
-                bNewMap=True
-        self._LastTMap=self.Widget.SelCombinationDropDown.currentIndex()
+        
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
 
         Loc=DataThermal['TargetLocation']
 
-        if bNewMap:
+        if self._LastTMap==-1:
             self.Widget.IsppaScrollBar.setMaximum(DataThermal['MaterialMap'].shape[1]-1)
             self.Widget.IsppaScrollBar.setValue(Loc[1])
             self.Widget.IsppaScrollBar.setEnabled(True)
             self.Widget.IsppaScrollBar.sliderReleased.connect(self.UpdateThermalResults)
             self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateSliderString)
             
-        
-        SelIsppa=self.Widget.IsppaSpinBox.value()
-        
-        self._figIntThermalFields=Figure(figsize=(14, 12))
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
+        self._LastTMap=self.Widget.SelCombinationDropDown.currentIndex()
+            
+        if OverWriteIsppa is None:
+            SelIsppa=self.Widget.IsppaSpinBox.value()
         else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
-
-        self.static_canvas = FigureCanvas(self._figIntThermalFields)
-        self._layout.addWidget(self.static_canvas)
-        toolbar=NavigationToolbar2QT(self.static_canvas,self)
-        self._layout.addWidget(toolbar)
-        self._layout.addWidget(self.static_canvas)
-        static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+            SelIsppa=OverWriteIsppa
 
         xf=DataThermal['x_vec']
         zf=DataThermal['z_vec']
@@ -223,34 +209,7 @@ class Babel_Thermal(QWidget):
 
         AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
 
-        DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
-        SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
-        IntensityMap=DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio
-        Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
-
-        self._IntensityIm=static_ax1.imshow(IntensityMap.T,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
-                 cmap=plt.cm.jet)
-        static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
-        static_ax1.set_title('Isppa (W/cm$^2$)')
-        plt.colorbar(self._IntensityIm,ax=static_ax1)
-
-        XX,ZZ=np.meshgrid(xf,zf)
-        static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
-
-        static_ax1.set_ylabel('Distance from skin (mm)')
-
-        self._ThermalIm=static_ax2.imshow(Tmap.T,
-                 extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
-        static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
-        static_ax2.set_title('Temperature ($^{\circ}$C)')
-#        static_ax2.set_yticklabels([])
-        plt.colorbar(self._ThermalIm,ax=static_ax2)
-        static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
-
-        self._figIntThermalFields.set_tight_layout(True)
-
-        self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
-
+        
         DutyCycle=self.Config['AllDC_PRF_Duration'][self.Widget.SelCombinationDropDown.currentIndex()]['DC']
 
         self.Widget.IsppaWaterLabel.setProperty('UserData',AdjustedIsspa)
@@ -277,39 +236,111 @@ class Babel_Thermal(QWidget):
         for obj in [self.Widget.CEMBrainLabel,self.Widget.CEMSkullLabel,
                     self.Widget.CEMSkinLabel]:
                 obj.setText('%4.1G' % obj.property('UserData'))
-            
+
         self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
-                                                           formatter={'float_kind':lambda x: "%3.2f" % x}))
+                                               formatter={'float_kind':lambda x: "%3.2f" % x}))
+
+        if bUpdatePlot:
+            if self.static_canvas is not None:
+                self._layout.removeItem(self._layout.itemAt(0))
+                self._layout.removeItem(self._layout.itemAt(0))
+                plt.close(self._figIntThermalFields)
+            else:
+                self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+
+            self._figIntThermalFields=Figure(figsize=(14, 12))
+            self.static_canvas = FigureCanvas(self._figIntThermalFields)
+            self._layout.addWidget(self.static_canvas)
+            toolbar=NavigationToolbar2QT(self.static_canvas,self)
+            self._layout.addWidget(toolbar)
+            self._layout.addWidget(self.static_canvas)
+            static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+
+            DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
+            SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
+            IntensityMap=DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio
+            Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+
+            self._IntensityIm=static_ax1.imshow(IntensityMap.T,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                    cmap=plt.cm.jet)
+            static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+            static_ax1.set_title('Isppa (W/cm$^2$)')
+            plt.colorbar(self._IntensityIm,ax=static_ax1)
+
+            XX,ZZ=np.meshgrid(xf,zf)
+            static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+
+            static_ax1.set_ylabel('Distance from skin (mm)')
+
+            self._ThermalIm=static_ax2.imshow(Tmap.T,
+                    extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+            static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+            static_ax2.set_title('Temperature ($^{\circ}$C)')
+
+            plt.colorbar(self._ThermalIm,ax=static_ax2)
+            static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+
+            self._figIntThermalFields.set_tight_layout(True)
+
+            self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+
+
+
 
     @Slot()
     def ExportSummary(self):
-        import pandas as pd
+        DefaultPath=os.path.split(self._MainApp.Config['T1W'])[0]
+        outCSV=QFileDialog.getSaveFileName(self,"Select export CSV file",DefaultPath,"csv (*.csv)")[0]
+        if len(outCSV)==0:
+            return
+        
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         DataToExport={}
         #we recover specifics of main app and acoustic simulation
         for obj in [self._MainApp,self._MainApp.AcSim]:
             Export=obj.GetExport()
-            for k in Export:
-                DataToExport[k]=Export[k]
-
+            DataToExport= DataToExport | Export
+        DataToExport['AdjustRAS']=self.Widget.AdjustRASLabel.property('UserData')
         
-        DataToExport['Isppa']=self.Widget.IsppaSpinBox.value()
-        DataToExport['TimingExposure']=self.Widget.SelCombinationDropDown.currentText()
+        pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
+        currentIsppa=self.Widget.IsppaSpinBox.value()
+        currentCombination=self.Widget.SelCombinationDropDown.currentIndex()
+        #now we create new Table to export safety metrics based on timing options and Isppa
+        print('self.Widget.SelCombinationDropDown.count()',self.Widget.SelCombinationDropDown.count())
+        for n in range(self.Widget.SelCombinationDropDown.count()):
+            self.Widget.SelCombinationDropDown.setCurrentIndex(n)
+            DataToExport['TimingExposure']=self.Widget.SelCombinationDropDown.currentText()
+            print('self.Widget.SelCombinationDropDown.currentText()',self.Widget.SelCombinationDropDown.currentText())
+            with open(outCSV,'a') as f:
+                f.write('*'*80+'\n')
+                f.write('TimingExposure,'+self.Widget.SelCombinationDropDown.currentText()+'\n')
+                f.write('*'*80+'\n')
+                
+            DataToExport={}
+            DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
+            for v in DataToExport['Isppa']:
+                self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
+                for k in ['IsppaWater','MI','Ispta',
+                            ['TI','TIBrainLabel'],['TIS','TISkinLabel'],
+                            'TIC','CEMBrain','CEMSkin','CEMSkull']:
+                    if type(k) is list:
+                        if k[0] not in DataToExport:
+                            DataToExport[k[0]]=[]
+                    else:
+                        if k not in DataToExport:
+                            DataToExport[k]=[]
+                    if type(k) is list: 
+                        obj=getattr(self.Widget,k[1])
+                        DataToExport[k[0]].append(obj.property('UserData'))
+                    else:
+                        obj=getattr(self.Widget,k+'Label')
+                        DataToExport[k].append(obj.property('UserData'))
+                
+            pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)
+        self.Widget.SelCombinationDropDown.setCurrentIndex(currentCombination)
+        self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
-        for Basics in ['IsppaWater','MI','Ispta',
-                       ['TI','TIBrainLabel'],['TIS','TISkinLabel'],
-                       'TIC','CEMBrain','CEMSkin','CEMSkull','AdjustRAS']:
-            if type(Basics) is list: 
-                obj=getattr(self.Widget,Basics[1])
-                DataToExport[Basics[0]]=obj.property('UserData')
-            else:
-                obj=getattr(self.Widget,Basics+'Label')
-                DataToExport[Basics]=obj.property('UserData')
-            
-        DefaultPath=os.path.split(self._MainApp.Config['T1W'])[0]
-        outCSV=QFileDialog.getSaveFileName(self,"Select export CSV file",DefaultPath,"csv (*.csv)")[0]
-        if len(outCSV)>0:
-            (pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False))
+        
 
 
 class RunThermalSim(QObject):

@@ -58,6 +58,7 @@ def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
                                                 DutyCycle=combination['DC'],
                                                 PRF=combination['PRF'],
                                                 DurationUS=combination['Duration'],
+                                                DurationOff=combination['DurationOff'],
                                                 Isppa=kargs['Isppa'],
                                                 sel_p=kargs['sel_p'],
                                                 bPlot=False,
