@@ -236,7 +236,6 @@ class H317(QWidget):
             self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
-        self._layout.addWidget(self.static_canvas)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
         self._layout.addWidget(toolbar)
         self._layout.addWidget(self.static_canvas)

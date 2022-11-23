@@ -1,6 +1,9 @@
 # Since create-dmg does not clobber, be sure to delete previous DMG
 [[ -f BabelBrain.dmg ]] && rm BabelBrain.dmg
 [[ -d dist/BabelBrain ]] && rm -rf dist/BabelBrain
+[[ -d dist/ThermalProfiles ]] && rm -rf dist/ThermalProfiles
+
+cp -r ../ThermalProfiles dist/
 
 # Create the DMG
 create-dmg \

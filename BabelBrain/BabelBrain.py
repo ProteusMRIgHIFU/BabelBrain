@@ -32,7 +32,8 @@ from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
-from qtrangeslider import   QLabeledDoubleRangeSlider
+#from qtrangeslider import   QLabeledDoubleRangeSlider
+from superqt import QLabeledDoubleRangeSlider
 
 from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight,templateSlicer,BSight_to_itk
 

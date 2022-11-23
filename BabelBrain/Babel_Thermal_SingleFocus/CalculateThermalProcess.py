@@ -81,7 +81,7 @@ def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
         ConsolodidateName=fname.split('-DC-')[0]+'_AllCombinations'
         savemat(ConsolodidateName+'.mat',Data)
         SaveToH5py(Data,ConsolodidateName+'.h5')
-        print('ConsolodidateName',ConsolodidateName)
+
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())

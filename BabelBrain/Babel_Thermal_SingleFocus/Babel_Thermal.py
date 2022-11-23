@@ -80,8 +80,12 @@ class Babel_Thermal(QWidget):
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
+        self.Widget.IsppaScrollBar.sliderReleased.connect(self.UpdateThermalResults)
+        self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateSliderString)
         self.Widget.SelCombinationDropDown.setEnabled(False)
-        self.Widget.SelCombinationDropDown.setEnabled(False)
+        self.Widget.IsppaScrollBar.setEnabled(False)
+        self.Widget.IsppaSpinBox.setEnabled(False)
+
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
@@ -135,7 +139,6 @@ class Babel_Thermal(QWidget):
             self.worker.endError.connect(self.NotifyError)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
-
             self.thread.start()
             self._MainApp.Widget.tabWidget.setEnabled(False)
             print('thermal sim thread initiated')
@@ -164,7 +167,8 @@ class Babel_Thermal(QWidget):
         self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
-        self.Widget.SelCombinationDropDown.setEnabled(True)
+        self.Widget.IsppaScrollBar.setEnabled(True)
+        self.Widget.IsppaSpinBox.setEnabled(True)
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
             for combination in self.Config['AllDC_PRF_Duration']:
@@ -179,14 +183,13 @@ class Babel_Thermal(QWidget):
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
 
+
         Loc=DataThermal['TargetLocation']
 
         if self._LastTMap==-1:
             self.Widget.IsppaScrollBar.setMaximum(DataThermal['MaterialMap'].shape[1]-1)
             self.Widget.IsppaScrollBar.setValue(Loc[1])
             self.Widget.IsppaScrollBar.setEnabled(True)
-            self.Widget.IsppaScrollBar.sliderReleased.connect(self.UpdateThermalResults)
-            self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateSliderString)
             
         self._LastTMap=self.Widget.SelCombinationDropDown.currentIndex()
             
@@ -197,6 +200,7 @@ class Babel_Thermal(QWidget):
 
         xf=DataThermal['x_vec']
         zf=DataThermal['z_vec']
+
        
         SelY=self.Widget.IsppaScrollBar.value()
 
@@ -244,13 +248,11 @@ class Babel_Thermal(QWidget):
             if self.static_canvas is not None:
                 self._layout.removeItem(self._layout.itemAt(0))
                 self._layout.removeItem(self._layout.itemAt(0))
-                plt.close(self._figIntThermalFields)
             else:
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
             self._figIntThermalFields=Figure(figsize=(14, 12))
             self.static_canvas = FigureCanvas(self._figIntThermalFields)
-            self._layout.addWidget(self.static_canvas)
             toolbar=NavigationToolbar2QT(self.static_canvas,self)
             self._layout.addWidget(toolbar)
             self._layout.addWidget(self.static_canvas)
@@ -337,8 +339,10 @@ class Babel_Thermal(QWidget):
                         DataToExport[k].append(obj.property('UserData'))
                 
             pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)
-        self.Widget.SelCombinationDropDown.setCurrentIndex(currentCombination)
-        self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
+        if currentCombination !=self.Widget.SelCombinationDropDown.currentIndex():
+            self.Widget.SelCombinationDropDown.setCurrentIndex(currentCombination) #this will refresh
+        else:
+            self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
         
 

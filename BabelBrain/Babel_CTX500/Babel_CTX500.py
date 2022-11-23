@@ -140,6 +140,7 @@ class CTX500(QWidget):
             self.worker.endError.connect(self.NotifyError)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
+ 
             self.thread.start()
         else:
             self.UpdateAcResults()
@@ -223,7 +224,6 @@ class CTX500(QWidget):
             self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
-        self._layout.addWidget(self.static_canvas)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
         self._layout.addWidget(toolbar)
         self._layout.addWidget(self.static_canvas)
@@ -259,7 +259,12 @@ class CTX500(QWidget):
         self._figAcField.set_tight_layout(True)
 
         #f.set_title('MAIN SIMULATION RESULTS')
-
+   
+    def GetExport(self):
+        Export={}
+        for k in ['TPODistance','XMechanic','YMechanic']:
+            Export[k]=getattr(self.Widget,k+'SpinBox').value()
+        return Export
 
 class RunAcousticSim(QObject):
 
