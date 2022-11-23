@@ -24,7 +24,7 @@ scikit-image==0.19.3
 trimesh==3.12.9
 antspyx==0.3.4
 superqt==0.4.0
-vtk==9.1.0
+vtk==9.2.2
 pyvista==0.37.0
 histoprint==2.4.0
 linetimer==0.1.5
