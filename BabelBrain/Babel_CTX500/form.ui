@@ -108,8 +108,8 @@
     </font>
    </property>
    <property name="text">
-    <string>Distance from
-skin (mm) :</string>
+    <string>Distance skin
+to target (mm) :</string>
    </property>
    <property name="indent">
     <number>0</number>

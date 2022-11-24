@@ -87,14 +87,14 @@ class CTX500(QWidget):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]*1e-3
+        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
         DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
 
-        self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin*1e3,1))
-        self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin*1e3))
+        self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin,1))
+        self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
         self.TPODistanceUpdate(0)
@@ -172,7 +172,7 @@ class CTX500(QWidget):
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
-        DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')*1e3
+        DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
 
         Water['z_vec']*=1e3

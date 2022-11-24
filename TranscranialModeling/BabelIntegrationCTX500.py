@@ -174,15 +174,6 @@ def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=4):
                      
     return Tx
 
-def TWExpPhaseDistance(distance): #distance in mm
-    from scipy.interpolate import interp1d
-    ExpData=np.loadtxt('TWExperimentalPhaseProgramming.csv',skiprows=1,delimiter=',')
-    assert(distance>=ExpData[:,0].min()  and distance<=ExpData[:,0].max())
-    P1=interp1d(ExpData[:,0],ExpData[:,2])
-    P2=interp1d(ExpData[:,0],ExpData[:,3])
-    P3=interp1d(ExpData[:,0],ExpData[:,4])
-    return np.array([0.0, P1(distance),P2(distance),P3(distance)])
-##########################################
 class RUN_SIM(RUN_SIM_BASE):
     def CreateSimObject(self,**kargs):
         return BabelFTD_Simulations(ZSteering=self._ZSteering,
@@ -245,6 +236,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def AddSaveDataSim(self,DataForSim):
         DataForSim['ZSteering']=self._ZSteering
+        DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
 
     
 ########################################################
@@ -339,7 +331,6 @@ class SimulationConditions(SimulationConditionsBASE):
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
         self.BasePhasedArrayProgramming=np.zeros(self._TxRC['NumberElems'],np.complex64)
-        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._TxRC['NumberElems'],np.complex64)
         
         if self._ZSteering!=0.0:
             print('Running Steering')
@@ -450,13 +441,7 @@ class SimulationConditions(SimulationConditionsBASE):
             
         self._PulseSource=PulseSource
         
-        ## Now we create the sources for back propagation
-        
-        self._PunctualSource=np.sin(2*np.pi*self._Frequency*TimeVectorSource).reshape(1,len(TimeVectorSource))
-        self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
-        self._SourceMapPunctual[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=1
-        
-
+       
         if self._bDisplay:
             plt.figure(figsize=(6,3))
             for n in range(1,4):

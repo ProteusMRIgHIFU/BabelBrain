@@ -2,7 +2,7 @@ import sys
 import platform
 import traceback
 
-def CalculateMaskProcess(queue,TxSystem,COMPUTING_BACKEND,devicename,**kargs):
+def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     
     class InOutputWrapper(object):
        

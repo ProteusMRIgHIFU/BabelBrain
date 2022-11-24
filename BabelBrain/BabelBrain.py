@@ -327,15 +327,16 @@ class BabelBrain(QWidget):
         ## THIS WILL BE LOADED DYNAMICALLY in function of the active Tx
         import BabelDatasetPreps as DataPreps
 
-        if self.Config['TxSystem'] =='CTX_500':
+        from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
+        if self.Config['TxSystem'] =='Single':
+            from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
+            from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
+        elif self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
-            
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
             from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
-            from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
         else:
             self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
@@ -451,7 +452,7 @@ class BabelBrain(QWidget):
         Frequency=  self.Widget.USMaskkHzDropDown.property('UserData')
         BasePPW=self.Widget.USPPWSpinBox.property('UserData')
 
-        self._prefix= self.Config['ID'] + '_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
+        self._prefix= self.Config['ID'] + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
         self._prefix_path=os.path.dirname(self.Config['T1WIso'])+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
         self._BrainsightInput=self._prefix_path+'FullElasticSolution.nii.gz'
@@ -691,8 +692,6 @@ class RunMaskGeneration(QObject):
         ants.image_write(preT1,T1WIso)
 
         kargs={}
-        if self._mainApp.Config['TxSystem'] =='H317':
-            kargs['Foc']=self._mainApp.AcSim.Config['TxFoc']*1e3, # in mm
         kargs['SimbNIBSDir']=self._mainApp.Config['simbnibs_path']
         kargs['SimbNIBSType']=self._mainApp.Config['SimbNIBSType']
         kargs['CoregCT_MRI']=self._mainApp.Config['CoregCT_MRI']
@@ -700,7 +699,6 @@ class RunMaskGeneration(QObject):
         kargs['Mat4Trajectory']=self._mainApp.Config['Mat4Trajectory'] #Path to trajectory file
         kargs['T1Conformal_nii']=T1WIso
         kargs['nIterationsAlign']=10
-        kargs['TxDiam']=self._mainApp.AcSim.Config['TxDiam']*1e3 # in mm
         kargs['SpatialStep']=SpatialStep
         kargs['InitialAligment']='HF'
         kargs['Location']=[0,0,0] #This coordinate will be ignored
@@ -717,7 +715,7 @@ class RunMaskGeneration(QObject):
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 
-                                    args=(queue,self._mainApp.Config['TxSystem'],
+                                    args=(queue,
                                          COMPUTING_BACKEND,
                                          deviceName),
                                     kwargs=kargs)

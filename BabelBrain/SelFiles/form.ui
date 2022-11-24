@@ -405,6 +405,11 @@ profile ...</string>
     </property>
     <item>
      <property name="text">
+      <string>Single</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
       <string>CTX_500</string>
      </property>
     </item>

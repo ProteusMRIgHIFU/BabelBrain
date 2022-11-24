@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.0
+## Created by: Qt User Interface Compiler version 6.4.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -127,6 +127,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox = QComboBox(self.groupBox_2)
         self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.addItem("")
+        self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.setObjectName(u"TransducerTypecomboBox")
         self.TransducerTypecomboBox.setGeometry(QRect(90, 34, 116, 30))
         self.TransducerTypecomboBox.setStyleSheet(u"")
@@ -177,8 +178,9 @@ class Ui_Dialog(object):
         self.SimbNIBSTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"headreco", None))
 
         self.groupBox_2.setTitle(QCoreApplication.translate("Dialog", u"Transducer and Computing engine", None))
-        self.TransducerTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"CTX_500", None))
-        self.TransducerTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"H317", None))
+        self.TransducerTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Single", None))
+        self.TransducerTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"CTX_500", None))
+        self.TransducerTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"H317", None))
 
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))

@@ -104,7 +104,7 @@ def FitAttTrabecularLong(frequency):
 
 
 MatFreq={}
-for f in [250e3,500e3,700e3]:
+for f in np.arange(100e3,750e3,50e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -122,7 +122,6 @@ for f in [250e3,500e3,700e3]:
 
     MatFreq[f]=Material
 
-pprint(MatFreq)
 
 def GetSmallestSOS(frequency,bShear=False):
     SelFreq=MatFreq[frequency]
@@ -344,125 +343,6 @@ class RUN_SIM_BASE(object):
                             OutNames.append(oname)
         return OutNames
     
-#############################################
-def PlotFinalAnalysis(basedir='../LIFU Clinical Trial Data/Participants/',
-                      Target='RSTN_Skin',
-                      ID='LIFU1-01',
-                      PPW=9,
-                      DistanceFromSkin=50):
-    plt.close('all')
-    Water=ReadFromH5py(basedir+ID+os.sep+Target+'_500kHz_%iPPW__Water_DataForSim.h5' % (PPW))
-    Skull=ReadFromH5py(basedir+ID+os.sep+Target+'_500kHz_%iPPW_DataForSim.h5' % (PPW))
-
-    LocTarget=Skull['TargetLocation']
-    print(LocTarget)
-    
-    for d in [Water,Skull]:
-        for t in ['p_amp','MaterialMap']:
-            d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-    
-    Water['z_vec']-=0.14
-    Skull['z_vec']-=0.14
-    Water['z_vec']*=1e3
-    Skull['z_vec']*=1e3
-    Skull['x_vec']*=1e3
-    Skull['y_vec']*=1e3
-    Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-    Skull['MaterialMap'][Skull['MaterialMap']==4]=3
-    
-    DensityMap=Water['Material'][:,0][Water['MaterialMap']]
-    SoSMap=    Water['Material'][:,1][Water['MaterialMap']]
-    IWater=Water['p_amp']**2/2/DensityMap/SoSMap/1e4
-    
-    DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-    SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-    ISkull=Skull['p_amp']**2/2/DensityMap/SoSMap/1e4
-    
-    ISkull/=IWater[Skull['MaterialMap']==3].max()
-    IWater/=IWater[Skull['MaterialMap']==3].max()
-
-    #these are the dimensions of the Tx
-    Foc=63.2
-    Diam=64
-
-    DistanceToTarget=DistanceFromSkin*1e3
-
-    Factor=IWater[Skull['MaterialMap']==3].max()/ISkull[Skull['MaterialMap']==3].max()
-    print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
-
-    plt.figure(figsize=(8,4))
-    dz=np.diff(Skull['z_vec']).mean()
-    Zvec=Skull['z_vec'].copy()
-    Zvec-=Zvec[LocTarget[2]]
-    Zvec+=DistanceToTarget
-    XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-    ax=plt.subplot(1,2,1)
-    plt.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T*Factor*20,np.arange(2,22,2),cmap=plt.cm.jet)
-    h=plt.colorbar()
-    h.set_label('$I_{\mathrm{SPPA}}$ (W/cm$^2$)')
-    plt.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
-    ax.set_aspect('equal')
-    ax.set_xlabel('X mm')
-    ax.set_ylabel('Z mm')
-    ax.invert_yaxis()
-    plt.plot(0,DistanceToTarget,'+k',markersize=18)
-    ax=plt.subplot(1,2,2)
-    plt.contourf(XX,ZZ,ISkull[LocTarget[0],:,:].T*Factor*20,np.arange(2,22,2),cmap=plt.cm.jet)
-    plt.colorbar()
-    plt.contour(XX,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Y mm')
-    ax.set_ylabel('Z mm')
-    ax.invert_yaxis()
-    plt.plot(0,DistanceToTarget,'+k',markersize=18)
-    #plt.savefig('BeamProfileSkinRight.png',dpi=150,bbox_inches='tight')
-    plt.title('MAIN SIMULATION RESULTS, adjust steering and lateral mechanical corrections') 
-    
-    IWaterBrain=IWater.copy()
-    IWaterBrain[Skull['MaterialMap']<3]=0
-    LocInWater=np.array(np.where(IWaterBrain==IWaterBrain.max())).flatten()
-    print('LocInWater',LocInWater)
-
-    plt.figure(figsize=(8,4))
-    ax=plt.subplot(1,2,1)
-    plt.contourf(XX,ZZ,IWater[:,LocInWater[1],:].T*20,np.arange(2,22,2),cmap=plt.cm.jet)
-    h=plt.colorbar()
-    h.set_label('$I_{\mathrm{SPPA}}$ (W/cm$^2$)')
-    plt.contour(XX,ZZ,Skull['MaterialMap'][:,LocInWater[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
-    ax.set_aspect('equal')
-    ax.set_xlabel('X mm')
-    ax.set_ylabel('Z mm')
-    ax.invert_yaxis()
-    plt.plot(0,DistanceToTarget,'+k',markersize=18)
-    ax=plt.subplot(1,2,2)
-    plt.contourf(XX,ZZ,IWater[LocInWater[1],:,:].T*20,np.arange(2,22,2),cmap=plt.cm.jet)
-    h=plt.colorbar()
-    h.set_label('$I_{\mathrm{SPPA}}$ (W/cm$^2$)')
-    plt.contour(XX,ZZ,Skull['MaterialMap'][LocInWater[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Y mm')
-    ax.set_ylabel('Z mm')
-    ax.invert_yaxis()
-    plt.plot(0,DistanceToTarget,'+k',markersize=18)
-    #plt.savefig('BeamProfileWaterSkinRight.png',dpi=150,bbox_inches='tight')
-
-    IWaterLine=((Skull['MaterialMap']==3)*IWater)[LocTarget[0],LocTarget[1],:]
-    ISkullLine=((Skull['MaterialMap']==3)*ISkull)[LocInWater[0],LocInWater[1],:]
-
-    plt.rcParams['font.size']=14
-    plt.figure(figsize=(8,4))
-    plt.plot(Zvec,IWaterLine*20)
-    plt.plot(Zvec,ISkullLine*20)
-    plt.plot(Zvec,ISkullLine*Factor*20)
-    plt.legend(['Water','Skull','Skull-Compensated'])
-    plt.title('Correction Factor ' +str(Factor),fontsize=14) 
-    plt.plot([DistanceToTarget,DistanceToTarget],[0,20],':')
-    plt.xlabel('Distance from out plane (mm)')
-    plt.ylabel('$I_{\mathrm{SPPA}}$ (W/cm$^2$)')
-    plt.xlim(0,90)
-########################################################
-########################################################
-
 class BabelFTD_Simulations_BASE(object):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,MASKFNAME='',
@@ -709,9 +589,6 @@ class BabelFTD_Simulations_BASE(object):
             
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['affine']=affine
-
-        DataForSim['BasePhasedArrayProgrammingRefocusing']=self._SIM_SETTINGS.BasePhasedArrayProgrammingRefocusing
-        DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
 
         DataForSim['TxMechanicalAdjustmentX']=self._TxMechanicalAdjustmentX
         DataForSim['TxMechanicalAdjustmentY']=self._TxMechanicalAdjustmentY

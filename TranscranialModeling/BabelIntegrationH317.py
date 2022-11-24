@@ -206,6 +206,8 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         DataForSim['RotationZ']=self._RotationZ
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['DistanceConeToFocus']=self._DistanceConeToFocus
+        DataForSim['BasePhasedArrayProgrammingRefocusing']=self._SIM_SETTINGS.BasePhasedArrayProgrammingRefocusing
+        DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
     
 class SimulationConditions(SimulationConditionsBASE):
     '''

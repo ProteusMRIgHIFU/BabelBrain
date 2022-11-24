@@ -1,4 +1,5 @@
 # This Python file uses the following encoding: utf-8
+
 from multiprocessing import Process,Queue
 import os
 from pathlib import Path
@@ -20,8 +21,6 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
-
-#import cv2 as cv
 import os
 import sys
 import shutil
@@ -29,56 +28,56 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-
 from .CalculateFieldProcess import CalculateFieldProcess
 
-class H317(QWidget):
+import platform
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_SingleTx'
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
+
+def DistanceOutPlaneToFocus(FocalLength,Diameter):
+    return np.sqrt(FocalLength**2-(Diameter/2)**2)
+
+class SingleTx(QWidget):
     def __init__(self,parent=None,MainApp=None):
-        super(H317, self).__init__(parent)
+        super(SingleTx, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
+        self._bIgnoreUpdate=False
         self.DefaultConfig()
         self.load_ui()
 
 
     def load_ui(self):
         loader = QUiLoader()
-        path = os.fspath(Path(__file__).resolve().parent / "form.ui")
+        #path = os.fspath(Path(__file__).resolve().parent / "form.ui")
+        path = os.path.join(resource_path(), "form.ui")
+        
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
-
-        self.Widget.ZSteeringSpinBox.setMinimum(self.Config['MinimalZSteering']*1e3)
-        self.Widget.ZSteeringSpinBox.setMaximum(self.Config['MaximalZSteering']*1e3)
-        self.Widget.ZSteeringSpinBox.setValue(0.0)
-
-        self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
-
-        self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
-        self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
-
-    @Slot()
-    def ZSteeringUpdate(self,value):
-        self._ZSteering =self.Widget.ZSteeringSpinBox.value()/1e3
-        print('ZSteering',self._ZSteering*1e3)
-
-    @Slot()
-    def EnableRefocusing(self,value):
-        bRefocus =self.Widget.CalculatePlanningMask.isChecked()
-        self.Widget.XMechanicSpinBox.setEnabled(bRefocus)
-        self.Widget.YMechanicSpinBox.setEnabled(bRefocus)
-        self.Widget.ZMechanicSpinBox.setEnabled(bRefocus)
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
 
     def DefaultConfig(self):
-        #Specific parameters for the H317 - to be configured later via a yaml
+        #Specific parameters for the CTX500 - to be configured later via a yaml
 
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
+        with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("H317 configuration:")
+        print("Single configuration:")
         print(config)
 
         self.Config=config
@@ -93,27 +92,57 @@ class H317(QWidget):
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
-        self.ZSteeringUpdate(0)
+        self.UpdateLimits()
 
+        ZMax=self.Widget.ZMechanicSpinBox.maximum()
+        
+        if ZMax>=0:
+            self.Widget.ZMechanicSpinBox.setValue(0.0) # Tx aligned at the target
+        else:
+            self.Widget.ZMechanicSpinBox.setValue(np.round(ZMax,1)) #if negative, we push back the Tx as it can't go below this
+        
+    
+    @Slot()
+    def UpdateTxInfo(self):
+        if self._bIgnoreUpdate:
+            return
+        self._bIgnoreUpdate=True
+        self.UpdateLimits()
+        ZMax=self.Widget.ZMechanicSpinBox.maximum()
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        if ZMec > ZMax:
+            self.ZMechanicSpinBox.setValue(ZMax)
+            ZMec=ZMax
+        
+        CurDistance=ZMax-ZMec
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        self._bIgnoreUpdate=False
+
+
+    def UpdateLimits(self):
+        FocalLength = self.Widget.FocalLengthSpinBox.value()
+        Diameter = self.Widget.DiameterSpinBox.value()
+        DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
+        ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
+        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMax,1))
+        self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
+      
     @Slot()
     def RunSimulation(self):
-        self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
-        self._WaterSolName=self._MainApp._prefix_path+'Water_DataForSim.h5'
+        FocalLength = self.Widget.FocalLengthSpinBox.value()
+        Diameter = self.Widget.DiameterSpinBox.value()
+        self._FullSolName=self._MainApp._prefix_path+'Foc%03.1f_Diam%03.1f_DataForSim.h5' %(FocalLength,Diameter)
+        self._WaterSolName=self._MainApp._prefix_path+'Foc%03.1f_Diam%03.1f_Water_DataForSim.h5' %(FocalLength,Diameter)
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            ZSteering=Skull['ZSteering']
-            if 'RotationZ' in Skull:
-                RotationZ=Skull['RotationZ']
-            else:
-                RotationZ=0.0
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "ZSteering=%3.2f\n" %(ZSteering*1e3)+
-                                    "ZRotation=%3.2f\n" %(RotationZ)+
+                                    "FocalLength=%3.2f\n" %(Skull['FocalLength']*1e3)+
+                                    "Diameter=%3.2f\n" %(Skull['Aperture']*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                     "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
@@ -123,11 +152,6 @@ class H317(QWidget):
             if ret == QMessageBox.Yes:
                 bCalcFields=True
             else:
-                self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
-                self.Widget.ZRotationSpinBox.setValue(RotationZ)
-                self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
-                if 'DistanceConeToFocus' in Skull:
-                    self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
@@ -147,6 +171,7 @@ class H317(QWidget):
             self.worker.endError.connect(self.NotifyError)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
+ 
             self.thread.start()
         else:
             self.UpdateAcResults()
@@ -157,13 +182,6 @@ class H317(QWidget):
         msgBox.setText("There was an error in execution -\nconsult log window for details")
         msgBox.exec()
 
-    def GetExport(self):
-        Export={}
-        Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
-        for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
-            Export[k]=getattr(self.Widget,k+'SpinBox').value()
-        return Export
-
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
@@ -172,11 +190,8 @@ class H317(QWidget):
         Water=ReadFromH5py(self._WaterSolName)
         Skull=ReadFromH5py(self._FullSolName)
         if self._MainApp._bInUseWithBrainsight:
-            if Skull['bDoRefocusing']:
-                #we update the name to be loaded in BSight
-                self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
             with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                f.write(self._MainApp._BrainsightInput) 
+                f.write(self._MainApp._BrainsightInput)    
         self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
                                     CorY=Skull['AdjustmentInRAS'][1],
                                     CorZ=Skull['AdjustmentInRAS'][2])
@@ -184,20 +199,12 @@ class H317(QWidget):
         LocTarget=Skull['TargetLocation']
         print(LocTarget)
 
-        if Skull['bDoRefocusing']:
-            SelP='p_amp_refocus'
-        else:
-            SelP='p_amp'
-
-        for d in [Skull]:
-            for t in [SelP,'MaterialMap']:
-                d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
-        for d in [Water]:
+        for d in [Water,Skull]:
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
+        dx=  np.mean(np.diff(Skull['x_vec']))
 
         Water['z_vec']*=1e3
         Skull['z_vec']*=1e3
@@ -206,27 +213,39 @@ class H317(QWidget):
         Skull['MaterialMap'][Skull['MaterialMap']==3]=2
         Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-        DensityMap=Water['Material'][:,0][Water['MaterialMap']]
-        SoSMap=    Water['Material'][:,1][Water['MaterialMap']]
-        IWater=Water['p_amp']**2/2/DensityMap/SoSMap/1e4
+        IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
         DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
         SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-        ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
+
+        ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
 
         IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
         IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
+        
+        ISkull[Skull['MaterialMap']!=3]=0
+        cxr,cyr,czr=np.where(ISkull==ISkull.max())
+        cxr=cxr[0]
+        cyr=cyr[0]
+        czr=czr[0]
 
-        EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
-        EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
+        EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
 
-        ISkull/=ISkull[Skull['MaterialMap']==3].max()
-        IWater/=IWater[Skull['MaterialMap']==3].max()
+        cxr,cyr,czr=np.where(IWater==IWater.max())
+        cxr=cxr[0]
+        cyr=cyr[0]
+        czr=czr[0]
 
+        EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
+
+        print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
+        
         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
         
-        ISkull[Skull['MaterialMap']!=3]=0
+        ISkull/=ISkull.max()
+        IWater/=IWater.max()
+        
         self._figAcField=Figure(figsize=(14, 12))
 
         if self.static_canvas is not None:
@@ -244,11 +263,9 @@ class H317(QWidget):
         dz=np.diff(Skull['z_vec']).mean()
         Zvec=Skull['z_vec'].copy()
         Zvec-=Zvec[LocTarget[2]]
-        Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
+        Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        slice = ISkull[:,LocTarget[1],:]
-        slice/=slice.max()
-        self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -259,9 +276,8 @@ class H317(QWidget):
         static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-        slice = ISkull[LocTarget[0],:,:]
-        slice/=slice.max()
-        self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+
+        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -273,7 +289,13 @@ class H317(QWidget):
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
         self._figAcField.set_tight_layout(True)
 
-
+        #f.set_title('MAIN SIMULATION RESULTS')
+   
+    def GetExport(self):
+        Export={}
+        for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
+            Export[k]=getattr(self.Widget,k+'SpinBox').value()
+        return Export
 
 class RunAcousticSim(QObject):
 
@@ -295,48 +317,31 @@ class RunAcousticSim(QObject):
 
         InputSim=self._mainApp._outnameMask
 
-        bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
+        
         #we can use mechanical adjustments in other directions for final tuning
-        if not bRefocus:
-            TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
-            TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-            TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
-
-        else:
-            TxMechanicalAdjustmentX=0
-            TxMechanicalAdjustmentY=0
-            TxMechanicalAdjustmentZ=0
-        ###############
-        ZSteering=self._mainApp.AcSim.Widget.ZSteeringSpinBox.value()/1e3  #Add here the final adjustment)
-        XSteering=1e-6
-        ##############
-        RotationZ=self._mainApp.AcSim.Widget.ZRotationSpinBox.value()
-
-        print('ZSteering',ZSteering*1e3)
-        print('RotationZ',RotationZ)
+        Aperture= self._mainApp.AcSim.Widget.DiameterSpinBox.value()/1e3 #in m
+        FocalLength= self._mainApp.AcSim.Widget.FocalLengthSpinBox.value()/1e3 #in m
+        
+        TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
+        TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
         T0=time.time()
-
-        DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3
-
         kargs={}
+        kargs['extrasuffix']='Foc%03.1f_Diam%03.1f_' %(FocalLength*1e3,Aperture*1e3)
         kargs['ID']=ID
         kargs['deviceName']=deviceName
         kargs['COMPUTING_BACKEND']=COMPUTING_BACKEND
         kargs['basePPW']=basePPW
         kargs['basedir']=basedir
+        kargs['Aperture']=Aperture
+        kargs['FocalLength']=FocalLength
         kargs['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
-        kargs['XSteering']=XSteering
-        kargs['ZSteering']=ZSteering
-        kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
-        kargs['bDoRefocusing']=bRefocus
-        kargs['DistanceConeToFocus']=DistanceConeToFocus
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
 
         # Start mask generation as separate process.
         queue=Queue()
@@ -374,8 +379,10 @@ class RunAcousticSim(QObject):
             self.endError.emit()
 
 
+
+
 if __name__ == "__main__":
     app = QApplication([])
-    widget = H317()
+    widget = SingleTx()
     widget.show()
     sys.exit(app.exec_())

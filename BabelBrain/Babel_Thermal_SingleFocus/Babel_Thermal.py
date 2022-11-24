@@ -368,7 +368,7 @@ class RunThermalSim(QObject):
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
-        if kargs['TxSystem']=='CTX_500':
+        if kargs['TxSystem'] in ['CTX_500','Single']:
             kargs['sel_p']='p_amp'
         else:
             bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()

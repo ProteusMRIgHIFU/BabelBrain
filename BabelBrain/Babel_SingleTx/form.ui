@@ -19,8 +19,8 @@
   <widget class="QLabel" name="label_20">
    <property name="geometry">
     <rect>
-     <x>31</x>
-     <y>211</y>
+     <x>33</x>
+     <y>222</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -29,11 +29,56 @@
     <string>Mechanical adj. X (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZSteeringSpinBox">
+  <widget class="QLabel" name="DistanceSkinLabel">
    <property name="geometry">
     <rect>
-     <x>231</x>
-     <y>93</y>
+     <x>212</x>
+     <y>172</y>
+     <width>76</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>0.0</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_21">
+   <property name="geometry">
+    <rect>
+     <x>32</x>
+     <y>169</y>
+     <width>150</width>
+     <height>38</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Distance skin
+to target (mm) :</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>201</x>
+     <y>220</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -57,97 +102,11 @@
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_19">
-   <property name="geometry">
-    <rect>
-     <x>29</x>
-     <y>94</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>ZSteering  (mm)</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="DistanceSkinLabel">
-   <property name="geometry">
-    <rect>
-     <x>239</x>
-     <y>161</y>
-     <width>76</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>14</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>0.0</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_21">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>162</y>
-     <width>150</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>15</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Distance skin
-to target (mm) :</string>
-   </property>
-   <property name="indent">
-    <number>0</number>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>228</x>
-     <y>209</y>
-     <width>90</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="minimum">
-    <double>-10.000000000000000</double>
-   </property>
-   <property name="maximum">
-    <double>10.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-   <property name="value">
-    <double>0.000000000000000</double>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_23">
    <property name="geometry">
     <rect>
-     <x>32</x>
-     <y>241</y>
+     <x>34</x>
+     <y>252</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -159,8 +118,8 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="YMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>229</x>
-     <y>239</y>
+     <x>202</x>
+     <y>250</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -172,10 +131,10 @@ to target (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-10.000000000000000</double>
+    <double>-5.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>10.000000000000000</double>
+    <double>5.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -187,8 +146,8 @@ to target (mm) :</string>
   <widget class="QPushButton" name="CalculatePlanningMask">
    <property name="geometry">
     <rect>
-     <x>66</x>
-     <y>340</y>
+     <x>88</x>
+     <y>372</y>
      <width>131</width>
      <height>81</height>
     </rect>
@@ -213,95 +172,11 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_24">
-   <property name="geometry">
-    <rect>
-     <x>32</x>
-     <y>272</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
-   </property>
-  </widget>
   <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>229</x>
-     <y>270</y>
-     <width>90</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="minimum">
-    <double>-90.000000000000000</double>
-   </property>
-   <property name="maximum">
-    <double>90.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-   <property name="value">
-    <double>0.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="RefocusingcheckBox">
-   <property name="geometry">
-    <rect>
-     <x>223</x>
-     <y>23</y>
-     <width>27</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::RightToLeft</enum>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_22">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>22</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>16</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Refocusing</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="DistanceConeToFocusSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>233</x>
-     <y>60</y>
+     <x>202</x>
+     <y>282</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -325,37 +200,24 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_25">
+  <widget class="QLabel" name="label_24">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>61</y>
-     <width>191</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Distance Cone to Focus (mm)</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_26">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>126</y>
+     <x>34</x>
+     <y>284</y>
      <width>143</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Z Rotation (degrees)</string>
+    <string>Mechanical adj. Z (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZRotationSpinBox">
+  <widget class="QDoubleSpinBox" name="FocalLengthSpinBox">
    <property name="geometry">
     <rect>
-     <x>232</x>
-     <y>125</y>
+     <x>201</x>
+     <y>24</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -367,16 +229,161 @@ to target (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-180.000000000000000</double>
+    <double>20.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>180.000000000000000</double>
+    <double>150.000000000000000</double>
    </property>
    <property name="singleStep">
-    <double>5.000000000000000</double>
+    <double>0.100000000000000</double>
    </property>
    <property name="value">
-    <double>0.000000000000000</double>
+    <double>50.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_22">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>26</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Focal length (mm)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="DiameterSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>201</x>
+     <y>57</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>20.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>150.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>50.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_25">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>59</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Diameter (mm)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="DistanceOutplaneLabel">
+   <property name="geometry">
+    <rect>
+     <x>211</x>
+     <y>106</y>
+     <width>76</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>0.0</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_26">
+   <property name="geometry">
+    <rect>
+     <x>31</x>
+     <y>100</y>
+     <width>150</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Distance from
+Tx's outplane
+to focus</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="DistanceTxToSkinLabel">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>319</y>
+     <width>76</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>0.0</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_27">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>320</y>
+     <width>150</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Space Tx outplane 
+to skin (mm) :</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
    </property>
   </widget>
  </widget>

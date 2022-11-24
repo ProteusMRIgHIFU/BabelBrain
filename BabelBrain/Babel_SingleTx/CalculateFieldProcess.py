@@ -1,6 +1,6 @@
 import sys
 import platform
-from TranscranialModeling.BabelIntegrationCTX500 import RUN_SIM
+from TranscranialModeling.BabelIntegrationSingle import RUN_SIM
 import traceback
 
 def CalculateFieldProcess(queue,Target,**kargs):
@@ -36,6 +36,7 @@ def CalculateFieldProcess(queue,Target,**kargs):
     stdout = InOutputWrapper(queue,True)
 
     try:
+        COMPUTING_BACKEND=kargs['COMPUTING_BACKEND']
         R=RUN_SIM()
         R.RunCases(targets=Target, 
                         bTightNarrowBeamDomain=True,
