@@ -205,6 +205,7 @@ def CalculateTemperatureEffects(InputPData,
     MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
     MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
     MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
+    MonitoringPointsMap[cx,cy,cz]=4
 
     ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
                                                       MaterialMap,
@@ -237,7 +238,6 @@ def CalculateTemperatureEffects(InputPData,
     TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
 
     SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
-    SaveDict['TemperaturePoints']=TemperaturePoints
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
     SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
     SaveDict['mSkull']=np.array([mxSkull,mySkull,mzSkull]).astype(int)
@@ -272,11 +272,9 @@ def CalculateTemperatureEffects(InputPData,
     Ispta =DutyCycle*Isppa
 
     SaveDict['MaxBrainPressure']=MaxBrainPressure
-    TempProfile=np.zeros(MonitorSlice.shape[2]+MonitorSliceOff.shape[2])
-    TempProfile[:MonitorSlice.shape[2]]=MonitorSlice[cy,zl,:]
-    TempProfile[MonitorSlice.shape[2]:]=MonitorSliceOff[cy,zl,:]
-    SaveDict['TempProfileTarget']=TempProfile
-    SaveDict['TimeProfileTarget']=np.arange(TempProfile.size)*dt*nFactorMonitoring;
+    SaveDict['TempProfileTarget']=TemperaturePoints[3,:]
+    SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt
+    SaveDict['TemperaturePoints']=TemperaturePoints[:3,:] #these are max points in skin, brain and skull
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3

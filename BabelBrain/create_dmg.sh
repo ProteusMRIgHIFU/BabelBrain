@@ -2,8 +2,10 @@
 [[ -f BabelBrain.dmg ]] && rm BabelBrain.dmg
 [[ -d dist/BabelBrain ]] && rm -rf dist/BabelBrain
 [[ -d dist/ThermalProfiles ]] && rm -rf dist/ThermalProfiles
+[[ -d dist/PlanningModels ]] && rm -rf dist/PlanningModels
 
 cp -r ../ThermalProfiles dist/
+cp -r ../PlanningModels dist/
 
 # Create the DMG
 create-dmg \
