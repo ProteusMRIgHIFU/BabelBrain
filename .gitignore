@@ -130,3 +130,5 @@ BabelBrain/__t.stl
 BabelBrain/.DS_Store
 
 *.dmg
+docs/site/**
+**.zip
