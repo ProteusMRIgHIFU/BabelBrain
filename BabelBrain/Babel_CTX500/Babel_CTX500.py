@@ -286,7 +286,7 @@ class RunAcousticSim(QObject):
 
         InputSim=self._mainApp._outnameMask
 
-        TxMechanicalAdjustmentZ = self._mainApp.AcSim.Config['NaturalOutPlaneDistance'] -  self._mainApp.AcSim.Widget.DistanceSkinLabel.property('UserData')
+        TxMechanicalAdjustmentZ = self._mainApp.AcSim.Config['NaturalOutPlaneDistance'] -  self._mainApp.AcSim.Widget.DistanceSkinLabel.property('UserData')/1e3
 
         print('TxMechanicalAdjustmentZ mm =',TxMechanicalAdjustmentZ*1e3)
 

@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
-print(sys.path)
+
 
 from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
                 QVBoxLayout,QLineEdit,QDialog,QHBoxLayout,
@@ -756,8 +756,6 @@ def main():
         os.environ['FSLDIR']='/usr/local/fsl'
         os.environ['FSLOUTPUTTYPE']='NIFTI_GZ'
         os.environ['PATH']=os.environ['PATH']+':'+'/usr/local/fsl/bin'
-        #sys.path.append('/usr/local/fsl/bin')
-        
 
     class MyParser(argparse.ArgumentParser):
         def error(self, message):
