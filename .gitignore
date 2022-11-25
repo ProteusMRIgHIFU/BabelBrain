@@ -123,3 +123,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 BabelBrain/BabelBrain.dmg
+
+**.zip
+**/.DS_Store
+/docs/site/**

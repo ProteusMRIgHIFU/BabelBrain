@@ -3,7 +3,7 @@
 site_name: BabelBrain
 site_description: BabelBrain 
 site_url: https://proteusmrghifu.github.io/BabelBrain/
-
+use_directory_urls: false
 
 ### Build settings ###
 
@@ -13,9 +13,9 @@ nav:
   - Home: index.md
   - About MkDocs: about-mkdocs.md
   - Tutorial:
-      - TL;DR: tutorial/tldr.md
       - Installation: tutorial/installation.md
       - Set up project: tutorial/setup-project.md
       - Advanced: tutorial/advanced.md
       - Usage: tutorial/usage.md
       - Deploy: tutorial/deploy.md
+      - Pipeline : tutorial/pipeline.md
