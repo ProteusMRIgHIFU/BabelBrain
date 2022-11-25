@@ -190,7 +190,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
 
         bdir=os.path.dirname(self._MASKFNAME)
-        TxStl.save(bdir+os.sep+prefix+'Tx_Foc%03.1f_Diam%03.1f.stl' %(self._SIM_SETTINGS._OrigFocalLength*1e3,self._SIM_SETTINGS._OrigAperture*1e3))
+        TxStl.save(bdir+os.sep+prefix+'Tx.stl')
     
 
     def AddSaveDataSim(self,DataForSim):
@@ -227,6 +227,7 @@ class SimulationConditions(SimulationConditionsBASE):
         TxRC['Aperture']=self._Aperture/fScaling
         TxRC['center'][:,2]+=self._FocalLength/fScaling
         TxRC['elemcenter'][:,2]+=self._FocalLength/fScaling
+        TxRC['VertDisplay'][:,2]+=self._FocalLength/fScaling
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
