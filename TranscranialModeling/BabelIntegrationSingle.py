@@ -153,7 +153,9 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         super().__init__(**kargs)
         
     def CreateSimConditions(self,**kargs):
-        return SimulationConditions(**kargs)
+        return SimulationConditions(Aperture=self._Aperture, 
+                                    FocalLength=self._FocalLength,
+                                    **kargs)
     
     def GenerateSTLTx(self,prefix):
         n=1
