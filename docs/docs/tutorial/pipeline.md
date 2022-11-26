@@ -12,7 +12,7 @@ The specific capabilities of each transducer are considered during the simulatio
 
 ## Preliminary steps
 * **Mandatory**: Collect T1W and T2W imaging of a participant. Highly recommended to use 3D isotropic (1mm resolution) scans.
-* **Mandatory**: Execute  SimbNIBS 3.x `headreco` or SimbNIBS 4.x `charm` processing tool:
+* **Mandatory**: Execute  SimNIBS 3.x `headreco` or SimNIBS 4.x `charm` processing tool:
     ```
     headreco all <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
     ```
@@ -71,7 +71,7 @@ Apply the transform to the  model and be sure the transformation is set to `loca
 3. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
 <img src="Planning-13.png" height=400px>
 Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
-4. Save transformation in text format. Select "Save data" and select text format for the transform. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimbNIBS output is located. 
+4. Save transformation in text format. Select "Save data" and select text format for the transform. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
 
 ### Planning with Brainsight
 Brainsight is a proprietary software by Rogue Research (Montreal, Canada) for the planning and execution of non-invasive neuromodulation. This software has an existing feature that exports a trajectory that can be used in BabelBrain. The workflow to export a trajectory is very similar to 3DSlicer.
@@ -86,7 +86,7 @@ Brainsight is a proprietary software by Rogue Research (Montreal, Canada) for th
 3. Create a new target as a trajectory
 <img src="Planning-18.png" height=100px>
 3. Rename the trajectory with a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.)
-4. Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimbNIBS output is located. 
+4. Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
 <img src="Planning-19.png" height=250px>
 
 ## Simulation with BabelBrain
@@ -101,15 +101,32 @@ An input dialog will prompt the different input files required for the simulatio
 2. Select the SimNIBS output directory associated to this test and indicate what tool was used to generate it (`headreco` or `charm`)
 3. Select the path to the T1W Nifti file
 4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
-5. Select a thermal profile file for simulation. This is a simple YAML file where timings of transcranial ultrasound are specified. For example:
+5. Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
     ```YAML
     BaseIsppa: 5.0 # W/cm2
     AllDC_PRF_Duration: #All combinations of timing that will be considered
         -   DC: 0.3
             PRF: 10.0
             Duration: 40.0
+            DurationOff: 40.0
     ```
-    This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no-recalculations) based on this value.
+    This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
+
+    More than one exposure can be specified. For example:
+    ```YAML
+    BaseIsppa: 5.0 # W/cm2
+    AllDC_PRF_Duration: #All combinations of timing that will be considered
+        -   DC: 0.3
+            PRF: 10.0
+            Duration: 40.0
+            DurationOff: 40.0
+        -   DC: 0.1
+            PRF: 5.0
+            Duration: 80.0
+            DurationOff: 50.0
+    ```
+    When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated. 
+
 6. Once all inputs are set, then click on "CONTINUE"
 ### Domain generation
 The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other [numerical tools](https://asa.scitation.org/doi/10.1121/10.0013426).

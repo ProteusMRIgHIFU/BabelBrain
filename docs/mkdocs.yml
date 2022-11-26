@@ -7,7 +7,7 @@ use_directory_urls: false
 
 ### Build settings ###
 
-theme: readthedocs
+theme: gitbook
 
 nav:
   - Home: index.md
