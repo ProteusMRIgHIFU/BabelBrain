@@ -3,11 +3,12 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 
 <img src="Basics-1.png">
 
-Currently, these two transducers are supported:
-* **H317**. This is a 128-element phased array with focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
-* **CTX_500**. This is popular device commercialized by the company NeuroFUS that has 4 ring-elements, with a focal length of 63.2 mm and F# = 0.98.
+Currently,  three types of transducers are supported:
+* **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
+* **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
+* **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring-elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
 
-The specific capabilities of each transducer are considered during the simulations. More transducers, especially devices with simple configurations, will be added in function of user requirements.
+The specific capabilities of each transducer are considered during the simulations. 
 
 ## Preliminary steps
 * **Mandatory**: Collect T1W and T2W imaging of a participant. Highly recommended to use 3D isotropic (1mm resolution) scans.
