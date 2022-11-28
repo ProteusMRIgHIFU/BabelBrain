@@ -1,3 +1,5 @@
 TxDiam:  33.60e-3    #in m
+MinimalTPODistance: 25.0e-3
+MaximalTPODistance: 95.0e-3
 USFrequencies:
-    - 250000.0
+    - 500000.0

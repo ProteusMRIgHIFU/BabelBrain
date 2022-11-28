@@ -245,7 +245,7 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
+    def __init__(self,FactorEnlarge = 1.0, 
                       Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                       FocalLength=1e3,
                       ZSteering=0.0,
@@ -270,16 +270,17 @@ class SimulationConditions(SimulationConditionsBASE):
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
         print('self._InDiameters, self._OutDiameters,self._FocalLength',self._InDiameters/fScaling, self._OutDiameters/fScaling,self._FocalLength/fScaling)
-        TxRC=GeneratedRingArrayTx(self._Frequency,self._FocalLength/fScaling, 
+        FocalLengthFlat=1e3
+        TxRC=GeneratedRingArrayTx(self._Frequency,FocalLengthFlat, 
                              self._InDiameters/fScaling, 
                              self._OutDiameters/fScaling, 
                              SpeedofSoundWater(20.0))
         TxRC['Aperture']=self._Aperture/fScaling
         TxRC['NumberElems']=len(self._InDiameters)
-        TxRC['center'][:,2]+=self._FocalLength/fScaling
-        TxRC['elemcenter'][:,2]+=self._FocalLength/fScaling
+        TxRC['center'][:,2]+=FocalLengthFlat
+        TxRC['elemcenter'][:,2]+=FocalLengthFlat
         for n in range(len(TxRC['RingVertDisplay'])):
-            TxRC['RingVertDisplay'][n][:,2]+=self._FocalLength/fScaling
+            TxRC['RingVertDisplay'][n][:,2]+=FocalLengthFlat
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
@@ -290,26 +291,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
-
-            fig = plt.figure()
-            ax = Axes3D(fig)
-            
-            for VertDisplay, FaceDisplay in zip(self._TxRC['RingVertDisplay'],
-                                                self._TxRC['RingFaceDisplay']):
-            
-                ax.add_collection3d(Poly3DCollection(VertDisplay[FaceDisplay]*1e3)) #we plot the units in mm
-                #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
         
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','RingVertDisplay','elemcenter']:
