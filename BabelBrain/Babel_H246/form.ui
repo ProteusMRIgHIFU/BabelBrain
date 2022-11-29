@@ -257,6 +257,47 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
+  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>201</x>
+     <y>206</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-35.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>0.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>208</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Mechanical adj. Z (mm)</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

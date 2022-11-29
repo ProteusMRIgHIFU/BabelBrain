@@ -72,7 +72,7 @@ class H246(QWidget):
 
     @Slot()
     def TPODistanceUpdate(self,value):
-        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
+        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3
         print('ZSteering',self._ZSteering*1e3)
 
     def DefaultConfig(self):
@@ -109,7 +109,7 @@ class H246(QWidget):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
+            TPO=Skull['ZSteering']
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "ZSteering=%3.2f\n" %(TPO*1e3)+
@@ -286,13 +286,10 @@ class RunAcousticSim(QObject):
 
         InputSim=self._mainApp._outnameMask
 
-        TxMechanicalAdjustmentZ = self._mainApp.AcSim.Config['NaturalOutPlaneDistance'] -  self._mainApp.AcSim.Widget.DistanceSkinLabel.property('UserData')/1e3
-
-        print('TxMechanicalAdjustmentZ mm =',TxMechanicalAdjustmentZ*1e3)
-
         #we can use mechanical adjustments in other directions for final tuning
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
 
         ###############
         TPODistance=self._mainApp.AcSim.Widget.TPODistanceSpinBox.value()/1e3  #Add here the final adjustment)
@@ -301,7 +298,7 @@ class RunAcousticSim(QObject):
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
 
 
-        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']
+        ZSteering=TPODistance
         print('ZSteering',ZSteering*1e3)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]

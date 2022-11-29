@@ -270,16 +270,17 @@ class SimulationConditions(SimulationConditionsBASE):
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
         print('self._InDiameters, self._OutDiameters,self._FocalLength',self._InDiameters/fScaling, self._OutDiameters/fScaling,self._FocalLength/fScaling)
-        TxRC=GeneratedRingArrayTx(self._Frequency,self._FocalLength/fScaling, 
+        FocalLengthFlat=1e3
+        TxRC=GeneratedRingArrayTx(self._Frequency,FocalLengthFlat, 
                              self._InDiameters/fScaling, 
                              self._OutDiameters/fScaling, 
                              SpeedofSoundWater(20.0))
         TxRC['Aperture']=self._Aperture/fScaling
         TxRC['NumberElems']=len(self._InDiameters)
-        TxRC['center'][:,2]+=self._FocalLength/fScaling
-        TxRC['elemcenter'][:,2]+=self._FocalLength/fScaling
+        TxRC['center'][:,2]+=FocalLengthFlat
+        TxRC['elemcenter'][:,2]+=FocalLengthFlat
         for n in range(len(TxRC['RingVertDisplay'])):
-            TxRC['RingVertDisplay'][n][:,2]+=self._FocalLength/fScaling
+            TxRC['RingVertDisplay'][n][:,2]+=FocalLengthFlat
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
@@ -290,6 +291,18 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
+        
+        for Tx in [self._TxRC,self._TxRCOrig]:
+            for k in ['center','RingVertDisplay','elemcenter']:
+                if k == 'RingVertDisplay':
+                    for n in range(len(Tx[k])):
+                        Tx[k][n][:,0]+=self._TxMechanicalAdjustmentX
+                        Tx[k][n][:,1]+=self._TxMechanicalAdjustmentY
+                        Tx[k][n][:,2]+=self._TxMechanicalAdjustmentZ
+                else:
+                    Tx[k][:,0]+=self._TxMechanicalAdjustmentX
+                    Tx[k][:,1]+=self._TxMechanicalAdjustmentY
+                    Tx[k][:,2]+=self._TxMechanicalAdjustmentZ
         
         #we apply an homogeneous pressure 
        
