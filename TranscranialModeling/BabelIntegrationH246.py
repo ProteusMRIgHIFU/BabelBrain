@@ -36,7 +36,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
 
     ArcC = DBeta*Foc
 
-    nrstep = np.ceil(ArcC/lstep);
+    nrstep = np.ceil(ArcC/lstep)
 
     BetaStep = DBeta/nrstep
     
@@ -196,7 +196,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     def CreateSimConditions(self,**kargs):
         return SimulationConditions(ZSteering=self._ZSteering,
                                     Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
-                                    FocalLength=1e3,
+                                    FocalLength=0.0,
                                     **kargs)
     
     def GenerateSTLTx(self,prefix):
@@ -214,7 +214,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxVert[2,:]=-TxVert[2,:]
             TxVert[0,:]+=LocSpot[0]
             TxVert[1,:]+=LocSpot[1]
-            TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+            TxVert[2,:]+=LocSpot[2]
 
             TxVert=np.dot(affine,TxVert)
 
@@ -247,12 +247,12 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     def __init__(self,FactorEnlarge = 1, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
                       Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
-                      FocalLength=1e3,
+                      FocalLength=0.0,
                       ZSteering=0.0,
                       InDiameters= np.array([0.0    , 24.0e-3]), #inner diameter of rings
                       OutDiameters=np.array([23.30e-3,33.60e-3]), #outer diameter of rings
                       **kargs): # steering
-        super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=FocalLength*FactorEnlarge,**kargs)
+        super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=0,**kargs)
         self._FactorEnlarge=FactorEnlarge
         self._OrigAperture=Aperture
         self._OrigFocalLength=FocalLength
@@ -277,10 +277,10 @@ class SimulationConditions(SimulationConditionsBASE):
                              SpeedofSoundWater(20.0))
         TxRC['Aperture']=self._Aperture/fScaling
         TxRC['NumberElems']=len(self._InDiameters)
-        TxRC['center'][:,2]+=FocalLengthFlat
-        TxRC['elemcenter'][:,2]+=FocalLengthFlat
+        TxRC['center'][:,2]=0
+        TxRC['elemcenter'][:,2]=0
         for n in range(len(TxRC['RingVertDisplay'])):
-            TxRC['RingVertDisplay'][n][:,2]+=FocalLengthFlat
+            TxRC['RingVertDisplay'][n][:,2]=0
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
@@ -322,7 +322,7 @@ class SimulationConditions(SimulationConditionsBASE):
             #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
             center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-            center[0,2]=self._ZDim[self._FocalSpotLocation[2]]+self._ZSteering+self._TxMechanicalAdjustmentZ
+            center[0,2]=self._ZSteering+self._TxMechanicalAdjustmentZ
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
                                  u0,self._TxRC['elemcenter'].astype(np.float32),deviceMetal=deviceName)
@@ -347,32 +347,32 @@ class SimulationConditions(SimulationConditionsBASE):
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
+
         yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
-                         self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+                        self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
+        u2[zp==0]=0
         
         self._u2RayleighField=u2
         
-        TopZ=self._ZDim[self._PMLThickness]
-        DistanceToFocus=self._FocalLength-TopZ
-        Alpha=np.arcsin(self._Aperture/2/self._FocalLength)
-        RadiusFace=DistanceToFocus*np.tan(Alpha)*1.05 # we make a bit larger to be sure of covering all incident beam
+        self._SourceMapFlat=u2[:,:,self._PMLThickness]*0
+        ypp,xpp=np.meshgrid(self._YDim+self._TxMechanicalAdjustmentY,self._XDim+self._TxMechanicalAdjustmentX)
         
-        self._SourceMapRayleigh=u2[:,:,self._PMLThickness].copy()
-        ypp,xpp=np.meshgrid(self._YDim,self._XDim)
         
-        RegionMap=xpp**2+ypp**2<=RadiusFace**2 #we select the circle on the incident field
-        self._SourceMapRayleigh[RegionMap==False]=0+1j*0
+        EqCircle=xpp**2+ypp**2
+        for n in range(2):
+            RegionMap=(EqCircle>=(self._InDiameters[n]/2)**2) & (EqCircle<=(self._OutDiameters[n]/2)**2) 
+            self._SourceMapFlat[RegionMap]=self._SourceAmpPa*np.exp(1j*AllPhi[n])
         
         if self._bDisplay:
             plt.figure(figsize=(6,3))
             plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapRayleigh)/1e6,
-                       vmin=np.abs(self._SourceMapRayleigh[RegionMap]).min()/1e6,cmap=plt.cm.jet)
+            plt.imshow(np.abs(self._SourceMapFlat)/1e6,
+                       vmin=np.abs(self._SourceMapFlat[RegionMap]).min()/1e6,cmap=plt.cm.jet)
             plt.colorbar()
             plt.title('Incident map to be forwarded propagated (MPa)')
 
@@ -402,21 +402,22 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocZ=self._PMLThickness
         
-        SourceMaskIND=np.where(np.abs(self._SourceMapRayleigh)>0)
+        SourceMaskIND=np.where(np.abs(self._SourceMapFlat)>0)
         SourceMask=np.zeros((self._N1,self._N2),np.uint32)
         
         RefI= int((SourceMaskIND[0].max()-SourceMaskIND[0].min())/2)+SourceMaskIND[0].min()
         RefJ= int((SourceMaskIND[1].max()-SourceMaskIND[1].min())/2)+SourceMaskIND[1].min()
-        AngRef=np.angle(self._SourceMapRayleigh[RefI,RefJ])
-        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapRayleigh)>0),TimeVectorSource.shape[0]))
+        AngRef=np.angle(self._SourceMapFlat[RefI,RefJ])
+        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapFlat)>0),TimeVectorSource.shape[0]))
         nSource=1                       
         for i,j in zip(SourceMaskIND[0],SourceMaskIND[1]):
             SourceMask[i,j]=nSource
-            u0=self._SourceMapRayleigh[i,j]
+            u0=self._SourceMapFlat[i,j]
             #we recover amplitude and phase from Rayleigh field
             PulseSource[nSource-1,:] = np.abs(u0) *np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(u0))
             PulseSource[nSource-1,:int(ramp_length_points)]*=ramp
             nSource+=1
+
         self._SourceMap[:,:,LocZ]=SourceMask 
             
         self._PulseSource=PulseSource

@@ -667,7 +667,7 @@ class SimulationConditionsBASE(object):
                       Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                       FocalLength=135e-3,
                       PaddingForKArray=0,
-                      PaddingForRayleigh=12,
+                      PaddingForRayleigh=0,
                       QfactorCorrection=True,
                       bDisplay=True,
                       bTightNarrowBeamDomain = False,
@@ -790,8 +790,14 @@ class SimulationConditionsBASE(object):
         self._XLOffset=self._PMLThickness 
         self._YLOffset=self._PMLThickness
         
+        bIsFlatTX=False
+        if self._FocalLength ==0:
+            bIsFlatTX=True
+            OffsetForFlat = -int(np.round(self._TxMechanicalAdjustmentZ/SpatialStep))
+        else:
+            OffsetForFlat=0
         #default offsets , this can change if the Rayleigh field does not fit
-        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray
+        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray+OffsetForFlat
         self._XROffset=self._PMLThickness 
         self._YROffset=self._PMLThickness
         self._ZROffset=self._PMLThickness
@@ -811,7 +817,7 @@ class SimulationConditionsBASE(object):
             self.bMapFit=True
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
             self._N2=self._SkullMaskDataOrig.shape[1]+self._YLOffset+self._YROffset -self._YShrink_L-self._YShrink_R
-            self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R
+            self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R 
 
 
             self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
@@ -838,11 +844,14 @@ class SimulationConditionsBASE(object):
             else:
                 RadiusFace=self._Aperture/2*1.05
             
+            print('RadiusFace',RadiusFace)
+            print('yfield',yfield.min(),yfield.max())
             
             ypp,xpp=np.meshgrid(yfield,xfield)
             
-            RegionMap=xpp**2+ypp**2<=RadiusFace**2 #we select the circle on the incident field
+            RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
             IndXMap,IndYMap=np.nonzero(RegionMap)
+            print('RegionMap',np.sum(RegionMap))
             
             def fgen(var):
                 sn={'X':'1','Y':'2','Z':'3'}
@@ -877,7 +886,7 @@ elif self._bTightNarrowBeamDomain:
             exec(fgen('Y'))
 
             if self._bTightNarrowBeamDomain:
-                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
+                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)-OffsetForFlat
                 self._ZShrink_R+=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
