@@ -249,8 +249,8 @@ class SimulationConditions(SimulationConditionsBASE):
                       Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                       FocalLength=0.0,
                       ZSteering=0.0,
-                      InDiameters= np.array([0.0    , 24.0e-3]), #inner diameter of rings
-                      OutDiameters=np.array([23.30e-3,33.60e-3]), #outer diameter of rings
+                      InDiameters= np.array([0.0    , 23.30e-3]), #inner diameter of rings
+                      OutDiameters=np.array([24.0e-3,33.60e-3]), #outer diameter of rings
                       **kargs): # steering
         super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=0,**kargs)
         self._FactorEnlarge=FactorEnlarge
@@ -316,24 +316,29 @@ class SimulationConditions(SimulationConditionsBASE):
             print('Running Steering')
             ds=np.ones((1))*self._SpatialStep**2
 
-            u0=np.zeros((1),np.complex64)
-            u0[0]=1+0j
             center=np.zeros((1,3),np.float32)
             #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
             center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
             center[0,2]=self._ZSteering+self._TxMechanicalAdjustmentZ
-            
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxRC['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+
+            u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
+            nBase=0
+            for n in range(self._TxRC['NumberElems']):
+                u0=np.ones(self._TxRC['elemdims'][n][0],np.complex64)
+                SelCenters=self._TxRC['center'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
+                SelDs=self._TxRC['ds'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
+                u2back[n]=ForwardSimple(cwvnb_extlay,SelCenters,SelDs,
+                                 u0,center,deviceMetal=deviceName)[0]
+                nBase+=self._TxRC['elemdims'][n][0]
 
             AllPhi=np.zeros(self._TxRC['NumberElems'])
             for n in range(self._TxRC['NumberElems']):
-                self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                phi=np.angle(np.conjugate(u2back[n]))
+                self.BasePhasedArrayProgramming[n]=np.exp(-1j*np.angle(u2back[n]))
+                phi=-np.angle(u2back[n])
                 AllPhi[n]=phi
 
-            AllPhi-=AllPhi[0] # we made all phases relative to elem 0
+            # AllPhi-=AllPhi[0] # we made all phases relative to elem 0
 
             self.BasePhasedArrayProgramming=np.exp(1j*AllPhi)
             print('Phase for array: [',np.rad2deg(AllPhi).tolist(),']')
