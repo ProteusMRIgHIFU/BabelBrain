@@ -18,7 +18,8 @@ from stl import mesh
 import scipy
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
-
+from scipy.interpolate import interpn
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 ###########################################
 def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx = {}
@@ -347,13 +348,20 @@ class SimulationConditions(SimulationConditionsBASE):
             for n in range(self._TxRC['NumberElems']):
                 u0[nBase:nBase+self._TxRC['elemdims'][n][0]]=(self._SourceAmpPa*np.exp(1j*AllPhi[n])).astype(np.complex64)
                 nBase+=self._TxRC['elemdims'][n][0]
+
+
+            # FOCUS=ReadFromH5py('/Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/Calgary/LIFU System Preparations/flatTxTests_FOCUS/FOCUS_based_infields.h5')
+            # XX,YY=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
+            # indFocus=np.argmin(np.abs(FOCUS['AllZ'].flatten()-self._ZSteering))
+            # PMapFOCUS=interpn((FOCUS['x'].flatten(),FOCUS['y'].flatten()), FOCUS['AllSourceFields'][:,:,indFocus], (XX,YY),bounds_error=False,fill_value=0)
+
         else:
              u0=(np.ones((self._TxRC['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxRC['center'].shape[0],1),np.float32))*self._SourceAmpPa
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
 
-        yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
@@ -365,13 +373,16 @@ class SimulationConditions(SimulationConditionsBASE):
         self._u2RayleighField=u2
         
         self._SourceMapFlat=u2[:,:,self._PMLThickness]*0
-        ypp,xpp=np.meshgrid(self._YDim+self._TxMechanicalAdjustmentY,self._XDim+self._TxMechanicalAdjustmentX)
+        xpp,ypp=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
         
         
         EqCircle=xpp**2+ypp**2
         for n in range(2):
             RegionMap=(EqCircle>=(self._InDiameters[n]/2)**2) & (EqCircle<=(self._OutDiameters[n]/2)**2) 
             self._SourceMapFlat[RegionMap]=self._SourceAmpPa*np.exp(1j*AllPhi[n])
+
+        # self._SourceMapFlat=PMapFOCUS.astype(np.complex64)
+        # self._SourceMapFlat[EqCircle>self._OutDiameters[1]/2]=0
         
         if self._bDisplay:
             plt.figure(figsize=(6,3))
