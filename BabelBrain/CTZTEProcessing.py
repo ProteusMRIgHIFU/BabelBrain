@@ -102,25 +102,40 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     ants.image_write(img_out,(ZTEInT1W))
     return T1fnameBiasCorrec,ZTEInT1W, T1Mask
 
-def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6]):
+def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
     print('converting ZTE to pCT with range',ThresoldsZTEBone)
-    InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
-    SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
-    CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
-    # Load T1 and ZTE
+
+    if SimbNIBSType=='charm':
+        #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
+        charminput = os.path.join(SimbsPath,'final_tissues.nii.gz')
+        charm= nibabel.load(charminput)
+        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+        arrSkin=charmdata>0 #this mimics what the old headreco does for skin
+        arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
+        label_img=label(charmdata==0)
+        regions= regionprops(label_img)
+        regions=sorted(regions,key=lambda d: d.area) #we eliminate the large background region
+        arrCavities=(label_img!=0) &(label_img!=regions[-1].label)
+    else:
+        InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
+        SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
+        CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
+        # Load T1 and ZTE
+        volumeMask = nibabel.load(InputBrainMask)
+        volumeSkin = nibabel.load(SkinMask)
+        volumeCavities = nibabel.load(CavitiesMask)
+        arrMask=volumeMask.get_fdata()
+        arrSkin=volumeSkin.get_fdata()
+        arrCavities=volumeCavities.get_fdata()
+    
     volumeT1 = nibabel.load(InputT1)
     volumeZTE = nibabel.load(InputZTE)
-    volumeMask = nibabel.load(InputBrainMask)
     volumeHead = nibabel.load(HeadMask)
-    volumeSkin = nibabel.load(SkinMask)
-    volumeCavities = nibabel.load(CavitiesMask)
     
-    
-    arrMask=volumeMask.get_fdata()
     arrZTE=volumeZTE.get_fdata()
     arrHead=volumeHead.get_fdata()
-    arrSkin=volumeSkin.get_fdata()
-    arrCavities=volumeCavities.get_fdata()
+    
+    
     
     maskedZTE =arrZTE.copy()
     maskedZTE[arrMask==0]=-1000
