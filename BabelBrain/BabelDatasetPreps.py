@@ -535,7 +535,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 rT1,rZTE,rMask=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
                 rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
-                    ThresoldsZTEBone=ZTERange)
+                    ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType)
         else:
             with CodeTimer("Coregistration CT to T1",unit='s'):
                 rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
