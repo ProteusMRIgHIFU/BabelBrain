@@ -321,7 +321,7 @@ class SimulationConditions(SimulationConditionsBASE):
             #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
             center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-            center[0,2]=self._ZSteering+self._TxMechanicalAdjustmentZ
+            center[0,2]=self._ZSteering
 
             u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
             nBase=0
@@ -339,8 +339,6 @@ class SimulationConditions(SimulationConditionsBASE):
                 phi=-np.angle(u2back[n])
                 AllPhi[n]=phi
 
-            # AllPhi-=AllPhi[0] # we made all phases relative to elem 0
-
             self.BasePhasedArrayProgramming=np.exp(1j*AllPhi)
             print('Phase for array: [',np.rad2deg(AllPhi).tolist(),']')
             u0=np.zeros((self._TxRC['center'].shape[0],1),np.complex64)
@@ -349,19 +347,13 @@ class SimulationConditions(SimulationConditionsBASE):
                 u0[nBase:nBase+self._TxRC['elemdims'][n][0]]=(self._SourceAmpPa*np.exp(1j*AllPhi[n])).astype(np.complex64)
                 nBase+=self._TxRC['elemdims'][n][0]
 
-
-            # FOCUS=ReadFromH5py('/Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/Calgary/LIFU System Preparations/flatTxTests_FOCUS/FOCUS_based_infields.h5')
-            # XX,YY=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
-            # indFocus=np.argmin(np.abs(FOCUS['AllZ'].flatten()-self._ZSteering))
-            # PMapFOCUS=interpn((FOCUS['x'].flatten(),FOCUS['y'].flatten()), FOCUS['AllSourceFields'][:,:,indFocus], (XX,YY),bounds_error=False,fill_value=0)
-
         else:
              u0=(np.ones((self._TxRC['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxRC['center'].shape[0],1),np.float32))*self._SourceAmpPa
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
 
-        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim+self._ZSteering-self._TxMechanicalAdjustmentZ,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
@@ -381,9 +373,7 @@ class SimulationConditions(SimulationConditionsBASE):
             RegionMap=(EqCircle>=(self._InDiameters[n]/2)**2) & (EqCircle<=(self._OutDiameters[n]/2)**2) 
             self._SourceMapFlat[RegionMap]=self._SourceAmpPa*np.exp(1j*AllPhi[n])
 
-        # self._SourceMapFlat=PMapFOCUS.astype(np.complex64)
-        # self._SourceMapFlat[EqCircle>self._OutDiameters[1]/2]=0
-        
+       
         if self._bDisplay:
             plt.figure(figsize=(6,3))
             plt.subplot(1,2,1)

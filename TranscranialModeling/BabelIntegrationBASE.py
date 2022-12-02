@@ -212,6 +212,7 @@ def SaveNiftiEnforcedISO(nii,fn):
         pre=ants.image_read(fn)
         pre.set_spacing([res,res,res])
         ants.image_write(pre,newfn)
+        os.remove(fn)
     except:
         res = '%6.5f' % (res)
         cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
