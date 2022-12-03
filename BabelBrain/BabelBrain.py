@@ -393,10 +393,7 @@ class BabelBrain(QWidget):
         Initialization of GUI controls using configuration information
 
         '''
-        
-        self._figMasks=None
-        self._figMask2=None
-
+     
         while self.Widget.USMaskkHzDropDown.count()>0:
             self.Widget.USMaskkHzDropDown.removeItem(0)
 
@@ -608,7 +605,7 @@ class BabelBrain(QWidget):
             CTMapXY=CTData[:,:,LocFocalPoint[2]].T
             CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
 
-        if self._figMasks is not None:
+        if hasattr(self,'_figMasks'):
             for im,imTW,imCT,CMap,T1WMap,CTMap,extent in zip(self._imMasks,
                                     self._imT1W,
                                     self._imCtMasks,
@@ -631,11 +628,7 @@ class BabelBrain(QWidget):
 
             self._figMasks = Figure(figsize=(18, 6))
 
-            if self.static_canvas is not None:
-                self._layout.removeItem(self._layout.itemAt(0))
-                self._layout.removeItem(self._layout.itemAt(0))
-            else:
-                self._layout = QVBoxLayout(self.Widget.USMask)
+            self._layout = QVBoxLayout(self.Widget.USMask)
 
             self.static_canvas = FigureCanvas(self._figMasks)
             

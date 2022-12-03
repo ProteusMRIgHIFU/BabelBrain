@@ -80,8 +80,7 @@ class Babel_Thermal(QWidget):
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
-        self.Widget.IsppaScrollBar.sliderReleased.connect(self.UpdateThermalResults)
-        self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateSliderString)
+        self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaScrollBar.setEnabled(False)
         self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaSpinBox.setEnabled(False)
@@ -151,15 +150,6 @@ class Babel_Thermal(QWidget):
         msgBox.setText("There was an error in execution -\nconsult log window for details")
         msgBox.exec()
 
-    @Slot()
-    def UpdateSliderString(self,value):
-        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-        yf=DataThermal['y_vec']
-        Loc=DataThermal['TargetLocation']
-
-        yf-=yf[Loc[1]]
-
-        self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[value]))
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
@@ -244,49 +234,66 @@ class Babel_Thermal(QWidget):
         self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
                                                formatter={'float_kind':lambda x: "%3.2f" % x}))
 
+      
         if bUpdatePlot:
-            if self.static_canvas is not None:
-                self._layout.removeItem(self._layout.itemAt(0))
-                self._layout.removeItem(self._layout.itemAt(0))
+            DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
+            SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
+            IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
+            IntensityMap[0,:]=0
+            Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+
+            if hasattr(self,'_figIntThermalFields'):
+                self._IntensityIm.set_data(IntensityMap)
+                self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
+                self._ThermalIm.set_data(Tmap.T)
+                self._ThermalIm.set(clim=[37,Tmap.max()])
+                for c in [self._contour1,self._contour2]:
+                    for coll in c.collections:
+                        coll.remove()
+                self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._figIntThermalFields.canvas.draw_idle()
             else:
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
-            self._figIntThermalFields=Figure(figsize=(14, 12))
-            self.static_canvas = FigureCanvas(self._figIntThermalFields)
-            toolbar=NavigationToolbar2QT(self.static_canvas,self)
-            self._layout.addWidget(toolbar)
-            self._layout.addWidget(self.static_canvas)
-            static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+                self._figIntThermalFields=Figure(figsize=(14, 12))
+                self.static_canvas = FigureCanvas(self._figIntThermalFields)
+                toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                self._layout.addWidget(toolbar)
+                self._layout.addWidget(self.static_canvas)
+                static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+                self._static_ax1=static_ax1
+                self._static_ax2=static_ax2
 
-            DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
-            SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
-            IntensityMap=DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio
-            Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+                self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                        cmap=plt.cm.jet)
+                static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+                static_ax1.set_title('Isppa (W/cm$^2$)')
+                plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-            self._IntensityIm=static_ax1.imshow(IntensityMap.T,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
-                    cmap=plt.cm.jet)
-            static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
-            static_ax1.set_title('Isppa (W/cm$^2$)')
-            plt.colorbar(self._IntensityIm,ax=static_ax1)
+                XX,ZZ=np.meshgrid(xf,zf)
+                self._XX=XX
+                self._ZZ=ZZ
+                self._contour1=static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
 
-            XX,ZZ=np.meshgrid(xf,zf)
-            static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                static_ax1.set_ylabel('Distance from skin (mm)')
 
-            static_ax1.set_ylabel('Distance from skin (mm)')
+                self._ThermalIm=static_ax2.imshow(Tmap.T,
+                        extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+                static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+                static_ax2.set_title('Temperature ($^{\circ}$C)')
 
-            self._ThermalIm=static_ax2.imshow(Tmap.T,
-                    extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
-            static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
-            static_ax2.set_title('Temperature ($^{\circ}$C)')
+                plt.colorbar(self._ThermalIm,ax=static_ax2)
+                self._contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
 
-            plt.colorbar(self._ThermalIm,ax=static_ax2)
-            static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                # self._figIntThermalFields.set_tight_layout(True)
 
-            self._figIntThermalFields.set_tight_layout(True)
+                self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
 
-            self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+            yf=DataThermal['y_vec']
+            yf-=yf[Loc[1]]
 
-
+            self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
 
 
     @Slot()
