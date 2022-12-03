@@ -68,10 +68,10 @@ class H317(QWidget):
 
     @Slot()
     def EnableRefocusing(self,value):
-        bRefocus =self.Widget.CalculatePlanningMask.isChecked()
-        self.Widget.XMechanicSpinBox.setEnabled(bRefocus)
-        self.Widget.YMechanicSpinBox.setEnabled(bRefocus)
-        self.Widget.ZMechanicSpinBox.setEnabled(bRefocus)
+        bRefocus =self.Widget.RefocusingcheckBox.isChecked()
+        self.Widget.XMechanicSpinBox.setEnabled(not bRefocus)
+        self.Widget.YMechanicSpinBox.setEnabled(not bRefocus)
+        self.Widget.ZMechanicSpinBox.setEnabled(not bRefocus)
 
     def DefaultConfig(self):
         #Specific parameters for the H317 - to be configured later via a yaml
