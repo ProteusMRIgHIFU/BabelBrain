@@ -48,8 +48,9 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
 import time
 import yaml
-
+from linetimer import CodeTimer
 import nibabel
+from nibabel import processing
 import argparse
 from pathlib import Path
 from CalculateMaskProcess import CalculateMaskProcess
@@ -372,6 +373,11 @@ class BabelBrain(QWidget):
         elif self.Config['CTType']!=2:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
+
+        # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
+        self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
+        self.Widget.TransparencyScrollBar.setEnabled(False)
+        
         
     
     @Slot()
@@ -554,12 +560,20 @@ class BabelBrain(QWidget):
         self.Widget.tabWidget.setEnabled(True)
         self.AcSim.setEnabled(True)
         Data=nibabel.load(self._outnameMask)
+        FinalMask=Data.get_fdata()
+        FinalMask=np.flip(FinalMask,axis=2)
+        T1W=nibabel.load(self.Config['T1W'])
+        with CodeTimer("resampling T1 to mask",unit='s'):
+            T1W=processing.resample_from_to(T1W,Data,mode='constant',order=0,cval=T1W.get_fdata().min())
+        T1WData=T1W.get_fdata()
+        T1WData=np.flip(T1WData,axis=2)
+        self._T1WData=T1WData
+        
         self._DataMask=Data
         if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
             CTData=np.flip(self._CTnib.get_fdata(),axis=2)
-        FinalMask=Data.get_fdata()
-        FinalMask=np.flip(FinalMask,axis=2)
+        
         self._FinalMask=FinalMask
         voxSize=Data.header.get_zooms()
         x_vec=np.arange(Data.shape[0])*voxSize[0]
@@ -569,10 +583,16 @@ class BabelBrain(QWidget):
         z_vec=np.arange(Data.shape[2])*voxSize[2]
         z_vec-=z_vec.mean()
         LocFocalPoint=np.array(np.where(FinalMask==5)).flatten()
-        CMapXZ=FinalMask[:,LocFocalPoint[1],:]
-        CMapYZ=FinalMask[LocFocalPoint[0],:,:]
-        CMapXY=FinalMask[:,:,LocFocalPoint[2]]
+        self._LocFocalPoint=LocFocalPoint
+        CMapXZ=FinalMask[:,LocFocalPoint[1],:].T
+        CMapYZ=FinalMask[LocFocalPoint[0],:,:].T
+        CMapXY=FinalMask[:,:,LocFocalPoint[2]].T
         
+        sm=plt.cm.ScalarMappable(cmap='gray')
+        alpha=self.Widget.TransparencyScrollBar.value()/100.0
+        T1WXZ=sm.to_rgba(T1WData[:,LocFocalPoint[1],:].T,alpha=alpha)
+        T1WYZ=sm.to_rgba(T1WData[LocFocalPoint[0],:,:].T,alpha=alpha)
+        T1WXY=sm.to_rgba(T1WData[:,:,LocFocalPoint[2]].T,alpha=alpha)
 
         sr=['y:','w:']
 
@@ -583,25 +603,30 @@ class BabelBrain(QWidget):
 
         CTMaps=[None,None,None]
         if self.Config['bUseCT']:
-            CTMapXZ=CTData[:,LocFocalPoint[1],:]
-            CTMapYZ=CTData[LocFocalPoint[0],:,:]
-            CTMapXY=CTData[:,:,LocFocalPoint[2]]
+            CTMapXZ=CTData[:,LocFocalPoint[1],:].T
+            CTMapYZ=CTData[LocFocalPoint[0],:,:].T
+            CTMapXY=CTData[:,:,LocFocalPoint[2]].T
             CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
 
         if self._figMasks is not None:
-            for im,imCT,CMap,CTMap,extent in zip(self._imMasks,self._imCtMasks,
+            for im,imTW,imCT,CMap,T1WMap,CTMap,extent in zip(self._imMasks,
+                                    self._imT1W,
+                                    self._imCtMasks,
                                     [CMapXZ,CMapYZ,CMapXY],
+                                    [T1WXZ,T1WYZ,T1WXY],
                                     CTMaps,
                                     [extentXZ,extentYZ,extentXY]):
-                im.set_data(CMap.T)
+                imTW.set_data(T1WMap)
+                im.set_data(CMap)
                 if CTMap is not None:
                     Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
-                    imCT.set_data(Zm.T)
+                    imCT.set_data(Zm)
                 im.set_extent(extent)
             self._figMasks.canvas.draw_idle()
         else:
             
             self._imMasks=[]
+            self._imT1W=[]
             self._imCtMasks=[]
 
             self._figMasks = Figure(figsize=(18, 6))
@@ -620,7 +645,8 @@ class BabelBrain(QWidget):
 
             axes=self.static_canvas.figure.subplots(1,3)
 
-            for CMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+            for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+                                    [T1WXZ,T1WYZ,T1WXY],
                                     CTMaps,
                                     [extentXZ,extentYZ,extentXY],
                                     axes,
@@ -630,19 +656,31 @@ class BabelBrain(QWidget):
                                     [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
 
-                self._imMasks.append(static_ax.imshow(CMap.T,cmap=cm.jet,extent=extent,aspect='equal'))
+                self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,extent=extent,aspect='equal'))
                 if CTMap is not None:
                     Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
-                    self._imCtMasks.append(static_ax.imshow(Zm.T,cmap=cm.gray,extent=extent,aspect='equal'))
+                    self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
                 else:
                     self._imCtMasks.append(None)
-                    XX,ZZ=np.meshgrid(vec1,vec2)
-                    static_ax.contour(XX,ZZ,CMap.T,[0,1,2,3], cmap=plt.cm.gray)
-
+                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal'))   
                 static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)
             self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
 
         self.UpdateAcousticTab()
+        self.Widget.TransparencyScrollBar.setEnabled(True)
+    
+    @Slot()
+    def UpdateTransparency(self):
+        alpha=self.Widget.TransparencyScrollBar.value()/100.0
+        sm=plt.cm.ScalarMappable(cmap='gray')
+        T1WXZ=sm.to_rgba(self._T1WData[:,self._LocFocalPoint[1],:].T,alpha=alpha)
+        T1WYZ=sm.to_rgba(self._T1WData[self._LocFocalPoint[0],:,:].T,alpha=alpha)
+        T1WXY=sm.to_rgba(self._T1WData[:,:,self._LocFocalPoint[2]].T,alpha=alpha)
+        for im,T1WMap in zip(self._imT1W,
+                                    [T1WXZ,T1WYZ,T1WXY]):
+            im.set_data(T1WMap)
+        self._figMasks.canvas.draw_idle()
+            
 
     def GetExport(self):
         ExtraConfig ={}

@@ -82,8 +82,8 @@ class Babel_Thermal(QWidget):
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaScrollBar.sliderReleased.connect(self.UpdateThermalResults)
         self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateSliderString)
-        self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaScrollBar.setEnabled(False)
+        self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaSpinBox.setEnabled(False)
 
 
