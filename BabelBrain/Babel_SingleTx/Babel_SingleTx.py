@@ -342,6 +342,8 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
         kargs['Frequencies']=Frequencies
+        kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
+
 
         # Start mask generation as separate process.
         queue=Queue()

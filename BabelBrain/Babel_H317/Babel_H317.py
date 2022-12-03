@@ -334,6 +334,7 @@ class RunAcousticSim(QObject):
         kargs['ZSteering']=ZSteering
         kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
+        kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']

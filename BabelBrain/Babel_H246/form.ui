@@ -232,7 +232,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>66</x>
-     <y>245</y>
+     <y>290</y>
      <width>131</width>
      <height>81</height>
     </rect>
@@ -296,6 +296,51 @@ to target (mm) :</string>
    </property>
    <property name="text">
     <string>Mechanical adj. Z (mm)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>201</x>
+     <y>262</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>20.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>100.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>1.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>40.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_25">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>254</y>
+     <width>153</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Max. depth beyond
+target (mm)</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
  </widget>
