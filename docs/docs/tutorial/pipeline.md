@@ -7,6 +7,7 @@ Currently,  three types of transducers are supported:
 * **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
 * **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring-elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
+* **H246**. This is a flat ring-type, flat device commercialized by the company NeuroFUS that has 2 ring-elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
 
 The specific capabilities of each transducer are considered during the simulations. 
 
@@ -18,10 +19,10 @@ The specific capabilities of each transducer are considered during the simulatio
     ```
     or
     ```
-    charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
+    charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file> --forceqform
     ```
 
-    `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. 
+    `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. The `--forceqform` parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. 
 * **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standarized space (e.g. MNI) to T1W space.
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
 * *Optional*:: ZTE scan of the participant. A pseudo CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo CT will be generated.
@@ -127,23 +128,29 @@ An input dialog will prompt the different input files required for the simulatio
     ```
     When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated. 
 
+6. Select the type of transducer to be used in simulations.
+
 6. Once all inputs are set, then click on "CONTINUE"
 ### Domain generation
+The diagram below shows flowchart describing the process for the domain generation.
+
+<img src="nsclc-V2.svg" height=500px>
+
 The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other [numerical tools](https://asa.scitation.org/doi/10.1121/10.0013426).
  Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) for details on the "classical" approach to convert from ZTE to pseudo-CT.
  The execution time in M1 Max processor can take from 1 minute of minutes up to 10 minutes depending on the resolution and availability of ZTE/CT scans.
- When initiating the calculations, a detailed log output will appear in the bottom region of the window. In case of any error during processing, a dialog message will prompt indicating to consult this window for more details. Once executed, orthogonal views of the domain will be shown.
+ When initiating the calculations, a detailed log output will appear in the bottom region of the window. In case of any error during processing, a dialog message will prompt indicating to consult this window for more details. Once executed, orthogonal views of the domain will be shown. T1W scan is also shown to verify that the mask was correctly calculated. 
 <img src="Simulation-3.png" height=350px>
 Once executed, a Nifti file containing the mask describing the different tissue regions will be produced in the directory where the T1W Nifit file is located. It will have a file with the following structure:
 `<Name of target file>_<Frequency>_<PPW>_BabelViscoInput.nii.gz`, for example `LinearTransform_500kHz_6PPW_BabelViscoInput.nii.gz`. The mask will be in T1W space, facilitating its inspection as overlay with T1W data. The mask has values of 1 for skin, 2 for cortical bone, 3 for trabecular and 4 for brain tissue. A single voxel with a value of 5 indicates the location of the target. The raw data inside the Nifti file is organized in a 3D Cartesian volume that is aligned to the transducer acoustic axis. The Nifti affine matrix ensures the mask can be inspected in T1W space.
 
-It is very important to inspect this file in tools such as Brainsight or 3DSlicer to ensure no over/under- estimation of the skull region has occurred.  
+If a CT or ZTE dataset is indicated as input, the skull mask will be created using this scan rather than the output of `headreco` or `charm`. Also, an overlay of the CT/pseudo-CT will be also shown for verification purposes. 
 
 | <img src="Simulation-4.png" height=250px> |
 |:-:|
 |*Inspection of mask generation in 3DSlicer*|
 
-If a CT or ZTE dataset is indicated as input, the skull mask will be created using this scan than the output of headreco or charm. 
+
 
 Please note if a `<Name of target file>_<Frequency>_<PPW>_BabelViscoInput.nii.gz` file exists, the GUI will ask confirmation to recalculate the mask. Selecting "No" will load the previous mask. 
 
@@ -154,7 +161,11 @@ If using output from `charm` (which does not produces STL files), equivalent STL
 
 
 ### Transcranial ultrasound simulation
-The second tab in the GUI of Babelbrain shows the ultrasound simulation step. The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected target intensity at the target.
+The second tab in the GUI of Babelbrain shows the ultrasound simulation step.  The diagram below shows a flowchart of this step.
+
+<img src="nsclc2-V2.svg" height=500px>
+
+The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected target intensity at the target.
 
 ### CTX_500
 For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
@@ -175,6 +186,11 @@ After doing the adjustments, the simulation can be repeated.
 | <img src="Simulation-7.png" height=350px> |
 |:-:|
 |*Simulation results after correction*|
+
+### H246
+Similar as for the CTX_500 transducer, the initial assumption for the H246 is that it will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+<img src="Simulation-5.png" height=350px>
+
 
 ### H317
 The H317 is a large transducer that uses a coupling cone that is in contact with the skin 
