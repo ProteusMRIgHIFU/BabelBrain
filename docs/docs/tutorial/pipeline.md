@@ -6,8 +6,8 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 Currently,  three types of transducers are supported:
 * **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
-* **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring-elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
-* **H246**. This is a flat ring-type, flat device commercialized by the company NeuroFUS that has 2 ring-elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
+* **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
+* **H246**. This is a flat ring-type, flat device commercialized by the company NeuroFUS that has 2 ring elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
 
 The specific capabilities of each transducer are considered during the simulations. 
 
@@ -23,12 +23,12 @@ The specific capabilities of each transducer are considered during the simulatio
     ```
 
     `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. The `--forceqform` parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. 
-* **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standarized space (e.g. MNI) to T1W space.
+* **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standardized space (e.g. MNI) to T1W space.
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
-* *Optional*:: ZTE scan of the participant. A pseudo CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo CT will be generated.
+* *Optional*:: ZTE scan of the participant. A pseudo-CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo-CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo-CT will be generated.
 
-### Important disclaimer on using exclusively T1W and T2W imaging vs. using CT/ZTE scans
-If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti  file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
+### Important information on using exclusively T1W and T2W imaging vs. including CT/ZTE scans
+If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
 
 If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.
 
@@ -71,8 +71,8 @@ Apply the transform to the  model and be sure the transformation is set to `loca
 <img src="Planning-12.png" height=200px>
 3. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
 <img src="Planning-13.png" height=400px>
-Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
-4. Save transformation in text format. Select "Save data" and select text format for the transform. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
+Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may be set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
+4. Save the transformation in text format. Select "Save data" and select text as the file format. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
 
 ### Planning with Brainsight
 Brainsight is a proprietary software by Rogue Research (Montreal, Canada) for the planning and execution of non-invasive neuromodulation. This software has an existing feature that exports a trajectory that can be used in BabelBrain. The workflow to export a trajectory is very similar to 3DSlicer.
@@ -134,7 +134,7 @@ An input dialog will prompt the different input files required for the simulatio
 ### Domain generation
 The diagram below shows flowchart describing the process for the domain generation.
 
-<img src="nsclc-V2.svg" height=500px>
+<img src="nsclc-V2.svg" height=600px>
 
 The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other [numerical tools](https://asa.scitation.org/doi/10.1121/10.0013426).
  Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) for details on the "classical" approach to convert from ZTE to pseudo-CT.
@@ -165,7 +165,7 @@ The second tab in the GUI of Babelbrain shows the ultrasound simulation step.  T
 
 <img src="nsclc2-V2.svg" height=500px>
 
-The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected target intensity at the target.
+The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected intensity at the target. Common to all transducers, the distance of the maximal depth beyond the target location is set to a user-configurable distance of 40 mm.
 
 ### CTX_500
 For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
@@ -179,7 +179,7 @@ It is recommended to simulate with the default values to evaluate the degree of 
 |:-:|
 |*Simulation results with default values*|
 
-The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main focus is to ensure a correct spatial focusing at the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations there will be a report in which direction in the T1W space this adjustment translates. 
+The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main goal is to ensure a correct spatial focusing on the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations, there will be a report in which direction in the T1W space this adjustment translates. 
 
 After doing the adjustments, the simulation can be repeated.
 
@@ -188,27 +188,17 @@ After doing the adjustments, the simulation can be repeated.
 |*Simulation results after correction*|
 
 ### H246
-Similar as for the CTX_500 transducer, the initial assumption for the H246 is that it will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
-<img src="Simulation-5.png" height=350px>
+The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.
+<img src="Simulation-9.png" height=350px>
 
 
 ### H317
-The H317 is a large transducer that uses a coupling cone that is in contact with the skin 
+The H317 is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows the option to perform electronic refocusing.
  
-<img src="Simulation-5.png" height=350px>
+<img src="Simulation-10.png" height=350px>
 
-The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
+### Single
+The "Single" transducer is a generic focusing transducer is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows the option to perform electronic refocusing.
+ 
+<img src="Simulation-10.png" height=350px>
 
-It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Simulation should take a couple of minutes in a M1 Max system.
-
-| <img src="Simulation-6.png" height=350px> |
-|:-:|
-|*Simulation results with default values*|
-
-The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main focus is to ensure a correct spatial focusing at the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations there will be a report in which direction in the T1W space this adjustment translates. 
-
-After doing the adjustments, the simulation can be repeated.
-
-| <img src="Simulation-7.png" height=350px> |
-|:-:|
-|*Simulation results after correction*|
