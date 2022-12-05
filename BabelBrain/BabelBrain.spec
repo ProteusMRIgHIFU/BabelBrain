@@ -25,9 +25,11 @@ tmp_ret2 = collect_all('pydicom')
 hiddenimports+=tmp_ret2[2]
 
 datas+=[('Babel_H317/default.yaml','./Babel_H317'),
+        ('Babel_H246/default.yaml','./Babel_H246'),
         ('Babel_CTX500/default.yaml','./Babel_CTX500'),
         ('default.yaml','./'),
         ('Babel_H317/form.ui','./Babel_H317'),
+        ('Babel_H246/form.ui','./Babel_H246'),
         ('Babel_CTX500/form.ui','./Babel_CTX500'),
         ('form.ui','./'),
         ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
