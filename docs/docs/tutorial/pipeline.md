@@ -193,12 +193,12 @@ The H246 transducer has a similar operation as the CTX_500. The steps presented 
 
 
 ### H317
-The H317 is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows the option to perform electronic refocusing.
+The H317 is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows also the option to perform electronic refocusing.
  
 <img src="Simulation-10.png" height=350px>
 
 ### Single
-The "Single" transducer is a generic focusing transducer is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows the option to perform electronic refocusing.
+The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which can make that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point the out plane of the transducer reaches the skin.
  
-<img src="Simulation-10.png" height=350px>
+<img src="Simulation-11.png" height=350px>
 
