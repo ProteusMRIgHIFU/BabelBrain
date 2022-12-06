@@ -53,41 +53,41 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 
 3. In the IGT extension menu, select "Create Models"
 
-    <img src="Planning-2.png" height=25 0px>
+    <img src="Planning-2.png" height=350px>
 
 4. Load one of the STL helpers as a `model` with `RAS` coordinate convention. The model will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
 
-    <img src="Planning-4b.png" height=200px>
+    <img src="Planning-4b.png" height=300px>
 
     Alternatively, you can create a needle with a length of 100 mm. 
     
-    <img src="Planning-3.png" height=100px>
+    <img src="Planning-3.png" height=150px>
 
-    <img src="Planning-4.png" height=200px>
+    <img src="Planning-4.png" height=300px>
 
 5. Select the model in the data panel and edit the properties to make it appear in the "Slice Display"
 
-    <img src="Planning-5.png" height=200px>
+    <img src="Planning-5.png" height=250px>
 
 6. Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.
 
-    <img src="Planning-6.png" height=150px>
+    <img src="Planning-6.png" height=200px>
 
     Apply the transform to the  model and be sure the transformation is set to `local` (little button next to the "invert" button)
 
-    <img src="Planning-7.png" height=300px>
+    <img src="Planning-7.png" height=400px>
 
 7. Select "Volume Reslice Driver" in the IGT module menu
 
-    <img src="Planning-8.png" height=400px>
+    <img src="Planning-8.png" height=450px>
 
 8. Select the linear transform in the two first slice views
 
-    <img src="Planning-9.png" height=70px>
+    <img src="Planning-9.png" height=110px>
 
 9. Select one view to be "Inplane" and the other to be "Inplane 90"
 
-    <img src="Planning-10.png" height=100px>
+    <img src="Planning-10.png" height=120px>
 
 10. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the model 
 
@@ -95,7 +95,7 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 
 11. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the model to your area of interest.
 
-    <img src="Planning-12.png" height=200px>
+    <img src="Planning-12.png" height=300px>
 
 12. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
 
