@@ -213,9 +213,11 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
 
             TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]
-            TxVert[1,:]+=LocSpot[1]
-            TxVert[2,:]+=LocSpot[2]
+            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
+            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
+            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+
+            
 
             TxVert=np.dot(affine,TxVert)
 
@@ -250,8 +252,8 @@ class SimulationConditions(SimulationConditionsBASE):
                       Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                       FocalLength=0.0,
                       ZSteering=0.0,
-                      InDiameters= np.array([0.0    , 23.30e-3]), #inner diameter of rings
-                      OutDiameters=np.array([24.0e-3,33.60e-3]), #outer diameter of rings
+                      InDiameters= np.array([0.0    , 24.0e-3]), #inner diameter of rings
+                      OutDiameters=np.array([23.3e-3,33.60e-3]), #outer diameter of rings
                       **kargs): # steering
         super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=0,**kargs)
         self._FactorEnlarge=FactorEnlarge
