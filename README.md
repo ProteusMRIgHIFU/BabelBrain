@@ -79,4 +79,4 @@ A Pyinstaller specification file is ready for use. To build the MacOS applicatio
 
 `pyinstaller BabelBrain.spec`
 
-A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Babelbrain.app`
+A new application ready to use will be created at `BabelBrain/BabelBrain/dist/BabelBrain.app`

@@ -4,6 +4,7 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 <img src="Basics-1.png">
 
 Currently,  three types of transducers are supported:
+
 * **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
 * **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
@@ -12,6 +13,7 @@ Currently,  three types of transducers are supported:
 The specific capabilities of each transducer are considered during the simulations. 
 
 ## Preliminary steps
+
 * **Mandatory**: Collect T1W and T2W imaging of a participant. Highly recommended to use 3D isotropic (1mm resolution) scans.
 * **Mandatory**: Execute  SimNIBS 3.x `headreco` or SimNIBS 4.x `charm` processing tool:
     ```
@@ -23,6 +25,7 @@ The specific capabilities of each transducer are considered during the simulatio
     ```
 
     `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. The `--forceqform` parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. 
+
 * **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standardized space (e.g. MNI) to T1W space.
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
 * *Optional*:: ZTE scan of the participant. A pseudo-CT scan can be reconstructed using a Zero Echo Time MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo-CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo-CT will be generated.
@@ -44,51 +47,90 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 
 ### Planning with 3DSlicer
 1. Install the **SlicerIGT** extension in 3DSlicer (restart 3DSlicer if requested)
-1. Load T1W planning data
-<img src="Planning-1.png">
-2. In the IGT extension menu, select "Create Models"
-<img src="Planning-2.png" height=200px>
-2. Load one of the STL helpers as a `model` with `RAS` coordinate convention. The model will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
-<img src="Planning-4b.png" height=200px>
-Alternatively, you can create a needle with a length of 100 mm. 
-<img src="Planning-3.png" height=100px>
-<img src="Planning-4.png" height=200px>
-1. Select the model in the data panel and edit the properties to make it appear in the "Slice Display"
-<img src="Planning-5.png" height=200px>
-1. Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.
-<img src="Planning-6.png" height=100px>
-Apply the transform to the  model and be sure the transformation is set to `local` (little button next to the "invert" button)
-<img src="Planning-7.png" height=300px>
-2. Select "Volume Reslice Driver" in the IGT module menu
-<img src="Planning-8.png" height=400px>
-2. Select the linear transform in the two first slice views
-<img src="Planning-9.png" height=70px>
-3. Select one view to be "Inplane" and the other to be "Inplane 90"
-<img src="Planning-10.png" height=100px>
-3. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the model 
-<img src="Planning-11b.png" height=400px>
-3. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the model to your area of interest.
-<img src="Planning-12.png" height=200px>
-3. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
-<img src="Planning-13.png" height=400px>
-Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may be set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
-4. Save the transformation in text format. Select "Save data" and select text as the file format. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
+2. Load T1W planning data
+
+    <img src="Planning-1.png">
+
+3. In the IGT extension menu, select "Create Models"
+
+    <img src="Planning-2.png" height=25 0px>
+
+4. Load one of the STL helpers as a `model` with `RAS` coordinate convention. The model will appear by default centred in the T1W space and pointing in the inferior$\rightarrow$superior direction
+
+    <img src="Planning-4b.png" height=200px>
+
+    Alternatively, you can create a needle with a length of 100 mm. 
+    
+    <img src="Planning-3.png" height=100px>
+
+    <img src="Planning-4.png" height=200px>
+
+5. Select the model in the data panel and edit the properties to make it appear in the "Slice Display"
+
+    <img src="Planning-5.png" height=200px>
+
+6. Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.
+
+    <img src="Planning-6.png" height=150px>
+
+    Apply the transform to the  model and be sure the transformation is set to `local` (little button next to the "invert" button)
+
+    <img src="Planning-7.png" height=300px>
+
+7. Select "Volume Reslice Driver" in the IGT module menu
+
+    <img src="Planning-8.png" height=400px>
+
+8. Select the linear transform in the two first slice views
+
+    <img src="Planning-9.png" height=70px>
+
+9. Select one view to be "Inplane" and the other to be "Inplane 90"
+
+    <img src="Planning-10.png" height=100px>
+
+10. In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the model 
+
+    <img src="Planning-11b.png" height=400px>
+
+11. Adjust the location of the tip of the needle using the **translation** (LR, PA, IS) controls to match the tip of the model to your area of interest.
+
+    <img src="Planning-12.png" height=200px>
+
+12. Adjust the rotation of the model (it will rotate around the tip) using the **rotation** (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.
+
+    <img src="Planning-13.png" height=400px>
+
+    Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may be set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the `local` option is always selected.
+
+13. Save the transformation in text format. Select "Save data" and select text as the file format. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
 
 ### Planning with Brainsight
 Brainsight is a proprietary software by Rogue Research (Montreal, Canada) for the planning and execution of non-invasive neuromodulation. This software has an existing feature that exports a trajectory that can be used in BabelBrain. The workflow to export a trajectory is very similar to 3DSlicer.
 1. Create a new "empty" or "SimNIBS" project; use SimNIBS only if you used SimNIBS 3.x with `headreco`.
-<img src="Planning-14.png" height=100px>
-1. Load T1W planning data.  If using  "SimNIBS" project, it will preload the T1W imaging dataset.
-<img src="Planning-15.png" height=150px>
-2. Open target window
-<img src="Planning-16.png" height=150px>
-3. Adjust coordinates and orientation with control in the user interface (right side of screen)
-<img src="Planning-17.png" height=400px>
-3. Create a new target as a trajectory
-<img src="Planning-18.png" height=100px>
-3. Rename the trajectory with a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.)
+
+    <img src="Planning-14.png" height=100px>
+
+2. Load T1W planning data.  If using  "SimNIBS" project, it will preload the T1W imaging dataset.
+
+    <img src="Planning-15.png" height=150px>
+
+3. Open target window
+
+    <img src="Planning-16.png" height=150px>
+
+4. Adjust coordinates and orientation with control in the user interface (right side of screen)
+
+    <img src="Planning-17.png" height=400px>
+
+5. Create a new target as a trajectory
+
+    <img src="Planning-18.png" height=100px>
+
+6. Rename the trajectory with a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.)
 4. Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
-<img src="Planning-19.png" height=250px>
+
+    <img src="Planning-19.png" height=250px>
 
 ## Simulation with BabelBrain
 Now that planning is done, open BabelBrain either from the Applications menu in macOS if the DMG installer was used or with `python BabelBrain.py` as indicated in the installation section.
@@ -96,41 +138,46 @@ Now that planning is done, open BabelBrain either from the Applications menu in 
 
 ### Input data
 An input dialog will prompt the different input files required for the simulation.
-<img src="Simulation-2.png" height=150px>
+<img src="Simulation-2.png" height=250px>
 
 1. Specify the path to the trajectory file and the source (Slicer or Brainsight)
 2. Select the SimNIBS output directory associated to this test and indicate what tool was used to generate it (`headreco` or `charm`)
 3. Select the path to the T1W Nifti file
 4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
 5. Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
-    ```YAML
-    BaseIsppa: 5.0 # W/cm2
-    AllDC_PRF_Duration: #All combinations of timing that will be considered
-        -   DC: 0.3
-            PRF: 10.0
-            Duration: 40.0
-            DurationOff: 40.0
-    ```
-    This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
 
-    More than one exposure can be specified. For example:
-    ```YAML
-    BaseIsppa: 5.0 # W/cm2
-    AllDC_PRF_Duration: #All combinations of timing that will be considered
-        -   DC: 0.3
-            PRF: 10.0
-            Duration: 40.0
-            DurationOff: 40.0
-        -   DC: 0.1
-            PRF: 5.0
-            Duration: 80.0
-            DurationOff: 50.0
-    ```
+```
+BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.3
+        PRF: 10.0
+        Duration: 40.0
+        DurationOff: 40.0
+```
+
+    
+This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
+
+More than one exposure can be specified. For example:
+    
+```
+BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.3
+        PRF: 10.0
+        Duration: 40.0
+        DurationOff: 40.0
+    -   DC: 0.1
+        PRF: 5.0
+        Duration: 80.0
+        DurationOff: 50.0
+```
+$~$
     When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated. 
 
 6. Select the type of transducer to be used in simulations.
 
-6. Once all inputs are set, then click on "CONTINUE"
+7. Once all inputs are set, then click on "CONTINUE"
 ### Domain generation
 The diagram below shows flowchart describing the process for the domain generation.
 
@@ -161,13 +208,13 @@ If using output from `charm` (which does not produces STL files), equivalent STL
 
 
 ### Transcranial ultrasound simulation
-The second tab in the GUI of Babelbrain shows the ultrasound simulation step.  The diagram below shows a flowchart of this step.
+The second tab in the GUI of BabelBrain shows the ultrasound simulation step.  The diagram below shows a flowchart of this step.
 
 <img src="nsclc2-V2.svg" height=500px>
 
 The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected intensity at the target. Common to all transducers, the distance of the maximal depth beyond the target location is set to a user-configurable distance of 40 mm.
 
-### CTX_500
+#### CTX_500
 For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
 <img src="Simulation-5.png" height=350px>
 
@@ -187,18 +234,40 @@ After doing the adjustments, the simulation can be repeated.
 |:-:|
 |*Simulation results after correction*|
 
-### H246
+#### H246
 The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.
 <img src="Simulation-9.png" height=350px>
 
 
-### H317
+#### H317
 The H317 is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows also the option to perform electronic refocusing.
  
 <img src="Simulation-10.png" height=350px>
 
-### Single
+#### Single
 The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which can make that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point the out plane of the transducer reaches the skin.
  
 <img src="Simulation-11.png" height=350px>
 
+### Thermal simulation
+The third tab in the GUI of BabelBrain shows the thermal simulation step.  The diagram below shows a flowchart of this step.
+
+<img src="nsclc3-V2.svg" height=250px>
+
+The thermal simulation solves the Bio-heat thermal equation (BHTE) for all the combinations of duty cycle, timing and ultrasound exposure indicated in the thermal profile definition file. 
+ 
+<img src="Simulation-12.png" height=350px>
+
+The selection of spatial-peak pulse-average intensity ($I_{\text{SPPA}}$) indicates the desired intensity at the target. The spatial-peak time-average intensity ($I_{\text{SPTA}}$) is calculated based on the selected timing conditions.  Based on the selections of timing and desired $I_{\text{SPPA}}$ in tissue, the $I_{\text{SPPA}}$ in water conditions is calculated after taking into account all the losses. Thermal safety parameters (thermal indices and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. 
+
+The `Export summary (CSV)` action exports the input data paths and user selections used for the simulations. It also includes a table of $I_{\text{SPPA}}$ in water conditions and safety metrics in function of the desired $I_{\text{SPPA}}$ in tissue. Below there is an example of the exported data.
+
+| Isppa | IsppaWater | MI   | Ispta | TI   | TIS  | TIC  | CEMBrain    | CEMSkin     | CEMSkull    |
+|-------|------------|------|-------|------|------|------|-------------|-------------|-------------|
+| 0.5   | 2.38       | 0.18 | 0.15  | 0.03 | 0.01 | 0.02 | 0.00033419  | 0.000329626 | 0.00033046  |
+| 1     | 4.77       | 0.25 | 0.3   | 0.07 | 0.03 | 0.04 | 0.000343142 | 0.000333787 | 0.000335482 |
+| 1.5   | 7.15       | 0.31 | 0.45  | 0.10 | 0.04 | 0.05 | 0.000352388 | 0.000338007 | 0.000340589 |
+| 2     | 9.54       | 0.35 | 0.6   | 0.13 | 0.06 | 0.07 | 0.00036194  | 0.000342286 | 0.000345782 |
+| 2.5   | 11.92      | 0.39 | 0.75  | 0.17 | 0.07 | 0.09 | 0.000371807 | 0.000346625 | 0.000351062 |
+| 3     | 14.31      | 0.43 | 0.9   | 0.20 | 0.09 | 0.11 | 0.000382002 | 0.000351024 | 0.000356431 |
+| ...    | ...     | ...  | ...    | ...  | ...  | ...  |...  | ...  | ...  |

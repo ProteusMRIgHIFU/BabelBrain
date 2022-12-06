@@ -6,8 +6,12 @@ site_url: https://proteusmrghifu.github.io/BabelBrain/
 use_directory_urls: false
 
 ### Build settings ###
-
-theme: gitbook
+theme:
+    name: mkdocs
+    highlightjs: true
+    hljs_languages:
+        - yaml
+        - rust
 
 nav:
   - Home: index.md
