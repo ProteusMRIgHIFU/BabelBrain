@@ -10,10 +10,13 @@ www.neurofus.ca
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
 
-<img src="Target-demo.png">
-BabelBrain is a frontend application for research purposes only in the study of applications transcranial focused ultrasound. BabelBrain calculates the transmitted acoustic field in the brain, taking into account the distortion effects caused by the skull barrier. BabelBrain also calculates the thermal effects that a given ultrasound regime, which is regulated mainly by the total duration of ultrasound exposure, the duty cycle of ultrasound use and the peak acoustic intensity,
+<img src="intro.png">
 
-BabelBrain is designed to work in tandem with neuronavigation and/or visualization software (such as 3DSlicer). BabelBrain uses extensively [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for calculations. BabelViscoFDTD is a finite-difference time-difference solver of isotropic viscoelastic equation, which was implemented to support multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelBrain is focused for use of MacOS systems based on Apple ARM64 processors and Linux-based systems using high-end GPUs from AMD and NVidia. 
+<img src="Target-demo.png">
+
+BabelBrain is a frontend application for research purposes only in the study of applications of transcranial focused ultrasound. BabelBrain calculates the transmitted acoustic field in the brain, taking into account the distortion effects caused by the skull barrier. BabelBrain also calculates the thermal effects that a given ultrasound regime, which is regulated mainly by the total duration of ultrasound exposure, the duty cycle of ultrasound use and the peak acoustic intensity,
+
+BabelBrain is designed to work in tandem with neuronavigation and/or visualization software (such as Rogue Research's Brainsight or 3DSlicer). This tool combines image processing to prepare domains for ultrasound simulation and uses extensively [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for transcranial modeling calculations. BabelViscoFDTD is a finite-difference time-difference solver of isotropic viscoelastic equation, which was implemented to support multiple GPU backends (Metal, OpenCL and CUDA).  Predictions of BabelViscoFDTD have been validated experimentally ([Pichardo *et al.*, 2017](https://pubmed.ncbi.nlm.nih.gov/28783716/)) and cross-validated with other numerical tools for ultrasound propagation ([Aubry *et al.*, 2022](https://asa.scitation.org/doi/10.1121/10.0013426)). In its initial inception, BabelBrain is focused for use of macOS systems based on Apple ARM64 processors and Linux-based systems using high-end GPUs from AMD and NVidia. 
 
 
 # Disclaimer

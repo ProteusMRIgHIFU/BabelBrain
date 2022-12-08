@@ -15,7 +15,10 @@ theme:
 
 nav:
   - Home: index.md
-  - About MkDocs: about-mkdocs.md
-  - Operation:
-      - Installation: installation.md
-      - Simulation pipeline : pipeline/pipeline.md
+  - Installation: installation.md
+  - Simulation pipeline : pipeline/pipeline.md
+
+markdown_extensions:
+    - md4mathjax
+extra_javascript:
+  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML
