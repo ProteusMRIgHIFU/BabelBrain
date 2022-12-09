@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -142,6 +142,9 @@ class Ui_Dialog(object):
         self.ComputingEnginecomboBox.setObjectName(u"ComputingEnginecomboBox")
         self.ComputingEnginecomboBox.setGeometry(QRect(422, 34, 275, 30))
         self.ComputingEnginecomboBox.setStyleSheet(u"")
+        self.CancelpushButton = QPushButton(Dialog)
+        self.CancelpushButton.setObjectName(u"CancelpushButton")
+        self.CancelpushButton.setGeometry(QRect(945, 337, 74, 32))
 
         self.retranslateUi(Dialog)
 
@@ -186,5 +189,6 @@ class Ui_Dialog(object):
 
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))
+        self.CancelpushButton.setText(QCoreApplication.translate("Dialog", u"Cancel", None))
     # retranslateUi
 

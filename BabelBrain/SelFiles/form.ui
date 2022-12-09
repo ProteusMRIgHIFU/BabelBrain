@@ -464,6 +464,19 @@ profile ...</string>
     </property>
    </widget>
   </widget>
+  <widget class="QPushButton" name="CancelpushButton">
+   <property name="geometry">
+    <rect>
+     <x>945</x>
+     <y>337</y>
+     <width>74</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cancel</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

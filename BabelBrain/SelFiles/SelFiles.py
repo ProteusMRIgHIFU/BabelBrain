@@ -30,6 +30,7 @@ class SelFiles(QDialog):
         self.ui.SelTProfilepushButton.clicked.connect(self.SelectThermalProfile)
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
         self.ui.CTTypecomboBox.currentIndexChanged.connect(self.selCTType)
+        self.ui.CancelpushButton.clicked.connect(self.Cancel)
 
         if len(Trajectory)>0:
             self.ui.TrajectorylineEdit.setText(Trajectory)
@@ -52,8 +53,9 @@ class SelFiles(QDialog):
 
         if len(self._GPUs)==1: #only CPU
             msgBox = QMessageBox()
-            msgBox.setText("No GPUs were detected!, only CPU will be available")
+            msgBox.setText("No GPUs were detected!\BabelBrain can't run without a GPU\nfor simulations")
             msgBox.exec()
+            sys.exit(0)
 
         for dev in self._GPUs:
             self.ui.ComputingEnginecomboBox.addItem(dev[0] + ' -- ' + dev[1])
@@ -169,6 +171,10 @@ class SelFiles(QDialog):
             msgBox.exec()
         else:
             self.accept()
+
+    @Slot()
+    def Cancel(self):
+        sys.exit(0)
 if __name__ == "__main__":
     
     app = QApplication(sys.argv)
