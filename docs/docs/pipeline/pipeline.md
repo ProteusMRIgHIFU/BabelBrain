@@ -29,7 +29,17 @@ The specific capabilities of each transducer are considered during the simulatio
 
     `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred as the **SimNIBS output** directory in the following of this manual. The `--forceqform` parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. 
 
-* **Mandatory**: Identify the coordinates where you want to focus ultrasound in T1W space. There are many tools (FSL, SPM12, etc) that can be used to convert from standardized space (e.g. MNI) to T1W space.
+* **Mandatory**: Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
+
+    For example, with FSL, you can create a simple csv file (`mni.csv`) file with the coordinates in MNI such as `-32.0 -20.0 65.0`. Then run the following commands
+
+    `flirt -in <path to T1W nifti> -ref $FSLDIR/data/standard/MNI152_T1_1mm -omat anat2mni.xfm -out anat_norm`
+
+    `std2imgcoord -img <path to T1W nifti>  -std $FSLDIR/data/standard/MNI152_T1_1mm.nii -xfm anat2mni.xfm mni.csv > natspace.csv`
+
+    The file `natspace.csv` will contain the MNI coordinates converted to T1W space. Please note that often visual inspections could be required to confirm the location.
+    
+
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
 * *Optional*:: ZTE scan of the participant. A pseudo-CT scan can be reconstructed using a Zero Echo Time (ZTE) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo-CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo-CT will be generated.
 
