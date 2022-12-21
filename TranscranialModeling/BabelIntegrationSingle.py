@@ -16,6 +16,8 @@ from sys import platform
 import os
 from stl import mesh
 import scipy
+from trimesh import creation 
+import trimesh
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
 
@@ -191,6 +193,20 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
         bdir=os.path.dirname(self._MASKFNAME)
         TxStl.save(bdir+os.sep+prefix+'Tx.stl')
+
+        TransformationCone=np.eye(4)
+        TransformationCone[2,2]=-1
+        OrientVec=np.array([0,0,1]).reshape((1,3))
+        TransformationCone[0,3]=LocSpot[0]
+        TransformationCone[1,3]=LocSpot[1]
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
+        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        HeightCone=np.sqrt(HeightCone**2-RadCone**2)
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
+        Cone.apply_transform(affine)
+        #we save the final cone profile
+        Cone.export(bdir+os.sep+prefix+'_Cone.stl')
     
 
     def AddSaveDataSim(self,DataForSim):

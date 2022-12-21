@@ -11,7 +11,21 @@ from PySide6.QtCore import Slot, Qt
 from .ui_form import Ui_Dialog
 import platform
 import os
+from pathlib import Path
 
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+    else:
+        bundle_dir = os.path.join(Path(__file__).parent,'..')
+
+    return bundle_dir
 
 class SelFiles(QDialog):
     def __init__(self, parent=None,Trajectory='',T1W='',
@@ -22,7 +36,9 @@ class SelFiles(QDialog):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
-        self.setWindowTitle("Select input file data...")
+        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
+            version=f.readlines()[0]
+        self.setWindowTitle("BabelBrain V"+version + " - Select input files ...")
         self.ui.SelTrajectorypushButton.clicked.connect(self.SelectTrajectory)
         self.ui.SelT1WpushButton.clicked.connect(self.SelectT1W)
         self.ui.SelCTpushButton.clicked.connect(self.SelectCT)

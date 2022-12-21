@@ -401,8 +401,9 @@ class BabelBrain(QWidget):
             print('f','%i'%(f/1e3))
             self.Widget.USMaskkHzDropDown.insertItem(0, '%i'%(f/1e3))
 
-
-        self.setWindowTitle('BabelBrain - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
+        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
+            version=f.readlines()[0]
+        self.setWindowTitle('BabelBrain V'+version +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
                             ' - ' + os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
         self.Widget.IDLabel.setText(self.Config['ID'])
         self.Widget.TXLabel.setText(self.Config['TxSystem'])
@@ -737,7 +738,6 @@ class RunMaskGeneration(QObject):
         kargs['prefix']=prefix
         kargs['bPlot']=False
         kargs['bAlignToSkin']=True
-        
         if self._mainApp.Config['bUseCT']:
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
             kargs['bIsZTE']=self._mainApp.Config['CTType']==2

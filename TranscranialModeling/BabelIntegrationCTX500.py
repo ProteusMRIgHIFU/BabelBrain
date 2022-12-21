@@ -17,6 +17,8 @@ import os
 from stl import mesh
 import scipy
 import matplotlib.pyplot as plt
+from trimesh import creation 
+import trimesh
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
 
 ###########################################
@@ -139,26 +141,8 @@ def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=4):
     lstep = wavelength/PPWSurface
     
     bFirstRing=True
-    n=0
     for ID,OD in zip(InDiameters,OutDiameters):
         TxP = GenerateSurface(lstep,OD,Foc,IntDiam=ID)
-#        SaveToH5py(TxP,'Ring%i.h5'%(n))
-        n+=1
-        TxVert=TxP['VertDisplay']*1e3
-        TxVert[:,2]+=Foc
-        TxStl = mesh.Mesh(np.zeros(TxP['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
-        for i, f in enumerate(TxP['FaceDisplay']):
-            TxStl.vectors[i*2][0] = TxVert[f[0],:]
-            TxStl.vectors[i*2][1] = TxVert[f[1],:]
-            TxStl.vectors[i*2][2] = TxVert[f[3],:]
-
-            TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
-            TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
-            TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
-        
-#        TxStl.save('Tx_Ring_%i.stl' %(n))
-            
-            
         if bFirstRing:
             Tx=TxP
             bFirstRing=False
@@ -201,20 +185,21 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     
     def GenerateSTLTx(self,prefix):
         n=1
+        affine=self._SkullMask.affine
+        LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
+
         for VertDisplay,FaceDisplay in zip(self._SIM_SETTINGS._TxRCOrig['RingVertDisplay'],
                                 self._SIM_SETTINGS._TxRCOrig['RingFaceDisplay']):
             #we also export the STL of the Tx for display in Brainsight or 3D slicer
             TxVert=VertDisplay.T.copy()
             TxVert/=self._SIM_SETTINGS.SpatialStep
             TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
-            affine=self._SkullMask.affine
-
-            LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
-
+            
             TxVert[2,:]=-TxVert[2,:]
             TxVert[0,:]+=LocSpot[0]
             TxVert[1,:]+=LocSpot[1]
-            TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+            TxVert[2,:]+=LocSpot[2]+(self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge)/self._SIM_SETTINGS.SpatialStep 
+
 
             TxVert=np.dot(affine,TxVert)
 
@@ -233,6 +218,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             bdir=os.path.dirname(self._MASKFNAME)
             TxStl.save(bdir+os.sep+prefix+'Tx_Ring_%i.stl' %(n))
             n+=1
+        TransformationCone=np.eye(4)
+        TransformationCone[2,2]=-1
+        OrientVec=np.array([0,0,1]).reshape((1,3))
+        TransformationCone[0,3]=LocSpot[0]
+        TransformationCone[1,3]=LocSpot[1]
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
+        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        HeightCone=np.sqrt(HeightCone**2-RadCone**2)
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
+        Cone.apply_transform(affine)
+        #we save the final cone profile
+        Cone.export(bdir+os.sep+prefix+'_Cone.stl')
 
     def AddSaveDataSim(self,DataForSim):
         DataForSim['ZSteering']=self._ZSteering
@@ -332,43 +330,43 @@ class SimulationConditions(SimulationConditionsBASE):
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
         self.BasePhasedArrayProgramming=np.zeros(self._TxRC['NumberElems'],np.complex64)
         
-        if self._ZSteering!=0.0:
-            print('Running Steering')
-            ds=np.ones((1))*self._SpatialStep**2
 
-            center=np.zeros((1,3),np.float32)
-            #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
-            center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
-            center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-            center[0,2]=self._ZDim[self._FocalSpotLocation[2]]+self._ZSteering+self._TxMechanicalAdjustmentZ
+        print('Running Steering')
+        ds=np.ones((1))*self._SpatialStep**2
 
-            u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
-            nBase=0
-            for n in range(self._TxRC['NumberElems']):
-                u0=np.ones(self._TxRC['elemdims'][n][0],np.complex64)
-                SelCenters=self._TxRC['center'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
-                SelDs=self._TxRC['ds'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
-                u2back[n]=ForwardSimple(cwvnb_extlay,SelCenters,SelDs,
-                                 u0,center,deviceMetal=deviceName)[0]
-                nBase+=self._TxRC['elemdims'][n][0]
+        center=np.zeros((1,3),np.float32)
+        #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
+        center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
+        center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
+        center[0,2]=self._ZDim[self._FocalSpotLocation[2]]+self._ZSteering+self._TxMechanicalAdjustmentZ
 
-            AllPhi=np.zeros(self._TxRC['NumberElems'])
-            for n in range(self._TxRC['NumberElems']):
-                self.BasePhasedArrayProgramming[n]=np.exp(-1j*np.angle(u2back[n]))
-                phi=-np.angle(u2back[n])
-                AllPhi[n]=phi
+        u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
+        nBase=0
+        print('Locations Tx and center',self._TxRC['center'].min(axis=0),center,self._ZDim[self._FocalSpotLocation[2]])
+        for n in range(self._TxRC['NumberElems']):
+            u0=np.ones(self._TxRC['elemdims'][n][0],np.complex64)
+            SelCenters=self._TxRC['center'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
+            SelDs=self._TxRC['ds'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
+            u2back[n]=ForwardSimple(cwvnb_extlay,SelCenters,SelDs,
+                                u0,center,deviceMetal=deviceName)[0]
+            nBase+=self._TxRC['elemdims'][n][0]
 
-            # AllPhi-=AllPhi[0] # we made all phases relative to elem 0
+        AllPhi=np.zeros(self._TxRC['NumberElems'])
+        for n in range(self._TxRC['NumberElems']):
+            self.BasePhasedArrayProgramming[n]=np.exp(-1j*np.angle(u2back[n]))
+            phi=-np.angle(u2back[n])
+            AllPhi[n]=phi
 
-            self.BasePhasedArrayProgramming=np.exp(1j*AllPhi)
-            print('Phase for array: [',np.rad2deg(AllPhi).tolist(),']')
-            u0=np.zeros((self._TxRC['center'].shape[0],1),np.complex64)
-            nBase=0
-            for n in range(self._TxRC['NumberElems']):
-                u0[nBase:nBase+self._TxRC['elemdims'][n][0]]=(self._SourceAmpPa*np.exp(1j*AllPhi[n])).astype(np.complex64)
-                nBase+=self._TxRC['elemdims'][n][0]
-        else:
-             u0=(np.ones((self._TxRC['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxRC['center'].shape[0],1),np.float32))*self._SourceAmpPa
+        # AllPhi-=AllPhi[0] # we made all phases relative to elem 0
+
+        self.BasePhasedArrayProgramming=np.exp(1j*AllPhi)
+        print('Phase for array: [',np.rad2deg(AllPhi).tolist(),']')
+        u0=np.zeros((self._TxRC['center'].shape[0],1),np.complex64)
+        nBase=0
+        for n in range(self._TxRC['NumberElems']):
+            u0[nBase:nBase+self._TxRC['elemdims'][n][0]]=(self._SourceAmpPa*np.exp(1j*AllPhi[n])).astype(np.complex64)
+            nBase+=self._TxRC['elemdims'][n][0]
+        
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)

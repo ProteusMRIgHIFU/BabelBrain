@@ -200,7 +200,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 TrajectoryType='brainsight',                               
                                 Foc=135.0, #Tx focal length
                                 FocFOV=165.0, #Tx focal length used for FOV subvolume
-                                TxDiam=157.0, # Tx aperture diameter
+                                TxDiam=157.0, # Tx aperture diameter used for FOV subvolume
                                 Location=[27.5, -42, 42],#RAS location of target ,
                                 TrabecularProportion=0.8, #proportion of trabecular bone
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
@@ -318,9 +318,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     print('Final RMAT')
     print(RMat)
     
-    #we save the final cone profile
-    Cone.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_cone.stl')
-      
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
     skin_mesh =trimesh.boolean.intersection((skin_mesh,Cone),engine='blender')

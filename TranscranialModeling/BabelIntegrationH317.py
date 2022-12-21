@@ -16,6 +16,8 @@ from sys import platform
 import os
 from stl import mesh
 import scipy
+from trimesh import creation 
+import trimesh
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
 from .H317 import GenerateH317Tx, extlay
@@ -181,22 +183,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         bdir=os.path.dirname(self._MASKFNAME)
         TxStl.save(bdir+os.sep+prefix+'Tx.stl')
         
-        ##
-        RawH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
-        TxVert=RawH317['VertDisplay']*1e3
-        TxVert[:,2]+=self._SIM_SETTINGS._OrigFocalLength*1e3
-        TxStl = mesh.Mesh(np.zeros(RawH317['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
-
-        for i, f in enumerate(RawH317['FaceDisplay']):
-            TxStl.vectors[i*2][0] = TxVert[f[0],:]
-            TxStl.vectors[i*2][1] = TxVert[f[1],:]
-            TxStl.vectors[i*2][2] = TxVert[f[3],:]
-
-            TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
-            TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
-            TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
-        
-        TxStl.save(bdir+os.sep+prefix+'RawTx.stl')
+        TransformationCone=np.eye(4)
+        TransformationCone[2,2]=-1
+        OrientVec=np.array([0,0,1]).reshape((1,3))
+        TransformationCone[0,3]=LocSpot[0]
+        TransformationCone[1,3]=LocSpot[1]
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
+        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        HeightCone=np.sqrt(HeightCone**2-RadCone**2)
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
+        Cone.apply_transform(affine)
+        #we save the final cone profile
+        Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         
 
     def AddSaveDataSim(self,DataForSim):
