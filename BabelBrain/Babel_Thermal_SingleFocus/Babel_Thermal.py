@@ -85,6 +85,16 @@ class Babel_Thermal(QWidget):
         self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaSpinBox.setEnabled(False)
 
+        self.Widget.LocMTB.clicked.connect(self.LocateMTB)
+        self.Widget.LocMTB.setEnabled(False)
+        self.Widget.LocMTC.clicked.connect(self.LocateMTC)
+        self.Widget.LocMTC.setEnabled(False)
+        self.Widget.LocMTS.clicked.connect(self.LocateMTS)
+        self.Widget.LocMTS.setEnabled(False)
+
+        for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15]:
+            l.setText(l.text()+' ('+"\u2103"+'):')
+
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
@@ -159,6 +169,10 @@ class Babel_Thermal(QWidget):
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
+        self.Widget.LocMTS.setEnabled(True)
+        self.Widget.LocMTC.setEnabled(True)
+        self.Widget.LocMTB.setEnabled(True)
+
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
             for combination in self.Config['AllDC_PRF_Duration']:
@@ -215,17 +229,17 @@ class Babel_Thermal(QWidget):
         DoseUpdate=np.sum(RCoeff(DataThermal['TemperaturePoints'])**(43.0-((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)),axis=1)*DataThermal['dt']/60
         
         self.Widget.MILabel.setProperty('UserData',DataThermal['MI']*PresRatio)
-        self.Widget.TIBrainLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio)
-        self.Widget.TICLabel.setProperty('UserData',DataThermal['TIC']*IsppaRatio)
-        self.Widget.TISkinLabel.setProperty('UserData',DataThermal['TIS']*IsppaRatio)
+        self.Widget.MTBLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio+37)
+        self.Widget.MTCLabel.setProperty('UserData',DataThermal['TIC']*IsppaRatio+37)
+        self.Widget.MTSLabel.setProperty('UserData',DataThermal['TIS']*IsppaRatio+37)
 
         self.Widget.CEMSkinLabel.setProperty('UserData',DoseUpdate[0])
         self.Widget.CEMBrainLabel.setProperty('UserData',DoseUpdate[1])
         self.Widget.CEMSkullLabel.setProperty('UserData',DoseUpdate[2])
      
         self.Widget.AdjustRASLabel.setProperty('UserData',DataThermal['AdjustmentInRAS'])
-        for obj in [self.Widget.MILabel,self.Widget.TIBrainLabel,
-                    self.Widget.TICLabel,self.Widget.TISkinLabel]:
+        for obj in [self.Widget.MILabel,self.Widget.MTBLabel,
+                    self.Widget.MTCLabel,self.Widget.MTSLabel]:
                 obj.setText('%3.2f' % obj.property('UserData'))
         for obj in [self.Widget.CEMBrainLabel,self.Widget.CEMSkullLabel,
                     self.Widget.CEMSkinLabel]:
@@ -252,8 +266,12 @@ class Babel_Thermal(QWidget):
                         coll.remove()
                 self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
                 self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                while len(self._ListMarkers)>0:
+                    obj= self._ListMarkers.pop()
+                    obj.remove()
                 self._figIntThermalFields.canvas.draw_idle()
             else:
+                self._ListMarkers=[]
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
                 self._figIntThermalFields=Figure(figsize=(14, 12))
@@ -293,8 +311,26 @@ class Babel_Thermal(QWidget):
             yf=DataThermal['y_vec']
             yf-=yf[Loc[1]]
 
+            for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
+                if SelY == DataThermal[k][1]:
+                    self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
+                                    zf[DataThermal[k][2]],'wx',markersize=12)[0])
+                    self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
+                                    zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
             self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
 
+    @Slot()
+    def LocateMTB(self):
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mBrain'][1])
+    @Slot()
+    def LocateMTC(self):
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkull'][1])
+    @Slot()
+    def LocateMTS(self):
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkin'][1])
 
     @Slot()
     def ExportSummary(self):
@@ -330,8 +366,8 @@ class Babel_Thermal(QWidget):
             for v in DataToExport['Isppa']:
                 self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
                 for k in ['IsppaWater','MI','Ispta',
-                            ['TI','TIBrainLabel'],['TIS','TISkinLabel'],
-                            'TIC','CEMBrain','CEMSkin','CEMSkull']:
+                            ['MTB','MTBLabel'],['MTS','MTSLabel'],
+                            'MTC','CEMBrain','CEMSkin','CEMSkull']:
                     if type(k) is list:
                         if k[0] not in DataToExport:
                             DataToExport[k[0]]=[]

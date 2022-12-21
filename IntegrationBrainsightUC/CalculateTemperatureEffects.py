@@ -246,7 +246,7 @@ def CalculateTemperatureEffects(InputPData,DutyCycle,Isppa,sel_p='p_amp',
 
     TIC=(MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1][SelSkull]).max()
     
-    print('TI,TIS,TIC',TI-37,TIS-37,TIC-37);
+    print('Max. Temp. Brain, Max Temp. Skin, Max Temp. Skull',TI,TIS,TIC);
 
     MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
     MI=MaxBrainPressure/1e6/np.sqrt(0.7)

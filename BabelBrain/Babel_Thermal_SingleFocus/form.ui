@@ -114,28 +114,6 @@ Thermal fields</string>
     <double>5.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_13">
-   <property name="geometry">
-    <rect>
-     <x>17</x>
-     <y>300</y>
-     <width>91</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>15</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>TI-brain:</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_9">
    <property name="geometry">
     <rect>
@@ -180,7 +158,7 @@ Thermal fields</string>
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="TICLabel">
+  <widget class="QLabel" name="MTCLabel">
    <property name="geometry">
     <rect>
      <x>119</x>
@@ -221,7 +199,7 @@ Thermal fields</string>
     <enum>Qt::LeftToRight</enum>
    </property>
    <property name="text">
-    <string>TIC:</string>
+    <string>MTC</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -243,13 +221,13 @@ Thermal fields</string>
     </font>
    </property>
    <property name="text">
-    <string>TI-skin:</string>
+    <string>MTS</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
-  <widget class="QLabel" name="TIBrainLabel">
+  <widget class="QLabel" name="MTBLabel">
    <property name="geometry">
     <rect>
      <x>117</x>
@@ -271,7 +249,7 @@ Thermal fields</string>
     <string>-</string>
    </property>
   </widget>
-  <widget class="QLabel" name="TISkinLabel">
+  <widget class="QLabel" name="MTSLabel">
    <property name="geometry">
     <rect>
      <x>119</x>
@@ -597,7 +575,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>500</x>
-     <y>422</y>
+     <y>415</y>
      <width>577</width>
      <height>20</height>
     </rect>
@@ -648,6 +626,67 @@ Water (W/cm2) :</string>
    </property>
    <property name="text">
     <string>Export summary (CSV)</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="LocMTB">
+   <property name="geometry">
+    <rect>
+     <x>702</x>
+     <y>437</y>
+     <width>43</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>MTB</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="LocMTS">
+   <property name="geometry">
+    <rect>
+     <x>756</x>
+     <y>437</y>
+     <width>43</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>MTS</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="LocMTC">
+   <property name="geometry">
+    <rect>
+     <x>809</x>
+     <y>437</y>
+     <width>43</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>MTC</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_13">
+   <property name="geometry">
+    <rect>
+     <x>18</x>
+     <y>302</y>
+     <width>91</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>MTB</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
  </widget>

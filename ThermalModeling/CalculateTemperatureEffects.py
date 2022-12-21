@@ -253,7 +253,7 @@ def CalculateTemperatureEffects(InputPData,
 
     TIC=ResTemp[SelSkull].max()
     
-    print('TI,TIS,TIC',TI-37,TIS-37,TIC-37)
+    print('Max. Temp. Brain, Max Temp. Skin, Max Temp. Skull',TI,TIS,TIC);
 
     CEMBrain=FinalDose[SelBrain].max()/60 # in min
     
