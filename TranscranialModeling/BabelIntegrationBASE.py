@@ -786,7 +786,10 @@ class SimulationConditionsBASE(object):
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)
-        assert(np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,5),np.round(voxelS,5)))
+        if not (np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,6),np.round(voxelS,6))):
+            print('*'*40)
+            print('Warning: voxel size in input Nifti and the expected size not identical',voxelS,SpatialStep)
+            print('*'*40)
         
         self._XLOffset=self._PMLThickness 
         self._YLOffset=self._PMLThickness
