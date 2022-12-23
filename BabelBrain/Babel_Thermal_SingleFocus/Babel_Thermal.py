@@ -225,8 +225,8 @@ class Babel_Thermal(QWidget):
 
         self.Widget.IsptaLabel.setProperty('UserData',SelIsppa*DutyCycle)
         self.Widget.IsptaLabel.setText('%4.2f' % self.Widget.IsptaLabel.property('UserData'))
-        
-        DoseUpdate=np.sum(RCoeff(DataThermal['TemperaturePoints'])**(43.0-((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)),axis=1)*DataThermal['dt']/60
+        AdjustedTemp=((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)
+        DoseUpdate=np.sum(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),axis=1)*DataThermal['dt']/60
         
         self.Widget.MILabel.setProperty('UserData',DataThermal['MI']*PresRatio)
         self.Widget.MTBLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio+37)
