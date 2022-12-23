@@ -271,7 +271,7 @@ The thermal simulation solves the Bio-heat thermal equation (BHTE) for all the c
  
 <img src="Simulation-12.png" height=450px>
 
-The selection of spatial-peak pulse-average intensity ($I_{\text{SPPA}}$) indicates the desired intensity at the target. The spatial-peak time-average intensity ($I_{\text{SPTA}}$) is calculated based on the selected timing conditions.  Based on the selections of timing and desired $I_{\text{SPPA}}$ in tissue, the $I_{\text{SPPA}}$ in water conditions is calculated after taking into account all the losses. Thermal safety parameters (maximal temperature and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. 
+The selection of spatial-peak pulse-average intensity ($I_{\text{SPPA}}$) indicates the desired intensity at the target. The spatial-peak time-average intensity ($I_{\text{SPTA}}$) is calculated based on the selected timing conditions.  Based on the selections of timing and desired $I_{\text{SPPA}}$ in tissue, the $I_{\text{SPPA}}$ in water conditions is calculated after taking into account all the losses. Thermal safety parameters (maximal temperature and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. The `MTB`, `MTS` and `MTC` push buttons in the lower region of the interface select the slice corresponding to the the maximal temperature in brain, skin and skull, respectively.
 
 The `Export summary (CSV)` action exports the input data paths and user selections used for the simulations. It also includes a table of $I_{\text{SPPA}}$ in water conditions and safety metrics in function of the desired $I_{\text{SPPA}}$ in tissue. Below there is an example of the exported data.
 
@@ -284,75 +284,4 @@ The `Export summary (CSV)` action exports the input data paths and user selectio
 | 2.5   | 11.92      | 0.39 | 0.75  | 0.17 | 0.07 | 0.09 | 0.000371807 | 0.000346625 | 0.000351062 |
 | 3     | 14.31      | 0.43 | 0.9   | 0.20 | 0.09 | 0.11 | 0.000382002 | 0.000351024 | 0.000356431 |
 | ...    | ...     | ...  | ...    | ...  | ...  | ...  |...  | ...  | ...  |
-
-# 4 - Summary of results files
-Multiple files are generated as results. Files will be saved in the same directory where the input T1W file is located. These are the most relevant files:
-
-## 4.a - Acoustic pressure field results in Nifti format
-
-`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution.nii.gz`.
-
-For example:
-
-`STN_H317_250kHz_6PPW_FullElasticSolution.nii.gz`. 
-
-This file contains the 3D pressure field in T1W coordinates. A sub-sampled version (1:2 ratio) is also saved (`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution_Sub.nii.gz`) for visualization tool that cannot handle very high-resolution Nifti files. Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required $I_{SPPA}$ value to use to program devices during real experimentations. These acoustic maps should be considered **adimensional** and are mostly used for visualization purposes.
-
-## 4.b - Thermal and intensity maps:
-`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_DataForSim-ThermalField-<Timming IDs>.h5` 
-
-For example:
- `STN_H246_500kHz_6PPW_DataForSim-ThermalField-Duration-40-DurationOff-40-DC-300-Isppa-5.0W-PRF-10Hz.h5`. 
-
-These are HDF5 files (also saved in Matlab .mat format) that contains multiple variables and arrays. BabelBrain contains functions to read and write HDF5 files in a simplified way (similar to Matlab and npz format)
-
-```Python
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
-import pprint
-pp = pprint.PrettyPrinter(indent=4, width=50)
-Data=ReadFromH5py('STN_H246_500kHz_6PPW_DataForSim-ThermalField-Duration-40-DurationOff-40-DC-300-Isppa-5.0W-PRF-10Hz.h5')
-pp.pprint(list(Data.keys()))
-```
-```
-[   'AdjustmentInRAS',
-    'CEMBrain',
-    'CEMSkin',
-    'CEMSkull',
-    'DistanceFromSkin',
-    'DoseEndFUS',
-    'FinalDose',
-    'FinalTemp',
-    'Isppa',
-    'Ispta',
-    'MI',
-    'MaterialList',
-    'MaterialMap',
-    'MaterialMap_central',
-    'MaxBrainPressure',
-    'MaxIsppa',
-    'MaxIspta',
-    'MonitorSlice',
-    'RatioLosses',
-    'TI',
-    'TIC',
-    'TIS',
-    'TargetLocation',
-    'TempEndFUS',
-    'TempProfileTarget',
-    'TemperaturePoints',
-    'TimeProfileTarget',
-    'TxMechanicalAdjustmentZ',
-    'ZSteering',
-    'dt',
-    'mBrain',
-    'mSkin',
-    'mSkull',
-    'p_map',
-    'p_map_central',
-    'x_vec',
-    'y_vec',
-    'z_vec']
-```
-
-These files are generated in function of the thermal profiles chosen for the simulations. There would be one file for each combination of duration, duty cycle and pulse repetition. Thermal maps and acoustic intensity are calculated assuming a $I_{SPPA}$ of 5 W/cm$^2$ at the target. BabelBrain scales results based on this intensity.
 
