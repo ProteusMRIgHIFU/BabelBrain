@@ -51,7 +51,7 @@ PModel=PropagationModel()
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
 def FitSpeedCorticalShear(frequency):
-    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. 
+    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     FRef=np.array([270e3,836e3])
     Cs270=np.array([1577.0,1498.0,1313.0]).mean()
     Cs836=np.array([1758.0,1674.0,1545.0]).mean()
@@ -60,7 +60,7 @@ def FitSpeedCorticalShear(frequency):
     return(np.round(np.poly1d(p)(frequency)))
 
 def FitSpeedTrabecularShear(frequency):
-    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. 
+    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     FRef=np.array([270e3,836e3])
     Cs270=np.array([1227.0,1365.0,1200.0]).mean()
     Cs836=np.array([1574.0,1252.0,1327.0]).mean()
@@ -69,39 +69,54 @@ def FitSpeedTrabecularShear(frequency):
     return(np.round(np.poly1d(p)(frequency)))
 
 def FitAttCorticalShear(frequency):
-    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. 
+    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     PichardoData=(57.0/.27 +373/0.836)/2
     return np.round(PichardoData*(frequency/1e6)*0.6) #temporary fix to test
 
 def FitAttTrabecularShear(frequency):
-    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. 
+    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     PichardoData=(57.0/.27+373/0.836)/2
     return np.round(PichardoData*(frequency/1e6)*0.6) #temporary fix to test
 
 def FitSpeedCorticalLong(frequency):
-    #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. 
+    #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014 
     FRef=np.array([270e3,836e3])
     ClRef=np.array([2448.0,2516])
     p=np.polyfit(FRef, ClRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
 def FitSpeedTrabecularLong(frequency):
-    #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. 
+    #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     FRef=np.array([270e3,836e3])
     ClRef=np.array([2140.0,2300])
     p=np.polyfit(FRef, ClRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitAttCorticalLong(frequency):
+def FitAttCorticalLong_Goss(frequency,reductionFactor=0.6):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
-    JasaAtt1MHz=(2.15+1.67)/2*100
-    return np.round(JasaAtt1MHz*(frequency/1e6)*0.6) #temporary fix to test
+    JasaAtt1MHz=(2.15+1.67)/2*100*reductionFactor
+    return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttTrabecularLong(frequency):
+def FitAttTrabecularLong_Goss(frequency,reductionFactor=0.6):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
-    JasaAtt1MHz=1.5*100
-    return np.round(JasaAtt1MHz*(frequency/1e6)*0.6) #temporary fix to test
+    JasaAtt1MHz=1.5*100*reductionFactor
+    return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
+def FitAttCorticalLong_Multiple(frequency,reductionFactor=0.5):
+    # fitting from data obtained from
+    #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
+    # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
+    # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
+    
+    return np.round(241.11895314*((frequency/1e6)**1.45299335)*reductionFactor)
+
+def FitAttTrabecularLong_Multiple(frequency,reductionFactor=0.5):
+    #reduction factor 
+    # fitting from data obtained from
+    #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
+    # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
+    # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
+    return np.round(217.23193242*((frequency/1e6)**1.02393094)*reductionFactor) 
 
 MatFreq={}
 for f in np.arange(100e3,750e3,50e3):
@@ -111,11 +126,11 @@ for f in np.arange(100e3,750e3,50e3):
     Material['SofTissue']= np.array([1000.0, 1500.0, 0.0   ,   1.0 *f/500e3,  0.0] )
     Material['Cortical']=  np.array([1896.5, FitSpeedCorticalLong(f), 
                                              FitSpeedCorticalShear(f),  
-                                             FitAttCorticalLong(f)  , 
+                                             FitAttCorticalLong_Multiple(f)  , 
                                              FitAttCorticalShear(f)])
     Material['Trabecular']=np.array([1738.0, FitSpeedTrabecularLong(f),
                                              FitSpeedTrabecularShear(f),
-                                             FitAttTrabecularLong(f) , 
+                                             FitAttTrabecularLong_Multiple(f) , 
                                              FitAttTrabecularShear(f)])
     Material['Skin']=      np.array([1090.0, 1610.0, 0.0   ,  2.3*f/500e3 , 0])
     Material['Brain']=     np.array([1040.0, 1546.0, 0.0   ,  3.45*f/500e3 , 0])
@@ -138,14 +153,14 @@ def GetSmallestSOS(frequency,bShear=False):
     return SoS
 
 def LSOSITRUST(density):
-    return density*1.33 + 167  #using Physics in Medicine & Biology, vol. 54, no. 9, p. 2597, 2009.
+    return density*1.33 + 167  #
 
-def LATTITRUST(frequency):
-    att=270*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
+def LATTITRUST_Pinton(frequency):
+    att=270*0.1151277918# Np/m/MHz # Med Phys. 2012 Jan;39(1):299-307.doi: 10.1118/1.3668316. 
     return att*frequency/1e6
      
-def SATTITRUST(frequency):
-    att=540*0.1151277918# Np/m/MHz # Medical physics, 39(1), pp.299-307.
+def SATTITRUST_Pinton(frequency):
+    att=540*0.1151277918# Np/m/MHz # Med Phys. 2012 Jan;39(1):299-307.doi: 10.1118/1.3668316. 
     return att*frequency/1e6
 
 def SSOSITRUST(density):
@@ -169,6 +184,8 @@ def primeCheck(n):
 
 def HUtoDensityKWave(HUin):
     #Adapted from hounsfield2density.m fromk k_wave
+    # Phys. Med. Biol., 41, pp. 111-124 (1996).
+    # Acoust. Res. Lett. Online, 1(2), pp. 37-42 (2000). 
     HU = HUin+1000
     density = np.zeros_like(HU)
 
@@ -185,6 +202,11 @@ def HUtoDensityKWave(HUin):
     # Part 4: Greater than 1260 (bone region)
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
+
+def HUtoDensityMarsac(HUin):
+    rhomin=1000.0
+    rhomax=2700.0
+    return rhomin+ (rhomax-rhomin)*HUin/HUin.max()
 
 def HUtoPorosity(HUin):
     Phi = 1.0 - HUin/HUin.max()
@@ -203,6 +225,19 @@ def PorositytoLAtt(Phi,Frequency):
     amax= 92.10223344 *Frequency/1e6
     Att = amin + (amax - amin)*(Phi**0.5)
     return Att
+
+def HUtoAttenuationWebb(HU,Frequency):
+    #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
+    #Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
+    # DOI: 10.1109/TUFFC.2020.3039743
+    return 26.0*(Frequency/1e6)**1.3 * np.exp(HU*(-0.0016))
+
+def HUtoLongSpeedofSoundWebb(HU):
+    #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
+    #Table I in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    # DOI: 10.1109/TUFFC.2018.2827899
+    return 0.75*HU + 1320.0
+
 
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
@@ -406,19 +441,23 @@ class BabelFTD_Simulations_BASE(object):
         DensityCTMap=None
         if self._CTFNAME is not None and not self._bWaterOnly:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
-            AllBone = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
-            print('Range HU CT, Unique entries',AllBone.min(),AllBone.max(),len(AllBone))
-            #DensityCT=HUtoDensityKWave(AllBone)
-            Porosity=HUtoPorosity(AllBone)
+            AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
+            print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
+            #DensityCT=HUtoDensityKWave(AllBoneHU)
+            Porosity=HUtoPorosity(AllBoneHU)
             
             print('Range Porosity, Unique entries',Porosity.min(),Porosity.max(),len(Porosity),len(np.unique(Porosity)))
             DensityCT = PorositytoDensity(Porosity)
-            DensityCTIT=HUtoDensityKWave(AllBone)
+            DensityCTIT=HUtoDensityKWave(AllBoneHU)
             print('Range Density CT',DensityCT.min(),DensityCT.max())
             print('Range Density CT IT',DensityCTIT.min(),DensityCTIT.max())
-            print('Range Long SOS CT',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
+            print('Range Long SOS CT porosity',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
+            print('Range Long SOS CT Webb',HUtoLongSpeedofSoundWebb(AllBoneHU.max()),HUtoLongSpeedofSoundWebb(AllBoneHU.min()))
             print('Range Long SOS CT IT',LSOSITRUST(DensityCTIT.min()),LSOSITRUST(DensityCTIT.max()))
-            print('Range Long Att CT',PorositytoLAtt(Porosity.max(),self._Frequency),PorositytoLAtt(Porosity.min(),self._Frequency))
+            print('Range Long Att CT Porosity',PorositytoLAtt(Porosity.min(),self._Frequency),PorositytoLAtt(Porosity.max(),self._Frequency))
+            print('Range Long Att CT Webb',HUtoAttenuationWebb(AllBoneHU.max(),self._Frequency),HUtoAttenuationWebb(AllBoneHU.min(),self._Frequency))
+            
+            
             print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             
             # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
@@ -449,16 +488,13 @@ class BabelFTD_Simulations_BASE(object):
                                             0,
                                             SelM[3],
                                             0) #the attenuation came for 500 kHz, so we adjust with the one being used
-            # for phi in Porosity:
-                # d=PorositytoDensity(phi)
-            for d in DensityCTIT:
+
+            for d,HU in zip(DensityCTIT,AllBoneHU):
                 SelM=MatFreq[self._Frequency]['Cortical']
-                # lSoS=PorositytoLSOS(phi)
-                lSoS=LSOSITRUST(d)
-                # LAtt=PorositytoLAtt(phi,self._Frequency)
-                LAtt=LATTITRUST(self._Frequency)
+                lSoS=HUtoLongSpeedofSoundWebb(HU)
+                LAtt=HUtoAttenuationWebb(HU,self._Frequency)
                 SSoS = 0 # SSOSITRUST(d)
-                SAtt = 0 # SATTITRUST(self._Frequency)
+                SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
                                         SSoS,
