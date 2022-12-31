@@ -92,31 +92,31 @@ def FitSpeedTrabecularLong(frequency):
     p=np.polyfit(FRef, ClRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitAttCorticalLong_Goss(frequency,reductionFactor=0.6):
+def FitAttCorticalLong_Goss(frequency,reductionFactor=1):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     JasaAtt1MHz=(2.15+1.67)/2*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttTrabecularLong_Goss(frequency,reductionFactor=0.6):
+def FitAttTrabecularLong_Goss(frequency,reductionFactor=1):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     JasaAtt1MHz=1.5*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttCorticalLong_Multiple(frequency,reductionFactor=0.5):
+def FitAttCorticalLong_Multiple(frequency,reductionFactor=1):
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
     
-    return np.round(241.11895314*((frequency/1e6)**1.45299335)*reductionFactor)
+    return np.round(203.25090263*((frequency/1e6)**1.20584825)*reductionFactor)
 
-def FitAttTrabecularLong_Multiple(frequency,reductionFactor=0.5):
+def FitAttTrabecularLong_Multiple(frequency,reductionFactor=1):
     #reduction factor 
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
-    return np.round(217.23193242*((frequency/1e6)**1.02393094)*reductionFactor) 
+    return np.round(202.76362433*((frequency/1e6)**1.84850688)*reductionFactor) 
 
 MatFreq={}
 for f in np.arange(100e3,750e3,50e3):
@@ -132,8 +132,8 @@ for f in np.arange(100e3,750e3,50e3):
                                              FitSpeedTrabecularShear(f),
                                              FitAttTrabecularLong_Multiple(f) , 
                                              FitAttTrabecularShear(f)])
-    Material['Skin']=      np.array([1090.0, 1610.0, 0.0   ,  2.3*f/500e3 , 0])
-    Material['Brain']=     np.array([1040.0, 1546.0, 0.0   ,  3.45*f/500e3 , 0])
+    Material['Skin']=      np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
+    Material['Brain']=     np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
 
     MatFreq[f]=Material
 
@@ -208,6 +208,20 @@ def HUtoDensityMarsac(HUin):
     rhomax=2700.0
     return rhomin+ (rhomax-rhomin)*HUin/HUin.max()
 
+def DensitytoLSOSMarsac(Density):
+    cmin=1500.0
+    cmax=3000.0
+    return cmin+ (cmax-cmin)*(Density-Density.min())/(Density.max()-Density.min())
+
+def DensityToLAttMcDannold(Density,Frequency):
+    FreqReference =650e3
+    poly=np.flip(np.array([5.71e3,-9.02, 5.40e-3,-1.41e-6,1.36e-10]))
+    return np.polyval(poly,Density)*Frequency/FreqReference #we assume a linear relatinship
+
+def DensityToLSOSMcDannold(Density):
+    poly=np.flip(np.array([1.24e-3,-7.63e-7,1.69e-10,5.31e-16,-2.79e-18]))
+    return 1.0/np.polyval(poly,Density)
+
 def HUtoPorosity(HUin):
     Phi = 1.0 - HUin/HUin.max()
     return Phi
@@ -230,7 +244,7 @@ def HUtoAttenuationWebb(HU,Frequency):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
     # DOI: 10.1109/TUFFC.2020.3039743
-    return 26.0*(Frequency/1e6)**1.3 * np.exp(HU*(-0.0016))
+    return (26.0*(Frequency/1e6)**1.3 * np.exp(HU*(-0.0016)))*100
 
 def HUtoLongSpeedofSoundWebb(HU):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
@@ -448,14 +462,23 @@ class BabelFTD_Simulations_BASE(object):
             
             print('Range Porosity, Unique entries',Porosity.min(),Porosity.max(),len(Porosity),len(np.unique(Porosity)))
             DensityCT = PorositytoDensity(Porosity)
-            DensityCTIT=HUtoDensityKWave(AllBoneHU)
+            DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+            DensityCTKW=HUtoDensityKWave(AllBoneHU)
+            SoSMarsac=DensitytoLSOSMarsac(DensityCTIT)
+            AttMcDannold=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+            SoSMcDannold=DensityToLSOSMcDannold(DensityCTIT)
+
             print('Range Density CT',DensityCT.min(),DensityCT.max())
             print('Range Density CT IT',DensityCTIT.min(),DensityCTIT.max())
+            print('Range Density CT KWave',DensityCTKW.min(),DensityCTKW.max())
             print('Range Long SOS CT porosity',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
+            print('Range Long SOS CT Marsac',SoSMarsac.min(),SoSMarsac.max())
+            print('Range Long SOS CT McDannold',SoSMcDannold.min(),SoSMcDannold.max())
             print('Range Long SOS CT Webb',HUtoLongSpeedofSoundWebb(AllBoneHU.max()),HUtoLongSpeedofSoundWebb(AllBoneHU.min()))
             print('Range Long SOS CT IT',LSOSITRUST(DensityCTIT.min()),LSOSITRUST(DensityCTIT.max()))
             print('Range Long Att CT Porosity',PorositytoLAtt(Porosity.min(),self._Frequency),PorositytoLAtt(Porosity.max(),self._Frequency))
             print('Range Long Att CT Webb',HUtoAttenuationWebb(AllBoneHU.max(),self._Frequency),HUtoAttenuationWebb(AllBoneHU.min(),self._Frequency))
+            print('Range Long Att CT McDannold',AttMcDannold.min(),AttMcDannold.max())
             
             
             print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
@@ -487,12 +510,16 @@ class BabelFTD_Simulations_BASE(object):
                                             SelM[1],
                                             0,
                                             SelM[3],
-                                            0) #the attenuation came for 500 kHz, so we adjust with the one being used
-
-            for d,HU in zip(DensityCTIT,AllBoneHU):
+                                            0) 
+            for d,HU,lSoS,p in zip(DensityCTIT,AllBoneHU,SoSMarsac,Porosity):
                 SelM=MatFreq[self._Frequency]['Cortical']
-                lSoS=HUtoLongSpeedofSoundWebb(HU)
-                LAtt=HUtoAttenuationWebb(HU,self._Frequency)
+                #lSoS=HUtoLongSpeedofSoundWebb(HU)
+                # LAtt=LATTITRUST_Pinton(self._Frequency)
+                # LAtt = HUtoAttenuationWebb(HU,self._Frequency)
+                # LAtt=FitAttCorticalLong_Multiple(self._Frequency)
+                LAtt=DensityToLAttMcDannold(d,self._Frequency)
+                #LAtt=PorositytoLAtt(p,self._Frequency)
+                lSoS = DensityToLSOSMcDannold(d)
                 SSoS = 0 # SSOSITRUST(d)
                 SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
@@ -508,12 +535,12 @@ class BabelFTD_Simulations_BASE(object):
         else:
             for k in ['Skin','Cortical','Trabecular','Brain']:
                 SelM=MatFreq[self._Frequency][k]
+                Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,
                                             SelM[3],
-                                            SelM[4]*self._Shear) #the attenuation came for 500 kHz, so we adjust with the one being used
-            
+                                            SelM[4]*self._Shear)
         self._SIM_SETTINGS.UpdateConditions(self._SkullMask,AlphaCFL=self._AlphaCFL,bWaterOnly=self._bWaterOnly)
         gc.collect()
 
@@ -615,6 +642,8 @@ class BabelFTD_Simulations_BASE(object):
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
+            if 'MaterialMapCT' in DataForSim:
+                kt.append('MaterialMapCT')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
             for k in kt:
@@ -706,6 +735,7 @@ class SimulationConditionsBASE(object):
                       PaddingForKArray=0,
                       PaddingForRayleigh=0,
                       QfactorCorrection=True,
+                      QCorrection=3,
                       bDisplay=True,
                       bTightNarrowBeamDomain = False,
                       zLengthBeyonFocalPointWhenNarrow=4e-2,
@@ -733,6 +763,7 @@ class SimulationConditionsBASE(object):
         self._PaddingForKArray=PaddingForKArray
         self._PaddingForRayleigh=PaddingForRayleigh
         self._QfactorCorrection=QfactorCorrection
+        self._QCorrection=QCorrection,
         self._bDisplay=bDisplay
         self._DispersionCorrection=DispersionCorrection
         self._Aperture=Aperture
@@ -1043,7 +1074,8 @@ elif self._bTightNarrowBeamDomain:
             
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
-                       bApplyCorrectionForDispersion=True,COMPUTING_BACKEND=1,bDoRefocusing=True):
+                       bApplyCorrectionForDispersion=True,
+                       COMPUTING_BACKEND=1,bDoRefocusing=True):
         MaterialList=self.ReturnArrayMaterial()
 
         TypeSource=2 #stress source
@@ -1076,6 +1108,7 @@ elif self._bTightNarrowBeamDomain:
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
+                                                             QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
                                                              SensorStart=self._SensorStart)
             
@@ -1108,6 +1141,7 @@ elif self._bTightNarrowBeamDomain:
                                                                  AlphaCFL=1.0,
                                                                  TypeSource=TypeSource,
                                                                  QfactorCorrection=self._QfactorCorrection,
+                                                                 QCorrection=self._QCorrection,
                                                                  SensorSubSampling=self._SensorSubSampling,
                                                                  SensorStart=self._SensorStart)
                 self._InputParamBack=InputParam['IndexSensorMap']
@@ -1136,6 +1170,7 @@ elif self._bTightNarrowBeamDomain:
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
+                                                             QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
                                                              SensorStart=self._SensorStart)
             self._InputParamRefocus=InputParam['IndexSensorMap']

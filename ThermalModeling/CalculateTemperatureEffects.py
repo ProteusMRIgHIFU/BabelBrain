@@ -46,24 +46,46 @@ def CalculateTemperatureEffects(InputPData,
             return outfname
     dt=0.01
     Input=ReadFromH5py(InputPData)
-    
-    #savemat(InputPData.split('.h5')[0]+'.mat',Input)
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
     MaterialList['Attenuation']=Input['Material'][:,3]
-    #Water, Skin, Cortical, Trabecular, Brain
+    if 'MaterialMapCT' not in Input:
+        #Water, Skin, Cortical, Trabecular, Brain
 
-    #https://itis.swiss/virtual-population/tissue-properties/database/heat-capacity/
-    MaterialList['SpecificHeat']=[4178,3391,1313,2274,3630] #(J/kg/°C)
-    #https://itis.swiss/virtual-population/tissue-properties/database/thermal-conductivity/
-    MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
-    #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
-    MaterialList['Perfusion']=np.array([0,106,10,30,559])
+        #https://itis.swiss/virtual-population/tissue-properties/database/heat-capacity/
+        MaterialList['SpecificHeat']=[4178,3391,1313,2274,3630] #(J/kg/°C)
+        #https://itis.swiss/virtual-population/tissue-properties/database/thermal-conductivity/
+        MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
+        #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
+        MaterialList['Perfusion']=np.array([0,106,10,30,559])
+        
+        MaterialList['Absorption']=np.array([0,0.85,0.16,0.15,0.85])
+
+        MaterialList['InitTemperature']=[OutTemperature,37,37,37,37]
+    else:
+        #Water, Skin, Brain and skull material
+        MaterialList['SpecificHeat']=np.zeros_like(MaterialList['SoS'])
+        MaterialList['SpecificHeat'][0:3]=[4178,3391,3630]
+        MaterialList['SpecificHeat'][3:]=(1313+2274)/2
+
+        MaterialList['Conductivity']=np.zeros_like(MaterialList['SoS'])
+        MaterialList['Conductivity'][0:3]=[0.6,0.37,0.51]
+        MaterialList['Conductivity'][3:]=(0.32+0.31)/2
+
+        MaterialList['Perfusion']=np.zeros_like(MaterialList['SoS'])
+        MaterialList['Perfusion'][0:3]=[0,106,559]
+        MaterialList['Perfusion'][3:]=(10+30)/2
+
+        MaterialList['Absorption']=np.zeros_like(MaterialList['SoS'])
+        MaterialList['Absorption'][0:3]=[0,0.85,0.85]
+        MaterialList['Absorption'][3:]=(0.16+0.15)/2
+
+        MaterialList['InitTemperature']=np.zeros_like(MaterialList['SoS'])
+        MaterialList['InitTemperature'][0]=OutTemperature
+        MaterialList['InitTemperature'][1:]=37
     
-    MaterialList['Absorption']=np.array([0,0.85,0.16,0.15,0.85])
 
-    MaterialList['InitTemperature']=[OutTemperature,37,37,37,37]
     SaveDict={}
     SaveDict['MaterialList']=MaterialList
 
@@ -80,15 +102,26 @@ def CalculateTemperatureEffects(InputPData,
     pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
     print('pAmp.shape',pAmp.shape)
     
-    MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+    if 'MaterialMapCT' in Input:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
+    else:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
     
     LocIJK=Input['TargetLocation'].flatten()
-    
-    #Materal == 5 is the voxel of the desired targer, we set it as brain
-    MaterialMap[MaterialMap>4]=4
-    
+    if 'MaterialMapCT' in Input:
+        BrainID=2
+        LimSoft=3
+    else:
+        #Materal == 5 is the voxel of the desired targer, we set it as brain
+        MaterialMap[MaterialMap>4]=4
+        BrainID=4
+        LimSoft=4
+
     pAmpBrain=pAmp.copy()
-    pAmpBrain[MaterialMap<4]=0.0
+    if 'MaterialMapCT' in Input:
+        pAmpBrain[MaterialMap!=2]=0.0
+    else:
+        pAmpBrain[MaterialMap<4]=0.0
 
     # PressureTarget=pAmpBrain.max()
     # cx,cy,cz=np.where(pAmpBrain==PressureTarget)
@@ -109,7 +142,7 @@ def CalculateTemperatureEffects(InputPData,
     
     
     PlanAtMaximum=pAmpBrain[:,:,cz]
-    AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][4]/ MaterialList['SoS'][4]*((xf[1]-xf[0])**2)).sum()
+    AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
     print('Acoustic Energy at maximum plane',AcousticEnergy)
     
     if bCalculateLosses:
@@ -127,8 +160,10 @@ def CalculateTemperatureEffects(InputPData,
         PlanAtMaximumWater=pAmpWater[:,:,2] 
         AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
         print('Water Acoustic Energy entering',AcousticEnergyWater)
-        
-        pAmpWater[MaterialMap!=4]=0.0
+        if 'MaterialMapCT' in Input:
+            pAmpWater[MaterialMap!=2]=0.0
+        else:
+            pAmpWater[MaterialMap!=4]=0.0
         cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
         cxw=cxw[0]
         cyw=cyw[0]
@@ -137,12 +172,16 @@ def CalculateTemperatureEffects(InputPData,
               xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
         
         pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
-        pAmpTissue[MateriaMapTissue<4]=0.0
+        if 'MaterialMapCT' in Input:
+            pAmpTissue[MaterialMap!=2]=0.0
+        else:
+            pAmpTissue[MaterialMap!=4]=0.0
+
         cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
         cxr=cxr[0]
         cyr=cyr[0]
         czr=czr[0]
-        print('Location Max Pessure Tissue',cxr,cyr,czr,'\n',
+        print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
               xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
         
 
@@ -156,7 +195,7 @@ def CalculateTemperatureEffects(InputPData,
         
         
         PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
-        AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][4]/ MaterialList['SoS'][4]*((xf[1]-xf[0])**2)).sum()
+        AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
         print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
         
         RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
@@ -164,20 +203,26 @@ def CalculateTemperatureEffects(InputPData,
         
     
 
-    IntensityTarget=PressureTarget**2/(2.0*SaveDict['MaterialList']['SoS'][4]*SaveDict['MaterialList']['Density'][4])
+    IntensityTarget=PressureTarget**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
     IntensityTarget=IntensityTarget/1e4
+    print('IntensityTarget',IntensityTarget,SaveDict['MaterialList']['SoS'][BrainID],SaveDict['MaterialList']['Density'][BrainID])
     IntensityRatio=Isppa/IntensityTarget
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][4]*SaveDict['MaterialList']['Density'][4])
+    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
     #PressureRatio=np.sqrt(IntensityRatio)
     PressureRatio=PressureAdjust/PressureTarget
     print('IntensityRatio,PressureRatio',IntensityRatio,PressureRatio)
 
-    SelBrain=MaterialMap==4
+    if 'MaterialMapCT' in Input:
+        SelBrain=MaterialMap==2
+    else:
+        SelBrain=MaterialMap>=4
 
     SelSkin=MaterialMap==1
-
-    SelSkull =(MaterialMap>1) &\
-                (MaterialMap<4)
+    if 'MaterialMapCT' in Input:
+        SelSkull =MaterialMap>=3
+    else:
+        SelSkull =(MaterialMap>1) &\
+            (MaterialMap<4)
 
     ##We calculate first for 1s, to find the hottest locations in each region
     TotalDurationSteps1s=int(1.0/dt)
@@ -205,7 +250,9 @@ def CalculateTemperatureEffects(InputPData,
     MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
     MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
     MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
-    MonitoringPointsMap[cx,cy,cz]=4
+    if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
+        MonitoringPointsMap[cx,cy,cz]=4
+   
 
     ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
                                                       MaterialMap,
@@ -263,16 +310,24 @@ def CalculateTemperatureEffects(InputPData,
     
     print('CEMBrain,CEMSkin,CEMSkull',CEMBrain,CEMSkin,CEMSkull)
 
-    MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
+    if 'MaterialMapCT' in Input:
+        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==3].max()
+    else:
+        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
+        
     MI=MaxBrainPressure/1e6/np.sqrt(0.7)
-    MaxIsppa=MaxBrainPressure**2/(2.0*SaveDict['MaterialList']['SoS'][4]*SaveDict['MaterialList']['Density'][4])
+    MaxIsppa=MaxBrainPressure**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
     MaxIsppa=MaxIsppa/1e4
     MaxIspta=DutyCycle*MaxIsppa
 
     Ispta =DutyCycle*Isppa
 
     SaveDict['MaxBrainPressure']=MaxBrainPressure
-    SaveDict['TempProfileTarget']=TemperaturePoints[3,:]
+    if cx==mxBrain and cy==myBrain and cz==mzBrain:
+        IndTarget=2
+    else:
+        IndTarget=3
+    SaveDict['TempProfileTarget']=TemperaturePoints[IndTarget,:]
     SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt
     SaveDict['TemperaturePoints']=TemperaturePoints[:3,:] #these are max points in skin, brain and skull
     SaveDict['MI']=MI
@@ -306,43 +361,6 @@ def CalculateTemperatureEffects(InputPData,
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)
-    
-    if bPlot:
- 
-        AllContours=[]
-        #skin
-        contours,_ = cv.findContours((SaveDict['MaterialMap_central']==1).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        AllContours.append(contours)   
-        #skull
-        contours,_ = cv.findContours(((SaveDict['MaterialMap_central']==2)|(SaveDict['MaterialMap_central']==3)).astype(np.uint8), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-        AllContours.append(contours)  
-                
-        plt.figure(figsize=(12,6))
-        ax=plt.subplot(1,2,1)
-        plt.imshow(SaveDict['p_map'].T,extent=[xf.min()*1e3,xf.max()*1e3,zf.max()*1e3,zf.min()*1e3],
-                   cmap=plt.cm.jet)
-        plt.colorbar()
-        #we add contours of skin and skull bone
-        sr=['y-','w-']
-        for n in range(2):
-            contours=AllContours[n]
-            for c in contours:
-                ax.plot(SaveDict['x_vec'][c[:,0,1]],SaveDict['z_vec'][c[:,0,0]],sr[n],linewidth=1)
-            
-
-        ax=plt.subplot(1,2,2)
-        plt.imshow(MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1].T,
-                   extent=[xf.min()*1e3,xf.max()*1e3,zf.max()*1e3,zf.min()*1e3],cmap=plt.cm.jet,vmin=OutTemperature)
-        plt.colorbar()
-        for n in range(2):
-            contours=AllContours[n]
-            for c in contours:
-                ax.plot(SaveDict['x_vec'][c[:,0,1]],SaveDict['z_vec'][c[:,0,0]],sr[n],linewidth=1)
-            
-        plt.suptitle(outfname.split('/')[-1])
-        plt.figure(figsize=(8,4))
-        plt.plot(SaveDict['TimeProfileTarget'],SaveDict['TempProfileTarget'])
-        plt.title(outfname.split('/')[-1])
     
     return outfname
         

@@ -133,9 +133,8 @@ class Babel_Thermal(QWidget):
                 bCalcFields=True
         else:
             bCalcFields = True
+        self._ThermalResults=[]
         if bCalcFields:
-            self._ThermalResults=[]
-
             self.thread = QThread()
             self.worker = RunThermalSim(self._MainApp,self.thread)
             self.worker.moveToThread(self.thread)
@@ -175,6 +174,7 @@ class Babel_Thermal(QWidget):
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
+            self._LastTMap=-1
             for combination in self.Config['AllDC_PRF_Duration']:
                 ThermalName=GetThermalOutName(BaseField,combination['Duration'],
                                                         combination['DurationOff'],
@@ -261,9 +261,12 @@ class Babel_Thermal(QWidget):
                 self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
                 self._ThermalIm.set_data(Tmap.T)
                 self._ThermalIm.set(clim=[37,Tmap.max()])
-                for c in [self._contour1,self._contour2]:
-                    for coll in c.collections:
-                        coll.remove()
+                if hasattr(self,'_contour1'):
+                    for c in [self._contour1,self._contour2]:
+                        for coll in c.collections:
+                            coll.remove()
+                    del self._contour1
+                    del self._contour2
                 self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
                 self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
                 while len(self._ListMarkers)>0:

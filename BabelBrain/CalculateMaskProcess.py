@@ -30,7 +30,6 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                     sys.stderr = self._stream
             except AttributeError:
                 pass
-
     
     stdout = InOutputWrapper(queue,True)
     try:

@@ -33,7 +33,10 @@ except:
     from . import CTZTEProcessing
 import tempfile
 
-from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+try:
+    from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+except:
+    from .ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -639,7 +642,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             FinalMask[label_img==l.label]=4
 
         CTBone=ndataCT[nfct]
-        CTBone[CTBone<0]=0 #we cut off to avoid problems in acoustic sim
+        CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
@@ -693,6 +696,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
+
+    with CodeTimer("resampling T1 to mask",unit='s'):
+        T1Conformal=processing.resample_from_to(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
+        T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
+        T1Conformal.to_filename(T1W_resampled_fname)
+    
     if bPlot:
         plt.figure()
         plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)

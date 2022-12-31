@@ -463,10 +463,9 @@ class BabelBrain(QWidget):
         self._BrainsightInput=self._prefix_path+'FullElasticSolution.nii.gz'
 
         print('outname',self._outnameMask)
-
+        self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
         bCalcMask=False
-        if os.path.isfile(self._outnameMask):
-
+        if os.path.isfile(self._outnameMask) and os.path.isfile(self._T1W_resampled_fname):
             ret = QMessageBox.question(self,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
             if ret == QMessageBox.Yes:
@@ -560,9 +559,7 @@ class BabelBrain(QWidget):
         Data=nibabel.load(self._outnameMask)
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
-        T1W=nibabel.load(self.Config['T1W'])
-        with CodeTimer("resampling T1 to mask",unit='s'):
-            T1W=processing.resample_from_to(T1W,Data,mode='constant',order=0,cval=T1W.get_fdata().min())
+        T1W=nibabel.load(self._T1W_resampled_fname)
         T1WData=T1W.get_fdata()
         T1WData=np.flip(T1WData,axis=2)
         self._T1WData=T1WData
