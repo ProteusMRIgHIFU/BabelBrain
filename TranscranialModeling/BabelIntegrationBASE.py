@@ -411,6 +411,7 @@ class BabelFTD_Simulations_BASE(object):
                  TxMechanicalAdjustmentZ=0,
                  bDoRefocusing=True,
                  bWaterOnly=False,
+                 QCorrection=3,
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
         
@@ -436,6 +437,7 @@ class BabelFTD_Simulations_BASE(object):
         self._bDoRefocusing=bDoRefocusing
         self._SensorSubSampling=SensorSubSampling
         self._CTFNAME=CTFNAME
+        self._QCorrection=QCorrection
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -502,9 +504,11 @@ class BabelFTD_Simulations_BASE(object):
                                 TxMechanicalAdjustmentY=self._TxMechanicalAdjustmentY,
                                 TxMechanicalAdjustmentZ=self._TxMechanicalAdjustmentZ,
                                 DensityCTMap=DensityCTMap,
+                                QCorrection=self._QCorrection,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
         if  self._CTFNAME is not None and not self._bWaterOnly:
-            for k in ['Skin','Brain']:
+            # for k in ['Skin','Brain']:
+            for k in ['Water','Water']:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -513,13 +517,13 @@ class BabelFTD_Simulations_BASE(object):
                                             0) 
             for d,HU,lSoS,p in zip(DensityCTIT,AllBoneHU,SoSMarsac,Porosity):
                 SelM=MatFreq[self._Frequency]['Cortical']
-                #lSoS=HUtoLongSpeedofSoundWebb(HU)
+                lSoS = HUtoLongSpeedofSoundWebb(HU)
                 # LAtt=LATTITRUST_Pinton(self._Frequency)
-                # LAtt = HUtoAttenuationWebb(HU,self._Frequency)
+                LAtt = HUtoAttenuationWebb(HU,self._Frequency)
                 # LAtt=FitAttCorticalLong_Multiple(self._Frequency)
-                LAtt=DensityToLAttMcDannold(d,self._Frequency)
+                # LAtt=DensityToLAttMcDannold(d,self._Frequency)
                 #LAtt=PorositytoLAtt(p,self._Frequency)
-                lSoS = DensityToLSOSMcDannold(d)
+                # lSoS = DensityToLSOSMcDannold(d)
                 SSoS = 0 # SSOSITRUST(d)
                 SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
