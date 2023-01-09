@@ -18,7 +18,7 @@ nav:
   - Installation: installation.md
   - Simulation pipeline : pipeline/pipeline.md
   - Results files : results/results.md
-  - Appendix : Appendix.md
+  - Appendix : Appendix/Appendix.md
 
 markdown_extensions:
     - md4mathjax
