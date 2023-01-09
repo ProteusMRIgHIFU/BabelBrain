@@ -9,7 +9,9 @@ ABOUT:
 '''
 import numpy as np
 np.seterr(divide='raise')
-from sys import platform
+import platform
+from pathlib import Path
+import sys
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
@@ -44,11 +46,26 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import os
 
 PModel=PropagationModel()
+_IS_MAC = platform.system() == 'Darwin'
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
 
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS) / 'TranscranialModeling'
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
 
 ## Global definitions
 
 DbToNeper=1/(20*np.log10(np.exp(1)))
+
+_MapPichardo = ReadFromH5py(os.path.join(resource_path(), 'MapPichardo.h5'))
+_PichardoSOS=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
+_PichardoAtt=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
 def FitSpeedCorticalShear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
@@ -252,6 +269,11 @@ def HUtoLongSpeedofSoundWebb(HU):
     # DOI: 10.1109/TUFFC.2018.2827899
     return 0.75*HU + 1320.0
 
+def DensityToLSOSPichardo(Density,Frequency):
+    return _PichardoSOS(Density,Frequency/1e6)
+
+def DensityToLAttPichardo(Density,Frequency):
+    return _PichardoAtt(Density,Frequency/1e6)
 
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
@@ -470,17 +492,22 @@ class BabelFTD_Simulations_BASE(object):
             AttMcDannold=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             SoSMcDannold=DensityToLSOSMcDannold(DensityCTIT)
 
+            AttPichardo=DensityToLAttPichardo(DensityCTIT,self._Frequency)
+            SoSPichardo=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
+
             print('Range Density CT',DensityCT.min(),DensityCT.max())
             print('Range Density CT IT',DensityCTIT.min(),DensityCTIT.max())
             print('Range Density CT KWave',DensityCTKW.min(),DensityCTKW.max())
             print('Range Long SOS CT porosity',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
             print('Range Long SOS CT Marsac',SoSMarsac.min(),SoSMarsac.max())
             print('Range Long SOS CT McDannold',SoSMcDannold.min(),SoSMcDannold.max())
+            print('Range Long SOS CT Pichardo',SoSPichardo.min(),SoSPichardo.max())
             print('Range Long SOS CT Webb',HUtoLongSpeedofSoundWebb(AllBoneHU.max()),HUtoLongSpeedofSoundWebb(AllBoneHU.min()))
             print('Range Long SOS CT IT',LSOSITRUST(DensityCTIT.min()),LSOSITRUST(DensityCTIT.max()))
             print('Range Long Att CT Porosity',PorositytoLAtt(Porosity.min(),self._Frequency),PorositytoLAtt(Porosity.max(),self._Frequency))
             print('Range Long Att CT Webb',HUtoAttenuationWebb(AllBoneHU.max(),self._Frequency),HUtoAttenuationWebb(AllBoneHU.min(),self._Frequency))
             print('Range Long Att CT McDannold',AttMcDannold.min(),AttMcDannold.max())
+            print('Range Long Att CT Pichardo',AttPichardo.min(),AttPichardo.max())
             
             
             print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
@@ -517,13 +544,15 @@ class BabelFTD_Simulations_BASE(object):
                                             0) 
             for d,HU,lSoS,p in zip(DensityCTIT,AllBoneHU,SoSMarsac,Porosity):
                 SelM=MatFreq[self._Frequency]['Cortical']
-                lSoS = HUtoLongSpeedofSoundWebb(HU)
+                #lSoS = HUtoLongSpeedofSoundWebb(HU)
                 # LAtt=LATTITRUST_Pinton(self._Frequency)
-                LAtt = HUtoAttenuationWebb(HU,self._Frequency)
+                #LAtt = HUtoAttenuationWebb(HU,self._Frequency)
                 # LAtt=FitAttCorticalLong_Multiple(self._Frequency)
                 # LAtt=DensityToLAttMcDannold(d,self._Frequency)
-                #LAtt=PorositytoLAtt(p,self._Frequency)
+                # LAtt=PorositytoLAtt(p,self._Frequency)
                 # lSoS = DensityToLSOSMcDannold(d)
+                LAtt = DensityToLAttPichardo(d,self._Frequency)[0]
+                lSoS = DensityToLSOSPichardo(d,self._Frequency)[0]
                 SSoS = 0 # SSOSITRUST(d)
                 SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
