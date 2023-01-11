@@ -1,0 +1,23 @@
+{
+    "targets": [
+        "M1_Single"
+    ],
+    "extrasuffix": "Foc50.0_Diam50.0_",
+    "ID": "SDR_0p31",
+    "deviceName": "AMD Radeon PRO W6800",
+    "COMPUTING_BACKEND": 3,
+    "basePPW": [
+        6.0
+    ],
+    "basedir": "/Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/ITRUSST/Repository/FinalVersion/",
+    "Aperture": 0.05,
+    "FocalLength": 0.05,
+    "TxMechanicalAdjustmentZ": 0.007,
+    "TxMechanicalAdjustmentX": 0.0,
+    "TxMechanicalAdjustmentY": 0.0,
+    "Frequencies": [
+        200000.0
+    ],
+    "zLengthBeyonFocalPointWhenNarrow": 0.04,
+    "bUseCT": true
+}

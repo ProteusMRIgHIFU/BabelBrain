@@ -136,7 +136,7 @@ def FitAttTrabecularLong_Multiple(frequency,reductionFactor=1):
     return np.round(202.76362433*((frequency/1e6)**1.84850688)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,750e3,50e3):
+for f in np.arange(100e3,1050e3,50e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -231,7 +231,7 @@ def DensitytoLSOSMarsac(Density):
     return cmin+ (cmax-cmin)*(Density-Density.min())/(Density.max()-Density.min())
 
 def DensityToLAttMcDannold(Density,Frequency):
-    FreqReference =650e3
+    FreqReference =660e3
     poly=np.flip(np.array([5.71e3,-9.02, 5.40e-3,-1.41e-6,1.36e-10]))
     return np.polyval(poly,Density)*Frequency/FreqReference #we assume a linear relatinship
 
@@ -544,15 +544,15 @@ class BabelFTD_Simulations_BASE(object):
                                             0) 
             for d,HU,lSoS,p in zip(DensityCTIT,AllBoneHU,SoSMarsac,Porosity):
                 SelM=MatFreq[self._Frequency]['Cortical']
-                #lSoS = HUtoLongSpeedofSoundWebb(HU)
                 # LAtt=LATTITRUST_Pinton(self._Frequency)
-                #LAtt = HUtoAttenuationWebb(HU,self._Frequency)
+                lSoS = HUtoLongSpeedofSoundWebb(HU)
+                LAtt = HUtoAttenuationWebb(HU,self._Frequency)
                 # LAtt=FitAttCorticalLong_Multiple(self._Frequency)
                 # LAtt=DensityToLAttMcDannold(d,self._Frequency)
                 # LAtt=PorositytoLAtt(p,self._Frequency)
                 # lSoS = DensityToLSOSMcDannold(d)
-                LAtt = DensityToLAttPichardo(d,self._Frequency)[0]
-                lSoS = DensityToLSOSPichardo(d,self._Frequency)[0]
+                # LAtt = DensityToLAttPichardo(d,self._Frequency)[0]
+                # lSoS = DensityToLSOSPichardo(d,self._Frequency)[0]
                 SSoS = 0 # SSOSITRUST(d)
                 SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
                 self._SIM_SETTINGS.AddMaterial(d, #den
