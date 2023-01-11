@@ -3,7 +3,8 @@ from PyInstaller.utils.hooks import collect_all,  collect_submodules,collect_dat
 from PyInstaller import compat
 from os import listdir
 import platform
-
+import glob
+import os
 
 
 tmp_ret = collect_all('BabelViscoFDTD')
@@ -39,6 +40,17 @@ datas+=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
 
 
+for l in glob.glob('ExternalBin'+os.sep+'**',recursive=True):
+    if os.path.isfile(l):
+        if 'Darwin' in platform.system() and 'mac' in l:
+            binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+        elif 'Linux' in platform.system() and 'linux' in l:
+            binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+        elif 'Windows' in platform.system() and 'windows' in l:
+            binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+        elif  '.txt' in l:
+            binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+print('binaries',binaries)
 if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
     hiddenimports+=['histoprint']
     libdir = compat.base_prefix + "/lib"
