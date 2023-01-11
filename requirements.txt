@@ -1,12 +1,4 @@
 BabelViscoFDTD>=0.9.10-1
-itk-elastix==0.14.2
-itk==5.3rc4.post3
-itk-core==5.3rc4.post3
-itk-filtering==5.3rc4.post3
-itk-io==5.3rc4.post3
-itk-numerics==5.3rc4.post3
-itk-registration==5.3rc4.post3
-itk-segmentation==5.3rc4.post3
 h5py==3.7.0
 hdf5plugin==3.3.1
 metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@90a8112370c571cf8aacf70aa70102e097fb546f

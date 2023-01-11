@@ -7,12 +7,52 @@ IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10),
 import ants
 import nibabel
 from nibabel import processing
-import itk
+#import itk
+import tempfile
 import os
 import scipy
 from skimage.measure import label, regionprops
 import numpy as np
 from operator import itemgetter
+import platform
+from pathlib import Path
+import sys
+import subprocess
+import shutil
+
+
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
+
+def RunElastix(reference,moving,finalname):
+    path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        result = subprocess.run(
+                ["zsh",
+                path_script,
+                reference,
+                moving,
+                tmpdirname], capture_output=True, text=True
+        )
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        if result.returncode == 0:
+            shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+
+    if result.returncode != 0:
+        raise SystemError("Error when trying to run elastix")
 
 def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     # CoregCT_MRI =0, do not coregister, just load data
@@ -28,33 +68,21 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
         ants.image_write(img_n4,(T1fnameBiasCorrec))   
 
         #coreg
-        parameters = itk.ParameterObject.New()
-
-        resolutions = 4
-        default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
-        parameters.AddParameterMap(default_rigid)
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
+
             fixed_image=nibabel.load(T1fnameBiasCorrec)
             fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
             T1fname_CTRes=os.path.splitext(InputT1)[0] + '_BiasCorrec_CT_res.nii.gz'
             fixed_image.to_filename(T1fname_CTRes)
-            fixed_image = itk.imread(T1fname_CTRes,itk.F)
-            moving_image = itk.imread(InputCT,itk.F)
-            
             CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
-            registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
-            itk.imwrite(registered_image,CTInT1W)
 
+            RunElastix(T1fname_CTRes,InputCT,CTInT1W)
+            
             return nibabel.load(CTInT1W)
         else:
-            fixed_image = itk.imread(InputCT,itk.F)
-            moving_image = itk.imread(T1fnameBiasCorrec,itk.F)
-            
             T1WinCT=os.path.splitext(InputT1)[0] + '_InCT.nii.gz'
-            registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
-            itk.imwrite(registered_image,T1WinCT)
-
+            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
             return nibabel.load(InputCT)
 
 
@@ -79,19 +107,9 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     ants.image_write(img_n4,(ZTEfnameBiasCorrec))
     
     #coreg
-    
-    parameters = itk.ParameterObject.New()
 
-    resolutions = 3
-    default_rigid = parameters.GetDefaultParameterMap("rigid", resolutions)
-    parameters.AddParameterMap(default_rigid)
-
-    fixed_image = itk.imread(T1fnameBiasCorrec,itk.F)
-    moving_image = itk.imread(ZTEfnameBiasCorrec,itk.F)
-    
     ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
-    registered_image, params = itk.elastix_registration_method(fixed_image, moving_image,parameter_object=parameters)
-    itk.imwrite(registered_image,ZTEInT1W)
+    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img = ants.image_read(T1fnameBiasCorrec)
     img_out = ants.multiply_images(img, img_mask)
