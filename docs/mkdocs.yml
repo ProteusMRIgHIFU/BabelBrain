@@ -22,5 +22,11 @@ nav:
 
 markdown_extensions:
     - md4mathjax
+    - footnotes
 extra_javascript:
   - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML
+plugins:
+  - search
+  - bibtex:
+      bib_file: "refs.bib"
+      csl_file: "the-journal-of-the-acoustical-society-of-america.csl"
