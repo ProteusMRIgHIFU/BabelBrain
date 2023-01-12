@@ -110,37 +110,11 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
             return nibabel.load(InputCT)
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     #Bias correction
-    img_n4=N4BiasCorrec(InputT1)
-
-    img_tmp = sitk.OtsuThreshold(img_n4, 0, 1, 200)
-    filter=sitk.BinaryFillholeImageFilter()
-    img_tmp=filter.Execute(img_tmp)
-    sitk.WriteImage(img_tmp, os.path.splitext(InputT1)[0] + '_Otsu.nii.gz')
-
-
-    filter = sitk.BinaryDilateImageFilter()
-    filter.SetKernelType(sitk.sitkBall)
-    filter.SetKernelRadius( 2 )
-    img_tmp = filter.Execute ( img_tmp )
-
-    filter = sitk.SmoothingRecursiveGaussianImageFilter()
-    filter.SetSigma(3)
-    img_tmp = filter.Execute(img_tmp)
-
-    filter = sitk.BinaryThresholdImageFilter()
-    filter.SetInsideValue(1)
-    filter.SetOutsideValue(0)
-    filter.SetUpperThreshold(0.6)
-    filter.SetLowerThreshold(0.0)
-    img_mask = filter.Execute(img_tmp)
-
     T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-    sitk.WriteImage(img_n4, T1fnameBiasCorrec)
-  
-    T1Mask=os.path.splitext(InputT1)[0] + '_SkinMask.nii.gz'
-    sitk.WriteImage(img_mask, T1Mask)
+
+    N4BiasCorrec(InputT1,T1fnameBiasCorrec)
 
     ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
 
@@ -157,9 +131,9 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
     img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
     sitk.WriteImage(img_out, ZTEInT1W)
-    return T1fnameBiasCorrec,ZTEInT1W, T1Mask
+    return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
+def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
     print('converting ZTE to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
@@ -185,46 +159,50 @@ def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         arrSkin=volumeSkin.get_fdata()
         arrCavities=volumeCavities.get_fdata()
     
-    volumeT1 = nibabel.load(InputT1)
-    volumeZTE = nibabel.load(InputZTE)
-    volumeHead = nibabel.load(HeadMask)
-    
-    arrZTE=volumeZTE.get_fdata()
-    arrHead=volumeHead.get_fdata()
-    
-    
-    
-    maskedZTE =arrZTE.copy()
-    maskedZTE[arrMask==0]=-1000
-    
-    cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
-    
-    
-    arrZTE/=cutoff
-    
-    arrZTE[arrHead==0]=-0.5
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
+        sitk.WriteImage(TMaskItk,HeadMask)
+        
+        volumeT1 = nibabel.load(InputT1)
+        volumeZTE = nibabel.load(InputZTE)
+        volumeHead = nibabel.load(HeadMask)
+        
+        arrZTE=volumeZTE.get_fdata()
+        arrHead=volumeHead.get_fdata()
+        
+        
+        
+        maskedZTE =arrZTE.copy()
+        maskedZTE[arrMask==0]=-1000
+        
+        cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
+        
+        
+        arrZTE/=cutoff
+        
+        arrZTE[arrHead==0]=-0.5
 
-    arrGauss=arrZTE.copy()
-    arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
-    arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
-    
-    label_img = label(arr)
-    def pixelcount(regionmask):
-        return np.sum(regionmask)
-    props = regionprops(label_img, extra_properties=(pixelcount,))
-    props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
-    arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
+        arrGauss=arrZTE.copy()
+        arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
+        arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
+        
+        label_img = label(arr)
+        def pixelcount(regionmask):
+            return np.sum(regionmask)
+        props = regionprops(label_img, extra_properties=(pixelcount,))
+        props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
+        arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-    
-    arrCT=np.zeros_like(arrGauss)
-    arrCT[arrSkin==0]=-1000 
-    arrCT[arrSkin!=0]=42.0 #soft tissue
-    arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
-    arrCT[arrCT<-1000]=-1000 #air
-    arrCT[arrCT>3300]=-1000 #air 
-    arrCT[arrCavities!=0]=-1000
-    
-    pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-    CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
-    nibabel.save(pCT,CTfname)
+        
+        arrCT=np.zeros_like(arrGauss)
+        arrCT[arrSkin==0]=-1000 
+        arrCT[arrSkin!=0]=42.0 #soft tissue
+        arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+        arrCT[arrCT<-1000]=-1000 #air
+        arrCT[arrCT>3300]=-1000 #air 
+        arrCT[arrCavities!=0]=-1000
+        
+        pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
+        CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
+        nibabel.save(pCT,CTfname)
     return pCT
