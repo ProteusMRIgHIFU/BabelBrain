@@ -4,10 +4,9 @@ Miscouridou, M., Pineda-Pardo, J.A., Stagg, C.J., Treeby, B.E. and Stanziola, A.
 2022. Classical and learned MR to pseudo-CT mappings for accurate transcranial ultrasound simulation.
 IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10), pp.2896-2905.
 '''
-import ants
 import nibabel
 from nibabel import processing
-#import itk
+import SimpleITK as sitk
 import tempfile
 import os
 import scipy
@@ -54,6 +53,34 @@ def RunElastix(reference,moving,finalname):
     if result.returncode != 0:
         raise SystemError("Error when trying to run elastix")
 
+def N4BiasCorrec(input,output=None,shrinkFactor=4,
+                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
+    inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
+    image = inputImage
+
+    maskImage = sitk.OtsuThreshold(inputImage, 0, 1, 200)
+
+    if shrinkFactor > 1:
+        image = sitk.Shrink(
+            inputImage, [shrinkFactor] * inputImage.GetDimension()
+        )
+        maskImage = sitk.Shrink(
+            maskImage, [shrinkFactor] * inputImage.GetDimension()
+        )
+    corrector = sitk.N4BiasFieldCorrectionImageFilter()
+    corrector.SetMaximumNumberOfIterations(
+        convergence['iters']
+    )
+    corrector.SetConvergenceThreshold(convergence['tol'])
+    corrected_image = corrector.Execute(image, maskImage)
+    log_bias_field = corrector.GetLogBiasFieldAsImage(inputImage)
+    corrected_image_full_resolution = inputImage / sitk.Exp(log_bias_field)
+
+    if output is not None:
+        sitk.WriteImage(corrected_image_full_resolution, output)
+
+    return corrected_image_full_resolution
+
 def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
@@ -62,11 +89,8 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        img = ants.image_read(InputT1)
-        img_n4 = ants.n4_bias_field_correction(img)
-        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-        ants.image_write(img_n4,(T1fnameBiasCorrec))   
-
+        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz' 
+        N4BiasCorrec(InputT1,T1fnameBiasCorrec)
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
@@ -88,36 +112,46 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
 
 def BiasCorrecAndCoreg(InputT1,InputZTE):
     #Bias correction
-    img = ants.image_read(InputT1)
-    img_n4 = ants.n4_bias_field_correction(img)
-    img_tmp = img_n4.otsu_segmentation(k=1) # otsu_segmentation
-    img_tmp = ants.multi_label_morphology(img_tmp, 'MD', 2) # dilate 2
-    img_tmp = ants.smooth_image(img_tmp, 3) # smooth 3
-    img_tmp = ants.threshold_image(img_tmp, 0.6) # threshold 0.5
-    img_mask = ants.get_mask(img_tmp)
-   
+    img_n4=N4BiasCorrec(InputT1)
+
+    img_tmp = sitk.OtsuThreshold(img_n4, 0, 1, 200)
+
+    filter = sitk.BinaryDilateImageFilter()
+    filter.SetKernelType(sitk.sitkBall)
+    filter.SetKernelRadius( 2 )
+    img_tmp = filter.Execute ( img_tmp )
+
+    filter = sitk.SmoothingRecursiveGaussianImageFilter()
+    filter.SetSigma(3)
+    img_tmp = filter.Execute(img_tmp)
+
+    filter = sitk.BinaryThresholdImageFilter()
+    filter.SetInsideValue(0)
+    filter.SetOutsideValue(1)
+    filter.SetUpperThreshold(0.6)
+    img_mask = filter.Execute(img_tmp)
+
     T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-    ants.image_write(img_n4,(T1fnameBiasCorrec))
+    sitk.WriteImage(img_n4, T1fnameBiasCorrec)
+  
     T1Mask=os.path.splitext(InputT1)[0] + '_SkinMask.nii.gz'
-    ants.image_write(img_mask,(T1Mask))
-    
+    sitk.WriteImage(T1Mask, T1Mask)
+
     ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
-    img = ants.image_read(InputZTE)
-    img_n4 = ants.n4_bias_field_correction(img)
-    ants.image_write(img_n4,(ZTEfnameBiasCorrec))
-    
+
+    N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
     #coreg
 
     ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
-    img = ants.image_read(T1fnameBiasCorrec)
-    img_out = ants.multiply_images(img, img_mask)
-    ants.image_write(img_out,(T1fnameBiasCorrec))
-    
-    img = ants.image_read(ZTEInT1W)
-    img_out = ants.multiply_images(img, img_mask)
-    ants.image_write(img_out,(ZTEInT1W))
+    img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
+    img_out=img*img_mask
+    sitk.WriteImage(img_out, T1fnameBiasCorrec)
+
+    img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
+    img_out = img*img_mask
+    sitk.WriteImage(img_out, ZTEInT1W)
     return T1fnameBiasCorrec,ZTEInT1W, T1Mask
 
 def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):

@@ -55,7 +55,7 @@ import argparse
 from pathlib import Path
 from CalculateMaskProcess import CalculateMaskProcess
 import platform
-import ants
+import SimpleITK as sitk
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
@@ -720,9 +720,9 @@ class RunMaskGeneration(QObject):
         print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
-        preT1=ants.image_read(T1W)
-        preT1.set_spacing([1.0,1.0,1.0])
-        ants.image_write(preT1,T1WIso)
+        preT1=sitk.ReadImage(T1W)
+        preT1.SetSpacing([1.0,1.0,1.0])
+        sitk.WriteImage(preT1, T1WIso)
 
         kargs={}
         kargs['SimbNIBSDir']=self._mainApp.Config['simbnibs_path']
