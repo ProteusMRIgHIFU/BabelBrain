@@ -115,6 +115,10 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     img_n4=N4BiasCorrec(InputT1)
 
     img_tmp = sitk.OtsuThreshold(img_n4, 0, 1, 200)
+    filter=sitk.BinaryFillholeImageFilter()
+    img_tmp=filter.Execute(img_tmp)
+    sitk.WriteImage(img_tmp, os.path.splitext(InputT1)[0] + '_Otsu.nii.gz')
+
 
     filter = sitk.BinaryDilateImageFilter()
     filter.SetKernelType(sitk.sitkBall)
@@ -126,16 +130,17 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     img_tmp = filter.Execute(img_tmp)
 
     filter = sitk.BinaryThresholdImageFilter()
-    filter.SetInsideValue(0)
-    filter.SetOutsideValue(1)
+    filter.SetInsideValue(1)
+    filter.SetOutsideValue(0)
     filter.SetUpperThreshold(0.6)
+    filter.SetLowerThreshold(0.0)
     img_mask = filter.Execute(img_tmp)
 
     T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
     sitk.WriteImage(img_n4, T1fnameBiasCorrec)
   
     T1Mask=os.path.splitext(InputT1)[0] + '_SkinMask.nii.gz'
-    sitk.WriteImage(T1Mask, T1Mask)
+    sitk.WriteImage(img_mask, T1Mask)
 
     ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
 
@@ -146,11 +151,11 @@ def BiasCorrecAndCoreg(InputT1,InputZTE):
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
-    img_out=img*img_mask
+    img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     sitk.WriteImage(img_out, T1fnameBiasCorrec)
 
     img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
-    img_out = img*img_mask
+    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
     sitk.WriteImage(img_out, ZTEInT1W)
     return T1fnameBiasCorrec,ZTEInT1W, T1Mask
 
