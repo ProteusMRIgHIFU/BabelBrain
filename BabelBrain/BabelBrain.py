@@ -169,7 +169,7 @@ class BabelBrain(QWidget):
                 widget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])
             if 'ComputingBackend' in prevConfig:
                 if prevConfig['ComputingBackend']==0:
-                    Backend==''
+                    Backend=''
                     GPU='CPU'
                 else:
                     GPU=prevConfig['ComputingDevice']

@@ -36,22 +36,44 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 def RunElastix(reference,moving,finalname):
-    path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        result = subprocess.run(
-                ["zsh",
-                path_script,
-                reference,
-                moving,
-                tmpdirname], capture_output=True, text=True
-        )
-        print("stdout:", result.stdout)
-        print("stderr:", result.stderr)
-        if result.returncode == 0:
-            shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+    if sys.platform == 'linux':
+        shell='bash'
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
+    elif _IS_MAC:
+        shell='zsh'
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+    if sys.platform == 'linux' or _IS_MAC:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            result = subprocess.run(
+                    [shell,
+                    path_script,
+                    reference,
+                    moving,
+                    tmpdirname], capture_output=True, text=True
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            if result.returncode == 0:
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
 
-    if result.returncode != 0:
-        raise SystemError("Error when trying to run elastix")
+        if result.returncode != 0:
+            raise SystemError("Error when trying to run elastix")
+    else:
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            result = subprocess.run(
+                    [path_script,
+                    reference,
+                    moving,
+                    tmpdirname], capture_output=True, text=True,shell=True,
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            if result.returncode == 0:
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+
+        if result.returncode != 0:
+            raise SystemError("Error when trying to run elastix")
 
 def N4BiasCorrec(input,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):

@@ -2,6 +2,7 @@ import numpy as np
 import pyopencl as cl
 import os
 from numba import jit,njit, prange
+import sys
 
 @njit
 def checkVoxelInd(location, vtable):
@@ -48,6 +49,7 @@ using namespace metal;
 #include <helper_math.h>
 #endif 
 
+
 typedef unsigned int uint32_t;
 
 #define float_error 0.000001
@@ -63,7 +65,7 @@ __device__ inline void setBitXor(unsigned int* voxel_table, size_t index)
 inline void setBitXor( device atomic_uint * voxel_table, size_t index) 
 #endif
 {
-    size_t int_location = index / size_t(32);
+    size_t int_location = index / 32;
     unsigned int bit_pos = 31 - ((unsigned int)(index) % 32); // we count bit positions RtL, but array indices LtR
     unsigned int mask = 1 << bit_pos;
 #if defined(_OPENCL) 
@@ -138,7 +140,7 @@ inline bool TopLeftEdge(float2 v0, float2 v1)
     return ((v1.y<v0.y) || (v1.y == v0.y&&v0.x>v1.x));
 }
 
-
+#ifndef _CUDA
 // Voxelisation info (global parameters for the voxelization process)
 typedef struct voxinfo {
     float3 min;
@@ -147,6 +149,7 @@ typedef struct voxinfo {
     size_t n_triangles;
     float3 unit;
 } voxinfo;
+#endif
 '''
 
 
@@ -285,7 +288,7 @@ inline bool checkVoxelInd(const size_t index, device const unsigned int * vtable
 #endif
 {
     size_t int_location = index / 32;
-    unsigned int bit_pos = 31 - (index % 32); // we count bit positions RtL, but array indices LtR
+    unsigned int bit_pos = 31 - (((unsigned int)(index)) % 32); // we count bit positions RtL, but array indices LtR
     unsigned int mask = 1 << bit_pos;
     if (vtable[int_location] & mask)
         return true;
@@ -307,7 +310,7 @@ __kernel void ExtractPoints(__global const unsigned int* voxel_table,
 #endif
 
 #ifdef _CUDA
-__global__ void ExtractPoints( const unsigned int* voxel_table,
+ extern "C" __global__ void ExtractPoints( const unsigned int* voxel_table,
                               unsigned int * globalcount,
                               float * Points,
                             const unsigned int total,
@@ -334,7 +337,7 @@ kernel void ExtractPoints( device const unsigned int* voxel_table [[ buffer(0) ]
     
 #endif
     if (k < (size_t)total) {
-        size_t n=k+ size_t(base);
+        size_t n=k+ ((size_t)(base));
         if (checkVoxelInd(n,voxel_table))
         {
             size_t k=n/((size_t)(gx*gy));
@@ -463,18 +466,35 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
     vtable=np.zeros(vtable_size,np.uint8)
     if GPUBackend=='CUDA':
         context = ctx.make_context()
+        # if sys.platform == 'linux':
+        #     SCode_p2='''
+        #         __constant__ voxinfo info ={{
+        #             .min={{ {xmin:10.9f},{ymin:10.9f},{zmin:10.9f} }},
+        #             .max={{ {xmax:10.9f},{ymax:10.9f},{zmax:10.9f} }},
+        #             .gridsize={{ {gx},{gy},{gz} }},
+        #             .n_triangles=(size_t) ({n_triangles}),
+        #             .unit= {{ {dx:10.9f},{dy:10.9f},{dz:10.9f} }}
+        #         }};
+        #         '''.format(xmin=r[0,0],ymin=r[0,1],zmin=r[0,2],xmax=r[1,0],ymax=r[1,1],zmax=r[1,2],
+        #             n_triangles=n_triangles,gx=gx,gy=gy,gz=gz,dx=dxzy[0],dy=dxzy[1],dz=dxzy[2])
+        # else:
         SCode_p2='''
-            __constant__ voxinfo info ={{
-                .min={{ {xmin:10.9f},{ymin:10.9f},{zmin:10.9f} }},
-                .max={{ {xmax:10.9f},{ymax:10.9f},{zmax:10.9f} }},
-                .gridsize={{ {gx},{gy},{gz} }},
-                .n_triangles=(size_t) ({n_triangles}),
-                .unit= {{ {dx:10.9f},{dy:10.9f},{dz:10.9f} }}
-            }};
-            '''.format(xmin=r[0,0],ymin=r[0,1],zmin=r[0,2],xmax=r[1,0],ymax=r[1,1],zmax=r[1,2],
-                n_triangles=n_triangles,gx=gx,gy=gy,gz=gz,dx=dxzy[0],dy=dxzy[1],dz=dxzy[2])
+        typedef struct voxinfo {{
+            float3 min{{ {xmin:10.9f},{ymin:10.9f},{zmin:10.9f} }};
+            float3 maxx{{ {xmax:10.9f},{ymax:10.9f},{zmax:10.9f} }};
+            uint3 gridsize{{ {gx},{gy},{gz} }};
+            size_t n_triangles={n_triangles};
+            float3 unit{{{dx:10.9f},{dy:10.9f},{dz:10.9f} }};
+        }} voxinfo;
+        __constant__ voxinfo info;
+                '''.format(xmin=r[0,0],ymin=r[0,1],zmin=r[0,2],xmax=r[1,0],ymax=r[1,1],zmax=r[1,2],
+                    n_triangles=n_triangles,gx=gx,gy=gy,gz=gz,dx=dxzy[0],dy=dxzy[1],dz=dxzy[2])
+        if sys.platform in ['linux']:
+            inc_dir = ['/usr/local/cuda/samples/common/inc']
+        else:
+            inc_dir =[os.getenv('NVCUDASAMPLES_ROOT')+os.sep+'common'+os.sep+'inc']
         prg  = clp("#define _CUDA\n"+_SCode_p1+SCode_p2+_SCode_p3, no_extern_c=True,
-                    include_dirs=['/usr/local/cuda/samples/common/inc'])
+                    include_dirs=inc_dir)
         knl = prg.get_function("voxelize_triangle_solid")
         vtable_dev=queue.mem_alloc(vtable.nbytes)
         triangles_dev=queue.mem_alloc(triangles.nbytes)
@@ -483,8 +503,9 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         Grid=(int(n_triangles//Block[0]+1),1,1)
         knl(triangles_dev,vtable_dev,block=Block,grid=Grid)
         context.synchronize()
-        queue.memcpy_dtoh( triangles,triangles_dev)
-
+        queue.memcpy_dtoh( vtable,vtable_dev)
+        context.synchronize()
+        vtable=np.frombuffer(vtable,np.uint32)
     elif GPUBackend=='OpenCL':
         SCode_p2='''
             __constant voxinfo info ={{
@@ -536,79 +557,82 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
     totalPoints=calctotalpoints((gx,gy,gz),vtable)[0]
     print('totalPoints',totalPoints)
     Points=np.zeros((totalPoints,3),np.float32)
-    # ExtractPoints(np.array((gx,gy,gz),np.int64),Points,vtable)
-    step=240000000
-    sizePdev=min((step,totalPoints))
-    Points_part=np.zeros((sizePdev,3),np.float32)
-    globalcount=np.zeros(2,np.uint64)
-    if GPUBackend=='CUDA':
-        Points_dev=queue.mem_alloc(Points_part.nbytes)
-        globalcount_dev=queue.mem_alloc(globalcount.nbytes)
-        queue.memcpy_htod(globalcount_dev, globalcount)
-    elif GPUBackend=='OpenCL':
-        Points_dev=clp.Buffer(ctx, mf.WRITE_ONLY, Points_part.nbytes)
-        globalcount_dev=clp.Buffer(ctx, mf.READ_WRITE| mf.COPY_HOST_PTR, hostbuf=globalcount )
+    if GPUBackend=='CUDA': #for this step, we use numba, not sure why the version of the CUDA kernel (quite simple in principle) is not working
+        ExtractPoints(np.array((gx,gy,gz),np.int64),Points,vtable)
     else:
-        Points_dev=ctx.buffer(Points_part.nbytes)
-        globalcount_dev=ctx.buffer(globalcount)
-        inparams=np.zeros(3,np.uint32)
-        
-    totalGrid=gx*gy*gz
-    prevPInd=0
-    for nt in range(0,totalGrid,step):
-        ntotal=min((totalGrid-nt,step))
+        step=240000000
+        sizePdev=min((step,totalPoints))
+        Points_part=np.zeros((sizePdev,3),np.float32)
+        globalcount=np.zeros(2,np.uint64)
         if GPUBackend=='CUDA':
-            knl = prg.get_function("ExtractPoints")
-            Block=(64,1,1)
-            Grid=(int(ntotal//Block[0]+1),1,1)
-            knl(vtable_dev,globalcount_dev,Points_dev,
-                                               np.uint32(ntotal),
-                                               np.uint32(nt),
-                                               np.uint32(prevPInd),
-                                               np.uint32(gx),
-                                               np.uint32(gy),
-                                               np.uint32(gz),
-                                               block=Block,
-                                               grid=Grid)
-            context.synchronize()
-            queue.memcpy_dtoh( Points_part,Points_dev)
-            queue.memcpy_dtoh( globalcount,globalcount_dev)
+            Points_dev=queue.mem_alloc(Points_part.nbytes)
+            globalcount_dev=queue.mem_alloc(globalcount.nbytes)
+            queue.memcpy_htod(globalcount_dev, globalcount)
         elif GPUBackend=='OpenCL':
-            prg.ExtractPoints(queue,[ntotal],None,vtable_dev,
-                                               globalcount_dev,
-                                               Points_dev,
-                                               np.uint32(ntotal),
-                                               np.uint32(nt),
-                                               np.uint32(prevPInd),
-                                               np.uint32(gx),
-                                               np.uint32(gy),
-                                               np.uint32(gz))
-            queue.finish()
-            clp.enqueue_copy(queue, Points_part,Points_dev)
-            queue.finish()
-            clp.enqueue_copy(queue, globalcount,globalcount_dev)
-            queue.finish()
+            Points_dev=clp.Buffer(ctx, mf.WRITE_ONLY, Points_part.nbytes)
+            globalcount_dev=clp.Buffer(ctx, mf.READ_WRITE| mf.COPY_HOST_PTR, hostbuf=globalcount )
         else:
-            inparams[0]=ntotal
-            inparams[1]=nt
-            inparams[2]=prevPInd
-            inparams_dev=ctx.buffer(inparams)
-            ctx.init_command_buffer()
-            handle = prg.function('ExtractPoints')(ntotal,vtable_dev,globalcount_dev,inparams_dev,Points_dev)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            Points_part=np.frombuffer(Points_dev,dtype=np.float32).reshape(sizePdev,3)
-            globalcount=np.frombuffer(globalcount_dev,dtype=np.uint64)
+            Points_dev=ctx.buffer(Points_part.nbytes)
+            globalcount_dev=ctx.buffer(globalcount)
+            inparams=np.zeros(3,np.uint32)
+            
+        totalGrid=gx*gy*gz
+        prevPInd=0
+        for nt in range(0,totalGrid,step):
+            ntotal=min((totalGrid-nt,step))
+            if GPUBackend=='CUDA':
+                knl = prg.get_function("ExtractPoints")
+                Block=(64,1,1)
+                Grid=(int(ntotal//Block[0]+1),1,1)
+                knl(vtable_dev,globalcount_dev,Points_dev,
+                                                np.uint32(ntotal),
+                                                np.uint32(nt),
+                                                np.uint32(prevPInd),
+                                                np.uint32(gx),
+                                                np.uint32(gy),
+                                                np.uint32(gz),
+                                                block=Block,
+                                                grid=Grid)
+                context.synchronize()
+                queue.memcpy_dtoh( Points_part,Points_dev)
+                queue.memcpy_dtoh( globalcount,globalcount_dev)
+                context.synchronize()
+            elif GPUBackend=='OpenCL':
+                prg.ExtractPoints(queue,[ntotal],None,vtable_dev,
+                                                globalcount_dev,
+                                                Points_dev,
+                                                np.uint32(ntotal),
+                                                np.uint32(nt),
+                                                np.uint32(prevPInd),
+                                                np.uint32(gx),
+                                                np.uint32(gy),
+                                                np.uint32(gz))
+                queue.finish()
+                clp.enqueue_copy(queue, Points_part,Points_dev)
+                queue.finish()
+                clp.enqueue_copy(queue, globalcount,globalcount_dev)
+                queue.finish()
+            else:
+                inparams[0]=ntotal
+                inparams[1]=nt
+                inparams[2]=prevPInd
+                inparams_dev=ctx.buffer(inparams)
+                ctx.init_command_buffer()
+                handle = prg.function('ExtractPoints')(ntotal,vtable_dev,globalcount_dev,inparams_dev,Points_dev)
+                ctx.commit_command_buffer()
+                ctx.wait_command_buffer()
+                del handle
+                Points_part=np.frombuffer(Points_dev,dtype=np.float32).reshape(sizePdev,3)
+                globalcount=np.frombuffer(globalcount_dev,dtype=np.uint64)
+            print("part points not 0",(Points_part[:,0]!=0).astype(int).sum())
+            Points[prevPInd:int(globalcount[0]),:]=Points_part[:int(globalcount[0])-prevPInd,:]
+            prevPInd=int(globalcount[0])
         
-        Points[prevPInd:int(globalcount[0]),:]=Points_part[:int(globalcount[0])-prevPInd,:]
-        prevPInd=int(globalcount[0])
-    
+        
+        
+        print('globalcount',globalcount)
     if GPUBackend=='CUDA':
         context.pop()
-    
-    print('globalcount',globalcount)
-    
     Points[:,0]+=0.5
     Points[:,1]+=0.5
     Points[:,2]+=0.5
