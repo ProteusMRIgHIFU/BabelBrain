@@ -20,12 +20,11 @@ __kernel void mapfilter(
 
     if (x > dims_0 || y > dims_1 || z > dims_2)
         return;
-    const unsigned size_t _i = x*dims_1*dims_2 + y*dims_2 + z;
+    const unsigned size_t ind = x*dims_1*dims_2 + y*dims_2 + z;
 #endif
 #ifdef _CUDA
-__global__ void mapfilter(
-                                     const  float * HUMap,
-                                     const unsigned char * IsBone,
+extern "C" __global__ void mapfilter(  const float * HUMap,
+                                      const unsigned char * IsBone,
                                      const float * UniqueHU,
                                      unsigned int * CtMap,
                                     const unsigned int dimUnique,
@@ -37,9 +36,9 @@ __global__ void mapfilter(
     const size_t y =  (size_t)(blockIdx.y*blockDim.y + threadIdx.y);
     const size_t z =  (size_t)(blockIdx.z*blockDim.z + threadIdx.z);
 
-    if (x > dims_0 || y > dims_1 || z > dims_2)
+    if (x > ((size_t)dims_0) || y > ((size_t)dims_1) || z > ((size_t)dims_2))
         return;
-    const size_t _i = x*dims_1*dims_2 + y*dims_2 + z;
+    const  size_t ind = x*((size_t)dims_1)*((size_t)dims_2) + y*((size_t)dims_2) + z;
 #endif
 
 #ifdef _METAL
@@ -50,20 +49,22 @@ kernel void mapfilter(
                                     const device unsigned char * IsBone [[ buffer(1) ]],
                                     const device float * UniqueHU [[ buffer(2) ]],
                                     unsigned device int * CtMap [[ buffer(3) ]],
-                                    uint _i[[thread_position_in_grid]]) {
+                                    uint ind[[thread_position_in_grid]]) {
       
  
 #endif
-    if (IsBone[_i] ==0)
+    if (IsBone[ind] ==0)
         return; 
-    const float selV = HUMap[_i];
+    const float selV = HUMap[ind];
 
     for (unsigned int iw_0 = 0; iw_0 < dimUnique; iw_0++)
     {
         if (selV == UniqueHU[iw_0])
         {
-            CtMap[_i] = (unsigned int) iw_0;
+           
+            CtMap[ind] =  iw_0;
             break;
+            
         }
     }
 
@@ -79,8 +80,7 @@ clp= None
 ocl=None
 
 def InitCUDA(DeviceName='A6000'):
-    import pycuda.driver as cuda
-    from pycuda.compiler import SourceModule
+    import cupy as cp
     global Platforms
     global queue 
     global prgcl 
@@ -88,25 +88,23 @@ def InitCUDA(DeviceName='A6000'):
     global clp
     global knl
 
-    cuda.init()
-    devCount = cuda.Device.count()
+    devCount = cp.cuda.runtime.getDeviceCount()
     print("Number of CUDA devices found:", devCount)
     if devCount == 0:
         raise SystemError("There are no CUDA devices.")
-    
+        
     selDevice = None
 
     for deviceID in range(0, devCount):
-        device = cuda.Device(deviceID)
-        if DeviceName in device.name():
-            selDevice= device
+        d=cp.cuda.runtime.getDeviceProperties(deviceID)
+        if DeviceName in d['name'].decode('UTF-8'):
+            selDevice=cp.cuda.Device(deviceID)
 
     if selDevice is None:
         raise SystemError("There are no devices supporting CUDA or that matches selected device.")
       
-    queue = cuda
     ctx=selDevice
-    clp=SourceModule
+    clp=cp
 
 
 def InitOpenCL(DeviceName='AMD'):
@@ -166,6 +164,7 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
     global clp
     global ocl
     # global knl_2px
+    
     assert(HUMap.dtype==np.float32)
     assert(UniqueHU.dtype==np.float32)
     assert(SelBone.dtype==np.uint8)
@@ -174,34 +173,26 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
     CtMap=np.zeros(HUMap.shape,np.uint32)
  
     if GPUBackend=='CUDA':
-        context = ctx.make_context()
-        prgcl  = clp( "#define _CUDA\n"+_code)
-        knl=prgcl.get_function("mapfilter")
+        with ctx:
+            prgcl  = clp.RawModule(code= "#define _CUDA\n"+_code)
+            knl=prgcl.get_function("mapfilter")
 
-        HUMap_pr=queue.mem_alloc(HUMap.nbytes)
-        UniqueHU_pr=queue.mem_alloc(UniqueHU.nbytes)
-        SelBone_pr=queue.mem_alloc(SelBone.nbytes)
-        CtMap_pr=queue.mem_alloc(CtMap.nbytes)
-
-        queue.memcpy_htod(HUMap_pr, HUMap)
-        queue.memcpy_htod(SelBone_pr, SelBone)
-        queue.memcpy_htod(CtMap_pr, CtMap)
-
-        Block=(4,4,4)
-        Grid=(HUMap.shape[0]//Block[0]+1,HUMap.shape[1]//Block[1]+1,HUMap.shape[2]//Block[2]+1)
-        knl(HUMap_pr,
-                SelBone_pr,
-                UniqueHU_pr,
-                CtMap_pr,
-                np.uint32(len(UniqueHU)),
-                np.uint32(HUMap.shape[0]),
-                np.uint32(HUMap.shape[1]),
-                np.uint32(HUMap.shape[2]),
-                block=Block,grid=Grid)
-        context.synchronize()
-        queue.memcpy_dtoh( CtMap,CtMap_pr)
-        context.synchronize()
-        context.pop()
+            HUMap_pr=clp.asarray(HUMap)
+            UniqueHU_pr=clp.asarray(UniqueHU)
+            SelBone_pr=clp.asarray(SelBone)
+            CtMap_pr=clp.zeros(CtMap.shape,CtMap.dtype)
+            Block=(4,4,4)
+            Grid=(HUMap.shape[0]//Block[0]+1,HUMap.shape[1]//Block[1]+1,HUMap.shape[2]//Block[2]+1)
+            knl(Grid,Block,(HUMap_pr,
+                    SelBone_pr,
+                    UniqueHU_pr,
+                    CtMap_pr,
+                    len(UniqueHU),
+                    HUMap.shape[0],
+                    HUMap.shape[1],
+                    HUMap.shape[2]))
+            
+            CtMap=CtMap_pr.get()
     elif GPUBackend=='OpenCL':
         
         mf = ocl.mem_flags
@@ -238,3 +229,9 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
         CtMap=np.frombuffer(CtMap_pr,dtype=CtMap.dtype).reshape(CtMap.shape)
   
     return CtMap
+
+if __name__ == "__main__":
+    from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+    t=ReadFromH5py('test.h5')
+    InitCUDA('A6000')
+    MapFilter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')

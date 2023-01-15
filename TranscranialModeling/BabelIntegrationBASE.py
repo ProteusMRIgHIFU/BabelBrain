@@ -242,9 +242,9 @@ def HUtoLongSpeedofSoundWebb(HU):
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
-    res = np.round(np.array(nii.header.get_zooms()).mean(),5)
+    res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
     try:
-        pre=sitk.ReadImage(T1W)
+        pre=sitk.ReadImage(fn)
         pre.SetSpacing([res,res,res])
         sitk.WriteImage(pre, newfn)
         os.remove(fn)
