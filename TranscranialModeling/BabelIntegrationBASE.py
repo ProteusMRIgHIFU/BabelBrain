@@ -19,7 +19,7 @@ from BabelViscoFDTD.PropagationModel import PropagationModel
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL
 from scipy import ndimage
 import nibabel
-import ants
+import SimpleITK as sitk
 from nibabel import processing
 from scipy import interpolate
 from skimage.draw import circle_perimeter,disk
@@ -278,11 +278,11 @@ def DensityToLAttPichardo(Density,Frequency):
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
-    res = np.round(np.array(nii.header.get_zooms()).mean(),5)
+    res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
     try:
-        pre=ants.image_read(fn)
-        pre.set_spacing([res,res,res])
-        ants.image_write(pre,newfn)
+        pre=sitk.ReadImage(fn)
+        pre.SetSpacing([res,res,res])
+        sitk.WriteImage(pre, newfn)
         os.remove(fn)
     except:
         res = '%6.5f' % (res)
