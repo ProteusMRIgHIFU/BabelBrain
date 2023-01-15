@@ -36,12 +36,14 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     try:
 
         import BabelDatasetPreps as DataPreps
-        
+        from GPUVoxelize import Voxelize
+        from GPUMapping import MappingFilter
+        print('sys.platform',sys.platform)
         if sys.platform not in ['linux','win32']: 
             assert(COMPUTING_BACKEND in [2,3])  
             #in Linux, we can cuse cupy
             from GPUMedianFilter import  MedianFilter
-            
+
             if COMPUTING_BACKEND==2:
                 MedianFilter.InitOpenCL(DeviceName= devicename)
                 Voxelize.InitOpenCL(DeviceName= devicename)
@@ -56,8 +58,6 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
             DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
         else:
             assert(COMPUTING_BACKEND in [1,2])
-            from GPUVoxelize import Voxelize
-            from GPUMapping import MappingFilter
 
             if COMPUTING_BACKEND==1:
                 Voxelize.InitCUDA(DeviceName= devicename)

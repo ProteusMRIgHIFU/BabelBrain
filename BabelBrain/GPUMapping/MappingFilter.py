@@ -99,6 +99,7 @@ def InitCUDA(DeviceName='A6000'):
         d=cp.cuda.runtime.getDeviceProperties(deviceID)
         if DeviceName in d['name'].decode('UTF-8'):
             selDevice=cp.cuda.Device(deviceID)
+            break
 
     if selDevice is None:
         raise SystemError("There are no devices supporting CUDA or that matches selected device.")
