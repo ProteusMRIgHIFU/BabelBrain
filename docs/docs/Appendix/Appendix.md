@@ -71,11 +71,11 @@ A pressure transmission coefficient $T$ was calculated by comparing simulated ul
 
 $$
 \begin{align}
-T = \sqrt{\frac{\sum_{x,y} I_{\text{SPTA-skull}}(x,y,z_m)}{\sum_{x,y}I_{\text{SPTA-water}}(x,y,z_m)}},
+T = \sqrt{\frac{\sum_{x,y} I_{\text{SPPA-skull}}(x,y,z_m)}{\sum_{x,y}I_{\text{SPPA-water}}(x,y,z_m)}},
 \end{align}
 $$
 
-where $I_{\text{SPTA-skull}}(x,y,z_m)$ and $I_{\text{SPTA-water}}(x,y,z_m)$ are the spatial-peak time-average acoustic intensity in presence of the skull and water conditions, respectively, over a plane $(x,y)$ at a distance $z_m$ that was chosen at the location of maximal pressure in water conditions. The results of simulated $T$ with the different mapping methods were compared to values of $T$ reported in litterature []
+where $I_{\text{SPPA-skull}}(x,y,z_m)$ and $I_{\text{SPPA-water}}(x,y,z_m)$ are the spatial-peak pulse-average acoustic intensity in presence of the skull and water conditions, respectively, over a plane $(x,y)$ at a distance $z_m$ that was chosen at the location of maximal pressure in water conditions. The results of simulated $T$ with the different mapping methods were compared to values of $T$ reported in litterature []
  A root-mean-square error (RMSE) was calculated between simulated $T$ and reported values in literature [@pichardo_multi-frequency_2010]$^{,}$[@attaliThreelayerModelAbsorption2023]. Pichardo[@pichardo_multi-frequency_2010] reported energy transmission coefficient $E$. The pressure transmission coefficient was calculated with $T=\sqrt{E}$. Simulations were executed in an iMac Pro computer system (Apple, Cupertino, CA) equipped with a  3 GHz Xeon-W processor (10 cores) and 128 GB RAM. Acceleration of calculations was done with an external AMD 6800 Pro graphical processor unit with 32 GB RAM.
 #### Results
  
