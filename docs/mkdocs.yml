@@ -23,8 +23,10 @@ nav:
 markdown_extensions:
     - md4mathjax
     - footnotes
+    - pymdownx.arithmatex
 extra_javascript:
-  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML
+  - mathjax-config.js
+  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML
 plugins:
   - search
   - bibtex:
