@@ -220,6 +220,16 @@ def HUtoDensityKWave(HUin):
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
 
+def HUtoDensityAirTissue(HUIn):
+    # linear fitting using
+    # DensityAir=1.293 
+    # DensityTissue=1041
+    # HUAir=-1000
+    # HUTissue=27
+    
+    pf=np.array([1.01237293e+00, 1.01366593e+03])
+    return np.polyval(HUIn,pf)
+
 def HUtoDensityMarsac(HUin):
     rhomin=1000.0
     rhomax=2700.0
@@ -434,6 +444,7 @@ class BabelFTD_Simulations_BASE(object):
                  bDoRefocusing=True,
                  bWaterOnly=False,
                  QCorrection=3,
+                 MappingMethod='Webb-Marsac',
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
         
@@ -460,6 +471,7 @@ class BabelFTD_Simulations_BASE(object):
         self._SensorSubSampling=SensorSubSampling
         self._CTFNAME=CTFNAME
         self._QCorrection=QCorrection
+        self._MappingMethod=MappingMethod
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -481,36 +493,42 @@ class BabelFTD_Simulations_BASE(object):
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
-            #DensityCT=HUtoDensityKWave(AllBoneHU)
-            Porosity=HUtoPorosity(AllBoneHU)
+            print('USING MAPPING METHOD = ',self._MappingMethod)
+            if self._MappingMethod=='Webb-Marsac':
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                SoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency)
+            elif self._MappingMethod=='Aubry':
+                Porosity=HUtoPorosity(AllBoneHU)
+                DensityCTIT = PorositytoDensity(Porosity)
+                SoSIT = PorositytoLSOS(AllBoneHU)
+                LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
+            elif  self._MappingMethod=='Pichardo':
+                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                SoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
+                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
+            elif self._MappingMethod=='McDannold':
+                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                SoSIT=DensityToLSOSMcDannold(DensityCTIT)
+                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+            #these are more experimental
+            elif self._MappingMethod=='Marsac-Aubry':
+                #Marsac did not calculate attenuation... we use Aubry's old
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                SoSIT=DensitytoLSOSMarsac(DensityCTIT)
+                Porosity=HUtoPorosity(AllBoneHU)
+                LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
+            elif self._MappingMethod=='Pichardo-Marsac':
+                #Marsac did not calculate attenuation... we use Aubry's old
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                SoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
+                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
+            elif self._MappingMethod=='McDannold-Marsac':
+                #Marsac did not calculate attenuation... we use Aubry's old
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                SoSIT=DensityToLSOSMcDannold(DensityCTIT)
+                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             
-            print('Range Porosity, Unique entries',Porosity.min(),Porosity.max(),len(Porosity),len(np.unique(Porosity)))
-            DensityCT = PorositytoDensity(Porosity)
-            DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-            DensityCTKW=HUtoDensityKWave(AllBoneHU)
-            SoSMarsac=DensitytoLSOSMarsac(DensityCTIT)
-            AttMcDannold=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
-            SoSMcDannold=DensityToLSOSMcDannold(DensityCTIT)
-
-            AttPichardo=DensityToLAttPichardo(DensityCTIT,self._Frequency)
-            SoSPichardo=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
-
-            print('Range Density CT',DensityCT.min(),DensityCT.max())
-            print('Range Density CT IT',DensityCTIT.min(),DensityCTIT.max())
-            print('Range Density CT KWave',DensityCTKW.min(),DensityCTKW.max())
-            print('Range Long SOS CT porosity',PorositytoLSOS(Porosity.max()),PorositytoLSOS(Porosity.min()))
-            print('Range Long SOS CT Marsac',SoSMarsac.min(),SoSMarsac.max())
-            print('Range Long SOS CT McDannold',SoSMcDannold.min(),SoSMcDannold.max())
-            print('Range Long SOS CT Pichardo',SoSPichardo.min(),SoSPichardo.max())
-            print('Range Long SOS CT Webb',HUtoLongSpeedofSoundWebb(AllBoneHU.max()),HUtoLongSpeedofSoundWebb(AllBoneHU.min()))
-            print('Range Long SOS CT IT',LSOSITRUST(DensityCTIT.min()),LSOSITRUST(DensityCTIT.max()))
-            print('Range Long Att CT Porosity',PorositytoLAtt(Porosity.min(),self._Frequency),PorositytoLAtt(Porosity.max(),self._Frequency))
-            print('Range Long Att CT Webb',HUtoAttenuationWebb(AllBoneHU.max(),self._Frequency),HUtoAttenuationWebb(AllBoneHU.min(),self._Frequency))
-            print('Range Long Att CT McDannold',AttMcDannold.min(),AttMcDannold.max())
-            print('Range Long Att CT Pichardo',AttPichardo.min(),AttPichardo.max())
-            
-            
-            print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             
             # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
@@ -542,24 +560,12 @@ class BabelFTD_Simulations_BASE(object):
                                             0,
                                             SelM[3],
                                             0) 
-            for d,HU,lSoS,p in zip(DensityCTIT,AllBoneHU,SoSMarsac,Porosity):
-                SelM=MatFreq[self._Frequency]['Cortical']
-                # LAtt=LATTITRUST_Pinton(self._Frequency)
-                lSoS = HUtoLongSpeedofSoundWebb(HU)
-                LAtt = HUtoAttenuationWebb(HU,self._Frequency)
-                # LAtt=FitAttCorticalLong_Multiple(self._Frequency)
-                # LAtt=DensityToLAttMcDannold(d,self._Frequency)
-                # LAtt=PorositytoLAtt(p,self._Frequency)
-                # lSoS = DensityToLSOSMcDannold(d)
-                # LAtt = DensityToLAttPichardo(d,self._Frequency)[0]
-                # lSoS = DensityToLSOSPichardo(d,self._Frequency)[0]
-                SSoS = 0 # SSOSITRUST(d)
-                SAtt = 0 # SATTITRUST_Pinton(self._Frequency)
+            for d,lSoS,lAtt in zip(DensityCTIT,SoSIT,LAttIT):
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
-                                        SSoS,
-                                        LAtt,
-                                        SAtt)#,SelM[4]/4)
+                                        0,
+                                        lAtt,
+                                        0)
 
             
             print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
@@ -647,12 +653,12 @@ class BabelFTD_Simulations_BASE(object):
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
         bdir=os.path.dirname(self._MASKFNAME)
-        if bMinimalSaving==False:
-            nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
+        # if bMinimalSaving==False:
+        #     nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
+        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
             
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+        #     nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -661,17 +667,17 @@ class BabelFTD_Simulations_BASE(object):
         mx=np.unique(mx.flatten())
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
-        if self._bDoRefocusing:
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
+        # if self._bDoRefocusing:
+        #     nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+        #     nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
                 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        # nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+        # SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
+        # nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        # SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
