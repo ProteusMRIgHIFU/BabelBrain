@@ -4,10 +4,9 @@ Miscouridou, M., Pineda-Pardo, J.A., Stagg, C.J., Treeby, B.E. and Stanziola, A.
 2022. Classical and learned MR to pseudo-CT mappings for accurate transcranial ultrasound simulation.
 IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10), pp.2896-2905.
 '''
-import ants
 import nibabel
 from nibabel import processing
-#import itk
+import SimpleITK as sitk
 import tempfile
 import os
 import scipy
@@ -37,22 +36,72 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 def RunElastix(reference,moving,finalname):
-    path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        result = subprocess.run(
-                ["zsh",
-                path_script,
-                reference,
-                moving,
-                tmpdirname], capture_output=True, text=True
-        )
-        print("stdout:", result.stdout)
-        print("stderr:", result.stderr)
-        if result.returncode == 0:
-            shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+    if sys.platform == 'linux':
+        shell='bash'
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
+    elif _IS_MAC:
+        shell='zsh'
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+    if sys.platform == 'linux' or _IS_MAC:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            result = subprocess.run(
+                    [shell,
+                    path_script,
+                    reference,
+                    moving,
+                    tmpdirname], capture_output=True, text=True
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            if result.returncode == 0:
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
 
-    if result.returncode != 0:
-        raise SystemError("Error when trying to run elastix")
+        if result.returncode != 0:
+            raise SystemError("Error when trying to run elastix")
+    else:
+        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            result = subprocess.run(
+                    [path_script,
+                    reference,
+                    moving,
+                    tmpdirname], capture_output=True, text=True,shell=True,
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            if result.returncode == 0:
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+
+        if result.returncode != 0:
+            raise SystemError("Error when trying to run elastix")
+
+def N4BiasCorrec(input,output=None,shrinkFactor=4,
+                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
+    inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
+    image = inputImage
+
+    maskImage = sitk.OtsuThreshold(inputImage, 0, 1, 200)
+
+    if shrinkFactor > 1:
+        image = sitk.Shrink(
+            inputImage, [shrinkFactor] * inputImage.GetDimension()
+        )
+        maskImage = sitk.Shrink(
+            maskImage, [shrinkFactor] * inputImage.GetDimension()
+        )
+    corrector = sitk.N4BiasFieldCorrectionImageFilter()
+    corrector.SetMaximumNumberOfIterations(
+        convergence['iters']
+    )
+    corrector.SetConvergenceThreshold(convergence['tol'])
+    corrected_image = corrector.Execute(image, maskImage)
+    log_bias_field = corrector.GetLogBiasFieldAsImage(inputImage)
+    corrected_image_full_resolution = inputImage / sitk.Exp(log_bias_field)
+
+    if output is not None:
+        sitk.WriteImage(corrected_image_full_resolution, output)
+
+    return corrected_image_full_resolution
 
 def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     # CoregCT_MRI =0, do not coregister, just load data
@@ -62,11 +111,8 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        img = ants.image_read(InputT1)
-        img_n4 = ants.n4_bias_field_correction(img)
-        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-        ants.image_write(img_n4,(T1fnameBiasCorrec))   
-
+        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz' 
+        N4BiasCorrec(InputT1,T1fnameBiasCorrec)
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
@@ -86,41 +132,30 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
             return nibabel.load(InputCT)
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     #Bias correction
-    img = ants.image_read(InputT1)
-    img_n4 = ants.n4_bias_field_correction(img)
-    img_tmp = img_n4.otsu_segmentation(k=1) # otsu_segmentation
-    img_tmp = ants.multi_label_morphology(img_tmp, 'MD', 2) # dilate 2
-    img_tmp = ants.smooth_image(img_tmp, 3) # smooth 3
-    img_tmp = ants.threshold_image(img_tmp, 0.6) # threshold 0.5
-    img_mask = ants.get_mask(img_tmp)
-   
     T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-    ants.image_write(img_n4,(T1fnameBiasCorrec))
-    T1Mask=os.path.splitext(InputT1)[0] + '_SkinMask.nii.gz'
-    ants.image_write(img_mask,(T1Mask))
-    
+
+    N4BiasCorrec(InputT1,T1fnameBiasCorrec)
+
     ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
-    img = ants.image_read(InputZTE)
-    img_n4 = ants.n4_bias_field_correction(img)
-    ants.image_write(img_n4,(ZTEfnameBiasCorrec))
-    
+
+    N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
     #coreg
 
     ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
-    img = ants.image_read(T1fnameBiasCorrec)
-    img_out = ants.multiply_images(img, img_mask)
-    ants.image_write(img_out,(T1fnameBiasCorrec))
-    
-    img = ants.image_read(ZTEInT1W)
-    img_out = ants.multiply_images(img, img_mask)
-    ants.image_write(img_out,(ZTEInT1W))
-    return T1fnameBiasCorrec,ZTEInT1W, T1Mask
+    img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
+    img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    sitk.WriteImage(img_out, T1fnameBiasCorrec)
 
-def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
+    img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
+    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    sitk.WriteImage(img_out, ZTEInT1W)
+    return T1fnameBiasCorrec,ZTEInT1W
+
+def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
     print('converting ZTE to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
@@ -146,46 +181,50 @@ def ConvertZTE_pCT(InputT1,InputZTE,HeadMask,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         arrSkin=volumeSkin.get_fdata()
         arrCavities=volumeCavities.get_fdata()
     
-    volumeT1 = nibabel.load(InputT1)
-    volumeZTE = nibabel.load(InputZTE)
-    volumeHead = nibabel.load(HeadMask)
-    
-    arrZTE=volumeZTE.get_fdata()
-    arrHead=volumeHead.get_fdata()
-    
-    
-    
-    maskedZTE =arrZTE.copy()
-    maskedZTE[arrMask==0]=-1000
-    
-    cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
-    
-    
-    arrZTE/=cutoff
-    
-    arrZTE[arrHead==0]=-0.5
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
+        sitk.WriteImage(TMaskItk,HeadMask)
+        
+        volumeT1 = nibabel.load(InputT1)
+        volumeZTE = nibabel.load(InputZTE)
+        volumeHead = nibabel.load(HeadMask)
+        
+        arrZTE=volumeZTE.get_fdata()
+        arrHead=volumeHead.get_fdata()
+        
+        
+        
+        maskedZTE =arrZTE.copy()
+        maskedZTE[arrMask==0]=-1000
+        
+        cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
+        
+        
+        arrZTE/=cutoff
+        
+        arrZTE[arrHead==0]=-0.5
 
-    arrGauss=arrZTE.copy()
-    arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
-    arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
-    
-    label_img = label(arr)
-    def pixelcount(regionmask):
-        return np.sum(regionmask)
-    props = regionprops(label_img, extra_properties=(pixelcount,))
-    props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
-    arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
+        arrGauss=arrZTE.copy()
+        arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
+        arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
+        
+        label_img = label(arr)
+        def pixelcount(regionmask):
+            return np.sum(regionmask)
+        props = regionprops(label_img, extra_properties=(pixelcount,))
+        props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
+        arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-    
-    arrCT=np.zeros_like(arrGauss)
-    arrCT[arrSkin==0]=-1000 
-    arrCT[arrSkin!=0]=42.0 #soft tissue
-    arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
-    arrCT[arrCT<-1000]=-1000 #air
-    arrCT[arrCT>3300]=-1000 #air 
-    arrCT[arrCavities!=0]=-1000
-    
-    pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-    CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
-    nibabel.save(pCT,CTfname)
+        
+        arrCT=np.zeros_like(arrGauss)
+        arrCT[arrSkin==0]=-1000 
+        arrCT[arrSkin!=0]=42.0 #soft tissue
+        arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+        arrCT[arrCT<-1000]=-1000 #air
+        arrCT[arrCT>3300]=-1000 #air 
+        arrCT[arrCavities!=0]=-1000
+        
+        pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
+        CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
+        nibabel.save(pCT,CTfname)
     return pCT

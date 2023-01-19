@@ -19,6 +19,7 @@ from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
 import pyvista as pv
+import SimpleITK as sitk
 import time
 import gc
 import yaml
@@ -249,6 +250,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         charm= nibabel.load(charminput)
         charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
         AllTissueRegion=charmdata>0 #this mimics what the old headreco does for skin
+        TMaskItk=sitk.ReadImage(charminput, sitk.sitkFloat32)>0 #we also kept an SITK Object
+
         BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
         CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
         with CodeTimer("charm surface recon",unit='s'):
@@ -258,7 +261,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             skin_mesh.export(skin_stl)
             csf_mesh.export(csf_stl)
             skull_mesh.export(skull_stl)
-
+    else:
+        TMaskItk=sitk.ReadImage(SimbNIBSDir+os.sep+'skin.nii.gz', sitk.sitkFloat32)>0 #we also kept an SITK Object
 
     #building a cone object representing acoustic beam pointing to desired location
     RadCone=TxDiam/2*factorEnlargeRadius
@@ -532,9 +536,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         if bIsZTE:
             print('Processing ZTE to pCT')
             with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
-                rT1,rZTE,rMask=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input)
+                rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
-                rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,rMask,os.path.dirname(skull_stl),
+                rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),
                     ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType)
         else:
             with CodeTimer("Coregistration CT to T1",unit='s'):
