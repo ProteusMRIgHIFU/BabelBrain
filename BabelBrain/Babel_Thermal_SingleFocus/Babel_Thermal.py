@@ -133,6 +133,8 @@ class Babel_Thermal(QWidget):
                 bCalcFields=True
         else:
             bCalcFields = True
+        
+        self._bRecalculated=True
         self._ThermalResults=[]
         if bCalcFields:
             self.thread = QThread()
@@ -248,13 +250,30 @@ class Babel_Thermal(QWidget):
         self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
                                                formatter={'float_kind':lambda x: "%3.2f" % x}))
 
-      
+        if self._bRecalculated:
+            XX,ZZ=np.meshgrid(xf,zf)
+            self._XX=XX
+            self._ZZ=ZZ
+            
         if bUpdatePlot:
             DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
             SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
             IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
             IntensityMap[0,:]=0
             Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+
+
+            if self._bRecalculated and hasattr(self,'_figIntThermalFields'):
+                children = []
+                for i in range(self._layout.count()):
+                    child = self._layout.itemAt(i).widget()
+                    if child:
+                        children.append(child)
+                for child in children:
+                    child.deleteLater()
+                delattr(self,'_figIntThermalFields')
+                # self._layout.deleteLater()
+                
 
             if hasattr(self,'_figIntThermalFields'):
                 self._IntensityIm.set_data(IntensityMap)
@@ -275,7 +294,8 @@ class Babel_Thermal(QWidget):
                 self._figIntThermalFields.canvas.draw_idle()
             else:
                 self._ListMarkers=[]
-                self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+                if not hasattr(self,'_layout'):
+                    self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
                 self._figIntThermalFields=Figure(figsize=(14, 12))
                 self.static_canvas = FigureCanvas(self._figIntThermalFields)
@@ -292,10 +312,7 @@ class Babel_Thermal(QWidget):
                 static_ax1.set_title('Isppa (W/cm$^2$)')
                 plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-                XX,ZZ=np.meshgrid(xf,zf)
-                self._XX=XX
-                self._ZZ=ZZ
-                self._contour1=static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
 
                 static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -310,6 +327,8 @@ class Babel_Thermal(QWidget):
                 # self._figIntThermalFields.set_tight_layout(True)
 
                 self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+
+            self._bRecalculated=False
 
             yf=DataThermal['y_vec']
             yf-=yf[Loc[1]]

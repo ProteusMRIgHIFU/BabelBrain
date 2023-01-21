@@ -534,7 +534,16 @@ class BabelFTD_Simulations_BASE(object):
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
             print(" CT Map unique values",np.unique(DensityCTMap).shape)
-        
+
+        #we only adjust Qcorrection for skull material, not for soft tissue
+        if self._bWaterOnly:
+            QCorrArr =1.0
+        elif  self._CTFNAME is None:
+            QCorrArr = np.ones(5)
+        else:
+            QCorrArr=np.ones(3+len(DensityCTIT))
+            QCorrArr[2:]=self._QCorrection
+
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
                                 basePPW=self._basePPW,
                                 Frequency=self._Frequency,
@@ -549,7 +558,7 @@ class BabelFTD_Simulations_BASE(object):
                                 TxMechanicalAdjustmentY=self._TxMechanicalAdjustmentY,
                                 TxMechanicalAdjustmentZ=self._TxMechanicalAdjustmentZ,
                                 DensityCTMap=DensityCTMap,
-                                QCorrection=self._QCorrection,
+                                QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
         if  self._CTFNAME is not None and not self._bWaterOnly:
             # for k in ['Skin','Brain']:
@@ -802,7 +811,7 @@ class SimulationConditionsBASE(object):
         self._PaddingForKArray=PaddingForKArray
         self._PaddingForRayleigh=PaddingForRayleigh
         self._QfactorCorrection=QfactorCorrection
-        self._QCorrection=QCorrection,
+        self._QCorrection=QCorrection
         self._bDisplay=bDisplay
         self._DispersionCorrection=DispersionCorrection
         self._Aperture=Aperture
@@ -813,6 +822,8 @@ class SimulationConditionsBASE(object):
         self._TxMechanicalAdjustmentY=TxMechanicalAdjustmentY
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
         self._DensityCTMap=DensityCTMap
+
+        
         
         
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
@@ -1121,7 +1132,7 @@ elif self._bTightNarrowBeamDomain:
         Ox=np.ones(self._MaterialMap.shape) #we do not do weigthing for a forwardpropagated source
         Oy=np.array([1])
         Oz=np.array([1])
-        
+
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
                                                              self._MaterialMap,

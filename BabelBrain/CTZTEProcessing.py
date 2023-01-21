@@ -43,7 +43,7 @@ def RunElastix(reference,moving,finalname):
         elif _IS_MAC:
             shell='zsh'
             path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-            
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             result = subprocess.run(
                     [shell,
@@ -55,7 +55,7 @@ def RunElastix(reference,moving,finalname):
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii'),finalname)
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
 
         if result.returncode != 0:
             raise SystemError("Error when trying to run elastix")
@@ -71,7 +71,7 @@ def RunElastix(reference,moving,finalname):
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii'),finalname)
+                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
 
         if result.returncode != 0:
             raise SystemError("Error when trying to run elastix")

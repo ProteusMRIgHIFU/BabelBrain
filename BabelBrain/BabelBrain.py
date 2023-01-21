@@ -579,9 +579,13 @@ class BabelBrain(QWidget):
         z_vec-=z_vec.mean()
         LocFocalPoint=np.array(np.where(FinalMask==5)).flatten()
         self._LocFocalPoint=LocFocalPoint
-        CMapXZ=FinalMask[:,LocFocalPoint[1],:].T
-        CMapYZ=FinalMask[LocFocalPoint[0],:,:].T
-        CMapXY=FinalMask[:,:,LocFocalPoint[2]].T
+        CMapXZ=FinalMask[:,LocFocalPoint[1],:].T.copy()
+        CMapYZ=FinalMask[LocFocalPoint[0],:,:].T.copy()
+        CMapXY=FinalMask[:,:,LocFocalPoint[2]].T.copy()
+        if self.Config['bUseCT']:
+            CMapXZ[CMapXZ==2]=3
+            CMapYZ[CMapYZ==2]=3
+            CMapXY[CMapXY==2]=3
         
         sm=plt.cm.ScalarMappable(cmap='gray')
         alpha=self.Widget.TransparencyScrollBar.value()/100.0
