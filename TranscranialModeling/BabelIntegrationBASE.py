@@ -501,8 +501,8 @@ class BabelFTD_Simulations_BASE(object):
             elif self._MappingMethod=='Aubry':
                 Porosity=HUtoPorosity(AllBoneHU)
                 DensityCTIT = PorositytoDensity(Porosity)
-                SoSIT = PorositytoLSOS(AllBoneHU)
-                LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
+                SoSIT = PorositytoLSOS(Porosity)
+                LAttIT = PorositytoLAtt(Porosity,self._Frequency)
             elif  self._MappingMethod=='Pichardo':
                 DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
                 SoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
