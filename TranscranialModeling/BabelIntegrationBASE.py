@@ -653,12 +653,12 @@ class BabelFTD_Simulations_BASE(object):
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
         bdir=os.path.dirname(self._MASKFNAME)
-        # if bMinimalSaving==False:
-        #     nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
-        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
+        if bMinimalSaving==False:
+            nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
             
-        #     nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -667,17 +667,17 @@ class BabelFTD_Simulations_BASE(object):
         mx=np.unique(mx.flatten())
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
-        # if self._bDoRefocusing:
-        #     nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
-        #     nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        #     SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
+        if self._bDoRefocusing:
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
                 
-        # nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        # SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
-        # nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        # SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
+        nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']

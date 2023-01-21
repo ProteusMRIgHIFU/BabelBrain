@@ -36,13 +36,14 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 def RunElastix(reference,moving,finalname):
-    if sys.platform == 'linux':
-        shell='bash'
-        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
-    elif _IS_MAC:
-        shell='zsh'
-        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
     if sys.platform == 'linux' or _IS_MAC:
+        if sys.platform == 'linux':
+            shell='bash'
+            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
+        elif _IS_MAC:
+            shell='zsh'
+            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+            
         with tempfile.TemporaryDirectory() as tmpdirname:
             result = subprocess.run(
                     [shell,
@@ -54,7 +55,7 @@ def RunElastix(reference,moving,finalname):
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+                shutil.move(os.path.join(tmpdirname,'result.0.nii'),finalname)
 
         if result.returncode != 0:
             raise SystemError("Error when trying to run elastix")
@@ -70,7 +71,7 @@ def RunElastix(reference,moving,finalname):
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+                shutil.move(os.path.join(tmpdirname,'result.0.nii'),finalname)
 
         if result.returncode != 0:
             raise SystemError("Error when trying to run elastix")

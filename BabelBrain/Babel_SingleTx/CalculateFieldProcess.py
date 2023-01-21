@@ -35,12 +35,6 @@ def CalculateFieldProcess(queue,Target,**kargs):
 
     
     stdout = InOutputWrapper(queue,True)
-    kk={}
-    kk['targets']=Target
-    for k in kargs:
-        kk[k]=kargs[k]
-    with open('acfield.json','w') as g:
-        json.dump(kk,g,indent=4)
 
     try:
         COMPUTING_BACKEND=kargs['COMPUTING_BACKEND']
