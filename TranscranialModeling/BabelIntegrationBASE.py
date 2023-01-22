@@ -119,21 +119,21 @@ def FitAttTrabecularLong_Goss(frequency,reductionFactor=1):
     JasaAtt1MHz=1.5*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttCorticalLong_Multiple(frequency,reductionFactor=1):
+def FitAttCorticalLong_Multiple(frequency,bcoeff=1.20584825,reductionFactor=1):
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
     
-    return np.round(203.25090263*((frequency/1e6)**1.20584825)*reductionFactor)
+    return np.round(203.25090263*((frequency/1e6)**bcoeff)*reductionFactor)
 
-def FitAttTrabecularLong_Multiple(frequency,reductionFactor=1):
+def FitAttTrabecularLong_Multiple(frequency,bcoeff=1.84850688,reductionFactor=1):
     #reduction factor 
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
-    return np.round(202.76362433*((frequency/1e6)**1.84850688)*reductionFactor) 
+    return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
 for f in np.arange(100e3,1050e3,50e3):
@@ -561,7 +561,8 @@ class BabelFTD_Simulations_BASE(object):
                                 QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
         if  self._CTFNAME is not None and not self._bWaterOnly:
-            for k in ['Skin','Brain']:
+            # for k in ['Skin','Brain']:
+            for k in ['Water','Water']:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -580,7 +581,8 @@ class BabelFTD_Simulations_BASE(object):
                 
 
         else:
-            for k in ['Skin','Cortical','Trabecular','Brain']:
+            # for k in ['Skin','Cortical','Trabecular','Brain']:
+            for k in ['Water','Cortical','Trabecular','Water']:
                 SelM=MatFreq[self._Frequency][k]
                 Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
