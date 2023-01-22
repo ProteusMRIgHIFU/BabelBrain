@@ -561,8 +561,7 @@ class BabelFTD_Simulations_BASE(object):
                                 QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
         if  self._CTFNAME is not None and not self._bWaterOnly:
-            # for k in ['Skin','Brain']:
-            for k in ['Water','Water']:
+            for k in ['Skin','Brain']:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],

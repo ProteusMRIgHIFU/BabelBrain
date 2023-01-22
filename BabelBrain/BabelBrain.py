@@ -125,74 +125,76 @@ class OutputWrapper(QObject):
 
 GetSmallestSOS=None
 
+_LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
+_BrainsightSyncPath=str(Path.home())+os.sep+'.BabelBrainSync'
+
+def GetLatestSelection():
+    res=None
+    if os.path.isfile(_LastSelConfig):
+        with open(_LastSelConfig,'r') as f:
+            try:
+                res=yaml.safe_load(f)
+            except BaseException as e:
+                print('Unable to load previous selection')
+                print(e)
+                res=None
+        try:
+            if res is not None:
+                if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory'])\
+                or not os.path.isfile(res['ThermalProfile']):
+                    print('Ignoring config as files and dir may not exist anymore\n',res)
+                    res=None
+        except:
+            res = None
+    return res
+
+def GetInputFromBrainsight():
+    res=None
+    PathMat4Trajectory  = _BrainsightSyncPath + os.sep +'Input_Target.txt'
+    PathT1W             = _BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
+    Pathsimbnibs_path   = _BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
+
+
+    if os.path.isfile(PathMat4Trajectory) and \
+        os.path.isfile(PathT1W) and \
+        os.path.isfile(Pathsimbnibs_path):
+        res={}
+        with open (PathT1W,'r') as f:
+            l=f.readlines()[0].strip()
+        res['T1W']=l
+
+        ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
+        
+        #for the time being, we need the trajectory to be next to T1w
+        RPath=os.path.split(res['T1W'])[0]+os.sep+ID+'.txt'
+        assert(shutil.copyfile(PathMat4Trajectory,RPath))
+
+        print('ID,RPath',ID,RPath)
+
+        res['Mat4Trajectory']=RPath
+        
+        with open (Pathsimbnibs_path,'r') as f:
+            l=f.readlines()[0].strip()
+        res['simbnibs_path']=l
+        
+        if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory']):
+                print('Ignoring Brainsight config as files and dir may not exist anymore\n',res)
+                res=None
+    return res
+
+########################
 class BabelBrain(QWidget):
     '''
     Main LIFU Control application
 
     '''
-    def __init__(self,simbnibs_path='',T1W='',Mat4Trajectory='',ThermalProfile='',bInUseWithBrainsight=False):
+    def __init__(self,widget,bInUseWithBrainsight=False):
         super(BabelBrain, self).__init__()
         print('home',Path.home())
         #This file will store the last config selected
-        self._LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
-
-        self._BrainsightSyncPath=str(Path.home())+os.sep+'.BabelBrainSync'
 
         self._bInUseWithBrainsight=bInUseWithBrainsight #this will be use to sync input and output with Brainsight
-        widget = SelFiles()
-    
-        prevConfig=self.GetLatestSelection()
         
-        if prevConfig is not None:
-            widget.ui.SimbNIBSlineEdit.setText(prevConfig['simbnibs_path'])
-            widget.ui.T1WlineEdit.setText(prevConfig['T1W'])
-            widget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Trajectory'])
-            widget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
-            if 'CT_or_ZTE_input' in prevConfig:
-                widget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
-                widget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
-            if 'SimbNIBSType' in prevConfig:
-                SimbNIBSType=prevConfig['SimbNIBSType']
-                if SimbNIBSType =='charm':
-                    SimbNIBSTypeint=0
-                else:
-                    SimbNIBSTypeint=1
-                widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
-            if 'TrajectoryType' in prevConfig:
-                TrajectoryType=prevConfig['TrajectoryType']
-                if TrajectoryType =='brainsight':
-                    TrajectoryTypeint=0
-                else:
-                    TrajectoryTypeint=1
-                widget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
-            if 'CoregCT_MRI' in prevConfig:
-                widget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])
-            if 'ComputingBackend' in prevConfig:
-                if prevConfig['ComputingBackend']==0:
-                    Backend=''
-                    GPU='CPU'
-                else:
-                    GPU=prevConfig['ComputingDevice']
-                    if prevConfig['ComputingBackend']==1:
-                        Backend='CUDA'
-                    elif prevConfig['ComputingBackend']==2:
-                        Backend='OpenCL'
-                    elif prevConfig['ComputingBackend']==3:
-                        Backend='Metal'
-
-                widget.SelectComputingEngine(GPU=GPU,Backend=Backend)
-
-            if 'TxSystem' in prevConfig:
-                widget.SelectTxSystem(prevConfig['TxSystem'])
-
-        if bInUseWithBrainsight:
-            Brainsight=self.GetInputFromBrainsight()
-            assert(Brainsight is not None)
-            widget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
-            widget.ui.T1WlineEdit.setText(Brainsight['T1W'])
-            widget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
-
-        widget.exec()
         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
         T1W=widget.ui.T1WlineEdit.text()
         CT_or_ZTE_input=widget.ui.CTlineEdit.text()
@@ -245,70 +247,16 @@ class BabelBrain(QWidget):
         self.InitApplication()
         self.static_canvas=None
 
-    def GetInputFromBrainsight(self):
-        res=None
-        PathMat4Trajectory  = self._BrainsightSyncPath + os.sep +'Input_Target.txt'
-        PathT1W             = self._BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
-        Pathsimbnibs_path   = self._BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
-
-
-        if os.path.isfile(PathMat4Trajectory) and \
-           os.path.isfile(PathT1W) and \
-           os.path.isfile(Pathsimbnibs_path):
-            res={}
-            with open (PathT1W,'r') as f:
-                l=f.readlines()[0].strip()
-            res['T1W']=l
-
-            ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
-            
-            #for the time being, we need the trajectory to be next to T1w
-            RPath=os.path.split(res['T1W'])[0]+os.sep+ID+'.txt'
-            assert(shutil.copyfile(PathMat4Trajectory,RPath))
-
-            print('ID,RPath',ID,RPath)
-
-            res['Mat4Trajectory']=RPath
-            
-            with open (Pathsimbnibs_path,'r') as f:
-                l=f.readlines()[0].strip()
-            res['simbnibs_path']=l
-            
-            if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory']):
-                    print('Ignoring Brainsight config as files and dir may not exist anymore\n',res)
-                    res=None
-        return res
-
-    def GetLatestSelection(self):
-        res=None
-        if os.path.isfile(self._LastSelConfig):
-            with open(self._LastSelConfig,'r') as f:
-                try:
-                    res=yaml.safe_load(f)
-                except BaseException as e:
-                    print('Unable to load previous selection')
-                    print(e)
-                    res=None
-            try:
-                if res is not None:
-                    if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory'])\
-                    or not os.path.isfile(res['ThermalProfile']):
-                        print('Ignoring config as files and dir may not exist anymore\n',res)
-                        res=None
-            except:
-                res = None
-        return res
-
     def SaveLatestSelection(self):
-        if not os.path.isfile(self._LastSelConfig):
+        if not os.path.isfile(_LastSelConfig):
             try:
-                os.makedirs(os.path.split(self._LastSelConfig)[0],exist_ok=True)
+                os.makedirs(os.path.split(_LastSelConfig)[0],exist_ok=True)
             except BaseException as e:
                 print('Unable to save selection')
                 print(e)
                 return
-        if os.path.isdir(os.path.split(self._LastSelConfig)[0]):
-            with open(self._LastSelConfig,'w') as f:
+        if os.path.isdir(os.path.split(_LastSelConfig)[0]):
+            with open(_LastSelConfig,'w') as f:
                 try:
                     res=yaml.safe_dump(self.Config,f)
                 except BaseException as e:
@@ -398,7 +346,6 @@ class BabelBrain(QWidget):
             self.Widget.USMaskkHzDropDown.removeItem(0)
 
         for f in self.AcSim.Config['USFrequencies']:
-            print('f','%i'%(f/1e3))
             self.Widget.USMaskkHzDropDown.insertItem(0, '%i'%(f/1e3))
 
         with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
@@ -797,20 +744,70 @@ def main():
             sys.exit(2)
     
     parser = MyParser(prog='BabelBrain', usage='python %(prog)s.py [options]',description='Run BabelBrain simulation',  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--Mat4Trajectory', type=str, nargs='?',default='',help='Path to Brainsight trajectory file')
-    parser.add_argument('--T1W', type=str, nargs='?',default='',help='Path to T1W Nifti file')
-    parser.add_argument('--simbnibs_path', type=str, nargs='?',default='',help='Path to Simbnibs output dir')
-    parser.add_argument('--ThermalProfile', type=str, nargs='?',default='',help='Path to thermal profile file')
     parser.add_argument('-bInUseWithBrainsight', action='store_true')
 
     args = parser.parse_args()
+
     app = QApplication([])
+
+    selwidget = SelFiles()
+    
+    prevConfig=GetLatestSelection()
+    
+    if prevConfig is not None:
+        selwidget.ui.SimbNIBSlineEdit.setText(prevConfig['simbnibs_path'])
+        selwidget.ui.T1WlineEdit.setText(prevConfig['T1W'])
+        selwidget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Trajectory'])
+        selwidget.ui.ThermalProfilelineEdit.setText(prevConfig['ThermalProfile'])
+        if 'CT_or_ZTE_input' in prevConfig:
+            selwidget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
+            selwidget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
+        if 'SimbNIBSType' in prevConfig:
+            SimbNIBSType=prevConfig['SimbNIBSType']
+            if SimbNIBSType =='charm':
+                SimbNIBSTypeint=0
+            else:
+                SimbNIBSTypeint=1
+            selwidget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSTypeint)
+        if 'TrajectoryType' in prevConfig:
+            TrajectoryType=prevConfig['TrajectoryType']
+            if TrajectoryType =='brainsight':
+                TrajectoryTypeint=0
+            else:
+                TrajectoryTypeint=1
+            selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
+        if 'CoregCT_MRI' in prevConfig:
+            selwidget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])
+        if 'ComputingBackend' in prevConfig:
+            if prevConfig['ComputingBackend']==0:
+                Backend=''
+                GPU='CPU'
+            else:
+                GPU=prevConfig['ComputingDevice']
+                if prevConfig['ComputingBackend']==1:
+                    Backend='CUDA'
+                elif prevConfig['ComputingBackend']==2:
+                    Backend='OpenCL'
+                elif prevConfig['ComputingBackend']==3:
+                    Backend='Metal'
+
+            selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
+
+        if 'TxSystem' in prevConfig:
+            selwidget.SelectTxSystem(prevConfig['TxSystem'])
+
+    if args.bInUseWithBrainsight:
+        Brainsight=GetInputFromBrainsight()
+        assert(Brainsight is not None)
+        selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
+        selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
+        selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
+
+    selwidget.exec()
+    
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
-    widget = BabelBrain(Mat4Trajectory=args.Mat4Trajectory,
-                        T1W=args.T1W,
-                        simbnibs_path=args.simbnibs_path,
-                        ThermalProfile=args.ThermalProfile,
+    widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight)
     widget.show()
     sys.exit(app.exec())
