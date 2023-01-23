@@ -224,8 +224,8 @@ def HUtoDensityAirTissue(HUIn):
     # HUAir=-1000
     # HUTissue=27
     
-    pf=np.array([1.01237293e+00, 1.01366593e+03])
-    return np.polyval(HUIn,pf)
+    pf=np.array([1.01237293, 1.01366593e+03])
+    return np.polyval(pf,HUIn)
 
 def HUtoDensityMarsac(HUin):
     rhomin=1000.0
@@ -529,6 +529,8 @@ class BabelFTD_Simulations_BASE(object):
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+            else:
+                raise ValueError('Unknown mapping method -' +self._MappingMethod )
             
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
