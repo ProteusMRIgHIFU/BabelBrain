@@ -85,15 +85,16 @@ def FitSpeedTrabecularShear(frequency):
     p=np.polyfit(FRef, CsRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitAttCorticalShear(frequency):
+def PorosityToSSoS(Phi,frequency):
+    sMin=FitSpeedTrabecularShear(frequency)
+    sMax=FitSpeedCorticalShear(frequency)
+    sSoS = sMin * Phi + sMax*(1.0-Phi)
+    return sSoS
+
+def FitAttBoneShear(frequency,reductionFactor=1.0):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     PichardoData=(57.0/.27 +373/0.836)/2
-    return np.round(PichardoData*(frequency/1e6)*0.6) #temporary fix to test
-
-def FitAttTrabecularShear(frequency):
-    #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
-    PichardoData=(57.0/.27+373/0.836)/2
-    return np.round(PichardoData*(frequency/1e6)*0.6) #temporary fix to test
+    return np.round(PichardoData*(frequency/1e6)*reductionFactor) 
 
 def FitSpeedCorticalLong(frequency):
     #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014 
@@ -119,7 +120,7 @@ def FitAttTrabecularLong_Goss(frequency,reductionFactor=1):
     JasaAtt1MHz=1.5*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttCorticalLong_Multiple(frequency,bcoeff=1.20584825,reductionFactor=1):
+def FitAttCorticalLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
@@ -127,7 +128,7 @@ def FitAttCorticalLong_Multiple(frequency,bcoeff=1.20584825,reductionFactor=1):
     
     return np.round(203.25090263*((frequency/1e6)**bcoeff)*reductionFactor)
 
-def FitAttTrabecularLong_Multiple(frequency,bcoeff=1.84850688,reductionFactor=1):
+def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     #reduction factor 
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
@@ -144,11 +145,11 @@ for f in np.arange(100e3,1050e3,50e3):
     Material['Cortical']=  np.array([1896.5, FitSpeedCorticalLong(f), 
                                              FitSpeedCorticalShear(f),  
                                              FitAttCorticalLong_Multiple(f)  , 
-                                             FitAttCorticalShear(f)])
+                                             FitAttBoneShear(f)])
     Material['Trabecular']=np.array([1738.0, FitSpeedTrabecularLong(f),
                                              FitSpeedTrabecularShear(f),
                                              FitAttTrabecularLong_Multiple(f) , 
-                                             FitAttTrabecularShear(f)])
+                                             FitAttBoneShear(f)])
     Material['Skin']=      np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
     Material['Brain']=     np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
 
@@ -165,11 +166,11 @@ def GetSmallestSOS(frequency,bShear=False):
             SoS=SelFreq[k][2]
     
     if bShear:
-        SoS=np.min([SoS,SSOSITRUST(1000.0)])
+        SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
         print('GetSmallestSOS',SoS)
     return SoS
 
-def LSOSITRUST(density):
+def LLSoSITRUST(density):
     return density*1.33 + 167  #
 
 def LATTITRUST_Pinton(frequency):
@@ -180,10 +181,6 @@ def SATTITRUST_Pinton(frequency):
     att=540*0.1151277918# Np/m/MHz # Med Phys. 2012 Jan;39(1):299-307.doi: 10.1118/1.3668316. 
     return att*frequency/1e6
 
-def SSOSITRUST(density):
-    #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
-    return density*0.422 + 680.515  
-    
 
 def primeCheck(n):
     # 0, 1, even numbers greater than 2 are NOT PRIME
@@ -284,6 +281,11 @@ def DensityToLSOSPichardo(Density,Frequency):
 
 def DensityToLAttPichardo(Density,Frequency):
     return _PichardoAtt(Density,Frequency/1e6)
+
+def DensityToSSoSPichardo(density):
+    #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
+    return density*0.422 + 680.515  
+    
 
 def SaveNiftiEnforcedISO(nii,fn):
     nii.to_filename(fn)
@@ -494,43 +496,40 @@ class BabelFTD_Simulations_BASE(object):
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
+            Porosity=HUtoPorosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                SoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU)
                 LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency)
             elif self._MappingMethod=='Aubry':
-                Porosity=HUtoPorosity(AllBoneHU)
                 DensityCTIT = PorositytoDensity(Porosity)
-                SoSIT = PorositytoLSOS(Porosity)
+                LSoSIT = PorositytoLSOS(Porosity)
                 LAttIT = PorositytoLAtt(Porosity,self._Frequency)
             elif  self._MappingMethod=='Pichardo':
                 DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                SoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
+                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold':
                 DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                SoSIT=DensityToLSOSMcDannold(DensityCTIT)
+                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             #these are more experimental
             elif self._MappingMethod=='Marsac-Aubry':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                SoSIT=DensitytoLSOSMarsac(DensityCTIT)
-                Porosity=HUtoPorosity(AllBoneHU)
+                LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
                 LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
             elif self._MappingMethod=='Pichardo-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                SoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
+                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                SoSIT=DensityToLSOSMcDannold(DensityCTIT)
+                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             
-            
-            # print('Range Shear SOS CT',SSOSITRUST(DensityCT.min()),SSOSITRUST(DensityCT.max()))
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
             print(" CT Map unique values",np.unique(DensityCTMap).shape)
@@ -543,6 +542,7 @@ class BabelFTD_Simulations_BASE(object):
         else:
             QCorrArr=np.ones(3+len(DensityCTIT))
             QCorrArr[2:]=self._QCorrection
+
 
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
                                 basePPW=self._basePPW,
@@ -569,7 +569,10 @@ class BabelFTD_Simulations_BASE(object):
                                             0,
                                             SelM[3],
                                             0) 
-            for d,lSoS,lAtt in zip(DensityCTIT,SoSIT,LAttIT):
+            #we disable shear when doing mapping as we need to develop in tandem, otherwise it can end with unrealistic
+            # Poison coefficient
+            for d,lSoS,lAtt in zip(DensityCTIT,LSoSIT,LAttIT):
+
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
                                         0,
@@ -580,7 +583,7 @@ class BabelFTD_Simulations_BASE(object):
             print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
                 
 
-        else:
+        elif not self._bWaterOnly:
             # for k in ['Skin','Cortical','Trabecular','Brain']:
             for k in ['Water','Cortical','Trabecular','Water']:
                 SelM=MatFreq[self._Frequency][k]

@@ -185,10 +185,14 @@ class Babel_Thermal(QWidget):
                                                         combination['PRF'])+'.h5'
 
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
+                if self._MainApp.Config['bUseCT']:
+                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
+                else:
+                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']==3]=2
+                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']==4]=3
         
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-
 
         Loc=DataThermal['TargetLocation']
 
@@ -262,6 +266,10 @@ class Babel_Thermal(QWidget):
             IntensityMap[0,:]=0
             Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
 
+            if self._MainApp.Config['bUseCT']:
+                crlims=[0,1,2]
+            else:
+                crlims=[0,1,2,3]
 
             if self._bRecalculated and hasattr(self,'_figIntThermalFields'):
                 children = []
@@ -286,8 +294,8 @@ class Babel_Thermal(QWidget):
                             coll.remove()
                     del self._contour1
                     del self._contour2
-                self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
-                self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
                 while len(self._ListMarkers)>0:
                     obj= self._ListMarkers.pop()
                     obj.remove()
@@ -312,7 +320,7 @@ class Babel_Thermal(QWidget):
                 static_ax1.set_title('Isppa (W/cm$^2$)')
                 plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-                self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
                 static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -322,7 +330,7 @@ class Babel_Thermal(QWidget):
                 static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                 plt.colorbar(self._ThermalIm,ax=static_ax2)
-                self._contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+                self._contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
                 # self._figIntThermalFields.set_tight_layout(True)
 

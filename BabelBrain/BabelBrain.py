@@ -803,10 +803,11 @@ def main():
         selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
         selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
 
-    selwidget.exec()
-    
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
+    
+    selwidget.exec()
+    
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight)
     widget.show()
