@@ -77,9 +77,6 @@ class SingleTx(QWidget):
 
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("Single configuration:")
-        print(config)
-
         self.Config=config
 
     def NotifyGeneratedMask(self):

@@ -348,6 +348,10 @@ class BabelBrain(QWidget):
         for f in self.AcSim.Config['USFrequencies']:
             self.Widget.USMaskkHzDropDown.insertItem(0, '%i'%(f/1e3))
 
+        if self.Config['TxSystem']=='Single': #for the single Tx , we use 500 kHz as default
+            sel=self.Widget.USMaskkHzDropDown.findText('500')
+            self.Widget.USMaskkHzDropDown.setCurrentIndex(sel)
+
         with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
             version=f.readlines()[0]
         self.setWindowTitle('BabelBrain V'+version +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +

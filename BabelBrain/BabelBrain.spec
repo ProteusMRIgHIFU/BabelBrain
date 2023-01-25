@@ -37,6 +37,7 @@ datas+=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_SingleTx/form.ui','./Babel_SingleTx'),
         ('form.ui','./'),
         ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
+        ('../TranscranialModeling/MapPichardo.h5','./TranscranialModeling'),
         ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
 
 
