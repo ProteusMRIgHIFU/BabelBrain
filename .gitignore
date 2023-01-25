@@ -120,12 +120,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-BabelBrain/.DS_Store
 .DS_Store
 BabelBrain/__t.vtk
 BabelBrain/__t.stl
-.DS_Store
-BabelBrain/.DS_Store
 
 *.dmg
 docs/site/**
