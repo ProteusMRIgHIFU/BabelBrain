@@ -20,7 +20,7 @@ __kernel void mapfilter(
 
     if (x > dims_0 || y > dims_1 || z > dims_2)
         return;
-    const unsigned size_t ind = x*dims_1*dims_2 + y*dims_2 + z;
+    const unsigned int ind = x*dims_1*dims_2 + y*dims_2 + z;
 #endif
 #ifdef _CUDA
 extern "C" __global__ void mapfilter(  const float * HUMap,
