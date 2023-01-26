@@ -478,8 +478,14 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                 __constant__ float3 info_unit={{{dx:10.9f},{dy:10.9f},{dz:10.9f} }};
             '''.format(xmin=r[0,0],ymin=r[0,1],zmin=r[0,2],xmax=r[1,0],ymax=r[1,1],zmax=r[1,2],
                         n_triangles=n_triangles,gx=gx,gy=gy,gz=gz,dx=dxzy[0],dy=dxzy[1],dz=dxzy[2])
+            if platform.system()=='Windows':
+                sys.executable.split('\\')[:-1]
+                options=('-I',os.path.join(os.getenv('CUDA_PATH'),'Library','Include'),
+                         '-I',str(resource_path()))
+            else:
+                options=('-I',str(resource_path()))
             prgcl  = clp.RawModule(code= "#define _CUDA\n"+_SCode_p1+SCode_p2+_SCode_p3,
-                                 options=('-I',str(resource_path())))
+                                 options=options)
             knl=prgcl.get_function("voxelize_triangle_solid")
 
             vtable_dev=clp.zeros(vtable.shape,clp.uint8)
