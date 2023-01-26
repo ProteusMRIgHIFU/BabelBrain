@@ -28,7 +28,7 @@ sys.path.append(os.path.abspath('./'))
 from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
                 QVBoxLayout,QLineEdit,QDialog,QHBoxLayout,
                 QGridLayout, QInputDialog,
-                QMessageBox,QProgressBar)
+                QMessageBox,QProgressBar,QSizePolicy)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
