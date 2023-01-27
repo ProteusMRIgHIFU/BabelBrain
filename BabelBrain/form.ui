@@ -45,7 +45,7 @@
    </property>
    <property name="font">
     <font>
-     <pointsize>15</pointsize>
+     <pointsize>13</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -359,7 +359,7 @@ mask</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>15</pointsize>
+     <pointsize>13</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -399,7 +399,7 @@ mask</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>15</pointsize>
+     <pointsize>13</pointsize>
      <bold>true</bold>
     </font>
    </property>
