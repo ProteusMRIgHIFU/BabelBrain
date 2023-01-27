@@ -60,12 +60,6 @@
      <height>38</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
@@ -329,12 +323,6 @@ to target (mm) :</string>
      <height>51</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
@@ -377,12 +365,6 @@ to focus</string>
      <width>150</width>
      <height>31</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>

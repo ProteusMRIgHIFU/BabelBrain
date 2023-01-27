@@ -123,12 +123,6 @@ Thermal fields</string>
      <height>31</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
@@ -147,12 +141,6 @@ Thermal fields</string>
      <width>91</width>
      <height>21</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -195,12 +183,6 @@ Thermal fields</string>
      <height>21</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
@@ -222,12 +204,6 @@ Thermal fields</string>
      <width>91</width>
      <height>21</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -336,12 +312,6 @@ Thermal fields</string>
      <height>39</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
@@ -387,12 +357,6 @@ T1W space :</string>
      <height>60</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
@@ -435,12 +399,6 @@ Water (W/cm2) :</string>
      <height>41</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color: rgb(255, 103, 100);</string>
    </property>
@@ -481,12 +439,6 @@ Water (W/cm2) :</string>
      <width>91</width>
      <height>21</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -529,12 +481,6 @@ Water (W/cm2) :</string>
      <height>21</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
@@ -575,12 +521,6 @@ Water (W/cm2) :</string>
      <width>81</width>
      <height>21</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
@@ -702,12 +642,6 @@ Water (W/cm2) :</string>
      <width>91</width>
      <height>21</height>
     </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-     <bold>false</bold>
-    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
