@@ -73,7 +73,7 @@
   <widget class="QLabel" name="DistanceSkinLabel">
    <property name="geometry">
     <rect>
-     <x>210</x>
+     <x>205</x>
      <y>96</y>
      <width>76</width>
      <height>31</height>
@@ -103,9 +103,12 @@
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Distance skin
@@ -126,9 +129,12 @@ to target (mm) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Range TPO distance (mm)</string>

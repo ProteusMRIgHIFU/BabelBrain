@@ -125,9 +125,12 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Ispta (W/cm2) :</string>
@@ -147,9 +150,12 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>MI:</string>
@@ -191,12 +197,15 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>MTC</string>
@@ -216,9 +225,12 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>MTS</string>
@@ -326,12 +338,15 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Adjustment in RAS
@@ -374,9 +389,12 @@ T1W space :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Req. Isppa
@@ -411,16 +429,16 @@ Water (W/cm2) :</string>
   <widget class="QLabel" name="label_11">
    <property name="geometry">
     <rect>
-     <x>18</x>
-     <y>270</y>
-     <width>291</width>
+     <x>33</x>
+     <y>267</y>
+     <width>261</width>
      <height>41</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="styleSheet">
@@ -466,9 +484,12 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>CEM-brain:</string>
@@ -510,9 +531,12 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>CEM-skin:</string>
@@ -554,12 +578,15 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>CEM-skull:</string>
@@ -678,9 +705,12 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>MTB</string>

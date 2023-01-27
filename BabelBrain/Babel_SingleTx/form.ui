@@ -32,7 +32,7 @@
   <widget class="QLabel" name="DistanceSkinLabel">
    <property name="geometry">
     <rect>
-     <x>212</x>
+     <x>210</x>
      <y>170</y>
      <width>76</width>
      <height>31</height>
@@ -62,9 +62,12 @@
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Distance skin
@@ -298,7 +301,7 @@ to target (mm) :</string>
   <widget class="QLabel" name="DistanceOutplaneLabel">
    <property name="geometry">
     <rect>
-     <x>211</x>
+     <x>210</x>
      <y>106</y>
      <width>76</width>
      <height>31</height>
@@ -320,7 +323,7 @@ to target (mm) :</string>
   <widget class="QLabel" name="label_26">
    <property name="geometry">
     <rect>
-     <x>31</x>
+     <x>34</x>
      <y>100</y>
      <width>150</width>
      <height>51</height>
@@ -328,9 +331,12 @@ to target (mm) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Distance from
@@ -366,7 +372,7 @@ to focus</string>
   <widget class="QLabel" name="label_27">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>35</x>
      <y>290</y>
      <width>150</width>
      <height>31</height>
@@ -374,9 +380,12 @@ to focus</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <pointsize>13</pointsize>
+     <bold>false</bold>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>Space Tx outplane 
