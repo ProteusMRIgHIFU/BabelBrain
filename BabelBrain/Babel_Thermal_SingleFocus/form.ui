@@ -125,7 +125,7 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -147,7 +147,7 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -191,7 +191,7 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -216,7 +216,7 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -326,7 +326,7 @@ Thermal fields</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -374,7 +374,7 @@ T1W space :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -466,7 +466,7 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -510,7 +510,7 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -554,7 +554,7 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -678,7 +678,7 @@ Water (W/cm2) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>

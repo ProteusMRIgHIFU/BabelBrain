@@ -18,6 +18,7 @@ if sys.platform =='linux':
 
 
 import os
+
 import shutil
 from pathlib import Path
 
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
                 QVBoxLayout,QLineEdit,QDialog,QHBoxLayout,
                 QGridLayout, QInputDialog,
                 QMessageBox,QProgressBar,QSizePolicy)
+
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor, QIcon
@@ -190,7 +192,6 @@ class BabelBrain(QWidget):
     '''
     def __init__(self,widget,bInUseWithBrainsight=False):
         super(BabelBrain, self).__init__()
-        print('home',Path.home())
         #This file will store the last config selected
 
         self._bInUseWithBrainsight=bInUseWithBrainsight #this will be use to sync input and output with Brainsight
@@ -325,6 +326,7 @@ class BabelBrain(QWidget):
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
+
         
         
     
@@ -809,6 +811,7 @@ def main():
 
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
+
     
     selwidget.exec()
     

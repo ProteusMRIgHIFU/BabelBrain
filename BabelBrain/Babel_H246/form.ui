@@ -103,7 +103,7 @@
    </property>
    <property name="font">
     <font>
-     <pointsize>12</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -126,7 +126,7 @@ to target (mm) :</string>
    </property>
    <property name="font">
     <font>
-     <pointsize>11</pointsize>
+     <pointsize>10</pointsize>
      <bold>true</bold>
     </font>
    </property>
