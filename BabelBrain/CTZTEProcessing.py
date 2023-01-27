@@ -148,7 +148,11 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
-    img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    try:
+        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    except:
+        img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
+        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     sitk.WriteImage(img_out, T1fnameBiasCorrec)
 
     img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
