@@ -187,10 +187,6 @@ class Babel_Thermal(QWidget):
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
                     self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
-                else:
-                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']==3]=2
-                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']==4]=3
-        
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
 
