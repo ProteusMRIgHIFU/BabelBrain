@@ -6,10 +6,58 @@ ABOUT:
     date          - July 16, 2022
     last update   - July 16, 2022
 '''
+import argparse
 import multiprocessing
-multiprocessing.freeze_support()
-from multiprocessing import Process,Queue
+import os
+import platform
+import shutil
 import sys
+import time
+from multiprocessing import Process, Queue
+from pathlib import Path
+
+import SimpleITK as sitk
+import nibabel
+import numpy as np
+import yaml
+from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot
+from PySide6.QtGui import QIcon, QPalette, QTextCursor
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QDoubleSpinBox,
+    QGridLayout,
+    QHBoxLayout,
+    QInputDialog,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
+from linetimer import CodeTimer
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
+from matplotlib.figure import Figure
+from matplotlib.pyplot import cm
+from nibabel import processing
+from superqt import QLabeledDoubleRangeSlider
+
+from CalculateMaskProcess import CalculateMaskProcess
+from ConvMatTransform import (
+    BSight_to_itk,
+    GetIDTrajectoryBrainsight,
+    ReadTrajectoryBrainsight,
+    itk_to_BSight,
+    templateSlicer,
+    read_itk_affine_transform,
+)
+from SelFiles.SelFiles import SelFiles
+
+
+multiprocessing.freeze_support()
 if sys.platform =='linux':
     try:
         multiprocessing.set_start_method('spawn')
@@ -17,47 +65,18 @@ if sys.platform =='linux':
         pass
 
 
-import os
 
-import shutil
-from pathlib import Path
 
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 
 
-from PySide6.QtWidgets import (QApplication, QWidget,QDoubleSpinBox,
-                QVBoxLayout,QLineEdit,QDialog,QHBoxLayout,
-                QGridLayout, QInputDialog,
-                QMessageBox,QProgressBar,QSizePolicy)
 
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor, QIcon
 #from qtrangeslider import   QLabeledDoubleRangeSlider
-from superqt import QLabeledDoubleRangeSlider
 
-from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight,templateSlicer,BSight_to_itk
 
-from SelFiles.SelFiles import SelFiles
 
-import numpy as np
 
-from matplotlib.pyplot import cm
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import (
-    FigureCanvas,NavigationToolbar2QT)
-import time
-import yaml
-from linetimer import CodeTimer
-import nibabel
-from nibabel import processing
-import argparse
-from pathlib import Path
-from CalculateMaskProcess import CalculateMaskProcess
-import platform
-import SimpleITK as sitk
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
