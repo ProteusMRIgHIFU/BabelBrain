@@ -18,7 +18,7 @@ This software is provided "as is" and it is intended exclusively for research pu
 Ready to use applications (no need of Python installation) for MacOS are available in the Releases section. Download, open and drag "BabelBrain" into the Applications folder. The first time you will use you will be prompted to authorize to run and to access directories. You may also need to authorize in the Security settings of MacOS.
 
 # Instructions for use
-Please consult 
+Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
 
 # Manual Installation for Development 
 If you prefer to run the code in a Python environment, the requirements are roughly a clean Python 3.9 environment and healthy XCode installation. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details what is needed for the FDTD solvers
