@@ -142,7 +142,6 @@ for f in np.arange(100e3,1050e3,50e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
-    Material['SofTissue']= np.array([1000.0, 1500.0, 0.0   ,   1.0 *f/500e3,  0.0] )
     Material['Cortical']=  np.array([1896.5, FitSpeedCorticalLong(f), 
                                              FitSpeedCorticalShear(f),  
                                              FitAttCorticalLong_Multiple(f)  , 

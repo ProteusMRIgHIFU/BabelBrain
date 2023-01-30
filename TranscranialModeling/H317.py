@@ -19,21 +19,10 @@ import gc
 import time
 
 extlay={}
-TemperatureWater=20.0
+TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-DbToNeper=1/(20*np.log10(np.exp(1)))
 
-Material={}
-#Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
-Material['Water']=     np.array([1000.0, 1500.0, 0.0,   0.0,                   0.0] )
-Material['SofTissue']= np.array([1000.0, 1500.0, 0.0,   1.0 * DbToNeper * 100*700/500,  0.0] )
-Material['Cortical']=  np.array([1850.0, 2800.0, 1550.0, 38.18, 12 * DbToNeper * 100*700/500])
-Material['Trabecular']=np.array([1700.0, 2300.0, 1400.0, 30.63, 12 * DbToNeper * 100*700/500])
-Material['Skin']=      np.array([1090.0, 1610.0, 0.0,    0.2 * DbToNeper * 100*700/500, 0]) #we scaled from the value at 500 kHz
-Material['Brain']=     np.array([1040.0, 1560.0, 0.0,    4.278, 0])
-
-SmallestSOS=Material['Trabecular'][2]
 
 def computeH317Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=9.5,FocalDistance=135):
     MininalInterElementDistanceInRadians=ToleranceDistance/FocalDistance # we can test using the angular distance from center n to center m

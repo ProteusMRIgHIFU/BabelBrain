@@ -20,7 +20,7 @@ from trimesh import creation
 import trimesh
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
-from .H317 import GenerateH317Tx, extlay
+from .H317 import GenerateH317Tx
     
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)

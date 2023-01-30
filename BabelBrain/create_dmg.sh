@@ -6,6 +6,7 @@
 
 cp -r ../ThermalProfiles dist/
 cp -r ../PlanningModels dist/
+cp -r ../LICENSE dist/
 
 # Create the DMG
 create-dmg \
