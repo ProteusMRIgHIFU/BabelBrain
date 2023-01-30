@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/results/results.html">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Results files - BabelBrain</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../pipeline/pipeline.html" class="nav-link">Simulation pipeline</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../pipeline/pipeline.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="2"><a href="#results-files" class="nav-link">Results files</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#1-input-mask-in-nifti-format" class="nav-link">1 - Input mask in Nifti format</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#2-acoustic-pressure-field-results-in-nifti-format" class="nav-link">2 - Acoustic pressure field results in Nifti format</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#3-stl-files" class="nav-link">3 - STL files</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#2-thermal-and-intensity-maps" class="nav-link">2 - Thermal and intensity maps:</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h2 id="results-files">Results files</h2>
+<p>Multiple files are generated and will be saved in the same directory where the input T1W file is located. These are the most relevant files.</p>
+<h1 id="1-input-mask-in-nifti-format">1 - Input mask in Nifti format</h1>
+<p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_BabelViscoInput.nii.gz</code></p>
+<p>For example:</p>
+<p><code>STN_CTX_500_250kHz_6PPW_BabelViscoInput.nii.gz</code></p>
+<p>This file contains the 3D mask in T1W coordinates. The raw 3D array is arranged to be aligned to create a Cartesian domain aligned following the trajectory specified by the user. Skin, cortical, trabecular, cortical, and brain tissues are defined with values of 1, 2,3 and 4, respectively. </p>
+<p><img src="Results -2.png" height=350px> </p>
+<p>If a ZTE or real CT scan was indicated as input, the files <code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_CT.nii.gz</code> and  <code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_CT.npz</code> will be also present. The <code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_CT.nii.gz</code> is a map of unique CT values (re-quantified in 12 bits). <code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_CT.npz</code> contains the indexing of unique CT map values to HU.</p>
+<p><img src="Results -3.png" height=350px> </p>
+<h1 id="2-acoustic-pressure-field-results-in-nifti-format">2 - Acoustic pressure field results in Nifti format</h1>
+<p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution.nii.gz</code></p>
+<p>For example:</p>
+<p><code>STN_CTX_500_250kHz_6PPW_FullElasticSolution.nii.gz</code></p>
+<p>This file contains the 3D pressure field in T1W coordinates. A sub-sampled version (1:2 ratio) is also saved (<code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution_Sub.nii.gz</code>) for visualization tool that cannot handle very high-resolution Nifti files. Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required <span class="arithmatex"><span class="MathJax_Preview">I_{SPPA}</span><script type="math/tex">I_{SPPA}</script></span> value to use to program devices during real experimentations. These acoustic maps should be considered <strong>adimensional</strong> and are mostly used for visualization purposes. </p>
+<h1 id="3-stl-files">3 - STL files</h1>
+<p>BabelBrain will generate STL files of the transducer that will be in T1W coordinates and aligned using the planning and simulation information. 
+ If using 'charm' from Simbnibs 4.0, BabelBrain will generate STL files for skin, csf and skull 
+regions (<code>skin.stl</code>,<code>csf.stl</code>,<code>bone.stl</code>) in the directory specified for charm output.</p>
+<p>Below there is an example of visualization of STL files of transducer, skin and acoustic maps overlay with planning T1W imaging.</p>
+<p><img src="Results -1.png" height=550px></p>
+<h1 id="2-thermal-and-intensity-maps">2 - Thermal and intensity maps:</h1>
+<p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_DataForSim-ThermalField-&lt;Timming IDs&gt;.h5</code> </p>
+<p>For example:
+ <code>STN_CTX_500_500kHz_6PPW_DataForSim-ThermalField-Duration-40-DurationOff-40-DC-300-Isppa-5.0W-PRF-10Hz.h5</code>. </p>
+<p>These are HDF5 files (also saved in Matlab .mat format) that contains multiple variables and arrays. BabelBrain contains functions to read and write HDF5 files in a simplified way (similar to Matlab and npz format). Below there is simple code to printout the variables in the files.</p>
+<pre><code class="language-Python">from BabelViscoFDTD.H5pySimple import ReadFromH5py
+import pprint
+pp = pprint.PrettyPrinter(indent=4, width=50)
+Data=ReadFromH5py('STN_CTX_500_500kHz_6PPW_DataForSim-ThermalField-Duration-40-DurationOff-40-DC-300-Isppa-5.0W-PRF-10Hz.h5')
+pp.pprint(list(Data.keys()))
+</code></pre>
+<pre><code>[   'AdjustmentInRAS',
+    'CEMBrain',
+    'CEMSkin',
+    'CEMSkull',
+    'DistanceFromSkin',
+    'DoseEndFUS',
+    'FinalDose',
+    'FinalTemp',
+    'Isppa',
+    'Ispta',
+    'MI',
+    'MaterialList',
+    'MaterialMap',
+    'MaterialMap_central',
+    'MaxBrainPressure',
+    'MaxIsppa',
+    'MaxIspta',
+    'MonitorSlice',
+    'RatioLosses',
+    'TI',
+    'TIC',
+    'TIS',
+    'TargetLocation',
+    'TempEndFUS',
+    'TempProfileTarget',
+    'TemperaturePoints',
+    'TimeProfileTarget',
+    'TxMechanicalAdjustmentZ',
+    'ZSteering',
+    'dt',
+    'mBrain',
+    'mSkin',
+    'mSkull',
+    'p_map',
+    'p_map_central',
+    'x_vec',
+    'y_vec',
+    'z_vec']
+</code></pre>
+<p>These files are generated in function of the thermal profiles chosen for the simulations. There would be one file for each combination of duration, duty cycle and pulse repetition. Thermal maps and acoustic intensity are calculated assuming a <span class="arithmatex"><span class="MathJax_Preview">I_{SPPA}</span><script type="math/tex">I_{SPPA}</script></span> of 5 W/cm<span class="arithmatex"><span class="MathJax_Preview">^2</span><script type="math/tex">^2</script></span> at the target. BabelBrain scales results based on this intensity. Below there is a simple code showing how BabelBrain calculates and displays results scaled to a desired <span class="arithmatex"><span class="MathJax_Preview">I_{SPPA}</span><script type="math/tex">I_{SPPA}</script></span> of  10 W/cm<span class="arithmatex"><span class="MathJax_Preview">^2</span><script type="math/tex">^2</script></span>.</p>
+<pre><code class="language-Python">import matplotlib.pyplot as plt
+import numpy as np
+
+def RCoeff(Temperature):
+    R = np.ones(Temperature.shape)*0.25
+    R[Temperature&gt;=43]=0.5
+    return R
+#### Selected Isppa
+SelIsppa=10.0
+####
+
+
+BaseIsppa = 5.0
+DutyCycle=0.3
+
+Loc=DataThermal['TargetLocation']
+xf=DataThermal['x_vec']
+zf=DataThermal['z_vec']
+
+SelY=Loc[1]
+
+SkinZ=np.array(np.where(DataThermal['MaterialMap'][:,SelY,:]==1)).T.min(axis=0)[1]
+zf-=zf[SkinZ]
+
+IsppaRatio=SelIsppa/BaseIsppa
+
+PresRatio=np.sqrt(IsppaRatio)
+
+AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
+
+Ispta=SelIsppa*DutyCycle
+
+AdjustedTemp=(DataThermal['TemperaturePoints']-37)*IsppaRatio+37
+
+#thermal dose in minutes
+DoseUpdate=np.sum(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),axis=1)*DataThermal['dt']/60
+MI=DataThermal['MI']*PresRatio
+
+MTB=DataThermal['TI']*IsppaRatio+37
+MTC=DataThermal['TIC']*IsppaRatio+37
+MTS=DataThermal['TIS']*IsppaRatio+37
+
+CEMS=DoseUpdate[0]
+CEMB=DoseUpdate[1]
+CEMC=DoseUpdate[2]
+
+print('Maximal temperature at skin, brain and skull = %3.2f, %3.2f, %3.2f' %(MTB,MTC,MTS))
+print('Maximal thermal dose at skin, brain and skull', CEMS,CEMB,CEMC)
+
+
+###
+# We plot maps at target plane and ovel time 
+
+DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
+SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
+IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
+IntensityMap[0,:]=0
+Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+figure=plt.figure(figsize=(10, 4.5))
+static_ax1,static_ax2 = figure.subplots(1,2)
+IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                cmap=plt.cm.jet)
+static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+static_ax1.set_title('Isppa (W/cm$^2$)')
+plt.colorbar(IntensityIm,ax=static_ax1)
+
+XX,ZZ=np.meshgrid(xf,zf)
+
+contour1=static_ax1.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+static_ax1.set_ylabel('Distance from skin (mm)')
+ThermalIm=static_ax2.imshow(Tmap.T,
+                extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+static_ax2.set_title('Temperature ($^{\circ}$C)')
+
+plt.colorbar(ThermalIm,ax=static_ax2)
+contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+
+plt.figure(figsize=(10, 4.5))
+plt.plot(DataThermal['TimeProfileTarget'],AdjustedTemp.T)
+plt.legend(['Skin','Brain','Skull'])
+plt.xlabel('time (s)');plt.ylabel('Temperature ($^{\circ}$C)')
+plt.title('Maximal temperature')
+</code></pre>
+<pre><code>Maximal temperature at skin, brain and skull = 37.67, 37.36, 37.27
+Maximal thermal dose at skin, brain and skull 0.0006094899601355539 0.0007513694465752783 0.0006360966246583003
+</code></pre>
+<p><img src="Results -4.png" height=650px></p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js" defer></script>
+        <script src="../mathjax-config.js" defer></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+        <script src="../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

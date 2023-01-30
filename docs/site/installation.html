@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/installation.html">
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>Installation - BabelBrain</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="js/jquery-1.10.2.min.js" defer></script>
+        <script src="js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="pipeline/pipeline.html" class="nav-link">Simulation pipeline</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="index.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="pipeline/pipeline.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#standalone-application" class="nav-link">Standalone application</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#extra-requirements-for-operation" class="nav-link">Extra requirements for operation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#os" class="nav-link">OS</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#manual-installation" class="nav-link">Manual Installation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#running" class="nav-link">Running</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#standalone-macos-application" class="nav-link">Standalone macOS application</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#manual-execution" class="nav-link">Manual execution</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="standalone-application">Standalone application</h1>
+<p>A ready-to-use application (no need for Python installation) for macOS is available in the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/releases">Releases</a> section. Download the installer and drag "BabelBrain" into the Applications folder.</p>
+<p><img src="install1.png" height=300px></p>
+<p>The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.</p>
+<p>Keep a copy of the <code>PlanningModels</code> and <code>ThermalProfiles</code> directories. <code>PlanningModels</code> contain STL files useful for the planning of TUS. <code>ThermalProfiles</code> contains examples of timings of the TUS exposure (total duration on, duration off, duty cycle).</p>
+<h2 id="extra-requirements-for-operation">Extra requirements for operation</h2>
+<h2 id="os">OS</h2>
+<p>Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via <a href="https://learn.microsoft.com/en-us/windows/wsl/install">WSL2</a> with NVidia GPUs (see this <a href="https://docs.nvidia.com/cuda/wsl-user-guide/index.html">guide</a>). </p>
+<h3 id="gpu">GPU</h3>
+<p>BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (12 GPU RAM or more) are recommended. ARM64 processors (M1, M2) in Mac systems with 32GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. </p>
+<h3 id="blender">Blender</h3>
+<p><a href="https://www.blender.org">Blender</a> is required for constructive solid geometry operations. Install with default options.</p>
+<h3 id="simnibs">SimNIBS</h3>
+<p>While BabelBrain does not invoke directly SimNIBS tools, BabelBrain depends on the output generated by SimNIBS 3.x <code>headreco</code> or SimNIBS 4.x <code>charm</code> processing tools. Consult the <a href="https://github.com/simnibs/simnibs/releases">Releases</a> section in SimNIBS for installation options. We recommended using SimNIBS 4.x <code>charm</code> for better results.</p>
+<h3 id="optional-fsl">Optional -FSL</h3>
+<p><a href="https://fsl.fmrib.ox.ac.uk/fsl/fslwiki">FSL</a>'s flirt tool is used as a backup method if dealing with imaging datasets that are not 100% orthogonal; ITK often can't handle them and flirt can be used to enforce orthogonal affine matrices. This situation happens rarely, but it comes with the limitation that FSL is only available in macOS and Linux.  FSL's init scripts must be activated in the .bash_profile or .zsh_profile.</p>
+<h3 id="navigation-planning-software">Navigation-planning software</h3>
+<p>While not strictly required, it is highly recommended to use planning software to establish the target localization and orientation, called <strong>trajectory</strong> in the following documentation, of the ultrasound transducer for the simulation of transcranial ultrasound. The trajectory is just a transformation matrix in the T1W space that represents the translation-rotation of a vector describing the target and direction of ultrasound. BabelBrain can import trajectories defined in proprietary software (Rogue Research's Brainsight) or open-source visualization software (<a href="https://www.slicer.org/">3DSlicer</a>). Instructions are detailed in the pipeline section of this documentation. </p>
+<h2 id="manual-installation">Manual Installation</h2>
+<p>Clone the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/">BabelBrain</a> repository. The code can be run in a Python environment, the requirements are roughly a clean Python 3.9 or 3.10 environment and a healthy XCode installation with command line tools installed in macOS, an LTS Ubuntu installation such as 20.04 or a healthy CUDA installation with Visual Studio in Windows.</p>
+<ul>
+<li>Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version. Several YAML conda environment files or <code>pip</code>-based requirement files are available in the main repository of <a href="https://github.com/ProteusMRIgHIFU/BabelBrain">BabelBrain</a>. </li>
+</ul>
+<h1 id="running">Running</h1>
+<h2 id="standalone-macos-application">Standalone macOS application</h2>
+<p>Just open BabelBrain from the Applications section in macOS.</p>
+<h2 id="manual-execution">Manual execution</h2>
+<p>Activate the conda environment, change to the <code>BabelBrain/BabelBrain</code> directory and run</p>
+<p><code>python BabelBrain.py</code></p>
+<h3 id="building-standalone-application">Building standalone application</h3>
+<p>A Pyinstaller specification file is provided to build the macOS application. In the <code>BabelBrain/BabelBrain</code> directory run</p>
+<p><code>pyinstaller BabelBrain.spec --noconfirm</code></p>
+<p>A new application will be created at <code>BabelBrain/BabelBrain/dist/</code></p>
+<p>A DMG image installer can be created with the <code>BabelBrain/BabelBrain/create_dmg.sh</code> script. You need to install <code>create-dmg</code> tool with homebrew. </p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js" defer></script>
+        <script src="mathjax-config.js" defer></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+        <script src="search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
