@@ -1,18 +1,13 @@
-# Standalone application
-A ready-to-use application (no need for Python installation) for macOS is available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download the installer and drag "BabelBrain" into the Applications folder.
-
-<img src="install1.png" height=300px>
-
-The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.
-
-Keep a copy of the `PlanningModels` and `ThermalProfiles` directories. `PlanningModels` contain STL files useful for the planning of TUS. `ThermalProfiles` contains examples of timings of the TUS exposure (total duration on, duration off, duty cycle).
-
-## Extra requirements for operation
+Installation and Running
+----
+# Preliminary requirements 
 ## OS
 Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with NVidia GPUs (see this [guide](https://docs.nvidia.com/cuda/wsl-user-guide/index.html)). 
 
 ### GPU
 BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (12 GPU RAM or more) are recommended. ARM64 processors (M1, M2) in Mac systems with 32GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. 
+#### Note for Intel-based Mac systems
+Intel-based systems need to have a dedicated AMD GPU (internal or external via Thunderbolt). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 500 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 
 ### Blender
 [Blender](https://www.blender.org) is required for constructive solid geometry operations. Install with default options.
@@ -27,10 +22,19 @@ While BabelBrain does not invoke directly SimNIBS tools, BabelBrain depends on t
 ### Navigation-planning software
 While not strictly required, it is highly recommended to use planning software to establish the target localization and orientation, called **trajectory** in the following documentation, of the ultrasound transducer for the simulation of transcranial ultrasound. The trajectory is just a transformation matrix in the T1W space that represents the translation-rotation of a vector describing the target and direction of ultrasound. BabelBrain can import trajectories defined in proprietary software ([Rogue Research's](https://www.rogue-research.com/) Brainsight) or open-source visualization software ([3DSlicer](https://www.slicer.org/)). Instructions are detailed in the pipeline section of this documentation. 
 
-## Manual Installation 
-Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment, the requirements are roughly a clean Python 3.9 or 3.10 environment and a healthy XCode installation with command line tools installed in macOS, an LTS Ubuntu installation such as 20.04 or a healthy CUDA installation with Visual Studio in Windows.
+# Standalone application
+A ready-to-use application (no need for Python installation) for macOS is available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download the installer and drag "BabelBrain" into the Applications folder.
 
-* Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version. Several YAML conda environment files or `pip`-based requirement files are available in the main repository of [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain). 
+<img src="install1.png" height=300px>
+
+The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.
+
+Keep a copy of the `PlanningModels` and `ThermalProfiles` directories. `PlanningModels` contain STL files useful for the planning of TUS. `ThermalProfiles` contains examples of timings of the TUS exposure (total duration on, duration off, duty cycle).
+
+# Manual Installation 
+Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version.
+
+Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019 or up with CUDA.
 
 
 # Running
@@ -38,11 +42,11 @@ Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repositor
 Just open BabelBrain from the Applications section in macOS.
 
 ## Manual execution
-Activate the conda environment, change to the `BabelBrain/BabelBrain` directory and run
+Activate the conda environment, change to the `BabelBrain/BabelBrain` directory and execute
 
 `python BabelBrain.py`
 
-### Building standalone application
+# Building standalone application for macOS
 A Pyinstaller specification file is provided to build the macOS application. In the `BabelBrain/BabelBrain` directory run
 
 `pyinstaller BabelBrain.spec --noconfirm`
