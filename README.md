@@ -20,7 +20,7 @@ BabelBrain is a frontend application specially designed to work in tandem with n
 This software is provided "as is" and it is intended exclusively for research purposes.
 
 # Standalone application
-Ready-to-use applications (no need for Python installation) for macOS are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of MacOS.
+Ready-to-use applications (no need for Python installation) for macOS are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of macOS.
 
 # Instructions for use
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
