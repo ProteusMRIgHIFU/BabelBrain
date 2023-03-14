@@ -252,6 +252,7 @@ class BabelBrain(QWidget):
         self.Config['Mat4Trajectory']=Mat4Trajectory
         self.Config['ThermalProfile']=ThermalProfile
         self.Config['T1W']=T1W
+        print(T1W)
         self.Config['bUseCT']=bUseCT
         self.Config['CTType']=widget.ui.CTTypecomboBox.currentIndex()
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()

@@ -284,6 +284,11 @@ class RunAcousticSim(QObject):
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 
+        print("basedir: "+ basedir)
+        print("ID: " + ID)
+        print("Target: " + str(Target) # Remove later
+
+
         InputSim=self._mainApp._outnameMask
 
         TxMechanicalAdjustmentZ = self._mainApp.AcSim.Config['NaturalOutPlaneDistance'] -  self._mainApp.AcSim.Widget.DistanceSkinLabel.property('UserData')/1e3
