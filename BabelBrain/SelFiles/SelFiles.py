@@ -100,7 +100,7 @@ class SelFiles(QDialog):
             
 
     def GetAvailableGPUs(self):
-        AllDevices=[['CPU','']]
+        AllDevices=[]
         if 'Darwin' in platform.system():
             from BabelViscoFDTD.StaggeredFDTD_3D_With_Relaxation_METAL import ListDevices
             devices=ListDevices()
