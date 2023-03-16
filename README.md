@@ -1,4 +1,4 @@
-BabelBrain v0.2.5
+BabelBrain v0.2.5-1
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -57,4 +57,11 @@ A Pyinstaller specification file is ready for use. To build the MacOS applicatio
 `pyinstaller BabelBrain.spec`
 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Babelbrain.app`
+
+# Version log
+- 2.5.0-1. March 15, 2023:
+  - BUG fix: Issue #7 - Matplotlib backends are now included in macOS application 
+  - BUG fix: Remove CPU from engine
+- 2.5.0 -  Jan 10, 2023:
+  - First public release
 
