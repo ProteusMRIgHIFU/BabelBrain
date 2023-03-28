@@ -693,8 +693,23 @@ class RunMaskGeneration(QObject):
         print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
+        new_spacing = [1.0, 1.0, 1.0]
         preT1=sitk.ReadImage(T1W)
-        preT1.SetSpacing([1.0,1.0,1.0])
+        getMin=sitk.MinimumMaximumImageFilter()
+        getMin.Execute(preT1)
+        minval=getMin.GetMinimum()
+        original_spacing = preT1.GetSpacing()
+        original_size = preT1.GetSize()
+        new_size = [int(round(osz*ospc/nspc)) for osz,ospc,nspc in zip(original_size, original_spacing, new_spacing)]
+        preT1=sitk.Resample(preT1, 
+                        new_size, 
+                        sitk.Transform(),
+                        sitk.sitkLinear,
+                        preT1.GetOrigin(), 
+                        new_spacing,
+                        preT1.GetDirection(), 
+                        minval,
+                        preT1.GetPixelID())
         sitk.WriteImage(preT1, T1WIso)
 
         kargs={}
