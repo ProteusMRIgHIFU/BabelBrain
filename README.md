@@ -60,7 +60,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Ba
 
 # Version log
 - 0.2.6. Apr 4, 2023:
-  - BUG fix: Issue #14 - Reduced precision with single Elem Tx with low F#
+  - BUG fix: Issue #14 - Reduced precision with single Elem Tx with high F#
   - BUG fix: Issue #13 - Inadequate use of SimpleITK SetSpacing to create isotropic scans 
   - Minor bugs for minimal requirements
 - 0.2.5-1. March 15, 2023:
