@@ -1,4 +1,4 @@
-BabelBrain v0.2.5-1
+BabelBrain v0.2.6
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
