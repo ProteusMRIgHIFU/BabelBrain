@@ -200,6 +200,16 @@ class H317(QWidget):
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
 
         Water['z_vec']*=1e3
@@ -231,11 +241,8 @@ class H317(QWidget):
         ISkull[Skull['MaterialMap']!=3]=0
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)

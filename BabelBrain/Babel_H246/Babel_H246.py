@@ -220,11 +220,8 @@ class H246(QWidget):
         
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
