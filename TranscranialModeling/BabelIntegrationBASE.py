@@ -975,9 +975,9 @@ class SimulationConditionsBASE(object):
             if self._FocalLength!=0:
                 DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ
                 Alpha=np.arcsin(self._Aperture/2/self._FocalLength)
-                RadiusFace=DistanceToFocus*np.tan(Alpha)*1.05 # we make a bit larger to be sure of covering all incident beam
+                RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
             else:
-                RadiusFace=self._Aperture/2*1.05
+                RadiusFace=self._Aperture/2*1.10
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())

@@ -59,9 +59,13 @@ A Pyinstaller specification file is ready for use. To build the MacOS applicatio
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Babelbrain.app`
 
 # Version log
-- 2.5.0-1. March 15, 2023:
+- 0.2.6. Apr 4, 2023:
+  - BUG fix: Issue #14 - Reduced precision with single Elem Tx with low F#
+  - BUG fix: Issue #13 - Inadequate use of SimpleITK SetSpacing to create isotropic scans 
+  - Minor bugs for minimal requirements
+- 0.2.5-1. March 15, 2023:
   - BUG fix: Issue #7 - Matplotlib backends are now included in macOS application 
   - BUG fix: Remove CPU from engine
-- 2.5.0 -  Jan 10, 2023:
+- 0.2.5 -  Jan 10, 2023:
   - First public release
 

@@ -298,17 +298,11 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
         
-        TopZ=self._ZDim[self._PMLThickness]
-        DistanceToFocus=self._FocalLength-TopZ
-        Alpha=np.arcsin(self._Aperture/2/self._FocalLength)
-        RadiusFace=DistanceToFocus*np.tan(Alpha)*1.05 # we make a bit larger to be sure of covering all incident beam
-        
         self._SourceMapRayleigh=u2[:,:,self._PMLThickness].copy()
-        ypp,xpp=np.meshgrid(self._YDim,self._XDim)
-        
-        RegionMap=xpp**2+ypp**2<=RadiusFace**2 #we select the circle on the incident field
-        self._SourceMapRayleigh[RegionMap==False]=0+1j*0
-        
+        self._SourceMapRayleigh[:self._PMLThickness,:]=0
+        self._SourceMapRayleigh[-self._PMLThickness:,:]=0
+        self._SourceMapRayleigh[:,:self._PMLThickness]=0
+        self._SourceMapRayleigh[:,-self._PMLThickness:]=0
         if self._bDisplay:
             plt.figure(figsize=(6,3))
             plt.subplot(1,2,1)
