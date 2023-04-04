@@ -422,6 +422,22 @@ target (mm)</string>
     <double>40.000000000000000</double>
    </property>
   </widget>
+  <widget class="QCheckBox" name="ShowWaterResultscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>1085</x>
+     <y>443</y>
+     <width>124</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Show water-only</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

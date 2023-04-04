@@ -182,6 +182,9 @@ class SingleTx(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -257,12 +260,18 @@ class SingleTx(QWidget):
         self._layout.addWidget(self.static_canvas)
         static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
 
+        
         dz=np.diff(Skull['z_vec']).mean()
         Zvec=Skull['z_vec'].copy()
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field=IWater
+        else:
+            Field=ISkull
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -274,7 +283,7 @@ class SingleTx(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -303,6 +312,9 @@ class RunAcousticSim(QObject):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
         self._thread=thread
+        Aperture= mainApp.AcSim.Widget.DiameterSpinBox.value()#in mm
+        FocalLength= mainApp.AcSim.Widget.FocalLengthSpinBox.value() #in mm
+        self._extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Aperture)
 
     def run(self):
 
@@ -327,7 +339,7 @@ class RunAcousticSim(QObject):
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
         T0=time.time()
         kargs={}
-        kargs['extrasuffix']='Foc%03.1f_Diam%03.1f_' %(FocalLength*1e3,Aperture*1e3)
+        kargs['extrasuffix']=self._extrasuffix
         kargs['ID']=ID
         kargs['deviceName']=deviceName
         kargs['COMPUTING_BACKEND']=COMPUTING_BACKEND

@@ -153,6 +153,9 @@ class CTX500(QWidget):
 
     @Slot()
     def UpdateAcResults(self):
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         #this will generate a modified trajectory file
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
@@ -234,7 +237,11 @@ class CTX500(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field=IWater
+        else:
+            Field=ISkull
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -246,7 +253,7 @@ class CTX500(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)

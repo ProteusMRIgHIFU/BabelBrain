@@ -167,6 +167,9 @@ class H317(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -245,7 +248,10 @@ class H317(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        slice = ISkull[:,LocTarget[1],:]
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            slice=IWater[:,LocTarget[1],:]
+        else:
+            slice=ISkull[:,LocTarget[1],:]
         slice/=slice.max()
         self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
