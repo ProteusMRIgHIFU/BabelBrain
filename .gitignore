@@ -127,3 +127,7 @@ BabelBrain/__t.stl
 *.dmg
 docs/site/**
 **.zip
+*.msi
+*.wixpdb
+*.wxs
+*.wixobj
