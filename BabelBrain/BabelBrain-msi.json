@@ -1,0 +1,23 @@
+{
+    "upgrade_guid": "23c0e6fb-cafd-4164-b56d-80915725268a",
+    "version": "0.2.6",
+    "product_name": "BabelBrain",
+    "manufacturer": "Samuel Pichardo",
+    "name": "BabelBrain",
+    "name_base": "BabelBrain",
+    "comments": "GUI application for the modeling of transcranial ultrasound for neuromodulation applications",
+    "installdir": "BabelBrain",
+    "license_file": "..\\LICENSE.rtf",
+	"startmenu_shortcut": "BabelBrain.exe",
+    "desktop_shortcut": "BabelBrain.exe",
+	"addremove_icon": "Proteus-Alciato-logo.ico",
+    "parts": [
+        {
+         "id": "BabelBrain",
+         "title": "BabelBrain",
+         "description": "GUI application for the modeling of transcranial ultrasound",
+         "absent": "disallow",
+         "staged_dir": "dist"
+        }
+    ]
+}
