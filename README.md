@@ -20,8 +20,9 @@ BabelBrain is a frontend application specially designed to work in tandem with n
 This software is provided "as is" and it is intended exclusively for research purposes.
 
 # Standalone application
-Ready-to-use applications (no need for Python installation) for macOS are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of macOS.
+Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of macOS.
 
+**Note for Windows:** CUDA 11.7 or up must be installed.
 # Instructions for use
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
 
@@ -51,12 +52,18 @@ If running from the GitHub source code, just change to the BabelBrain directory 
 
 `python BabelBrain.py`
 
-## Building an standalone application for macOS
+## Building an standalone application
 A Pyinstaller specification file is ready for use. To build the MacOS application, just change to the BabelBrain directory and run
 
-`pyinstaller BabelBrain.spec`
+`pyinstaller BabelBrain-Mac.spec`
 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Babelbrain.app`
+
+To build the Windows application run
+
+`pyinstaller BabelBrain-Win.spec`
+
+The application will be created at `BabelBrain/BabelBrain/dist/Babelbrain`
 
 # Version log
 - 0.2.6. Apr 4, 2023:

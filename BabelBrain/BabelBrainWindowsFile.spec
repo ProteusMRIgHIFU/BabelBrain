@@ -19,6 +19,8 @@ for mp in missing_package_info:
         print(mp)
     datas += modinfo[0]
     binaries += modinfo[1]
+	
+binaries+=[(os.environ['CONDA_PREFIX']+'/Library/bin/nvrtc-builtins64_117.dll','./')]
 
 datas+=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_H246/default.yaml','./Babel_H246'),
@@ -99,4 +101,5 @@ exe = EXE(
     argv_emulation=False,
     target_arch=None,
     entitlements_file=None,
+	icon=['Proteus-Alciato-logo.ico'],
 )
