@@ -212,6 +212,7 @@ class SingleTx(QWidget):
             for child in children:
                 child.deleteLater()
             delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
