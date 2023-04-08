@@ -23,18 +23,22 @@ While BabelBrain does not invoke directly SimNIBS tools, BabelBrain depends on t
 While not strictly required, it is highly recommended to use planning software to establish the target localization and orientation, called **trajectory** in the following documentation, of the ultrasound transducer for the simulation of transcranial ultrasound. The trajectory is just a transformation matrix in the T1W space that represents the translation-rotation of a vector describing the target and direction of ultrasound. BabelBrain can import trajectories defined in proprietary software ([Rogue Research's](https://www.rogue-research.com/) Brainsight) or open-source visualization software ([3DSlicer](https://www.slicer.org/)). Instructions are detailed in the pipeline section of this documentation. 
 
 # Standalone application
-A ready-to-use application (no need for Python installation) for macOS is available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download the installer and drag "BabelBrain" into the Applications folder.
+Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. 
+
+For MacOS, download the installer and drag "BabelBrain" into the Applications folder. 
 
 <img src="install1.png" height=300px>
 
 The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.
+
+For Windows, download the MSI installer file and run to install BabelBrain. Shortcuts will be created in the Desktop and Start menu. **Note**: CUDA 11.7+ must be installed.
 
 Keep a copy of the `PlanningModels` and `ThermalProfiles` directories. `PlanningModels` contain STL files useful for the planning of TUS. `ThermalProfiles` contains examples of timings of the TUS exposure (total duration on, duration off, duty cycle).
 
 # Manual Installation 
 Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version.
 
-Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019 or up with CUDA.
+Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019+ with CUDA 11.7+.
 
 
 # Running
@@ -46,11 +50,12 @@ Activate the conda environment, change to the `BabelBrain/BabelBrain` directory 
 
 `python BabelBrain.py`
 
-# Building standalone application for macOS
-A Pyinstaller specification file is provided to build the macOS application. In the `BabelBrain/BabelBrain` directory run
+# Building standalone application
 
-`pyinstaller BabelBrain.spec --noconfirm`
+A pyinstaller specification file is provided to build the macOS and Windows applications. In the `BabelBrain/BabelBrain` directory run
+
+`pyinstaller BabelBrain.spec --noconfirm` 
 
 A new application will be created at `BabelBrain/BabelBrain/dist/`
 
-A DMG image installer can be created with the `BabelBrain/BabelBrain/create_dmg.sh` script. You need to install `create-dmg` tool with homebrew. 
+For macOS, a DMG image installer can be created with the `BabelBrain/BabelBrain/create_dmg.sh` script. You need to install `create-dmg` tool with homebrew. 
