@@ -123,7 +123,7 @@
               </ul>
             </li>
             
-            <li class="nav-item" data-level="1"><a href="#building-standalone-application-for-macos" class="nav-link">Building standalone application for macOS</a>
+            <li class="nav-item" data-level="1"><a href="#building-standalone-application" class="nav-link">Building standalone application</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -149,24 +149,26 @@
 <h3 id="navigation-planning-software">Navigation-planning software</h3>
 <p>While not strictly required, it is highly recommended to use planning software to establish the target localization and orientation, called <strong>trajectory</strong> in the following documentation, of the ultrasound transducer for the simulation of transcranial ultrasound. The trajectory is just a transformation matrix in the T1W space that represents the translation-rotation of a vector describing the target and direction of ultrasound. BabelBrain can import trajectories defined in proprietary software (<a href="https://www.rogue-research.com/">Rogue Research's</a> Brainsight) or open-source visualization software (<a href="https://www.slicer.org/">3DSlicer</a>). Instructions are detailed in the pipeline section of this documentation. </p>
 <h1 id="standalone-application">Standalone application</h1>
-<p>A ready-to-use application (no need for Python installation) for macOS is available in the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/releases">Releases</a> section. Download the installer and drag "BabelBrain" into the Applications folder.</p>
+<p>Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/releases">Releases</a> section. </p>
+<p>For MacOS, download the installer and drag "BabelBrain" into the Applications folder. </p>
 <p><img src="install1.png" height=300px></p>
 <p>The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.</p>
+<p>For Windows, download the MSI installer file and run to install BabelBrain. Shortcuts will be created in the Desktop and Start menu. <strong>Note</strong>: CUDA 11.7+ must be installed.</p>
 <p>Keep a copy of the <code>PlanningModels</code> and <code>ThermalProfiles</code> directories. <code>PlanningModels</code> contain STL files useful for the planning of TUS. <code>ThermalProfiles</code> contains examples of timings of the TUS exposure (total duration on, duration off, duty cycle).</p>
 <h1 id="manual-installation">Manual Installation</h1>
 <p>Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version.</p>
-<p>Clone the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/">BabelBrain</a> repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019 or up with CUDA.</p>
+<p>Clone the <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/">BabelBrain</a> repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019+ with CUDA 11.7+.</p>
 <h1 id="running">Running</h1>
 <h2 id="standalone-macos-application">Standalone macOS application</h2>
 <p>Just open BabelBrain from the Applications section in macOS.</p>
 <h2 id="manual-execution">Manual execution</h2>
 <p>Activate the conda environment, change to the <code>BabelBrain/BabelBrain</code> directory and execute</p>
 <p><code>python BabelBrain.py</code></p>
-<h1 id="building-standalone-application-for-macos">Building standalone application for macOS</h1>
-<p>A Pyinstaller specification file is provided to build the macOS application. In the <code>BabelBrain/BabelBrain</code> directory run</p>
-<p><code>pyinstaller BabelBrain.spec --noconfirm</code></p>
+<h1 id="building-standalone-application">Building standalone application</h1>
+<p>A pyinstaller specification file is provided to build the macOS and Windows applications. In the <code>BabelBrain/BabelBrain</code> directory run</p>
+<p><code>pyinstaller BabelBrain.spec --noconfirm</code> </p>
 <p>A new application will be created at <code>BabelBrain/BabelBrain/dist/</code></p>
-<p>A DMG image installer can be created with the <code>BabelBrain/BabelBrain/create_dmg.sh</code> script. You need to install <code>create-dmg</code> tool with homebrew. </p></div>
+<p>For macOS, a DMG image installer can be created with the <code>BabelBrain/BabelBrain/create_dmg.sh</code> script. You need to install <code>create-dmg</code> tool with homebrew. </p></div>
             </div>
         </div>
 
