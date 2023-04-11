@@ -1,4 +1,4 @@
-name: bbl310cuda117
+name: BabelBrainLinux
 channels:
   - conda-forge
   - defaults
@@ -96,4 +96,4 @@ dependencies:
       - uhi==0.3.3
       - urllib3==1.26.15
       - vtk==9.2.6
-prefix: /home/acoreas/anaconda3/envs/bbl310cuda117
+prefix: /home/acoreas/anaconda3/envs/BabelBrainLinux
