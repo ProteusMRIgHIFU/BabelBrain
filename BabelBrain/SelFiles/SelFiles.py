@@ -12,6 +12,7 @@ from .ui_form import Ui_Dialog
 import platform
 import os
 from pathlib import Path
+import re
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -126,6 +127,53 @@ class SelFiles(QDialog):
             except:
                 pass 
         return AllDevices
+    
+    def ValidTrajectory(self):
+        fTraj = self.ui.TrajectorylineEdit.text()
+
+        if not os.path.isfile(fTraj):
+            self.msgDetails = "Trajectory file was not specified"
+            return False
+
+        with open(fTraj) as f:
+            lines = f.readlines()
+        lines= str(lines).lower()
+
+        if self.ui.TrajectoryTypecomboBox.currentIndex() == 0: # Brainsight
+            if re.search("brainsight",lines):
+                return True
+            else:
+                self.msgDetails = "Selected trajectory file is not a Brainsight file"
+                return False
+        else: # Slicer
+            if re.search("(?<!bra)insight",lines): #insight, but not brainsight in text
+                return True
+            else:
+                self.msgDetails = "Selected trajectory file is not a Slicer file"
+                return False
+            
+    def ValidSimNIBS(self):
+        folderSimNIBS = self.ui.SimbNIBSlineEdit.text()
+
+        if not os.path.isdir(folderSimNIBS):
+            self.msgDetails = "SimNIBS Directory was not specified"
+            return False
+
+        files =  os.listdir(folderSimNIBS)
+        files = str(files).lower()
+
+        if self.ui.SimbNIBSTypecomboBox.currentIndex() == 0: # Charm
+            if "charm" in files:
+                return True
+            else:
+                self.msgDetails = "Selected SimbNIBS folder was not Charm generated"
+                return False
+        else: # Headreco
+            if "headreco" in files:
+                return True
+            else:
+                self.msgDetails = "Selected SimbNIBS folder was not Headreco generated"
+                return False
 
     @Slot()
     def SelectTrajectory(self):
@@ -177,13 +225,15 @@ class SelFiles(QDialog):
 
     @Slot()
     def Continue(self):
-        if not os.path.isfile(self.ui.TrajectorylineEdit.text()) or\
+        self.msgDetails = ""
+        if not self.ValidTrajectory() or\
+           not self.ValidSimNIBS() or\
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
            (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())) or\
-           not os.path.isdir(self.ui.SimbNIBSlineEdit.text()) or\
            not os.path.isfile(self.ui.ThermalProfilelineEdit.text()) :
             msgBox = QMessageBox()
             msgBox.setText("Please indicate valid entries")
+            msgBox.setDetailedText(self.msgDetails)
             msgBox.exec()
         else:
             self.accept()
