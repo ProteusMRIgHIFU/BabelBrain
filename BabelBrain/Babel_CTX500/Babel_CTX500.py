@@ -96,6 +96,8 @@ class CTX500(QWidget):
         self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin,1))
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        ZMechanical = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        self.Widget.ZMechanicSpinBox.setValue(np.round(ZMechanical,1))
 
         self.TPODistanceUpdate(0)
 
@@ -115,6 +117,7 @@ class CTX500(QWidget):
                                     "ZSteering=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
+                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -124,6 +127,7 @@ class CTX500(QWidget):
                 self.Widget.TPODistanceSpinBox.setValue(TPO*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
+                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
         else:
             bCalcFields = True
         if bCalcFields:
@@ -286,13 +290,10 @@ class RunAcousticSim(QObject):
 
         InputSim=self._mainApp._outnameMask
 
-        TxMechanicalAdjustmentZ = self._mainApp.AcSim.Config['NaturalOutPlaneDistance'] -  self._mainApp.AcSim.Widget.DistanceSkinLabel.property('UserData')/1e3
-
-        print('TxMechanicalAdjustmentZ mm =',TxMechanicalAdjustmentZ*1e3)
-
         #we can use mechanical adjustments in other directions for final tuning
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
 
         ###############
         TPODistance=self._mainApp.AcSim.Widget.TPODistanceSpinBox.value()/1e3  #Add here the final adjustment)
