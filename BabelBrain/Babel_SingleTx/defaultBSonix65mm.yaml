@@ -1,5 +1,0 @@
-TxFoc:                    74.0e-3 #Tx focal length
-TxDiam:                   61.0e-3 # Tx aperture diameter
-AdjustDistanceSkin: 3.00e-3 #mm
-USFrequencies:
-    - 650000.0

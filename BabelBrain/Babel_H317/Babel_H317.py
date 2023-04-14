@@ -60,6 +60,7 @@ class H317(QWidget):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
     @Slot()
     def ZSteeringUpdate(self,value):
@@ -169,7 +170,6 @@ class H317(QWidget):
         #this will generate a modified trajectory file
         if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
             self.Widget.ShowWaterResultscheckBox.setEnabled(True)
-            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -271,7 +271,10 @@ class H317(QWidget):
         static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-        slice = ISkull[LocTarget[0],:,:]
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            slice = IWater[LocTarget[0],:,:]
+        else:
+            slice = ISkull[LocTarget[0],:,:]
         slice/=slice.max()
         self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)

@@ -420,17 +420,7 @@ profile ...</string>
     </item>
     <item>
      <property name="text">
-      <string>Bx55mm</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Bx65mm</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Bx80mm</string>
+      <string>BSonix</string>
      </property>
     </item>
    </widget>
