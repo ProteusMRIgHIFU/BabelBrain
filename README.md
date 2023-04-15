@@ -53,20 +53,16 @@ If running from the GitHub source code, just change to the BabelBrain directory 
 `python BabelBrain.py`
 
 ## Building an standalone application
-A Pyinstaller specification file is ready for use. To build the MacOS application, just change to the BabelBrain directory and run
+A Pyinstaller specification file is ready for use. To build either the macOS or Windows application, just change to the BabelBrain directory and run
 
-`pyinstaller BabelBrain-Mac.spec`
+`pyinstaller BabelBrain.spec --noconfirm`
 
-A new application ready to use will be created at `BabelBrain/BabelBrain/dist/Babelbrain.app`
+A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
-To build the Windows application run
-
-`pyinstaller BabelBrain-Win.spec`
-
-The application will be created at `BabelBrain/BabelBrain/dist/Babelbrain`
 
 # Version log
-- 0.2.6. Apr 4, 2023:
+- 0.2.6. Apr 8, 2023:
+  - Windows standalone available 
   - BUG fix: Issue #14 - Reduced precision with single Elem Tx with high F#
   - BUG fix: Issue #13 - Inadequate use of SimpleITK SetSpacing to create isotropic scans 
   - Minor bugs for minimal requirements
