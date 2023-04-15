@@ -30,7 +30,7 @@ import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateFieldProcess import CalculateFieldProcess
 
-import Babel_SingleTx 
+from .Babel_SingleTx import SingleTx,RunAcousticSim
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -50,29 +50,65 @@ def resource_path():  # needed for bundling
 def DistanceOutPlaneToFocus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
-class Babel_BSonix65mm(Babel_SingleTx.Babel_SingleTx):
-    def __init__(self,parent=None,MainApp=None):
-        super(Babel_BSonix65mm, self).__init__(parent,MainApp)
+class BSonix(SingleTx):
+    def __init__(self,parent=None,MainApp=None,formfile='formBx.ui'):
+        super(BSonix, self).__init__(parent,MainApp,formfile)
 
-    def load_ui(self):
-        super(Babel_BSonix65mm, self).load_ui()
-        self.Widget.FocalLengthSpinBox.setValue(self.Config['TxFoc'])
-        self.Widget.FocalLengthSpinBox.setValue(self.Config['TxDiam'])
-        Diameter = self.Widget.DiameterSpinBox.value()
-
+    def load_ui(self,formfile):
+        loader = QUiLoader()
+        path = os.path.join(resource_path(), formfile)
+        ui_file = QFile(path)
+        ui_file.open(QFile.ReadOnly)
+        self.Widget =loader.load(ui_file, self)
+        ui_file.close()
+        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
         
-    def DefaultConfig(self):
-        with open(os.path.join(resource_path(),'defaultBSonix65mm.yaml'), 'r') as file:
-            config = yaml.safe_load(file)
-        self.Config=config
+        
+    def DefaultConfig(self,cfile='defaultBSonix.yaml'):
+        super(BSonix,self).DefaultConfig(cfile)
+
+    def NotifyGeneratedMask(self):
+        super(BSonix, self).NotifyGeneratedMask()
+        self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
+
+    def GetTxModel(self):
+        return "BSonix"+self.Widget.TransducerModelcomboBox.currentText()
+
+    def UpdateLimits(self):
+        model=self.GetTxModel()
+        FocalLength = self.Config[model]['TxFoc']*1e3
+        Diameter = self.Config[model]['TxDiam']*1e3
+        DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
+        ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
+        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMax,1))
+
+    @Slot()
+    def UpdateTxInfo(self):
+        if self._bIgnoreUpdate:
+            return
+        self._bIgnoreUpdate=True
+        self.UpdateLimits()
+        ZMax=self.Widget.ZMechanicSpinBox.maximum()
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        if ZMec > ZMax:
+            self.ZMechanicSpinBox.setValue(ZMax)
+            ZMec=ZMax
+        
+        CurDistance=ZMax-ZMec
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        self._bIgnoreUpdate=False       
 
     @Slot()
     def RunSimulation(self):
-        FocalLength = self.Config['TxFoc']*1e3
-        Diameter = self.Config['TxDiam']*1e3
-        self._FullSolName=self._MainApp._prefix_path+'BSonix65mm_DataForSim.h5' %(FocalLength,Diameter)
-        self._WaterSolName=self._MainApp._prefix_path+'BSonix65mm_Water_DataForSim.h5' %(FocalLength,Diameter)
-
+        model=self.GetTxModel()
+        FocalLength = self.Config[model]['TxFoc']*1e3
+        Diameter = self.Config[model]['TxDiam']*1e3
+        self._FullSolName=self._MainApp._prefix_path+model+'_DataForSim.h5' 
+        self._WaterSolName=self._MainApp._prefix_path+model+'_Water_DataForSim.h5' 
+        extrasuffix=model+'_'
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
@@ -97,7 +133,8 @@ class Babel_BSonix65mm(Babel_SingleTx.Babel_SingleTx):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp,self.thread,
+                                        extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateAcResults)
@@ -113,10 +150,4 @@ class Babel_BSonix65mm(Babel_SingleTx.Babel_SingleTx):
         else:
             self.UpdateAcResults()
 
-   
 
-class RunAcousticSim(Babel_SingleTx.RunAcousticSim):
-    #this is pretty much the same as single tx case, just need to specify the suffix for files
-    def __init__(self,mainApp,thread):
-        super(RunAcousticSim, self).__init__(mainApp,thread)
-        self._extrasuffix='BSonix65mm'

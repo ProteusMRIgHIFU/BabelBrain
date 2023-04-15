@@ -20,7 +20,7 @@
    <property name="geometry">
     <rect>
      <x>33</x>
-     <y>201</y>
+     <y>176</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -33,7 +33,7 @@
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>170</y>
+     <y>145</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -55,7 +55,7 @@
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>160</y>
+     <y>135</y>
      <width>150</width>
      <height>38</height>
     </rect>
@@ -75,7 +75,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>201</x>
-     <y>199</y>
+     <y>174</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -103,7 +103,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>34</x>
-     <y>231</y>
+     <y>206</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -116,7 +116,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>202</x>
-     <y>229</y>
+     <y>204</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -173,7 +173,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>202</x>
-     <y>261</y>
+     <y>236</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -201,7 +201,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>34</x>
-     <y>263</y>
+     <y>238</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -210,136 +210,11 @@ to target (mm) :</string>
     <string>Mechanical adj. Z (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="FocalLengthSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>201</x>
-     <y>24</y>
-     <width>90</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="minimum">
-    <double>20.000000000000000</double>
-   </property>
-   <property name="maximum">
-    <double>150.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-   <property name="value">
-    <double>50.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="FocalLengthLabel">
-   <property name="geometry">
-    <rect>
-     <x>33</x>
-     <y>26</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Focal length (mm)</string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="DiameterSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>201</x>
-     <y>57</y>
-     <width>90</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="minimum">
-    <double>20.000000000000000</double>
-   </property>
-   <property name="maximum">
-    <double>150.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-   <property name="value">
-    <double>50.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="DiameterLabel">
-   <property name="geometry">
-    <rect>
-     <x>33</x>
-     <y>59</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Diameter (mm)</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="DistanceOutplaneLabel">
-   <property name="geometry">
-    <rect>
-     <x>210</x>
-     <y>106</y>
-     <width>76</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>0.0</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_26">
-   <property name="geometry">
-    <rect>
-     <x>34</x>
-     <y>100</y>
-     <width>150</width>
-     <height>51</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Distance from
-Tx's outplane
-to focus</string>
-   </property>
-   <property name="indent">
-    <number>0</number>
-   </property>
-  </widget>
   <widget class="QLabel" name="DistanceTxToSkinLabel">
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>289</y>
+     <y>264</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -361,7 +236,7 @@ to focus</string>
    <property name="geometry">
     <rect>
      <x>35</x>
-     <y>290</y>
+     <y>265</y>
      <width>150</width>
      <height>31</height>
     </rect>
@@ -381,7 +256,7 @@ to skin (mm) :</string>
    <property name="geometry">
     <rect>
      <x>36</x>
-     <y>359</y>
+     <y>334</y>
      <width>153</width>
      <height>30</height>
     </rect>
@@ -398,7 +273,7 @@ target (mm)</string>
    <property name="geometry">
     <rect>
      <x>204</x>
-     <y>367</y>
+     <y>342</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -437,6 +312,47 @@ target (mm)</string>
    <property name="text">
     <string>Show water-only</string>
    </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>81</y>
+     <width>113</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Transducer model</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="TransducerModelcomboBox">
+   <property name="geometry">
+    <rect>
+     <x>179</x>
+     <y>77</y>
+     <width>116</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <item>
+    <property name="text">
+     <string>55mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>65mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>85mm</string>
+    </property>
+   </item>
   </widget>
  </widget>
  <resources/>

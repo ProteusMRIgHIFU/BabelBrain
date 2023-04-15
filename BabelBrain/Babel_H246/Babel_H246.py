@@ -69,6 +69,7 @@ class H246(QWidget):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -156,7 +157,6 @@ class H246(QWidget):
         #this will generate a modified trajectory file
         if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
             self.Widget.ShowWaterResultscheckBox.setEnabled(True)
-            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)

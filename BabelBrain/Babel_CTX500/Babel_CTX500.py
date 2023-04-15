@@ -69,6 +69,7 @@ class CTX500(QWidget):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -155,7 +156,6 @@ class CTX500(QWidget):
     def UpdateAcResults(self):
         if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
             self.Widget.ShowWaterResultscheckBox.setEnabled(True)
-            self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         #this will generate a modified trajectory file
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
