@@ -189,6 +189,17 @@ class CTX500(QWidget):
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
+
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
 
