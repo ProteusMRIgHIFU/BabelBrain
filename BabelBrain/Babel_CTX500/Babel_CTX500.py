@@ -69,6 +69,7 @@ class CTX500(QWidget):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -97,9 +98,18 @@ class CTX500(QWidget):
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
         ZMechanical = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        
+        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMechanical,1))  
         self.Widget.ZMechanicSpinBox.setValue(np.round(ZMechanical,1))
-
         self.TPODistanceUpdate(0)
+
+    @Slot()
+    def UpdateDistanceFromSkin(self):
+        self._bIgnoreUpdate=True
+        ZMax=self.Widget.ZMechanicSpinBox.maximum()
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        CurDistance=ZMax-ZMec
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
 
     @Slot()
     def RunSimulation(self):
