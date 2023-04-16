@@ -127,9 +127,9 @@ class SingleTx(QWidget):
     def RunSimulation(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
-        extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Aperture)
-        self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' %(FocalLength,Diameter)
-        self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5' %(FocalLength,Diameter)
+        extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
+        self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
+        self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)

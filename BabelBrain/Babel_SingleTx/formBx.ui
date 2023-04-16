@@ -201,9 +201,9 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>34</x>
-     <y>238</y>
+     <y>234</y>
      <width>143</width>
-     <height>20</height>
+     <height>24</height>
     </rect>
    </property>
    <property name="text">
@@ -214,7 +214,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>210</x>
-     <y>264</y>
+     <y>280</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -236,7 +236,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>35</x>
-     <y>265</y>
+     <y>281</y>
      <width>150</width>
      <height>31</height>
     </rect>
@@ -245,7 +245,7 @@ to target (mm) :</string>
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
-    <string>Space Tx outplane 
+    <string>Distance Tx outplane 
 to skin (mm) :</string>
    </property>
    <property name="indent">
