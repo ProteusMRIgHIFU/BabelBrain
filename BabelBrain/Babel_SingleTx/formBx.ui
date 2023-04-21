@@ -350,7 +350,7 @@ target (mm)</string>
    </item>
    <item>
     <property name="text">
-     <string>85mm</string>
+     <string>80mm</string>
     </property>
    </item>
   </widget>
