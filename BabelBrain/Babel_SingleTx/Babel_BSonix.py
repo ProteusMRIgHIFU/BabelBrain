@@ -92,13 +92,8 @@ class BSonix(SingleTx):
         self._bIgnoreUpdate=True
         self.UpdateLimits()
         ZMax=self.Widget.ZMechanicSpinBox.maximum()
-        ZMec=self.Widget.ZMechanicSpinBox.value()
-        if ZMec > ZMax:
-            self.ZMechanicSpinBox.setValue(ZMax)
-            ZMec=ZMax
-        
-        CurDistance=ZMax-ZMec
-        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        self.Widget.ZMechanicSpinBox.setValue(ZMax)
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(0.0))
         self._bIgnoreUpdate=False       
 
     @Slot()
