@@ -1,5 +1,7 @@
-BabelBrain
+BabelBrain 
 =============
+**v0.2.7**
+
 Samuel Pichardo, Ph.D  
 Associate Professor  
 Radiology and Clinical Neurosciences, Hotchkiss Brain Institute  

@@ -15,7 +15,7 @@ The specific capabilities of each transducer are considered during the simulatio
 
 # 1 - Preliminary steps
 
-* **Mandatory**: Collect T1W and T2W imaging of a participant. Highly recommended to use 3D isotropic (1 mm-resolution) scans.
+* **Mandatory**: Collect T1W (and optionally T2W) imaging of a participant. Highly recommended to use 3D isotropic (1 mm-resolution) scans.
 * **Mandatory**: Execute  SimNIBS 3.x `headreco` or SimNIBS 4.x `charm` processing tool:
 
     ```
@@ -261,6 +261,11 @@ The H317 is a large transducer that uses a coupling cone that is in contact with
 The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which can make that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point the out plane of the transducer reaches the skin.
  
 <img src="Simulation-11.png" height=450px>
+
+### 3.c.iv - BSonix
+These are commercial transducers with fixed focal lengths as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781). The user can select focal length of 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
+ 
+<img src="Simulation-13.png" height=450px>
 
 ## 3.d - Thermal simulation
 The third tab in the GUI of BabelBrain shows the thermal simulation step.  The diagram below shows a flowchart of this step.

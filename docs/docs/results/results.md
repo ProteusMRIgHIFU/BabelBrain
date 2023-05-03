@@ -26,7 +26,17 @@ For example:
 
 `STN_CTX_500_250kHz_6PPW_FullElasticSolution.nii.gz`
 
-This file contains the 3D pressure field in T1W coordinates. A sub-sampled version (1:2 ratio) is also saved (`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution_Sub.nii.gz`) for visualization tool that cannot handle very high-resolution Nifti files. Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required $I_{SPPA}$ value to use to program devices during real experimentations. These acoustic maps should be considered **adimensional** and are mostly used for visualization purposes. 
+This file contains the 3D pressure field in T1W coordinates subsampled with a 1:2 ratio for visualization tool that cannot handle very high-resolution Nifti files.
+
+`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution_Sub.nii.gz`
+
+This a sub-domain version with the original simulation resolution, suitable with tools such as fsleyes and 3DSlicer.
+
+`<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution_Sub_NORM.nii.gz`
+
+This a sub-domain version with the original simulation resolution, normalized (0.0 to 1.0) with the pressure values in the brain region. All other tissue regions are set to 0.0. This file facilitates visualization to different normalized thresholds (e.g., 0.25, 0.5, etc.). Suitable with tools such as fsleyes and 3DSlicer.
+
+Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required $I_{SPPA}$ value to use to program devices during real experimentations. These acoustic maps should be considered **adimensional** and are mostly used for visualization purposes. 
 
 # 3 - STL files
 BabelBrain will generate STL files of the transducer that will be in T1W coordinates and aligned using the planning and simulation information. 
