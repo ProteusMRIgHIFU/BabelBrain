@@ -61,6 +61,11 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 
 # Version log
+- 0.2.7 
+  - New devices 
+  - Option to show water-only modeling results added in Step 2
+  - Adjustment of Z mechanical for CTX 500 device added for scenarios where a pad is added
+  - New Nifti output (with extension `_Sub_NORM.nii.gz`) containing normalized pressure output (0 to 1.0) in the brain region. All other tissue regions are set to 0. This simplifies visualization and thresholding in tools such as fsleyes.
 - 0.2.6. Apr 8, 2023:
   - Windows standalone available 
   - BUG fix: Issue #14 - Reduced precision with single Elem Tx with high F#
