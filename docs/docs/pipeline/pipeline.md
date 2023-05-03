@@ -4,12 +4,13 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 
 <img src="Basics-1.png">
 
-Currently, four types of transducers are supported:
+Currently, five types of transducers are supported:
 
 * **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
 * **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
-* **H246**. This is a flat ring-type device that has 2 ring elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
+* **H246**. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
+* **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
 
 The specific capabilities of each transducer are considered during the simulations. 
 
