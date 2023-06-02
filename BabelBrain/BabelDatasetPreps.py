@@ -137,6 +137,19 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         MapFilterCOMPUTING_BACKEND='Metal'
 
+ResampleFilter=None
+ResampleFilterCOMPUTING_BACKEND=''
+def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global ResampleFilter
+    global ResampleFilterCOMPUTING_BACKEND
+    ResampleFilter = Callback
+    if COMPUTING_BACKEND==1:
+        ResampleFilterCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
+        ResampleFilterCOMPUTING_BACKEND='OpenCL'
+    else:
+        ResampleFilterCOMPUTING_BACKEND='Metal'
+
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
@@ -192,79 +205,6 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('MNI coordinates',M1_C)
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
-
-def resample_from_to_cupy(
-    from_img,
-    to_vox_map,
-    order=3,
-    mode='constant',
-    cval=0.0,
-    out_class=Nifti1Image,
-):
-    """Resample image `from_img` to mapped voxel space `to_vox_map`
-
-    Resample using N-d spline interpolation.
-
-    Parameters
-    ----------
-    from_img : object
-        Object having attributes ``dataobj``, ``affine``, ``header`` and
-        ``shape``. If `out_class` is not None, ``img.__class__`` should be able
-        to construct an image from data, affine and header.
-    to_vox_map : image object or length 2 sequence
-        If object, has attributes ``shape`` giving input voxel shape, and
-        ``affine`` giving mapping of input voxels to output space. If length 2
-        sequence, elements are (shape, affine) with same meaning as above. The
-        affine is a (4, 4) array-like.
-    order : int, optional
-        The order of the spline interpolation, default is 3.  The order has to
-        be in the range 0-5 (see ``scipy.ndimage.affine_transform``)
-    mode : str, optional
-        Points outside the boundaries of the input are filled according
-        to the given mode ('constant', 'nearest', 'reflect' or 'wrap').
-        Default is 'constant' (see ``scipy.ndimage.affine_transform``)
-    cval : scalar, optional
-        Value used for points outside the boundaries of the input if
-        ``mode='constant'``. Default is 0.0 (see
-        ``scipy.ndimage.affine_transform``)
-    out_class : None or SpatialImage class, optional
-        Class of output image.  If None, use ``from_img.__class__``.
-
-    Returns
-    -------
-    out_img : object
-        Image of instance specified by `out_class`, containing data output from
-        resampling `from_img` into axes aligned to the output space of
-        ``from_img.affine``
-    """
-    # This check requires `shape` attribute of image
-    if not spatial_axes_first(from_img):
-        raise ValueError(
-            f'Cannot predict position of spatial axes for Image type {type(from_img)}'
-        )
-    try:
-        to_shape, to_affine = to_vox_map.shape, to_vox_map.affine
-    except AttributeError:
-        to_shape, to_affine = to_vox_map
-    a_to_affine = processing.adapt_affine(to_affine, len(to_shape))
-    if out_class is None:
-        out_class = from_img.__class__
-    from_n_dim = len(from_img.shape)
-    if from_n_dim < 3:
-        raise AffineError('from_img must be at least 3D')
-    a_from_affine = processing.adapt_affine(from_img.affine, from_n_dim)
-    to_vox2from_vox = npl.inv(a_from_affine).dot(a_to_affine)
-    rzs, trans = to_matvec(to_vox2from_vox)
-
-    image_gpu = cupy.asarray(from_img.dataobj)
-    rzs_gpu=cupy.asarray(rzs)
-
-    data_gpu = cndimage.affine_transform(
-        image_gpu, rzs_gpu, trans, to_shape, order=order, mode=mode, cval=cval
-    )
-
-    data = cupy.asnumpy(data_gpu)
-    return out_class(data, to_affine, from_img.header)
 
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
@@ -645,7 +585,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
         with CodeTimer("median filter CT mask extrapol",unit='s'):
-            nfct=resample_from_to_cupy(fct,mask_nifti2,mode='constant',cval=0)
+            nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
 
         ##We will create an smooth surface
@@ -695,7 +635,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         with CodeTimer("CT extrapol",unit='s'):
             print('rCTdata range',rCTdata.min(),rCTdata.max())
             rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
-            nCT=resample_from_to_cupy(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
+            nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
@@ -777,7 +717,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     mask_nifti2.to_filename(outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
-        T1Conformal=resample_from_to_cupy(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
+        T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
         T1Conformal.to_filename(T1W_resampled_fname)
     
