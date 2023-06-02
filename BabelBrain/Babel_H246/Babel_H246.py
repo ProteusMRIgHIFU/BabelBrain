@@ -69,6 +69,7 @@ class H246(QWidget):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -154,6 +155,8 @@ class H246(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -217,11 +220,8 @@ class H246(QWidget):
         
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
@@ -234,7 +234,11 @@ class H246(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field=IWater
+        else:
+            Field=ISkull
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -246,7 +250,7 @@ class H246(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)

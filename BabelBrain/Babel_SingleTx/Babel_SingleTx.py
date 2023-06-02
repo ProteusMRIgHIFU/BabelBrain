@@ -49,20 +49,18 @@ def DistanceOutPlaneToFocus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
 class SingleTx(QWidget):
-    def __init__(self,parent=None,MainApp=None):
+    def __init__(self,parent=None,MainApp=None,formfile='form.ui'):
         super(SingleTx, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
         self._bIgnoreUpdate=False
         self.DefaultConfig()
-        self.load_ui()
+        self.load_ui(formfile)
 
 
-    def load_ui(self):
+    def load_ui(self,formfile):
         loader = QUiLoader()
-        #path = os.fspath(Path(__file__).resolve().parent / "form.ui")
-        path = os.path.join(resource_path(), "form.ui")
-        
+        path = os.path.join(resource_path(), formfile)
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
@@ -71,11 +69,12 @@ class SingleTx(QWidget):
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
-    def DefaultConfig(self):
+    def DefaultConfig(self,cfile='default.yaml'):
         #Specific parameters for the CTX500 - to be configured later via a yaml
 
-        with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
+        with open(os.path.join(resource_path(),cfile), 'r') as file:
             config = yaml.safe_load(file)
         self.Config=config
 
@@ -128,8 +127,9 @@ class SingleTx(QWidget):
     def RunSimulation(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
-        self._FullSolName=self._MainApp._prefix_path+'Foc%03.1f_Diam%03.1f_DataForSim.h5' %(FocalLength,Diameter)
-        self._WaterSolName=self._MainApp._prefix_path+'Foc%03.1f_Diam%03.1f_Water_DataForSim.h5' %(FocalLength,Diameter)
+        extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
+        self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
+        self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
@@ -157,7 +157,8 @@ class SingleTx(QWidget):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp,self.thread,
+                            extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateAcResults)
@@ -182,6 +183,8 @@ class SingleTx(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -199,6 +202,17 @@ class SingleTx(QWidget):
         for d in [Water,Skull]:
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
@@ -245,11 +259,8 @@ class SingleTx(QWidget):
         
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
@@ -257,12 +268,18 @@ class SingleTx(QWidget):
         self._layout.addWidget(self.static_canvas)
         static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
 
+        
         dz=np.diff(Skull['z_vec']).mean()
         Zvec=Skull['z_vec'].copy()
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field=IWater
+        else:
+            Field=ISkull
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -274,7 +291,7 @@ class SingleTx(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -299,10 +316,13 @@ class RunAcousticSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp,thread,extrasuffix,Aperture,FocalLength):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
         self._thread=thread
+        self._extrasuffix=extrasuffix
+        self._Aperture=Aperture
+        self._FocalLength=FocalLength
 
     def run(self):
 
@@ -316,8 +336,6 @@ class RunAcousticSim(QObject):
 
         
         #we can use mechanical adjustments in other directions for final tuning
-        Aperture= self._mainApp.AcSim.Widget.DiameterSpinBox.value()/1e3 #in m
-        FocalLength= self._mainApp.AcSim.Widget.FocalLengthSpinBox.value()/1e3 #in m
         
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
@@ -327,14 +345,14 @@ class RunAcousticSim(QObject):
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
         T0=time.time()
         kargs={}
-        kargs['extrasuffix']='Foc%03.1f_Diam%03.1f_' %(FocalLength*1e3,Aperture*1e3)
+        kargs['extrasuffix']=self._extrasuffix
         kargs['ID']=ID
         kargs['deviceName']=deviceName
         kargs['COMPUTING_BACKEND']=COMPUTING_BACKEND
         kargs['basePPW']=basePPW
         kargs['basedir']=basedir
-        kargs['Aperture']=Aperture
-        kargs['FocalLength']=FocalLength
+        kargs['Aperture']=self._Aperture
+        kargs['FocalLength']=self._FocalLength
         kargs['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
@@ -343,14 +361,14 @@ class RunAcousticSim(QObject):
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
 
         # Start mask generation as separate process.
+        bNoError=True
         queue=Queue()
+        T0=time.time()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 
                                     args=(queue,Target),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
         # progress.
-        T0=time.time()
-        bNoError=True
         while fieldWorkerProcess.is_alive():
             time.sleep(0.1)
             while queue.empty() == False:
@@ -377,11 +395,3 @@ class RunAcousticSim(QObject):
             print("*"*40)
             self.endError.emit()
 
-
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-    widget = SingleTx()
-    widget.show()
-    sys.exit(app.exec_())

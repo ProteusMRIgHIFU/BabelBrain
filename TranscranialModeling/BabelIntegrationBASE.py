@@ -303,6 +303,28 @@ def SaveNiftiEnforcedISO(nii,fn):
         assert(os.system(cmd)==0)
         os.remove(fn)
 
+def ResaveNormalized(RPath,Mask):
+    assert('_Sub.nii.gz' in RPath)
+    NRPath=RPath.replace('_Sub.nii.gz','_Sub_NORM.nii.gz')
+
+    Results=nibabel.load(RPath)
+
+    ResultsData=Results.get_fdata()
+    MaskData=Mask.get_fdata()
+    ii,jj,kk=np.mgrid[0:ResultsData.shape[0],0:ResultsData.shape[1],0:ResultsData.shape[2]]
+
+    Indexes=np.c_[(ii.flatten().T,jj.flatten().T,kk.flatten().T,np.ones((kk.size,1)))].T
+
+    PosResults=Results.affine.dot(Indexes)
+
+    IndexesMask=np.round(np.linalg.inv(Mask.affine).dot(PosResults)).astype(int)
+
+    SubMask=MaskData[IndexesMask[0,:],IndexesMask[1,:],IndexesMask[2,:]].reshape(ResultsData.shape)
+    ResultsData[SubMask<4]=0
+    ResultsData/=ResultsData.max()
+    NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
+    NormalizedNifti.to_filename(NRPath)
+
 class RUN_SIM_BASE(object):
     def CreateSimObject(self,**kargs):
         #this passes extra parameters needed for a given Tx
@@ -695,12 +717,15 @@ class BabelFTD_Simulations_BASE(object):
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
+            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
+
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
+        ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']

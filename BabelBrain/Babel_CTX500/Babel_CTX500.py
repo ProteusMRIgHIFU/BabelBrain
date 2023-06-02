@@ -69,6 +69,8 @@ class CTX500(QWidget):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -97,9 +99,18 @@ class CTX500(QWidget):
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
         ZMechanical = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        
+        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMechanical,1))  
         self.Widget.ZMechanicSpinBox.setValue(np.round(ZMechanical,1))
-
         self.TPODistanceUpdate(0)
+
+    @Slot()
+    def UpdateDistanceFromSkin(self):
+        self._bIgnoreUpdate=True
+        ZMax=self.Widget.ZMechanicSpinBox.maximum()
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        CurDistance=ZMax-ZMec
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
 
     @Slot()
     def RunSimulation(self):
@@ -157,6 +168,8 @@ class CTX500(QWidget):
 
     @Slot()
     def UpdateAcResults(self):
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
         #this will generate a modified trajectory file
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
@@ -175,6 +188,17 @@ class CTX500(QWidget):
         for d in [Water,Skull]:
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
@@ -221,11 +245,8 @@ class CTX500(QWidget):
         
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
@@ -238,7 +259,11 @@ class CTX500(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,ISkull[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field=IWater
+        else:
+            Field=ISkull
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -250,7 +275,7 @@ class CTX500(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,ISkull[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)

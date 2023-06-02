@@ -418,6 +418,11 @@ profile ...</string>
       <string>H246</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>BSonix</string>
+     </property>
+    </item>
    </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">

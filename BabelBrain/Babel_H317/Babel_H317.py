@@ -60,6 +60,7 @@ class H317(QWidget):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
 
     @Slot()
     def ZSteeringUpdate(self,value):
@@ -167,6 +168,8 @@ class H317(QWidget):
     @Slot()
     def UpdateAcResults(self):
         #this will generate a modified trajectory file
+        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
@@ -196,6 +199,16 @@ class H317(QWidget):
         for d in [Water]:
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
 
@@ -228,11 +241,8 @@ class H317(QWidget):
         ISkull[Skull['MaterialMap']!=3]=0
         self._figAcField=Figure(figsize=(14, 12))
 
-        if self.static_canvas is not None:
-            self._layout.removeItem(self._layout.itemAt(0))
-            self._layout.removeItem(self._layout.itemAt(0))
-        else:
-            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        if not hasattr(self,'_layout'):
+           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
@@ -245,7 +255,10 @@ class H317(QWidget):
         Zvec-=Zvec[LocTarget[2]]
         Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-        slice = ISkull[:,LocTarget[1],:]
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            slice=IWater[:,LocTarget[1],:]
+        else:
+            slice=ISkull[:,LocTarget[1],:]
         slice/=slice.max()
         self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
@@ -258,7 +271,10 @@ class H317(QWidget):
         static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-        slice = ISkull[LocTarget[0],:,:]
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            slice = IWater[LocTarget[0],:,:]
+        else:
+            slice = ISkull[LocTarget[0],:,:]
         slice/=slice.max()
         self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)

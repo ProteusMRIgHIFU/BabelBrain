@@ -305,6 +305,8 @@ class BabelBrain(QWidget):
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':
             from Babel_H246.Babel_H246 import H246 as WidgetAcSim
+        elif self.Config['TxSystem'] =='BSonix':
+            from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         else:
             self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
