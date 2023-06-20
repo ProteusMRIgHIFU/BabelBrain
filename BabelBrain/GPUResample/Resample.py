@@ -27,93 +27,115 @@ _prod_numpy =np.prod
 
 _transform_code = '''
 #ifdef _OPENCL
-__kernel void affine_transform(__global const double * x, 
-                      __global const double * mat,
-                      __global double * y,
-                      const double cval,
+__kernel void affine_transform(__global const float * x, 
+                      __global const float * mat,
+                      __global float * y,
+                      const float cval,
                       const int order,
-                      const int dims_0,
-                      const int dims_1,
-                      const int dims_2) 
-#endif
+                      const int in_dims_0,
+                      const int in_dims_1,
+                      const int in_dims_2) 
+
 {
-    #ifdef _OPENCL
-    unsigned int output_ydim = get_global_size(1);
-    unsigned int output_zdim = get_global_size(2);
-    #endif
+
+    unsigned int out_dims_1 = get_global_size(1);
+    unsigned int out_dims_2 = get_global_size(2);
 
     const int xind =  get_global_id(0);
     const int yind =  get_global_id(1);
     const int zind =  get_global_id(2);
 
-    const int _i = xind*output_ydim*output_zdim + yind*output_zdim + zind;
+    const int _i = xind*out_dims_1*out_dims_2 + yind*out_dims_2 + zind;
+#endif
 
-    double out = 0.0;
-    const int xsize_0 = dims_0;
-    const int xsize_1 = dims_1;
-    const int xsize_2 = dims_2;
+#ifdef _METAL
+#include <metal_stdlib>
+using namespace metal;
+
+// To be defined when compiling
+// in_dims_0, in_dims_1, in_dims_2
+// out_dims_0, out_dims_1, out_dims_2  
+// cval 
+// order  
+
+kernel void affine_transform(const device float * x [[ buffer(0) ]], 
+                             const device float * mat [[ buffer(1) ]],
+                             device float * y [[ buffer(2) ]],
+                             constant int * int_params [[ buffer(3) ]],
+                             constant float * float_params [[ buffer(4) ]],
+                             uint gid[[thread_position_in_grid]]) 
+{
+    #define in_dims_0 int_params[0]
+    #define in_dims_1 int_params[1]
+    #define in_dims_2 int_params[2]
+    #define out_dims_0 int_params[3]
+    #define out_dims_1 int_params[4]
+    #define out_dims_2 int_params[5]
+    #define order int_params[6]
+    #define cval float_params[0]
+
+    const int xind =  gid/(out_dims_1*out_dims_2);
+    const int yind =  (gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const int zind =  gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    #define _i gid
+#endif
+
+    float out = 0.0;
+    const int xsize_0 = in_dims_0;
+    const int xsize_1 = in_dims_1;
+    const int xsize_2 = in_dims_2;
     const unsigned int sx_2 = 1;
     const unsigned int sx_1 = sx_2 * xsize_2;
     const unsigned int sx_0 = sx_1 * xsize_1;
     
-    unsigned int in_coord[3];
-    unsigned int s, t, idx = _i;
-    s = output_zdim;
-    t = idx / s;
-    in_coord[2] = idx - t * s;
-    idx = t;
-    s = output_ydim;
-    t = idx / s;
-    in_coord[1] = idx - t * s;
-    idx = t;
-    in_coord[0] = idx;
+    int in_coord[3] = {xind,yind,zind};
 
-    double c_0 = (double)0.0;
-    c_0 += mat[0] * (double)in_coord[0];
-    c_0 += mat[1] * (double)in_coord[1];
-    c_0 += mat[2] * (double)in_coord[2];
+    float c_0 = (float)0.0;
+    c_0 += mat[0] * (float)in_coord[0];
+    c_0 += mat[1] * (float)in_coord[1];
+    c_0 += mat[2] * (float)in_coord[2];
     c_0 += mat[3];
 
-    double c_1 = (double)0.0;
-    c_1 += mat[4] * (double)in_coord[0];
-    c_1 += mat[5] * (double)in_coord[1];
-    c_1 += mat[6] * (double)in_coord[2];
+    float c_1 = (float)0.0;
+    c_1 += mat[4] * (float)in_coord[0];
+    c_1 += mat[5] * (float)in_coord[1];
+    c_1 += mat[6] * (float)in_coord[2];
     c_1 += mat[7];
 
-    double c_2 = (double)0.0;
-    c_2 += mat[8] * (double)in_coord[0];
-    c_2 += mat[9] * (double)in_coord[1];
-    c_2 += mat[10] * (double)in_coord[2];
+    float c_2 = (float)0.0;
+    c_2 += mat[8] * (float)in_coord[0];
+    c_2 += mat[9] * (float)in_coord[1];
+    c_2 += mat[10] * (float)in_coord[2];
     c_2 += mat[11];
 
     if ((c_0 < 0) || (c_0 > xsize_0 - 1) || (c_1 < 0) || (c_1 > xsize_1 - 1) || (c_2 < 0) || (c_2 > xsize_2 - 1))
     {
-       out = (double)cval;
+       out = (float)cval;
     }
     else
     {
         if (order == 0)
         {
-            int cf_0 = (int)floor((double)c_0 + 0.5);
+            int cf_0 = (int)floor((float)c_0 + 0.5);
             int ic_0 = cf_0 * sx_0;
-            int cf_1 = (int)floor((double)c_1 + 0.5);
+            int cf_1 = (int)floor((float)c_1 + 0.5);
             int ic_1 = cf_1 * sx_1;
-            int cf_2 = (int)floor((double)c_2 + 0.5);
+            int cf_2 = (int)floor((float)c_2 + 0.5);
             int ic_2 = cf_2 * sx_2;
-            out = (double)x[ic_0 + ic_1 + ic_2];
+            out = (float)x[ic_0 + ic_1 + ic_2];
         }
         else
         {
-            double wx, wy;
+            float wx, wy;
             int start;
-            double weights_0[4];
+            float weights_0[4];
             wx = c_0 - floor(3 & 1 ? c_0 : c_0 + 0.5);
             wy = 1.0 - wx;
             weights_0[1] = (wx * wx * (wx - 2.0) * 3.0 + 4.0) / 6.0;
             weights_0[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
             weights_0[0] = wy * wy * wy / 6.0;
             weights_0[3] = 1.0 - weights_0[0] - weights_0[1] - weights_0[2];
-            start = (int)floor((double)c_0) - 1;
+            start = (int)floor((float)c_0) - 1;
             int ci_0[4];
             ci_0[0] = start + 0;
             if (xsize_0 == 1) 
@@ -171,20 +193,20 @@ __kernel void affine_transform(__global const double * x,
                 ci_0[3] = 1 + (ci_0[3] - 1) % ((xsize_0 - 1) * 2);
                 ci_0[3] = min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
             }
-            double w_0;
+            float w_0;
             int ic_0;
             for (int k_0 = 0; k_0 <= 3; k_0++)
             {
                 w_0 = weights_0[k_0];
                 ic_0 = ci_0[k_0] * sx_0;
-                double weights_1[4];
+                float weights_1[4];
                 wx = c_1 - floor(3 & 1 ? c_1 : c_1 + 0.5);
                 wy = 1.0 - wx;
                 weights_1[1] = (wx * wx * (wx - 2.0) * 3.0 + 4.0) / 6.0;
                 weights_1[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
                 weights_1[0] = wy * wy * wy / 6.0;
                 weights_1[3] = 1.0 - weights_1[0] - weights_1[1] - weights_1[2];
-                start = (int)floor((double)c_1) - 1;
+                start = (int)floor((float)c_1) - 1;
                 int ci_1[4];
                 ci_1[0] = start + 0;
                 if (xsize_1 == 1) 
@@ -242,20 +264,20 @@ __kernel void affine_transform(__global const double * x,
                     ci_1[3] = 1 + (ci_1[3] - 1) % ((xsize_1 - 1) * 2);
                     ci_1[3] = min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
                 }
-                double w_1;
+                float w_1;
                 int ic_1;
                 for (int k_1 = 0; k_1 <= 3; k_1++)
                 {
                     w_1 = weights_1[k_1];
                     ic_1 = ci_1[k_1] * sx_1;
-                    double weights_2[4];
+                    float weights_2[4];
                     wx = c_2 - floor(3 & 1 ? c_2 : c_2 + 0.5);
                     wy = 1.0 - wx;
                     weights_2[1] = (wx * wx * (wx - 2.0) * 3.0 + 4.0) / 6.0;
                     weights_2[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
                     weights_2[0] = wy * wy * wy / 6.0;
                     weights_2[3] = 1.0 - weights_2[0] - weights_2[1] - weights_2[2];
-                    start = (int)floor((double)c_2) - 1;
+                    start = (int)floor((float)c_2) - 1;
                     int ci_2[4];
                     ci_2[0] = start + 0;
                     if (xsize_2 == 1) 
@@ -313,7 +335,7 @@ __kernel void affine_transform(__global const double * x,
                         ci_2[3] = 1 + (ci_2[3] - 1) % ((xsize_2 - 1) * 2);
                         ci_2[3] = min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
                     }
-                    double w_2;
+                    float w_2;
                     int ic_2;
                     for (int k_2 = 0; k_2 <= 3; k_2++)
                     {
@@ -321,12 +343,12 @@ __kernel void affine_transform(__global const double * x,
                         ic_2 = ci_2[k_2] * sx_2;
                         if ((ic_0 < 0) || (ic_1 < 0) || (ic_2 < 0)) 
                         {
-                            out += (double)cval * (double)(w_0 * w_1 * w_2);
+                            out += (float)cval * (float)(w_0 * w_1 * w_2);
                         } 
                         else 
                         {
-                            double val = (double)x[ic_0 + ic_1 + ic_2];
-                            out += val * (double)(w_0 * w_1 * w_2);
+                            float val = (float)x[ic_0 + ic_1 + ic_2];
+                            out += val * (float)(w_0 * w_1 * w_2);
                         }
                     }
                 }
@@ -335,18 +357,20 @@ __kernel void affine_transform(__global const double * x,
     }
     if(order == 0)
     {
-        y[_i] = (short)round((double)out);
+        y[_i] = (short)rint((float)out);
     }
     else
     {
-        y[_i] = (double)out;
+        y[_i] = (float)out;
     }
 }
 '''
 
-_spline_code='''
+_spline_codea=''''''
 
-__kernel void spline_filter_3d(__global double* y, 
+_spline_code='''
+#ifdef _OPENCL
+__kernel void spline_filter_3d(__global float* y, 
                                __global const int* info,
                                const int axis,
                                const int n_bound) 
@@ -357,7 +381,26 @@ __kernel void spline_filter_3d(__global double* y,
     const int n_signals = info[0];
     const int n_samples = info[1];
     const int * shape = info+2;
+#endif
 
+#ifdef _METAL
+#include <metal_stdlib>
+using namespace metal;
+
+kernel void spline_filter_3d(device float * y [[ buffer(0) ]], 
+                             const device int * info [[ buffer(1) ]],
+                             constant int * int_params [[ buffer(2) ]],
+                             uint gid[[thread_position_in_grid]])
+{
+    #define axis int_params[0]
+    #define n_bound int_params[1]
+
+    #define _i gid
+
+    const uint n_signals = info[0];
+    const uint n_samples = info[1];
+    const device int * shape = info+2;
+#endif
     
     int elem_stride = 1;
     for (int a = 3 - 1; a > axis; --a) // 3 is ndim
@@ -383,15 +426,15 @@ __kernel void spline_filter_3d(__global double* y,
 
         int i, n = n_samples;
 
-        double z, z_i;
-        double z_n_1;
+        float z, z_i;
+        float z_n_1;
 
         //select the current pole
         z = -0.2679491924311227;
 
         //causal init for mode=mirror
         z_i = z;
-        z_n_1 = pow(z, (double)(n - 1));
+        z_n_1 = pow(z, (float)(n - 1));
 
         y[row] = y[row] + z_n_1 * y[row + (n - 1) * elem_stride];
         for (i = 1; i < min(n - 1, n_bound); ++i)
@@ -505,6 +548,8 @@ def InitOpenCL(DeviceName='AMD'):
     
 def InitMetal(DeviceName='AMD'):
     global ctx
+    global knl_at
+    global knl_sf
     
     import metalcomputebabel as mc
 
@@ -516,11 +561,16 @@ def InitMetal(DeviceName='AMD'):
             break
     if SelDevice is None:
         raise SystemError("No Metal device containing name [%s]" %(DeviceName))
-    else:
-        print('Selecting device: ', dev.deviceName)
+    # else:
+    #     print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    print(ctx)
+    # print(ctx)
+
+    prgcl = ctx.kernel('#define _METAL\n'+_transform_code+_spline_code)
+
+    knl_at=prgcl.function('affine_transform')
+    knl_sf=prgcl.function('spline_filter_3d')
 
 def _get_output(output, input, shape=None, complex_output=False):
     if shape is None:
@@ -702,7 +752,7 @@ def get_gain_modified(poles):
                             [(1.0 - z) * (1.0 - 1.0 / z) for z in poles])
 
 def spline_filter1d_modified(input, order=3, axis=-1, output=np.float64,
-                    mode='mirror'):
+                    mode='mirror', GPUBackend='OpenCL'):
     if order < 0 or order > 5:
         raise RuntimeError('spline order not supported')
     x = np.asarray(input)
@@ -749,24 +799,41 @@ def spline_filter1d_modified(input, order=3, axis=-1, output=np.float64,
     tol = 1e-10 if pole_type == 'float' else 1e-18
     n_boundary = np.math.ceil(np.math.log(tol, largest_pole))
 
-    temp = temp.astype('float64')
+    temp = temp.astype('float32')
     info = info.astype('int32')
-
-    info_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=info)
-    temp_gpu = clp.Buffer(ctx, mf.READ_WRITE | clp.mem_flags.USE_HOST_PTR, hostbuf=temp)
 
     assert(np.isfortran(info)==False)
     assert(np.isfortran(temp)==False)
 
-    knl_sf(queue,grid,
-           block,
-           temp_gpu,
-           info_gpu,
-           np.int32(axis),
-           np.int32(n_boundary),
-           g_times_l=True)
-    
-    clp.enqueue_copy(queue, temp, temp_gpu)
+    if GPUBackend == 'OpenCL':
+        info_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=info)
+        temp_gpu = clp.Buffer(ctx, mf.READ_WRITE | clp.mem_flags.USE_HOST_PTR, hostbuf=temp)
+
+        knl_sf(queue,grid,
+            block,
+            temp_gpu,
+            info_gpu,
+            np.int32(axis),
+            np.int32(n_boundary),
+            g_times_l=True)
+        
+        clp.enqueue_copy(queue, temp, temp_gpu)
+    else: # Metal
+        int_params=np.zeros(2,np.int32)
+        int_params[0] = axis
+        int_params[1] = n_boundary
+
+        info_gpu = ctx.buffer(info)
+        temp_gpu = ctx.buffer(temp.nbytes)
+        int_params_gpu = ctx.buffer(int_params)
+
+        ctx.init_command_buffer()
+        handle=knl_sf(int(np.prod(temp.shape)),temp_gpu,info_gpu, int_params_gpu)
+        ctx.commit_command_buffer()
+        ctx.wait_command_buffer()
+        del handle
+
+        temp = np.frombuffer(temp_gpu,dtype=np.float32).reshape(temp.shape)
 
     if isinstance(output, np.ndarray) and temp is not output:
         # copy kernel output into the user-provided output array
@@ -774,7 +841,7 @@ def spline_filter1d_modified(input, order=3, axis=-1, output=np.float64,
         return output
     return temp.astype(output_dtype, copy=False)
 
-def spline_filter_modified(input, order=3, output=np.float64, mode='mirror'):
+def spline_filter_modified(input, order=3, output=np.float64, mode='mirror',GPUBackend='OpenCL'):
     if order < 2 or order > 5:
         raise RuntimeError('spline order not supported')
 
@@ -782,8 +849,8 @@ def spline_filter_modified(input, order=3, output=np.float64, mode='mirror'):
     temp, data_dtype, output_dtype = _get_spline_output_modified(x, output)
     if order not in [0, 1] and input.ndim > 0:
         for axis in range(x.ndim):
-            spline_filter1d_modified(x, order, axis, output=temp, mode=mode)
-            # spline_filter1d(x, order, axis, output=temp, mode=mode)
+            # spline_filter1d_modified(x, order, axis, output=temp, mode=mode, GPUBackend=GPUBackend)
+            spline_filter1d(x, order, axis, output=temp, mode=mode)
             x = temp
     if isinstance(output, np.ndarray):
         np.copyto(output, temp)
@@ -793,12 +860,12 @@ def spline_filter_modified(input, order=3, output=np.float64, mode='mirror'):
         output = output.astype(output_dtype)
     return output
 
-def _filter_input_modified(image, prefilter, mode, cval, order):
+def _filter_input_modified(image, prefilter, mode, cval, order,GPUBackend='OpenCL'):
     if not prefilter or order < 2:
         return (np.ascontiguousarray(image), 0)
     padded, npad = _prepad_for_spline_filter_modified(image, mode, cval)
     float_dtype = np.promote_types(image.dtype, np.float32)
-    filtered = spline_filter_modified(padded, order, output=float_dtype, mode=mode)
+    filtered = spline_filter_modified(padded, order, output=float_dtype, mode=mode, GPUBackend=GPUBackend)
     return np.ascontiguousarray(filtered), npad
 
 def _check_cval_modified(mode, cval, integer_output):
@@ -807,7 +874,7 @@ def _check_cval_modified(mode, cval, integer_output):
                                   "outputs with integer dtype.")
 
 def affine_transform_prep(input, matrix, offset=0.0, output_shape=None, output=None,
-                     order=3, mode='constant', cval=0.0, prefilter=True, *,
+                     order=3, mode='constant', cval=0.0, prefilter=True, GPUBackend='OpenCL', *,
                      texture_memory=False):
     """ Modified from cupyx.scipy.nd_image._interpolation's affine_transform function 
     to use numpy arrays and return values to be used for call to modified affine_transform
@@ -840,7 +907,7 @@ def affine_transform_prep(input, matrix, offset=0.0, output_shape=None, output=N
     
     if input.dtype.kind in 'iu':
         input = input.astype(np.float32)
-    filtered, nprepad = _filter_input_modified(input, prefilter, mode, cval, order)
+    filtered, nprepad = _filter_input_modified(input, prefilter, mode, cval, order, GPUBackend=GPUBackend)
 
     integer_output = output.dtype.kind in 'iu'
     _check_cval_modified(mode, cval, integer_output)
@@ -900,11 +967,11 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
     
     elif GPUBackend=='OpenCL':
 
-        filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval)
+        filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval, GPUBackend=GPUBackend)
         
-        filtered = filtered.astype(np.float64, copy=False)
-        m = m.astype(np.float64, copy=False)
-        output = output.astype(np.float64, copy=False)
+        filtered = filtered.astype(np.float32, copy=False)
+        m = m.astype(np.float32, copy=False)
+        output = output.astype(np.float32, copy=False)
         
         # Move input data from host to device memory
         filtered_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=filtered)
@@ -935,7 +1002,45 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
             output = output.astype("int16")
 
         return out_class(output, to_affine, from_img.header)
-    else:
-        print(f"Metal Backend selected")
-        output = from_img.dataobj
+    else: # Metal
+
+        filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval,GPUBackend=GPUBackend)
+        
+        filtered = filtered.astype("float32", copy=False)
+        m = m.astype("float32", copy=False)
+        output = output.astype("float32", copy=False)
+        
+        int_params=np.zeros(7,np.int32)
+        float_params= np.zeros(2,np.float32)
+        int_params[0] = filtered.shape[0]
+        int_params[1] = filtered.shape[1]
+        int_params[2] = filtered.shape[2]
+        int_params[3] = output.shape[0]
+        int_params[4] = output.shape[1]
+        int_params[5] = output.shape[2]
+        int_params[6] = order
+        float_params[0] = cval
+
+        assert(np.isfortran(output)==False)
+        assert(np.isfortran(m)==False)
+        assert(np.isfortran(filtered)==False)
+
+        filtered_gpu = ctx.buffer(filtered)
+        m_gpu = ctx.buffer(m) 
+        output_gpu = ctx.buffer(output.nbytes)
+        int_params_gpu = ctx.buffer(int_params)
+        float_params_gpu = ctx.buffer(float_params)
+
+        ctx.init_command_buffer()
+
+        handle=knl_at(int(np.prod(output.shape)),filtered_gpu,m_gpu,output_gpu,int_params_gpu, float_params_gpu)
+        ctx.commit_command_buffer()
+        ctx.wait_command_buffer()
+        del handle
+
+        output = np.frombuffer(output_gpu,dtype=np.float32).reshape(output.shape)
+
+        if integer_output:
+            output = output.astype("int16")
+
         return out_class(output, to_affine, from_img.header)
