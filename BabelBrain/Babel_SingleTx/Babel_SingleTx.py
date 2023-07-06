@@ -130,6 +130,7 @@ class SingleTx(QWidget):
         extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
+        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
