@@ -118,6 +118,7 @@ if 'Darwin' in platform.system(): #for Mac
     app = BUNDLE(
         coll,
         name='BabelBrain.app',
+        bundle_identifier='com.ucalgary.babelbrain',
         icon='./Proteus-Alciato-logo.png',
     )
 elif 'Windows' in platform.system(): #for Windows

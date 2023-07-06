@@ -15,6 +15,7 @@ import nibabel
 from nibabel import processing
 from scipy import ndimage
 from trimesh import creation 
+import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
@@ -189,6 +190,26 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
 
+def DoIntersect(Mesh1,Mesh2):
+    #We took now some extra steps for broken meshes
+    Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+    try:
+        dummy = Mesh1_intersect.triangles #if empty, this trigger an error
+    except:
+        print('mesh is invalid... trying to fix')
+        Mesh1_intersect=FixMesh(Mesh1)
+        Mesh1_intersect =trimesh.boolean.intersection((Mesh1_intersect,Mesh2),engine='blender')
+    return Mesh1_intersect
+
+def FixMesh(inmesh):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        inmesh.export(tmpdirname+os.sep+'__in.stl')
+        pymeshfix.clean_from_file(tmpdirname+os.sep+'__in.stl', tmpdirname+os.sep+'__out.stl')
+        fixmesh=trimesh.load_mesh(tmpdirname+os.sep+'__out.stl')
+        os.remove(tmpdirname+os.sep+'__in.stl')
+        os.remove(tmpdirname+os.sep+'__out.stl')
+    return fixmesh
+
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
@@ -327,7 +348,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
-    skin_mesh =trimesh.boolean.intersection((skin_mesh,Cone),engine='blender')
+    skin_mesh =DoIntersect(skin_mesh,Cone)
 
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
     with CodeTimer("voxelization ",unit='s'):
@@ -404,13 +425,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     skull_mesh = trimesh.load_mesh(skull_stl)
     csf_mesh = trimesh.load_mesh(csf_stl)
-    skin_mesh = trimesh.load_mesh(skin_stl)  
-
+    skin_mesh = trimesh.load_mesh(skin_stl)
 
     if bApplyBOXFOV:
-        skull_mesh=trimesh.boolean.intersection((skull_mesh,BoxFOV),engine='blender')
-        csf_mesh  =trimesh.boolean.intersection((csf_mesh,  BoxFOV),engine='blender')
-        skin_mesh =trimesh.boolean.intersection((skin_mesh, BoxFOV),engine='blender')
+        skull_mesh=DoIntersect(skull_mesh,BoxFOV)
+        csf_mesh  =DoIntersect(csf_mesh,  BoxFOV)
+        skin_mesh =DoIntersect(skin_mesh, BoxFOV)
     
     #we first substract to find the pure bone region
     if VoxelizeFilter is None:
