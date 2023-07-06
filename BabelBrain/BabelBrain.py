@@ -147,7 +147,6 @@ class OutputWrapper(QObject):
 GetSmallestSOS=None
 
 _LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
-_BrainsightSyncPath=str(Path.home())+os.sep+'.BabelBrainSync'
 
 def GetLatestSelection():
     res=None
@@ -171,9 +170,9 @@ def GetLatestSelection():
 
 def GetInputFromBrainsight():
     res=None
-    PathMat4Trajectory  = _BrainsightSyncPath + os.sep +'Input_Target.txt'
-    PathT1W             = _BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
-    Pathsimbnibs_path   = _BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
+    PathMat4Trajectory  = BabelBrain._BrainsightSyncPath + os.sep +'Input_Target.txt'
+    PathT1W             = BabelBrain._BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
+    Pathsimbnibs_path   = BabelBrain._BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
 
 
     if os.path.isfile(PathMat4Trajectory) and \
@@ -209,6 +208,9 @@ class BabelBrain(QWidget):
     Main LIFU Control application
 
     '''
+
+    _BrainsightSyncPath: str = str(Path.home()) + os.sep + '.BabelBrainSync'
+
     def __init__(self,widget,bInUseWithBrainsight=False):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
