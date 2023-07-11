@@ -19,6 +19,7 @@ from nibabel.imageclasses import spatial_axes_first
 from nibabel.nifti1 import Nifti1Image
 from scipy import ndimage
 from trimesh import creation 
+import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
@@ -206,6 +207,26 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
 
+def DoIntersect(Mesh1,Mesh2):
+    #We took now some extra steps for broken meshes
+    Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+    try:
+        dummy = Mesh1_intersect.triangles #if empty, this trigger an error
+    except:
+        print('mesh is invalid... trying to fix')
+        Mesh1_intersect=FixMesh(Mesh1)
+        Mesh1_intersect =trimesh.boolean.intersection((Mesh1_intersect,Mesh2),engine='blender')
+    return Mesh1_intersect
+
+def FixMesh(inmesh):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        inmesh.export(tmpdirname+os.sep+'__in.stl')
+        pymeshfix.clean_from_file(tmpdirname+os.sep+'__in.stl', tmpdirname+os.sep+'__out.stl')
+        fixmesh=trimesh.load_mesh(tmpdirname+os.sep+'__out.stl')
+        os.remove(tmpdirname+os.sep+'__in.stl')
+        os.remove(tmpdirname+os.sep+'__out.stl')
+    return fixmesh
+
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
@@ -343,7 +364,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
-    skin_mesh =trimesh.boolean.intersection((skin_mesh,Cone),engine='blender')
+    skin_mesh =DoIntersect(skin_mesh,Cone)
 
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
     with CodeTimer("voxelization ",unit='s'):
@@ -362,7 +383,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     #we will produce one dataset (used only for sanity tests)
     # with the same orientation as the T1 scan and just enclosing the list of points intersected
-    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int).T
+    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int64).T
     AffIJKCornersMin=np.min(AffIJKCorners,axis=0).reshape((4,1))
     NewOrig=np.dot(baseaffine,AffIJKCornersMin)
     
@@ -388,7 +409,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     #now we prepare the new dataset that is perpendicular to the cone direction
     #first we calculate the indexes i,j,k
-    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
     NewOrig=baseaffineRot @np.array([AffIJK[:,0].min(),AffIJK[:,1].min(),AffIJK[:,2].min(),1]).reshape((4,1))
     baseaffineRot[:,3]=NewOrig.flatten()
     InVAffineRot=np.linalg.inv(baseaffineRot)
@@ -396,7 +417,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     ALoc=np.ones((4,1))
     ALoc[:3,0]=np.array(Location)
     XYZ=np.hstack((XYZ,ALoc))
-    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
     
     LocFocalPoint=AffIJK[-1,:3] #we recover the location in pixels of the intended target
           
@@ -420,13 +441,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     skull_mesh = trimesh.load_mesh(skull_stl)
     csf_mesh = trimesh.load_mesh(csf_stl)
-    skin_mesh = trimesh.load_mesh(skin_stl)  
-
+    skin_mesh = trimesh.load_mesh(skin_stl)
 
     if bApplyBOXFOV:
-        skull_mesh=trimesh.boolean.intersection((skull_mesh,BoxFOV),engine='blender')
-        csf_mesh  =trimesh.boolean.intersection((csf_mesh,  BoxFOV),engine='blender')
-        skin_mesh =trimesh.boolean.intersection((skin_mesh, BoxFOV),engine='blender')
+        skull_mesh=DoIntersect(skull_mesh,BoxFOV)
+        csf_mesh  =DoIntersect(csf_mesh,  BoxFOV)
+        skin_mesh =DoIntersect(skin_mesh, BoxFOV)
     
     #we first substract to find the pure bone region
     if VoxelizeFilter is None:
@@ -464,7 +484,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     #we will produce one dataset (used only for sanity tests)
     # with the same orientation as the T1 scan and just enclosing the list of points intersected
-    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int).T
+    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int64).T
     AffIJKCornersMin=np.min(AffIJKCorners,axis=0).reshape((4,1))
     NewOrig=np.dot(baseaffine,AffIJKCornersMin)
     
@@ -490,7 +510,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         XYZ=skin_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skin_grid.dtype))).T
         #now we prepare the new dataset that is perpendicular to the cone direction
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         NewOrig=baseaffineRot @np.array([AffIJK[:,0].min(),AffIJK[:,1].min(),AffIJK[:,2].min(),1]).reshape((4,1))
         baseaffineRot[:,3]=NewOrig.flatten()
         InVAffineRot=np.linalg.inv(baseaffineRot)
@@ -499,7 +519,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ALoc=np.ones((4,1),dtype=skin_grid.dtype)
         ALoc[:3,0]=np.array(Location,dtype=skin_grid.dtype)
         XYZ=np.hstack((XYZ,ALoc))
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         
         LocFocalPoint=AffIJK[-1,:3]
         
@@ -514,7 +534,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     with CodeTimer("skull masking",unit='s'):
         XYZ=skull_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skull_grid.dtype))).T
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         BinMaskConformalSkullRot=np.zeros_like(BinMaskConformalSkinRot)
         inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
              (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
@@ -529,7 +549,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     with CodeTimer("csf masking",unit='s'):
         XYZ=csf_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         BinMaskConformalCSFRot=np.zeros(BinMaskConformalSkinRot.shape,np.uint8)
         inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
              (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
