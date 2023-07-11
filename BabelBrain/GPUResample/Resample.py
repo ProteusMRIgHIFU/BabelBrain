@@ -88,7 +88,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     const unsigned int sx_1 = sx_2 * xsize_2;
     const unsigned int sx_0 = sx_1 * xsize_1;
     
-    int in_coord[3] = {xind,yind,zind};
+    unsigned int in_coord[3] = {xind,yind,zind};
 
     float c_0 = (float)0.0;
     c_0 += mat[0] * (float)in_coord[0];
@@ -925,7 +925,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
             filtered_gpu,
             m_gpu,
             output_gpu,
-            np.float64(cval),
+            np.float32(cval),
             np.int32(order),
             np.int32(filtered.shape[0]),
             np.int32(filtered.shape[1]),
