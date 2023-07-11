@@ -102,7 +102,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
     TxH317['elemdims']=TxElem['ds'].size
     TxH317['NumberElems']=len(theta)
     TxH317['VertDisplay'] = np.zeros((0,3))
-    TxH317['FaceDisplay'] = np.zeros((0,4),np.int)
+    TxH317['FaceDisplay'] = np.zeros((0,4),np.int64)
 
     for n in range(len(theta)):
         prevFaceLength=TxH317['VertDisplay'].shape[0]

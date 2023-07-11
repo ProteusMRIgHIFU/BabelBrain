@@ -367,7 +367,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     #we will produce one dataset (used only for sanity tests)
     # with the same orientation as the T1 scan and just enclosing the list of points intersected
-    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int).T
+    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int64).T
     AffIJKCornersMin=np.min(AffIJKCorners,axis=0).reshape((4,1))
     NewOrig=np.dot(baseaffine,AffIJKCornersMin)
     
@@ -393,7 +393,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     #now we prepare the new dataset that is perpendicular to the cone direction
     #first we calculate the indexes i,j,k
-    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
     NewOrig=baseaffineRot @np.array([AffIJK[:,0].min(),AffIJK[:,1].min(),AffIJK[:,2].min(),1]).reshape((4,1))
     baseaffineRot[:,3]=NewOrig.flatten()
     InVAffineRot=np.linalg.inv(baseaffineRot)
@@ -401,7 +401,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     ALoc=np.ones((4,1))
     ALoc[:3,0]=np.array(Location)
     XYZ=np.hstack((XYZ,ALoc))
-    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+    AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
     
     LocFocalPoint=AffIJK[-1,:3] #we recover the location in pixels of the intended target
           
@@ -468,7 +468,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     #we will produce one dataset (used only for sanity tests)
     # with the same orientation as the T1 scan and just enclosing the list of points intersected
-    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int).T
+    AffIJKCorners=np.floor(np.dot(InVAffine,np.hstack((Corner1,Corner2)))).astype(np.int64).T
     AffIJKCornersMin=np.min(AffIJKCorners,axis=0).reshape((4,1))
     NewOrig=np.dot(baseaffine,AffIJKCornersMin)
     
@@ -494,7 +494,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         XYZ=skin_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skin_grid.dtype))).T
         #now we prepare the new dataset that is perpendicular to the cone direction
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         NewOrig=baseaffineRot @np.array([AffIJK[:,0].min(),AffIJK[:,1].min(),AffIJK[:,2].min(),1]).reshape((4,1))
         baseaffineRot[:,3]=NewOrig.flatten()
         InVAffineRot=np.linalg.inv(baseaffineRot)
@@ -503,7 +503,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ALoc=np.ones((4,1),dtype=skin_grid.dtype)
         ALoc[:3,0]=np.array(Location,dtype=skin_grid.dtype)
         XYZ=np.hstack((XYZ,ALoc))
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         
         LocFocalPoint=AffIJK[-1,:3]
         
@@ -518,7 +518,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     with CodeTimer("skull masking",unit='s'):
         XYZ=skull_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skull_grid.dtype))).T
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         BinMaskConformalSkullRot=np.zeros_like(BinMaskConformalSkinRot)
         inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
              (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
@@ -533,7 +533,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     with CodeTimer("csf masking",unit='s'):
         XYZ=csf_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
         BinMaskConformalCSFRot=np.zeros(BinMaskConformalSkinRot.shape,np.uint8)
         inds=(AffIJK[:,0]<BinMaskConformalSkullRot.shape[0])&\
              (AffIJK[:,1]<BinMaskConformalSkullRot.shape[1])&\
