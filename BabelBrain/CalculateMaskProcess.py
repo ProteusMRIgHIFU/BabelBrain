@@ -53,12 +53,12 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                 MedianFilter.InitMetal(DeviceName= devicename)
                 Voxelize.InitMetal(DeviceName= devicename)
                 MappingFilter.InitMetal(DeviceName= devicename)
-                Resample.InitMetal(DeviceName= devicename)
+                Resample.InitOpenCL(DeviceName= devicename) # Metal version still has some kinks to work out
             
             DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilterSize7,COMPUTING_BACKEND)
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
             DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
-            DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
+            DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo, 2) # Metal version still has some kinks to work out
         else:
             assert(COMPUTING_BACKEND in [1,2])
 

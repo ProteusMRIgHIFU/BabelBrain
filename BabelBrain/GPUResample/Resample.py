@@ -366,8 +366,6 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
 }
 '''
 
-_spline_codea=''''''
-
 _spline_code='''
 #ifdef _OPENCL
 __kernel void spline_filter_3d(__global float* y, 
@@ -380,7 +378,7 @@ __kernel void spline_filter_3d(__global float* y,
 
     const int n_signals = info[0];
     const int n_samples = info[1];
-    const int * shape = info+2;
+    const __global int * shape = info+2;
 #endif
 
 #ifdef _METAL
@@ -434,7 +432,10 @@ kernel void spline_filter_3d(device float * y [[ buffer(0) ]],
 
         //causal init for mode=mirror
         z_i = z;
-        z_n_1 = pow(z, (float)(n - 1));
+        if (n < 50)
+            z_n_1 = pow(z, (float)(n - 1));
+        else
+            z_n_1 = 0.0;
 
         y[row] = y[row] + z_n_1 * y[row + (n - 1) * elem_stride];
         for (i = 1; i < min(n - 1, n_bound); ++i)
@@ -561,80 +562,17 @@ def InitMetal(DeviceName='AMD'):
             break
     if SelDevice is None:
         raise SystemError("No Metal device containing name [%s]" %(DeviceName))
-    # else:
-    #     print('Selecting device: ', dev.deviceName)
+    else:
+        print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    # print(ctx)
+    print(ctx)
 
     prgcl = ctx.kernel('#define _METAL\n'+_transform_code+_spline_code)
 
     knl_at=prgcl.function('affine_transform')
     knl_sf=prgcl.function('spline_filter_3d')
 
-def _get_output(output, input, shape=None, complex_output=False):
-    if shape is None:
-        shape = input.shape
-    if output is None:
-        if not complex_output:
-            output = np.zeros(shape, dtype=input.dtype.name)
-        else:
-            complex_type = np.promote_types(input.dtype, np.complex64)
-            output = np.zeros(shape, dtype=complex_type)
-    elif isinstance(output, (type, np.dtype)):
-        # Classes (like `np.float32`) and dtypes are interpreted as dtype
-        if complex_output and np.dtype(output).kind != 'c':
-            warnings.warn("promoting specified output dtype to complex")
-            output = np.promote_types(output, np.complex64)
-        output = np.zeros(shape, dtype=output)
-    elif isinstance(output, str):
-        output = np.sctypeDict[output]
-        if complex_output and np.dtype(output).kind != 'c':
-            raise RuntimeError("output must have complex dtype")
-        output = np.zeros(shape, dtype=output)
-    elif output.shape != shape:
-        raise RuntimeError("output shape not correct")
-    elif complex_output and output.dtype.kind != 'c':
-        raise RuntimeError("output must have complex dtype")
-    return output
-
-def _extend_mode_to_code(mode):
-    if mode == 'nearest':
-        return 0
-    elif mode == 'wrap':
-        return 1
-    elif mode in ['reflect', 'grid-mirror']:
-        return 2
-    elif mode == 'mirror':
-        return 3
-    elif mode == 'constant':
-        return 4
-    elif mode == 'grid-wrap':
-        return 5
-    elif mode == 'grid-constant':
-        return 6
-    else:
-        raise RuntimeError('boundary mode not supported')
-    
-def spline_filter1d(input, order=3, axis=-1, output=np.float64,
-                    mode='mirror'):
-    if order < 0 or order > 5:
-        raise RuntimeError('spline order not supported')
-    input = np.asarray(input)
-    complex_output = np.iscomplexobj(input)
-    output = _get_output(output, input,
-                                     complex_output=complex_output)
-    if complex_output:
-        spline_filter1d(input.real, order, axis, output.real, mode)
-        spline_filter1d(input.imag, order, axis, output.imag, mode)
-        return output
-    if order in [0, 1]:
-        output[...] = np.array(input)
-    else:
-        mode = _extend_mode_to_code(mode)
-        axis = normalize_axis_index(axis, input.ndim)
-        _nd_image.spline_filter1d(input, order, axis, output, mode)
-    return output
 
 def _check_parameter_modified(func_name, order, mode):
     if order < 0 or 5 < order:
@@ -824,11 +762,11 @@ def spline_filter1d_modified(input, order=3, axis=-1, output=np.float64,
         int_params[1] = n_boundary
 
         info_gpu = ctx.buffer(info)
-        temp_gpu = ctx.buffer(temp.nbytes)
+        temp_gpu = ctx.buffer(temp)
         int_params_gpu = ctx.buffer(int_params)
 
         ctx.init_command_buffer()
-        handle=knl_sf(int(np.prod(temp.shape)),temp_gpu,info_gpu, int_params_gpu)
+        handle=knl_sf(int(n_signals),temp_gpu,info_gpu, int_params_gpu)
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
@@ -849,8 +787,7 @@ def spline_filter_modified(input, order=3, output=np.float64, mode='mirror',GPUB
     temp, data_dtype, output_dtype = _get_spline_output_modified(x, output)
     if order not in [0, 1] and input.ndim > 0:
         for axis in range(x.ndim):
-            # spline_filter1d_modified(x, order, axis, output=temp, mode=mode, GPUBackend=GPUBackend)
-            spline_filter1d(x, order, axis, output=temp, mode=mode)
+            spline_filter1d_modified(x, order, axis, output=temp, mode=mode, GPUBackend=GPUBackend)
             x = temp
     if isinstance(output, np.ndarray):
         np.copyto(output, temp)
@@ -1027,7 +964,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
 
         filtered_gpu = ctx.buffer(filtered)
         m_gpu = ctx.buffer(m) 
-        output_gpu = ctx.buffer(output.nbytes)
+        output_gpu = ctx.buffer(output)
         int_params_gpu = ctx.buffer(int_params)
         float_params_gpu = ctx.buffer(float_params)
 
