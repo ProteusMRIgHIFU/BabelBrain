@@ -567,7 +567,6 @@ def InitMetal(DeviceName='AMD'):
         print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    print(ctx)
     if 'arm64' not in platform.platform():
         ctx.set_external_gpu(1) 
 
@@ -773,7 +772,8 @@ def spline_filter1d_modified(input, order=3, axis=-1, output=np.float64,
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
-
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((temp_gpu,info_gpu))
         temp = np.frombuffer(temp_gpu,dtype=np.float32).reshape(temp.shape)
 
     if isinstance(output, np.ndarray) and temp is not output:
@@ -977,7 +977,8 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
-
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((output_gpu,float_params_gpu))
         output = np.frombuffer(output_gpu,dtype=np.float32).reshape(output.shape)
 
         if integer_output:
