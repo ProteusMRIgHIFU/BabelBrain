@@ -5,6 +5,7 @@ import os
 import warnings
 import functools
 import operator
+import platform
 
 import nibabel
 from nibabel import processing
@@ -88,7 +89,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     const unsigned int sx_1 = sx_2 * xsize_2;
     const unsigned int sx_0 = sx_1 * xsize_1;
     
-    unsigned int in_coord[3] = {xind,yind,zind};
+    int in_coord[3] = {xind,yind,zind};
 
     float c_0 = (float)0.0;
     c_0 += mat[0] * (float)in_coord[0];
@@ -567,6 +568,8 @@ def InitMetal(DeviceName='AMD'):
     
     ctx = mc.Device(n)
     print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
 
     prgcl = ctx.kernel('#define _METAL\n'+_transform_code+_spline_code)
 

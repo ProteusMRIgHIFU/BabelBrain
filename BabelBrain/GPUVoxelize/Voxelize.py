@@ -440,6 +440,8 @@ def InitMetal(DeviceName='AMD'):
     
     ctx = mc.Device(n)
     print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
 
 def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx

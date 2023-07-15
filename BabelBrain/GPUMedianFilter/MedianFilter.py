@@ -1,4 +1,5 @@
 import numpy as np
+import platform
 
 import os
 
@@ -154,6 +155,8 @@ def InitMetal(DeviceName='AMD'):
     
     ctx = mc.Device(n)
     print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
     
     
 def MedianFilterSize7(data,GPUBackend='OpenCL'):
