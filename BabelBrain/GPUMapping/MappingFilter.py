@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import platform
 
 ##probably not the most optimal of filters.. .but still WAY faster than CPU based
 _code='''
@@ -154,7 +155,8 @@ def InitMetal(DeviceName='AMD'):
         print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
     
 def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
     global Platforms
@@ -227,6 +229,8 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((CtMap_pr,UniqueHU_pr))
         CtMap=np.frombuffer(CtMap_pr,dtype=CtMap.dtype).reshape(CtMap.shape)
   
     return CtMap

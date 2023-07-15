@@ -9,10 +9,14 @@ ABOUT:
 '''
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.linalg as npl
 import os
 import trimesh
 import nibabel
 from nibabel import processing
+from nibabel.affines import AffineError, to_matvec
+from nibabel.imageclasses import spatial_axes_first
+from nibabel.nifti1 import Nifti1Image
 from scipy import ndimage
 from trimesh import creation 
 import pymeshfix
@@ -133,6 +137,19 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MapFilterCOMPUTING_BACKEND='OpenCL'
     else:
         MapFilterCOMPUTING_BACKEND='Metal'
+
+ResampleFilter=None
+ResampleFilterCOMPUTING_BACKEND=''
+def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global ResampleFilter
+    global ResampleFilterCOMPUTING_BACKEND
+    ResampleFilter = Callback
+    if COMPUTING_BACKEND==1:
+        ResampleFilterCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
+        ResampleFilterCOMPUTING_BACKEND='OpenCL'
+    else:
+        ResampleFilterCOMPUTING_BACKEND='Metal'
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
@@ -297,7 +314,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     if TrajectoryType =='brainsight':
         print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
         RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
-        
     else:
         inMat=read_itk_affine_transform(Mat4Trajectory)
          #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
@@ -589,8 +605,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
         with CodeTimer("median filter CT mask extrapol",unit='s'):
-            nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
-       
+            nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
 
         ##We will create an smooth surface
@@ -640,7 +655,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         with CodeTimer("CT extrapol",unit='s'):
             print('rCTdata range',rCTdata.min(),rCTdata.max())
             rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
-            nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
+            nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
@@ -722,7 +737,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     mask_nifti2.to_filename(outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
-        T1Conformal=processing.resample_from_to(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
+        T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
         T1Conformal.to_filename(T1W_resampled_fname)
     

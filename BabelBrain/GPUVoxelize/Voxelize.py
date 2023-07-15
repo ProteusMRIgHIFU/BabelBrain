@@ -439,7 +439,8 @@ def InitMetal(DeviceName='AMD'):
         print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
 
 def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx
@@ -539,6 +540,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((vtable_dev,triangles_dev))
         vtable=np.frombuffer(vtable_dev,dtype=np.uint32)
 
     totalPoints=calctotalpoints((gx,gy,gz),vtable)[0]
@@ -624,6 +627,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                     ctx.commit_command_buffer()
                     ctx.wait_command_buffer()
                     del handle
+                    if 'arm64' not in platform.platform():
+                        ctx.sync_buffers((Points_dev,globalcount_dev))
                     Points_part=np.frombuffer(Points_dev,dtype=np.float32).reshape(sizePdev,3)
                     globalcount=np.frombuffer(globalcount_dev,dtype=np.uint64)
             

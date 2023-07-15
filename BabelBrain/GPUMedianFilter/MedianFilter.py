@@ -1,4 +1,5 @@
 import numpy as np
+import platform
 
 import os
 
@@ -153,7 +154,8 @@ def InitMetal(DeviceName='AMD'):
         print('Selecting device: ', dev.deviceName)
     
     ctx = mc.Device(n)
-    print(ctx)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
     
     
 def MedianFilterSize7(data,GPUBackend='OpenCL'):
@@ -198,5 +200,7 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
         ctx.commit_command_buffer()
         ctx.wait_command_buffer()
         del handle
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((data_out_pr,data_pr))
         data_out=np.frombuffer(data_out_pr,dtype=np.uint8).reshape(data.shape)
     return data_out
