@@ -355,7 +355,7 @@ class SimulationConditions(SimulationConditionsBASE):
         ramp_length_points=len(ramp)
         
         self._SourceMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
-        LocZ=self._PMLThickness
+        LocZ=self._ZSourceLocation
         
         SourceMaskIND=np.where(np.abs(self._SourceMapRayleigh)>0)
         SourceMask=np.zeros((self._N1,self._N2),np.uint32)
@@ -464,7 +464,7 @@ class SimulationConditions(SimulationConditionsBASE):
         ramp = (-np.cos(ramp_axis) + 1) * 0.5
         ramp_length_points=len(ramp)
         
-        LocZ=self._PMLThickness
+        LocZ=self._ZSourceLocation
         
         SourceMaskIND=np.where(np.abs(self._SourceMapRayleigh)>0)
            

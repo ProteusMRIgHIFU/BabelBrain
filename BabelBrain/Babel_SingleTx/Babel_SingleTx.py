@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QErrorMessage, QMessageBox)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor
+from PySide6.QtGui import QPalette, QTextCursor, QColor
 
 import numpy as np
 
@@ -54,6 +54,7 @@ class SingleTx(QWidget):
         self.static_canvas=None
         self._MainApp=MainApp
         self._bIgnoreUpdate=False
+        self._ZMaxSkin = 0.0 # maximum
         self.DefaultConfig()
         self.load_ui(formfile)
 
@@ -70,6 +71,7 @@ class SingleTx(QWidget):
         self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.LabelTissueRemoved.setVisible(False)
 
     def DefaultConfig(self,cfile='default.yaml'):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -89,13 +91,11 @@ class SingleTx(QWidget):
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
         self.UpdateLimits()
-
-        ZMax=self.Widget.ZMechanicSpinBox.maximum()
-        
-        if ZMax>=0:
+  
+        if self._ZMaxSkin>=0:
             self.Widget.ZMechanicSpinBox.setValue(0.0) # Tx aligned at the target
         else:
-            self.Widget.ZMechanicSpinBox.setValue(np.round(ZMax,1)) #if negative, we push back the Tx as it can't go below this
+            self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin) #if negative, we push back the Tx as it can't go below this
         
     
     @Slot()
@@ -104,15 +104,21 @@ class SingleTx(QWidget):
             return
         self._bIgnoreUpdate=True
         self.UpdateLimits()
-        ZMax=self.Widget.ZMechanicSpinBox.maximum()
         ZMec=self.Widget.ZMechanicSpinBox.value()
-        if ZMec > ZMax:
-            self.ZMechanicSpinBox.setValue(ZMax)
-            ZMec=ZMax
+        if ZMec > self.Widget.ZMechanicSpinBox.maximum():
+            self.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
+            ZMec=self.Widget.ZMechanicSpinBox.maximum()
         
-        CurDistance=ZMax-ZMec
+        CurDistance=self._ZMaxSkin-ZMec
         self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
-        self._bIgnoreUpdate=False
+        if CurDistance<0:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: red")
+            self.Widget.LabelTissueRemoved.setVisible(True)
+        else:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
+            self.Widget.LabelTissueRemoved.setVisible(False)
+            
+        self._bIgnoreUpdate=False 
 
 
     def UpdateLimits(self):
@@ -120,8 +126,8 @@ class SingleTx(QWidget):
         Diameter = self.Widget.DiameterSpinBox.value()
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
-        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMax,1))
-        self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
+        self._ZMaxSkin = np.round(ZMax,1)
+        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
       
     @Slot()
     def RunSimulation(self):
@@ -340,6 +346,10 @@ class RunAcousticSim(QObject):
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
         TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
+        ZIntoSkin =0.0
+        CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
+        if CurDistance < 0:
+            ZIntoSkin = np.abs(CurDistance)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
@@ -356,6 +366,7 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
+        kargs['ZIntoSkin']=ZIntoSkin
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']

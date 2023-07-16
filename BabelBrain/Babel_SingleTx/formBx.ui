@@ -354,6 +354,31 @@ target (mm)</string>
     </property>
    </item>
   </widget>
+  <widget class="QLabel" name="LabelTissueRemoved">
+   <property name="geometry">
+    <rect>
+     <x>257</x>
+     <y>279</y>
+     <width>104</width>
+     <height>33</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: red</string>
+   </property>
+   <property name="text">
+    <string>Tissue layers
+will be removed!</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
