@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QErrorMessage, QMessageBox)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor
+from PySide6.QtGui import QPalette, QTextCursor, QColor
 
 import numpy as np
 
@@ -52,7 +52,7 @@ def DistanceOutPlaneToFocus(FocalLength,Diameter):
 
 class BSonix(SingleTx):
     def __init__(self,parent=None,MainApp=None,formfile='formBx.ui'):
-        super(BSonix, self).__init__(parent,MainApp,formfile)
+        super(BSonix, self).__init__(parent,MainApp,formfile)       
 
     def load_ui(self,formfile):
         loader = QUiLoader()
@@ -65,6 +65,7 @@ class BSonix(SingleTx):
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
+        self.Widget.LabelTissueRemoved.setVisible(False)
         
         
     def DefaultConfig(self,cfile='defaultBSonix.yaml'):
@@ -72,7 +73,7 @@ class BSonix(SingleTx):
 
     def NotifyGeneratedMask(self):
         super(BSonix, self).NotifyGeneratedMask()
-        self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
+        self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
 
     def GetTxModel(self):
         return "BSonix"+self.Widget.TransducerModelcomboBox.currentText()
@@ -83,18 +84,8 @@ class BSonix(SingleTx):
         Diameter = self.Config[model]['TxDiam']*1e3
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
-        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMax,1))
-
-    @Slot()
-    def UpdateTxInfo(self):
-        if self._bIgnoreUpdate:
-            return
-        self._bIgnoreUpdate=True
-        self.UpdateLimits()
-        ZMax=self.Widget.ZMechanicSpinBox.maximum()
-        self.Widget.ZMechanicSpinBox.setValue(ZMax)
-        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(0.0))
-        self._bIgnoreUpdate=False       
+        self._ZMaxSkin = np.round(ZMax,1)
+        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
 
     @Slot()
     def RunSimulation(self):

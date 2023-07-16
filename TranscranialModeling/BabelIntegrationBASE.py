@@ -469,12 +469,12 @@ class BabelFTD_Simulations_BASE(object):
                  bNoShear=False,
                  pressure=50e3,
                  SensorSubSampling=8,
-                 PadForRayleigh=12,
                  bTightNarrowBeamDomain=False, #if this set, simulations will be done only accross a section area that follows the acoustic beam, this is useful to reduce computational costs
                  zLengthBeyonFocalPointWhenNarrow=4e-2,
-                 TxMechanicalAdjustmentX=0,
-                 TxMechanicalAdjustmentY=0,
-                 TxMechanicalAdjustmentZ=0,
+                 TxMechanicalAdjustmentX=0.0, #Positioning of Tx
+                 TxMechanicalAdjustmentY=0.0,
+                 TxMechanicalAdjustmentZ=0.0,
+                 ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
                  QCorrection=3,
@@ -494,13 +494,13 @@ class BabelFTD_Simulations_BASE(object):
         
         self._Frequency=Frequency
         self._pressure=pressure
-        self._PadForRayleigh=PadForRayleigh
         self._bWaterOnly=bWaterOnly
         self._bTightNarrowBeamDomain=bTightNarrowBeamDomain
         self._zLengthBeyonFocalPointWhenNarrow=zLengthBeyonFocalPointWhenNarrow
         self._TxMechanicalAdjustmentX=TxMechanicalAdjustmentX
         self._TxMechanicalAdjustmentY=TxMechanicalAdjustmentY
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
+        self._ZIntoSkin=ZIntoSkin
         self._bDoRefocusing=bDoRefocusing
         self._SensorSubSampling=SensorSubSampling
         self._CTFNAME=CTFNAME
@@ -591,6 +591,7 @@ class BabelFTD_Simulations_BASE(object):
                                 TxMechanicalAdjustmentX=self._TxMechanicalAdjustmentX,
                                 TxMechanicalAdjustmentY=self._TxMechanicalAdjustmentY,
                                 TxMechanicalAdjustmentZ=self._TxMechanicalAdjustmentZ,
+                                ZIntoSkin=self._ZIntoSkin,
                                 DensityCTMap=DensityCTMap,
                                 QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
@@ -746,6 +747,8 @@ class BabelFTD_Simulations_BASE(object):
         DataForSim['TxMechanicalAdjustmentX']=self._TxMechanicalAdjustmentX
         DataForSim['TxMechanicalAdjustmentY']=self._TxMechanicalAdjustmentY
         DataForSim['TxMechanicalAdjustmentZ']=self._TxMechanicalAdjustmentZ
+        DataForSim['ZIntoSkin']=self._ZIntoSkin
+        DataForSim['ZIntoSkinPixels']=self._SIM_SETTINGS._ZIntoSkinPixels
 
         self.AddSaveDataSim(DataForSim)
         ###
@@ -829,6 +832,7 @@ class SimulationConditionsBASE(object):
                       TxMechanicalAdjustmentX =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
                       TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
+                      ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
                       DensityCTMap=None, #use CT map
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
@@ -860,7 +864,10 @@ class SimulationConditionsBASE(object):
         self._TxMechanicalAdjustmentX=TxMechanicalAdjustmentX
         self._TxMechanicalAdjustmentY=TxMechanicalAdjustmentY
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
+        self._ZIntoSkin=ZIntoSkin
         self._DensityCTMap=DensityCTMap
+        self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
+        self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
 
         
         
@@ -937,6 +944,9 @@ class SimulationConditionsBASE(object):
         
         self._SpatialStep=SpatialStep
         self._TemporalStep=TemporalStep
+
+        self._ZIntoSkinPixels=int(np.round(self._ZIntoSkin/SpatialStep))
+        self._ZSourceLocation=self._ZIntoSkinPixels+self._PMLThickness
         
         #we save the mask array and flipped
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
@@ -1112,7 +1122,6 @@ elif self._bTightNarrowBeamDomain:
                                 self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
-
             if self._DensityCTMap is not None:
                 assert(self._DensityCTMap.dtype==np.uint32)
                 BoneRegion=(self._MaterialMap==2) | (self._MaterialMap==3)
@@ -1131,6 +1140,9 @@ elif self._bTightNarrowBeamDomain:
 
             else:
                 self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
+
+            #We remove tissue layers
+            self._MaterialMap[:,:,:self._ZSourceLocation] = 0 # we remove tissue layers by putting water
         
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         

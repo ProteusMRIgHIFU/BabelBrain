@@ -263,7 +263,10 @@ class Babel_Thermal(QWidget):
             DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
             SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
             IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
-            IntensityMap[0,:]=0
+            if 'ZIntoSkinPixels' in DataThermal:
+                IntensityMap[DataThermal['ZIntoSkinPixels'],:]=0
+            else:
+                IntensityMap[0,:]=0
             Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
 
             if self._MainApp.Config['bUseCT']:
