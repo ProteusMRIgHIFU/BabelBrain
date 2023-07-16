@@ -50,6 +50,7 @@ class CTX500(QWidget):
         super(CTX500, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
+        self._ZMaxSkin = 0.0 # maximum
         self.DefaultConfig()
         self.load_ui()
 
@@ -71,11 +72,7 @@ class CTX500(QWidget):
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
-
-    @Slot()
-    def TPODistanceUpdate(self,value):
-        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
-        print('ZSteering',self._ZSteering*1e3)
+        self.Widget.LabelTissueRemoved.setVisible(False)
 
     def DefaultConfig(self):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -83,8 +80,6 @@ class CTX500(QWidget):
         #with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("CTX500 configuration:")
-        print(config)
 
         self.Config=config
 
@@ -98,19 +93,31 @@ class CTX500(QWidget):
         self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin,1))
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
-        ZMechanical = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        self._ZMaxSkin = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        self._ZMaxSkin = np.round(self._ZMaxSkin,1)
         
-        self.Widget.ZMechanicSpinBox.setMaximum(np.round(ZMechanical,1))  
-        self.Widget.ZMechanicSpinBox.setValue(np.round(ZMechanical,1))
+        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])  
+        self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
         self.TPODistanceUpdate(0)
+
+    @Slot()
+    def TPODistanceUpdate(self,value):
+        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
+        print('ZSteering',self._ZSteering*1e3)
 
     @Slot()
     def UpdateDistanceFromSkin(self):
         self._bIgnoreUpdate=True
-        ZMax=self.Widget.ZMechanicSpinBox.maximum()
         ZMec=self.Widget.ZMechanicSpinBox.value()
-        CurDistance=ZMax-ZMec
+        CurDistance=self._ZMaxSkin-ZMec
         self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        if CurDistance<0:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: red")
+            self.Widget.LabelTissueRemoved.setVisible(True)
+        else:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
+            self.Widget.LabelTissueRemoved.setVisible(False)
+
 
     @Slot()
     def RunSimulation(self):
@@ -320,6 +327,11 @@ class RunAcousticSim(QObject):
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
         TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
 
+        ZIntoSkin =0.0
+        CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
+        if CurDistance < 0:
+            ZIntoSkin = np.abs(CurDistance)
+
         ###############
         TPODistance=self._mainApp.AcSim.Widget.TPODistanceSpinBox.value()/1e3  #Add here the final adjustment)
         ##############
@@ -342,6 +354,7 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
+        kargs['ZIntoSkin']=ZIntoSkin
         kargs['ZSteering']=ZSteering
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
