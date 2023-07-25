@@ -257,10 +257,16 @@ class CTX500(QWidget):
             print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
             print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
 
+            self.Widget.IsppaScrollBar1.blockSignals(True)
+            self.Widget.IsppaScrollBar2.blockSignals(True)
+
             self.Widget.IsppaScrollBar1.setMaximum(ISkull.shape[1]-1)
             self.Widget.IsppaScrollBar1.setValue(LocTarget[1])
             self.Widget.IsppaScrollBar2.setMaximum(ISkull.shape[0]-1)
             self.Widget.IsppaScrollBar2.setValue(LocTarget[0])
+
+            self.Widget.IsppaScrollBar1.blockSignals(False)
+            self.Widget.IsppaScrollBar2.blockSignals(False)
 
         self._figAcField=Figure(figsize=(14, 12))
 
