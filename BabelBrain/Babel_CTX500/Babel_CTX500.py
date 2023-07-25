@@ -73,6 +73,10 @@ class CTX500(QWidget):
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.Widget.IsppaScrollBar1.valueChanged.connect(self.UpdateAcResults)
+        self.Widget.IsppaScrollBar1.setEnabled(False)
+        self.Widget.IsppaScrollBar2.valueChanged.connect(self.UpdateAcResults)
+        self.Widget.IsppaScrollBar2.setEnabled(False)
 
     def DefaultConfig(self):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -180,6 +184,8 @@ class CTX500(QWidget):
         #this will generate a modified trajectory file
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
+        self.Widget.IsppaScrollBar1.setEnabled(True)
+        self.Widget.IsppaScrollBar2.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
         Skull=ReadFromH5py(self._FullSolName)
         if self._MainApp._bInUseWithBrainsight:
@@ -190,7 +196,6 @@ class CTX500(QWidget):
                                     CorZ=Skull['AdjustmentInRAS'][2])
 
         LocTarget=Skull['TargetLocation']
-        print(LocTarget)
 
         for d in [Water,Skull]:
             for t in ['p_amp','MaterialMap']:
@@ -242,14 +247,21 @@ class CTX500(QWidget):
 
         EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
 
-        print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
-        
         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
-        print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
         
         ISkull/=ISkull.max()
         IWater/=IWater.max()
         
+        if not hasattr(self,'_LastField'):
+            print(LocTarget)
+            print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
+            print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
+
+            self.Widget.IsppaScrollBar1.setMaximum(ISkull.shape[1]-1)
+            self.Widget.IsppaScrollBar1.setValue(LocTarget[1])
+            self.Widget.IsppaScrollBar2.setMaximum(ISkull.shape[0]-1)
+            self.Widget.IsppaScrollBar2.setValue(LocTarget[0])
+
         self._figAcField=Figure(figsize=(14, 12))
 
         if not hasattr(self,'_layout'):
@@ -270,10 +282,15 @@ class CTX500(QWidget):
             Field=IWater
         else:
             Field=ISkull
-        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._LastField = Field
+
+        SelY = self.Widget.IsppaScrollBar1.value()
+        SelX = self.Widget.IsppaScrollBar2.value()
+
+        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-        static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
         static_ax1.set_aspect('equal')
         static_ax1.set_xlabel('X mm')
         static_ax1.set_ylabel('Z mm')
@@ -282,10 +299,10 @@ class CTX500(QWidget):
 
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
 
-        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-        static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax2.contour(YY,ZZ,Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
         static_ax2.set_aspect('equal')
         static_ax2.set_xlabel('Y mm')
         static_ax2.set_ylabel('Z mm')
@@ -295,6 +312,10 @@ class CTX500(QWidget):
         self._figAcField.set_tight_layout(True)
 
         #f.set_title('MAIN SIMULATION RESULTS')
+        yf = Skull['y_vec']
+        xf = Skull['x_vec']
+        self.Widget.SliceLabel1.setText("Y pos = %3.2f mm" %(yf[SelY]))
+        self.Widget.SliceLabel2.setText("X pos = %3.2f mm" %(xf[SelX]))
    
     def GetExport(self):
         Export={}
