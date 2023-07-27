@@ -29,6 +29,7 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateFieldProcess import CalculateFieldProcess
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -65,6 +66,7 @@ class CTX500(QWidget):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
 
+        self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
@@ -73,10 +75,6 @@ class CTX500(QWidget):
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
-        self.Widget.IsppaScrollBar1.valueChanged.connect(self.UpdateAcResults)
-        self.Widget.IsppaScrollBar1.setEnabled(False)
-        self.Widget.IsppaScrollBar2.valueChanged.connect(self.UpdateAcResults)
-        self.Widget.IsppaScrollBar2.setEnabled(False)
 
     def DefaultConfig(self):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -184,8 +182,6 @@ class CTX500(QWidget):
         #this will generate a modified trajectory file
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
-        self.Widget.IsppaScrollBar1.setEnabled(True)
-        self.Widget.IsppaScrollBar2.setEnabled(True)
         Water=ReadFromH5py(self._WaterSolName)
         Skull=ReadFromH5py(self._FullSolName)
         if self._MainApp._bInUseWithBrainsight:
@@ -200,17 +196,6 @@ class CTX500(QWidget):
         for d in [Water,Skull]:
             for t in ['p_amp','MaterialMap']:
                 d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
-        if hasattr(self,'_figAcField'):
-            children = []
-            for i in range(self._layout.count()):
-                child = self._layout.itemAt(i).widget()
-                if child:
-                    children.append(child)
-            for child in children:
-                child.deleteLater()
-            delattr(self,'_figAcField')
-            self.Widget.AcField_plot1.repaint()
 
         DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
         dx=  np.mean(np.diff(Skull['x_vec']))
@@ -250,24 +235,24 @@ class CTX500(QWidget):
         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
         
         ISkull/=ISkull.max()
-        IWater/=IWater.max()
-        
-        if not hasattr(self,'_LastField'):
+        IWater/=IWater.max() 
+
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
+        else:
+            self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec'],Skull['y_vec'])
             print(LocTarget)
             print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
             print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
-
-            self.Widget.IsppaScrollBar1.blockSignals(True)
-            self.Widget.IsppaScrollBar2.blockSignals(True)
-
-            self.Widget.IsppaScrollBar1.setMaximum(ISkull.shape[1]-1)
-            self.Widget.IsppaScrollBar1.setValue(LocTarget[1])
-            self.Widget.IsppaScrollBar2.setMaximum(ISkull.shape[0]-1)
-            self.Widget.IsppaScrollBar2.setValue(LocTarget[0])
-
-            self.Widget.IsppaScrollBar1.blockSignals(False)
-            self.Widget.IsppaScrollBar2.blockSignals(False)
-
+            
         self._figAcField=Figure(figsize=(14, 12))
 
         if not hasattr(self,'_layout'):
@@ -288,10 +273,8 @@ class CTX500(QWidget):
             Field=IWater
         else:
             Field=ISkull
-        self._LastField = Field
 
-        SelY = self.Widget.IsppaScrollBar1.value()
-        SelX = self.Widget.IsppaScrollBar2.value()
+        SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
 
         self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
@@ -318,10 +301,7 @@ class CTX500(QWidget):
         self._figAcField.set_tight_layout(True)
 
         #f.set_title('MAIN SIMULATION RESULTS')
-        yf = Skull['y_vec']
-        xf = Skull['x_vec']
-        self.Widget.SliceLabel1.setText("Y pos = %3.2f mm" %(yf[SelY]))
-        self.Widget.SliceLabel2.setText("X pos = %3.2f mm" %(xf[SelX]))
+        self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
    
     def GetExport(self):
         Export={}
@@ -421,8 +401,6 @@ class RunAcousticSim(QObject):
             print("*"*5+" Error in execution.")
             print("*"*40)
             self.endError.emit()
-
-
 
 
 if __name__ == "__main__":
