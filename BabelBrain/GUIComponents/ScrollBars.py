@@ -7,6 +7,7 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor
 
 import os
+import sys
 from pathlib import Path
 
 import platform
