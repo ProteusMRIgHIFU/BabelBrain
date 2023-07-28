@@ -104,7 +104,7 @@ def N4BiasCorrec(input,output=None,shrinkFactor=4,
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
+def CTCorreg(InputT1,InputCT,CoregCT_MRI=0,bReuseFiles=False):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
     # CoregCT_MRI =2 , coregister MRI-->CT space
@@ -113,123 +113,138 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
         return nibabel.load(InputCT)
     else:
         T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz' 
-        N4BiasCorrec(InputT1,T1fnameBiasCorrec)
+        if not (os.path.isfile(T1fnameBiasCorrec) and bReuseFiles):
+            N4BiasCorrec(InputT1,T1fnameBiasCorrec)
+        else:
+            print('Reusing previous', T1fnameBiasCorrec)
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
-
-            fixed_image=nibabel.load(T1fnameBiasCorrec)
-            fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
             T1fname_CTRes=os.path.splitext(InputT1)[0] + '_BiasCorrec_CT_res.nii.gz'
-            fixed_image.to_filename(T1fname_CTRes)
             CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
 
-            RunElastix(T1fname_CTRes,InputCT,CTInT1W)
-            
+            if not (os.path.isfile(CTInT1W) and
+                    os.path.isfile(T1fname_CTRes) and bReuseFiles):
+                fixed_image=nibabel.load(T1fnameBiasCorrec)
+                fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
+                fixed_image.to_filename(T1fname_CTRes)
+                RunElastix(T1fname_CTRes,InputCT,CTInT1W)
+            else:
+                print('Reusing previous', T1fname_CTRes, '\nand' ,CTInT1W)
             return nibabel.load(CTInT1W)
         else:
             T1WinCT=os.path.splitext(InputT1)[0] + '_InCT.nii.gz'
-            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
+            if not (os.path.isfile(T1WinCT) and bReuseFiles):
+                RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
+            else:
+                print('Reusing previous', T1fname_CTRes, '\nand' ,CTInT1W)
             return nibabel.load(InputCT)
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask,bReuseFiles=False):
     #Bias correction
     T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-
-    N4BiasCorrec(InputT1,T1fnameBiasCorrec)
-
-    ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
-
-    N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
-    #coreg
-
     ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
-    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
-    
-    img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
-    try:
-        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    except:
-        img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
-        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    sitk.WriteImage(img_out, T1fnameBiasCorrec)
+    ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
+    if not (os.path.isfile(ZTEInT1W) and 
+            os.path.isfile(T1fnameBiasCorrec) and
+            os.path.isfile(ZTEfnameBiasCorrec) and bReuseFiles):
+        N4BiasCorrec(InputT1,T1fnameBiasCorrec)
 
-    img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
-    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    sitk.WriteImage(img_out, ZTEInT1W)
+        N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
+        #coreg
+        RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
+        
+        img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
+        try:
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        except:
+            img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        sitk.WriteImage(img_out, T1fnameBiasCorrec)
+
+        img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
+        img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        sitk.WriteImage(img_out, ZTEInT1W)
+    else:
+         print('Reusing previous', T1fnameBiasCorrec,'\nand',ZTEfnameBiasCorrec,'\nand',ZTEInT1W)
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
-    print('converting ZTE to pCT with range',ThresoldsZTEBone)
-
-    if SimbNIBSType=='charm':
-        #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
-        charminput = os.path.join(SimbsPath,'final_tissues.nii.gz')
-        charm= nibabel.load(charminput)
-        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
-        arrSkin=charmdata>0 #this mimics what the old headreco does for skin
-        arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
-        label_img=label(charmdata==0)
-        regions= regionprops(label_img)
-        regions=sorted(regions,key=lambda d: d.area) #we eliminate the large background region
-        arrCavities=(label_img!=0) &(label_img!=regions[-1].label)
-    else:
-        InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
-        SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
-        CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
-        # Load T1 and ZTE
-        volumeMask = nibabel.load(InputBrainMask)
-        volumeSkin = nibabel.load(SkinMask)
-        volumeCavities = nibabel.load(CavitiesMask)
-        arrMask=volumeMask.get_fdata()
-        arrSkin=volumeSkin.get_fdata()
-        arrCavities=volumeCavities.get_fdata()
+def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bReuseFiles=False):
     
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
-        sitk.WriteImage(TMaskItk,HeadMask)
+    CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
+    if not (os.path.isfile(CTfname)  and bReuseFiles):
+        print('converting ZTE to pCT with range',ThresoldsZTEBone)
+        if SimbNIBSType=='charm':
+            #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
+            charminput = os.path.join(SimbsPath,'final_tissues.nii.gz')
+            charm= nibabel.load(charminput)
+            charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+            arrSkin=charmdata>0 #this mimics what the old headreco does for skin
+            arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
+            label_img=label(charmdata==0)
+            regions= regionprops(label_img)
+            regions=sorted(regions,key=lambda d: d.area) #we eliminate the large background region
+            arrCavities=(label_img!=0) &(label_img!=regions[-1].label)
+        else:
+            InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
+            SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
+            CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
+            # Load T1 and ZTE
+            volumeMask = nibabel.load(InputBrainMask)
+            volumeSkin = nibabel.load(SkinMask)
+            volumeCavities = nibabel.load(CavitiesMask)
+            arrMask=volumeMask.get_fdata()
+            arrSkin=volumeSkin.get_fdata()
+            arrCavities=volumeCavities.get_fdata()
         
-        volumeT1 = nibabel.load(InputT1)
-        volumeZTE = nibabel.load(InputZTE)
-        volumeHead = nibabel.load(HeadMask)
-        
-        arrZTE=volumeZTE.get_fdata()
-        arrHead=volumeHead.get_fdata()
-        
-        
-        
-        maskedZTE =arrZTE.copy()
-        maskedZTE[arrMask==0]=-1000
-        
-        cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
-        
-        
-        arrZTE/=cutoff
-        
-        arrZTE[arrHead==0]=-0.5
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
+            sitk.WriteImage(TMaskItk,HeadMask)
+            
+            volumeT1 = nibabel.load(InputT1)
+            volumeZTE = nibabel.load(InputZTE)
+            volumeHead = nibabel.load(HeadMask)
+            
+            arrZTE=volumeZTE.get_fdata()
+            arrHead=volumeHead.get_fdata()
+            
+            
+            
+            maskedZTE =arrZTE.copy()
+            maskedZTE[arrMask==0]=-1000
+            
+            cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
+            
+            
+            arrZTE/=cutoff
+            
+            arrZTE[arrHead==0]=-0.5
 
-        arrGauss=arrZTE.copy()
-        arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
-        arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
-        
-        label_img = label(arr)
-        def pixelcount(regionmask):
-            return np.sum(regionmask)
-        props = regionprops(label_img, extra_properties=(pixelcount,))
-        props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
-        arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
+            arrGauss=arrZTE.copy()
+            arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
+            arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
+            
+            label_img = label(arr)
+            def pixelcount(regionmask):
+                return np.sum(regionmask)
+            props = regionprops(label_img, extra_properties=(pixelcount,))
+            props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
+            arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-        
-        arrCT=np.zeros_like(arrGauss)
-        arrCT[arrSkin==0]=-1000 
-        arrCT[arrSkin!=0]=42.0 #soft tissue
-        arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
-        arrCT[arrCT<-1000]=-1000 #air
-        arrCT[arrCT>3300]=-1000 #air 
-        arrCT[arrCavities!=0]=-1000
-        
-        pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-        CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
-        nibabel.save(pCT,CTfname)
+            
+            arrCT=np.zeros_like(arrGauss)
+            arrCT[arrSkin==0]=-1000 
+            arrCT[arrSkin!=0]=42.0 #soft tissue
+            arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+            arrCT[arrCT<-1000]=-1000 #air
+            arrCT[arrCT>3300]=-1000 #air 
+            arrCT[arrCavities!=0]=-1000
+            
+            pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
+            
+            nibabel.save(pCT,CTfname)
+    else:
+         print('Reusing previous', CTfname)
+         pCT=nibabel.load(CTfname)
     return pCT
