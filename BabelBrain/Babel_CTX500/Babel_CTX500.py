@@ -254,7 +254,7 @@ class CTX500(QWidget):
             self._YY = YY
             self._ZZY = ZZ
 
-            self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec'],Skull['y_vec'])
+            self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
             self._Water = Water
             self._IWater = IWater
