@@ -68,6 +68,6 @@ class ScrollBars(QWidget):
         self.Widget.SliceLabel2.setText("X pos = %3.2f mm" %(self.xcoords[xind]))
 
     def get_scroll_values(self):
-        # selectedY = self.Widget.IsppaScrollBar1.value()
-        # selectedX = self.Widget.IsppaScrollBar2.value()
-        return self.Widget.IsppaScrollBar1.value(), self.Widget.IsppaScrollBar2.value()
+        selectedY = self.Widget.IsppaScrollBar1.value()
+        selectedX = self.Widget.IsppaScrollBar2.value()
+        return selectedY, selectedX

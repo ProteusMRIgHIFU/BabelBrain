@@ -29,6 +29,7 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateFieldProcess import CalculateFieldProcess
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from .Babel_SingleTx import SingleTx,RunAcousticSim
 
@@ -61,6 +62,8 @@ class BSonix(SingleTx):
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
+
+        self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
@@ -116,6 +119,7 @@ class BSonix(SingleTx):
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
         else:
             bCalcFields = True
+        self._bRecalculated = True
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()

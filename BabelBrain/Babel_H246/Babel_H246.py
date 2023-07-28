@@ -29,6 +29,7 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateFieldProcess import CalculateFieldProcess
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -64,6 +65,7 @@ class H246(QWidget):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
 
+        self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
@@ -127,6 +129,7 @@ class H246(QWidget):
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
         else:
             bCalcFields = True
+        self._bRecalculated = True
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
@@ -154,115 +157,143 @@ class H246(QWidget):
 
     @Slot()
     def UpdateAcResults(self):
-        #this will generate a modified trajectory file
-        if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
-            self.Widget.ShowWaterResultscheckBox.setEnabled(True)
-        self._MainApp.Widget.tabWidget.setEnabled(True)
-        self._MainApp.ThermalSim.setEnabled(True)
-        Water=ReadFromH5py(self._WaterSolName)
-        Skull=ReadFromH5py(self._FullSolName)
-        if self._MainApp._bInUseWithBrainsight:
-            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                f.write(self._MainApp._BrainsightInput)    
-        self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                    CorY=Skull['AdjustmentInRAS'][1],
-                                    CorZ=Skull['AdjustmentInRAS'][2])
+        if self._bRecalculated:
+            #this will generate a modified trajectory file
+            if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+                self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            self._MainApp.Widget.tabWidget.setEnabled(True)
+            self._MainApp.ThermalSim.setEnabled(True)
+            Water=ReadFromH5py(self._WaterSolName)
+            Skull=ReadFromH5py(self._FullSolName)
+            if self._MainApp._bInUseWithBrainsight:
+                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
+                    f.write(self._MainApp._BrainsightInput)    
+            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
+                                        CorY=Skull['AdjustmentInRAS'][1],
+                                        CorZ=Skull['AdjustmentInRAS'][2])
 
-        LocTarget=Skull['TargetLocation']
-        print(LocTarget)
+            LocTarget=Skull['TargetLocation']
+            print(LocTarget)
 
-        for d in [Water,Skull]:
-            for t in ['p_amp','MaterialMap']:
-                d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+            for d in [Water,Skull]:
+                for t in ['p_amp','MaterialMap']:
+                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
-        DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
-        dx=  np.mean(np.diff(Skull['x_vec']))
+            DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
+            dx=  np.mean(np.diff(Skull['x_vec']))
 
-        Water['z_vec']*=1e3
-        Skull['z_vec']*=1e3
-        Skull['x_vec']*=1e3
-        Skull['y_vec']*=1e3
-        Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-        Skull['MaterialMap'][Skull['MaterialMap']==4]=3
+            Water['z_vec']*=1e3
+            Skull['z_vec']*=1e3
+            Skull['x_vec']*=1e3
+            Skull['y_vec']*=1e3
+            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
+            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-        IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
+            IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-        DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-        SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
+            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
 
-        ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
+            ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
 
-        IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-        IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-        
-        ISkull[Skull['MaterialMap']!=3]=0
-        cxr,cyr,czr=np.where(ISkull==ISkull.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
+            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
+            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
+            
+            ISkull[Skull['MaterialMap']!=3]=0
+            cxr,cyr,czr=np.where(ISkull==ISkull.max())
+            cxr=cxr[0]
+            cyr=cyr[0]
+            czr=czr[0]
 
-        EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
+            EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
 
-        cxr,cyr,czr=np.where(IWater==IWater.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
+            cxr,cyr,czr=np.where(IWater==IWater.max())
+            cxr=cxr[0]
+            cyr=cyr[0]
+            czr=czr[0]
 
-        EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
+            EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
 
-        print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
-        
-        Factor=EnergyAtFocusWater/EnergyAtFocusSkull
-        print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
-        
-        ISkull/=ISkull.max()
-        IWater/=IWater.max()
-        
+            print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
+            
+            Factor=EnergyAtFocusWater/EnergyAtFocusSkull
+            print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
+            
+            ISkull/=ISkull.max()
+            IWater/=IWater.max()
+            
+            dz=np.diff(Skull['z_vec']).mean()
+            Zvec=Skull['z_vec'].copy()
+            Zvec-=Zvec[LocTarget[2]]
+            Zvec+=DistanceToTarget
+            XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
+            self._XX = XX
+            self._ZZX = ZZ
+            YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
+            self._YY = YY
+            self._ZZY = ZZ
+
+            self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec'],Skull['y_vec'])
+            
+            self._Water = Water
+            self._IWater = IWater
+            self._Skull = Skull
+            self._ISkull = ISkull
+            self._DistanceToTarget = DistanceToTarget
+
+        if hasattr(self,'_figAcField'):
+            children = []
+            for i in range(self._layout.count()):
+                child = self._layout.itemAt(i).widget()
+                if child:
+                    children.append(child)
+            for child in children:
+                child.deleteLater()
+            delattr(self,'_figAcField')
+            self.Widget.AcField_plot1.repaint()
         self._figAcField=Figure(figsize=(14, 12))
 
+        SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
+
         if not hasattr(self,'_layout'):
-           self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+            self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
         self.static_canvas = FigureCanvas(self._figAcField)
         toolbar=NavigationToolbar2QT(self.static_canvas,self)
         self._layout.addWidget(toolbar)
         self._layout.addWidget(self.static_canvas)
         static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
-
-        dz=np.diff(Skull['z_vec']).mean()
-        Zvec=Skull['z_vec'].copy()
-        Zvec-=Zvec[LocTarget[2]]
-        Zvec+=DistanceToTarget
-        XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
+        
         if self.Widget.ShowWaterResultscheckBox.isChecked():
-            Field=IWater
+            Field=self._IWater
         else:
-            Field=ISkull
-        self._imContourf1=static_ax1.contourf(XX,ZZ,Field[:,LocTarget[1],:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+            Field=self._ISkull
+            
+        self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-        static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
         static_ax1.set_aspect('equal')
         static_ax1.set_xlabel('X mm')
         static_ax1.set_ylabel('Z mm')
         static_ax1.invert_yaxis()
-        static_ax1.plot(0,DistanceToTarget,'+y',markersize=18)
+        static_ax1.plot(0,self._DistanceToTarget,'+y',markersize=18)
 
-        YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-
-        self._imContourf2=static_ax2.contourf(YY,ZZ,Field[LocTarget[0],:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-        static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+        static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
         static_ax2.set_aspect('equal')
         static_ax2.set_xlabel('Y mm')
         static_ax2.set_ylabel('Z mm')
         static_ax2.invert_yaxis()
-        static_ax2.plot(0,DistanceToTarget,'+y',markersize=18)
+        static_ax2.plot(0,self._DistanceToTarget,'+y',markersize=18)
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
         self._figAcField.set_tight_layout(True)
 
         #f.set_title('MAIN SIMULATION RESULTS')
+        self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
+        self._bRecalculated = False
    
     def GetExport(self):
         Export={}
