@@ -328,7 +328,6 @@ class H317(QWidget):
             static_ax2.plot(0,self._DistanceToTarget,'+y',markersize=18)
         
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
-        self._figAcField.set_tight_layout(True)
 
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
