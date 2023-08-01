@@ -33,7 +33,9 @@ from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from .CalculateFieldProcess import CalculateFieldProcess
 
-class H317(QWidget):
+from _BabelBaseTx import BabelBaseTx
+
+class H317(BabelBaseTx):
     def __init__(self,parent=None,MainApp=None):
         super(H317, self).__init__(parent)
         self.static_canvas=None
@@ -171,6 +173,7 @@ class H317(QWidget):
 
     @Slot()
     def UpdateAcResults(self):
+        #We overwrite the base class method
         if self._bRecalculated:
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
