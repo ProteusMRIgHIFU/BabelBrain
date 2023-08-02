@@ -61,6 +61,10 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 
 # Version log
+- 0.2.9 - Aug 1, 2023
+  - Add scrolling of imaging planes of acoustic fields in Step 2
+  - Add the possibility in Step 2 of adjusting the positioning of the transducer to recreate the transducer pressed on the scalp. Use with caution. The processing will remove tissue layers. Limited to 10 mm.
+  - Add multiple behind-the-scenes new GPU code to accelerate calculations for Step 1. Because now operations are float32, some very minor differences can be expected for the produced mask for simulations with previous versions.
 - 0.2.7 - May 3, 2023
   - New devices as detailed in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781) 
   - Option to show water-only modeling results added in Step 2

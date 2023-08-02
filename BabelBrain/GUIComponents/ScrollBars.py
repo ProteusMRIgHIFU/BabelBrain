@@ -19,7 +19,7 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'ScrollBars'
+        bundle_dir = Path(sys._MEIPASS) / 'GUIComponents'
     else:
         bundle_dir = Path(__file__).parent
 

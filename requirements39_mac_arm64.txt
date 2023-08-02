@@ -63,6 +63,7 @@ Pygments==2.13.0
 pyinstaller==5.6.2
 pyinstaller-hooks-contrib==2022.13
 pymdown-extensions==10.0
+pymeshfix==0.16.2
 pyopencl>=2022.2.3
 pypandoc==1.10
 pyparsing==3.0.9
