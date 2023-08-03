@@ -76,6 +76,7 @@ dependencies:
       - platformdirs==3.2.0
       - pooch==1.7.0
       - pydicom==2.3.1
+      - pymeshfix==0.16.2
       - pygments==2.14.0
       - pyopencl==2022.3.1
       - pyparsing==3.0.9
