@@ -661,8 +661,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             print('ndataCT range',ndataCT.min(),ndataCT.max())
             ndataCT[nfct==False]=0
 
+        #we grow the CSF region little by little amd nulyfying when reaching the "gold" truth of bone voxels
+        # 10 x (3 dilatations) seems a good compromise to address issues coming from the initial CSF segmentation
         with CodeTimer("CT binary_dilation",unit='s'):
-            BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
+            for n in range(10):
+                BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=3)
+                BinMaskConformalCSFRot[nfct] = False
+
         with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
             FinalMask[BinMaskConformalCSFRot]=4  
         #brain
