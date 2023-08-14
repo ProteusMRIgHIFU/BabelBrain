@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1251</width>
-    <height>473</height>
+    <height>471</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -282,7 +282,7 @@ to target (mm) :</string>
      <x>343</x>
      <y>30</y>
      <width>868</width>
-     <height>400</height>
+     <height>381</height>
     </rect>
    </property>
   </widget>
@@ -337,14 +337,16 @@ target (mm)</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1085</x>
-     <y>443</y>
-     <width>124</width>
-     <height>20</height>
+     <x>1177</x>
+     <y>416</y>
+     <width>71</width>
+     <height>51</height>
     </rect>
    </property>
    <property name="text">
-    <string>Show water-only</string>
+    <string>Show
+water
+only</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_27">
@@ -412,6 +414,16 @@ will be removed!</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="IsppaScrollBars" native="true">
+   <property name="geometry">
+    <rect>
+     <x>405</x>
+     <y>410</y>
+     <width>730</width>
+     <height>61</height>
+    </rect>
    </property>
   </widget>
  </widget>

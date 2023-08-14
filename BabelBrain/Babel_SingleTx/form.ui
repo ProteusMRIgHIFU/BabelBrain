@@ -165,7 +165,7 @@ to target (mm) :</string>
      <x>343</x>
      <y>30</y>
      <width>868</width>
-     <height>400</height>
+     <height>381</height>
     </rect>
    </property>
   </widget>
@@ -422,22 +422,6 @@ target (mm)</string>
     <double>40.000000000000000</double>
    </property>
   </widget>
-  <widget class="QCheckBox" name="ShowWaterResultscheckBox">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="geometry">
-    <rect>
-     <x>1085</x>
-     <y>443</y>
-     <width>124</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Show water-only</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="LabelTissueRemoved">
    <property name="geometry">
     <rect>
@@ -461,6 +445,34 @@ will be removed!</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="IsppaScrollBars" native="true">
+   <property name="geometry">
+    <rect>
+     <x>405</x>
+     <y>410</y>
+     <width>730</width>
+     <height>61</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="ShowWaterResultscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>1153</x>
+     <y>416</y>
+     <width>71</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Show
+water
+only</string>
    </property>
   </widget>
  </widget>
