@@ -160,7 +160,7 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     sitk.WriteImage(img_out, ZTEInT1W)
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
+def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False):
     print('converting ZTE to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
@@ -224,7 +224,12 @@ def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         arrCT=np.zeros_like(arrGauss)
         arrCT[arrSkin==0]=-1000 
         arrCT[arrSkin!=0]=42.0 #soft tissue
-        arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+        if bIsPetra: # FUN23 Miscouridou et al. https://github.com/ucl-bug/petra-to-ct
+            print('Using PETRA specification to convert to pCT')
+            arrCT[arr2!=0]=-2928.8*arrZTE[arr2!=0]+ 3274.6
+        else: # GE conversion (doi: 10.1109/TUFFC.2022.3198522)
+            print('Using ZTE specification to convert to pCT')
+            arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
         arrCT[arrCT<-1000]=-1000 #air
         arrCT[arrCT>3300]=-1000 #air 
         arrCT[arrCavities!=0]=-1000

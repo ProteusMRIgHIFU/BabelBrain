@@ -230,6 +230,11 @@ profile ...</string>
       <string>ZTE</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>PETRA</string>
+     </property>
+    </item>
    </widget>
    <widget class="QPushButton" name="SelSimbNIBSpushButton">
     <property name="geometry">

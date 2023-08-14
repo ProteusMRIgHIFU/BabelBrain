@@ -232,7 +232,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
-                                bIsZTE = False,
+                                CTType = 1,
                                 CoregCT_MRI=0, #if using CT, 0 does not coreg (assuming this was done previously), 1 from CT to MRI
                                 ZTERange=(0.1,0.6),
                                 HUThreshold=300.0,
@@ -569,13 +569,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
         FinalMask[BinMaskConformalCSFRot==1]=4#brain
     else:
-        if bIsZTE:
-            print('Processing ZTE to pCT')
+        if CTType in [2,3]:
+            print('Processing ZTE/PETRA to pCT')
+            bIsPetra = CTType==3
             with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
                 rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
                 rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),
-                    ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType)
+                    ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
         else:
             with CodeTimer("Coregistration CT to T1",unit='s'):
                 rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
