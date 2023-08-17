@@ -269,6 +269,13 @@ class BabelBrain(QWidget):
         self.InitApplication()
         self.static_canvas=None
 
+        # Set default figure text color, works for both light and dark mode
+        FIGTEXTCOLOR = np.array(self.palette().color(QPalette.WindowText).getRgb())/255.0
+        plt.rcParams['text.color'] = FIGTEXTCOLOR
+        plt.rcParams['axes.labelcolor'] = FIGTEXTCOLOR
+        plt.rcParams['xtick.color'] = FIGTEXTCOLOR
+        plt.rcParams['ytick.color'] = FIGTEXTCOLOR
+
     def SaveLatestSelection(self):
         if not os.path.isfile(_LastSelConfig):
             try:
@@ -356,7 +363,7 @@ class BabelBrain(QWidget):
     
     @Slot()
     def handleOutput(self, text, stdout):
-        color = self.Widget.outputTerminal.textColor()
+        color = self.palette().color(QPalette.WindowText)
         self.Widget.outputTerminal.moveCursor(QTextCursor.End)
         self.Widget.outputTerminal.setTextColor(color if stdout else self._err_color)
         self.Widget.outputTerminal.insertPlainText(text)
