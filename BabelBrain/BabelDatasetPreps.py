@@ -151,6 +151,19 @@ def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         ResampleFilterCOMPUTING_BACKEND='Metal'
 
+BinaryClosingFilter=None
+BinaryClosingFilterCOMPUTING_BACKEND=''
+def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global BinaryClosingFilter
+    global BinaryClosingFilterCOMPUTING_BACKEND
+    BinaryClosingFilter = Callback
+    if COMPUTING_BACKEND==1:
+        BinaryClosingFilterCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
+        BinaryClosingFilterCOMPUTING_BACKEND='OpenCL'
+    else:
+        BinaryClosingFilterCOMPUTING_BACKEND='Metal'
+
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
@@ -593,11 +606,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 gfct=cndimage.median_filter(gfct,sf)
             else:
                 fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
-        
+
         with CodeTimer("binary closing CT",unit='s'):
             if sys.platform in ['linux','win32']:
-                gfct=cndimage.binary_closing(gfct,structure=cupy.ones(sf2,dtype=int))
                 fct=gfct.get()
+                fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             else:
                 fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
         fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
