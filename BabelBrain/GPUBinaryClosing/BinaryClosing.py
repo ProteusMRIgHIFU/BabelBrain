@@ -79,7 +79,7 @@ kernel void binary_erosion(const device bool * x [[ buffer(0) ]],
     int ind_0 = _i - offsets[0];
 
     #ifdef _OPENCL
-    const unsigned char* data = (const unsigned char*)&x[0];
+    __global const unsigned char* data = (__global const unsigned char*)&x[0];
     #endif
     #ifdef _METAL
     device const unsigned char* data = (const device unsigned char*)&x[0];
@@ -140,7 +140,7 @@ kernel void binary_erosion(const device bool * x [[ buffer(0) ]],
                     else 
                     {
                         #ifdef _OPENCL
-                        bool nn = (*(bool*)&data[ix_0 + ix_1 + ix_2]) ? true_val : false_val;
+                        bool nn = (*(__global bool*)&data[ix_0 + ix_1 + ix_2]) ? true_val : false_val;
                         #endif
                         #ifdef _METAL
                         bool nn = (*(device bool*)&data[ix_0 + ix_1 + ix_2]) ? true_val : false_val;
