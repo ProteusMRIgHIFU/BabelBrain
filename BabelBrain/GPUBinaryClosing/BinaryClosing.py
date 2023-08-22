@@ -78,7 +78,12 @@ kernel void binary_erosion(const device bool * x [[ buffer(0) ]],
     int ind_1 = _i % ysize_1 - offsets[1]; _i /= ysize_1;
     int ind_0 = _i - offsets[0];
 
+    #ifdef _OPENCL
     const unsigned char* data = (const unsigned char*)&x[0];
+    #endif
+    #ifdef _METAL
+    device const unsigned char* data = (const device unsigned char*)&x[0];
+    #endif
     int iws = 0;
 
     bool _in = (bool)x[i];
@@ -134,7 +139,12 @@ kernel void binary_erosion(const device bool * x [[ buffer(0) ]],
                     } 
                     else 
                     {
+                        #ifdef _OPENCL
                         bool nn = (*(bool*)&data[ix_0 + ix_1 + ix_2]) ? true_val : false_val;
+                        #endif
+                        #ifdef _METAL
+                        bool nn = (*(device bool*)&data[ix_0 + ix_1 + ix_2]) ? true_val : false_val;
+                        #endif
                         if (!nn) 
                         {
                             y[i] = (bool)false_val;
@@ -205,13 +215,13 @@ def InitOpenCL(DeviceName='AMD'):
     # btain list of available devices and select one 
     SelDevice=None
     for device in Platforms[0].get_devices():
-        # print(device.name)
+        print(device.name)
         if DeviceName in device.name:
             SelDevice=device
     if SelDevice is None:
         raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
-    # else:
-    #     print('Selecting device: ', SelDevice.name)
+    else:
+        print('Selecting device: ', SelDevice.name)
 
     # Create context for selected device
     ctx = cl.Context([SelDevice])
@@ -230,8 +240,7 @@ def InitOpenCL(DeviceName='AMD'):
     
 def InitMetal(DeviceName='AMD'):
     global ctx
-    global knl_at
-    global knl_sf
+    global knl
     
     import metalcomputebabel as mc
 
@@ -307,7 +316,7 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
         int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
         output_gpu = clp.Buffer(ctx, mf.WRITE_ONLY, output.nbytes)
 
-        # Deploy affiner transform kernel
+        # Deploy kernel
         knl(queue, output.shape,
             None,
             input_gpu,
@@ -334,7 +343,7 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
         ctx.wait_command_buffer()
         del handle
         if 'arm64' not in platform.platform():
-            ctx.sync_buffers((output_gpu))
+            ctx.sync_buffers((int_params_gpu,output_gpu))
         output = np.frombuffer(output_gpu,dtype=np.bool_).reshape(output.shape)
 
         return output

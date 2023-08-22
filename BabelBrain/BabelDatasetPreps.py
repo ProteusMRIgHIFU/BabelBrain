@@ -610,9 +610,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         with CodeTimer("binary closing CT",unit='s'):
             if sys.platform in ['linux','win32']:
                 fct=gfct.get()
-                fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
-            else:
-                fct=ndimage.binary_closing(fct,structure=np.ones(sf2,dtype=int))
+            fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
         fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
 
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
