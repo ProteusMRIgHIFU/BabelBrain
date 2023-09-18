@@ -456,7 +456,7 @@ class BabelFTD_Simulations_BASE(object):
                  bDoRefocusing=True,
                  bWaterOnly=False,
                  QCorrection=3,
-                 MappingMethod='Webb-Marsac',
+                 MappingMethod='US-Imaging',
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
         
@@ -507,6 +507,7 @@ class BabelFTD_Simulations_BASE(object):
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
             Porosity=HUtoPorosity(AllBoneHU)
+            # add extra step here to account for the SOS
             if self._MappingMethod=='Webb-Marsac':
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU)
@@ -539,13 +540,19 @@ class BabelFTD_Simulations_BASE(object):
                 DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+            # New method using US Imaging
+            elif self._MappingMethod=='US-Imaging':
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                LSoSIT=2692.54*np.ones_like(DensityCTIT)
+                # LSoSIT=2692.54
+                LAttIT=HUtoAttenuationWebb(AllBoneHU,self._Frequency)
             else:
                 raise ValueError('Unknown mapping method -' +self._MappingMethod )
             
             DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
             print(" CT Map unique values",np.unique(DensityCTMap).shape)
-
+            print('LSoSIT', LSoSIT[0:10])
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
             QCorrArr =1.0
@@ -572,9 +579,11 @@ class BabelFTD_Simulations_BASE(object):
                                 DensityCTMap=DensityCTMap,
                                 QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
+        # Remove skin and brain
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
-                SelM=MatFreq[self._Frequency][k]
+                # SelM=MatFreq[self._Frequency][k]
+                SelM=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             0,
@@ -593,7 +602,7 @@ class BabelFTD_Simulations_BASE(object):
             
             print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
                 
-
+        # Remove Skin and Brain
         elif not self._bWaterOnly:
              for k in ['Skin','Cortical','Trabecular','Brain']:
                 SelM=MatFreq[self._Frequency][k]

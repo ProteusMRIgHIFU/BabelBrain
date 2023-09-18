@@ -349,8 +349,14 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['FinalTemp']=FinalTemp
     SaveDict['FinalDose']=FinalDose
     #we carry over these params to simplify analysis later
-    if 'ZSteering' in Input:
-        SaveDict['ZSteering']=Input['ZSteering']
+    ListOptionalParamsToCarryOver = ['ZSteering','YSteering','XSteering','RotationZ',
+                                    'bDoRefocusing','DistanceConeToFocus','BasePhasedArrayProgramming',
+                                    'BasePhasedArrayProgrammingRefocusing']
+    for k in ListOptionalParamsToCarryOver:
+        if k in Input:
+            SaveDict[k]=Input[k]
+        
+
     SaveDict['AdjustmentInRAS']=Input['AdjustmentInRAS']
     SaveDict['DistanceFromSkin']=Input['DistanceFromSkin']
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
