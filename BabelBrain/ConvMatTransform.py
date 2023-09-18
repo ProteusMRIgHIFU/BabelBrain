@@ -76,7 +76,6 @@ def ReadTrajectoryBrainsight(fname):
       'm1n0','m1n1','m1n2',
       'm2n0','m2n1','m2n2']
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:]).iloc[0].to_numpy()
-    print(df)
     Mat4=np.eye(4)
     Mat4[:3,3]=df[:3]
     Mat4[:3,0]=df[3:6]

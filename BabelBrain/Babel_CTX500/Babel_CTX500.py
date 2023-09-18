@@ -284,7 +284,9 @@ class RunAcousticSim(QObject):
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 
-
+        print("basedir: "+ basedir)
+        print("ID: " + ID)
+        print("Target: " + str(Target) # Remove later
 
 
         InputSim=self._mainApp._outnameMask
@@ -323,13 +325,6 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
-
-        print("basedir: "+ basedir)
-        print("ID: " + ID)
-        print("Target: " + str(Target)) # Remove later
-
-
-
 
         # Start mask generation as separate process.
         queue=Queue()

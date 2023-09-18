@@ -57,21 +57,9 @@ class H317(QWidget):
         self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
 
-        self.Widget.XSteeringSpinBox.valueChanged.connect(self.XSteeringUpdate)
-        self.Widget.YSteeringSpinBox.valueChanged.connect(self.YSteeringUpdate)
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
-
-    @Slot()
-    def XSteeringUpdate(self,value):
-        self._XSteering =self.Widget.XSteeringSpinBox.value()/1e3
-        print('XSteering',self._XSteering*1e3)
-
-    @Slot()
-    def YSteeringUpdate(self,value):
-        self._YSteering =self.Widget.YSteeringSpinBox.value()/1e3
-        print('YSteering',self._YSteering*1e3)
 
     @Slot()
     def ZSteeringUpdate(self,value):
@@ -117,8 +105,6 @@ class H317(QWidget):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            XSteering=Skull['XSteering']
-            YSteering=Skull['YSteering']
             ZSteering=Skull['ZSteering']
             if 'RotationZ' in Skull:
                 RotationZ=Skull['RotationZ']
@@ -126,8 +112,6 @@ class H317(QWidget):
                 RotationZ=0.0
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "XSteering=%3.2f\n" %(XSteering*1e3)+
-                                    "YSteering=%3.2f\n" %(YSteering*1e3)+
                                     "ZSteering=%3.2f\n" %(ZSteering*1e3)+
                                     "ZRotation=%3.2f\n" %(RotationZ)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
@@ -139,8 +123,6 @@ class H317(QWidget):
             if ret == QMessageBox.Yes:
                 bCalcFields=True
             else:
-                self.Widget.XSteeringSpinBox.setValue(XSteering*1e3)
-                self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
@@ -178,7 +160,7 @@ class H317(QWidget):
     def GetExport(self):
         Export={}
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
-        for k in ['XSteering','YSteering', 'ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
+        for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
 
@@ -243,7 +225,7 @@ class H317(QWidget):
         Factor=EnergyAtFocusWater/EnergyAtFocusSkull
         print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
         
-        # ISkull[Skull['MaterialMap']!=3]=0
+        ISkull[Skull['MaterialMap']!=3]=0
         self._figAcField=Figure(figsize=(14, 12))
 
         if self.static_canvas is not None:
@@ -265,8 +247,7 @@ class H317(QWidget):
         XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
         slice = ISkull[:,LocTarget[1],:]
         slice/=slice.max()
-        # self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-        self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,cmap=plt.cm.jet)
+        self._imContourf1=static_ax1.contourf(XX,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax1)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax1.contour(XX,ZZ,Skull['MaterialMap'][:,LocTarget[1],:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -279,8 +260,7 @@ class H317(QWidget):
         YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
         slice = ISkull[LocTarget[0],:,:]
         slice/=slice.max()
-        # self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-        self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,cmap=plt.cm.jet)
+        self._imContourf2=static_ax2.contourf(YY,ZZ,slice.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
         h=plt.colorbar(self._imContourf1,ax=static_ax2)
         h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
         static_ax2.contour(YY,ZZ,Skull['MaterialMap'][LocTarget[0],:,:].T,[0,1,2,3], cmap=plt.cm.gray)
@@ -315,6 +295,7 @@ class RunAcousticSim(QObject):
 
         print("basedir: "+ basedir)
         print("ID: " + ID)
+        print("Target: " + Target) # Remove later
 
         InputSim=self._mainApp._outnameMask
 
@@ -330,19 +311,12 @@ class RunAcousticSim(QObject):
             TxMechanicalAdjustmentY=0
             TxMechanicalAdjustmentZ=0
         ###############
-        #Temp add to check for x and y steering
-        XSteering=self._mainApp.AcSim.Widget.XSteeringSpinBox.value()/1e3
-        YSteering=self._mainApp.AcSim.Widget.YSteeringSpinBox.value()/1e3
-
-
         ZSteering=self._mainApp.AcSim.Widget.ZSteeringSpinBox.value()/1e3  #Add here the final adjustment)
-        # XSteering=1-6e
+        XSteering=1e-6
         ##############
         RotationZ=self._mainApp.AcSim.Widget.ZRotationSpinBox.value()
 
-
-        print('Steering: X=%2.1f, Y=%2.1f, Z=%2.1f' % (XSteering*1e3, YSteering*1e3, ZSteering*1e3))
-        # print('ZSteering',ZSteering*1e3)
+        print('ZSteering',ZSteering*1e3)
         print('RotationZ',RotationZ)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
@@ -361,7 +335,6 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
         kargs['XSteering']=XSteering
-        kargs['YSteering']=YSteering
         kargs['ZSteering']=ZSteering
         kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
