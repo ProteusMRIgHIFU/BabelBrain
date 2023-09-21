@@ -59,7 +59,7 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                 MappingFilter.InitMetal(DeviceName= devicename)
                 Resample.InitMetal(DeviceName= devicename)
                 BinaryClosing.InitMetal(DeviceName= devicename)
-                LabelImage.InitMetal(DeviceName= devicename)
+                # LabelImage.InitMetal(DeviceName= devicename) # Metal version not ready
             
             DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilterSize7,COMPUTING_BACKEND)
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)

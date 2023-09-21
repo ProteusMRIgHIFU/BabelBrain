@@ -131,7 +131,6 @@ kernel void label_connect(const device int * shape [[ buffer(0) ]],
                 #endif
                 #ifdef _METAL
                 int old = atomic_cmpxchg(&y[k], k, j);
-                //int old = atomicCAS( &y[k], k, j );
                 #endif
                 if (old == k) break;
                 k = old;
@@ -143,7 +142,6 @@ kernel void label_connect(const device int * shape [[ buffer(0) ]],
                 #endif
                 #ifdef _METALL
                 int old = atomic_cmpxchg( &y[j], j, k );
-                //int old = atomicCAS( &y[j], j, k );
                 #endif
                 if (old == j) break;
                 j = old;
@@ -194,7 +192,6 @@ kernel void label_count(device int * y [[ buffer(0) ]],
         #endif
         #ifdef _METAL
         atomic_add(&count[0], 1);
-        //atomicAdd(&count[0], 1);
         #endif
     }
 }
@@ -232,7 +229,6 @@ kernel void label_labels(device int * y [[ buffer(0) ]],
     #endif
     #ifdef _METAL
     int j = atomic_add(&count[1], 1);
-    //int j = atomicAdd(&count[1], 1);
     #endif
 
     labels[j] = _i;
@@ -503,7 +499,8 @@ def _label_modified(x, structure, y, GPUBackend='OpenCL'):
         clp.enqueue_copy(queue, count, count_gpu)
         clp.enqueue_copy(queue, labels, labels_gpu)
     else: # Metal
-
+        # Template created however kernel atomic functions are not as easily 
+        # implemented in metalcompute therefore shelved for now
         int_params=np.zeros(3,np.int32)
         int_params[0] = ndirs
         int_params[1] = x.ndim

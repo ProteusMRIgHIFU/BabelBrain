@@ -634,7 +634,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
         ##We will create an smooth surface
         with CodeTimer("skull surface CT",unit='s'):
-            label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            if LabelImage is None:
+                label_img=label(nfct)
+            else:
+                label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
             regions= regionprops(label_img)
             regions=sorted(regions,key=lambda d: d.area)
             nfct=label_img==regions[-1].label
@@ -694,7 +697,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             FinalMask[nfct]=2  #bone
         #we do a cleanup of islands 
         with CodeTimer("Labeling",unit='s'):
-            label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            if LabelImage is None:
+                label_img = label(FinalMask==1)
+            else:
+                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
           
         with CodeTimer("regionprops",unit='s'):
             regions= regionprops(label_img)
