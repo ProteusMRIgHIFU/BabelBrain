@@ -1,4 +1,4 @@
-name: Babel310
+name: BabelBrain
 channels:
   - defaults
 dependencies:
@@ -40,7 +40,7 @@ dependencies:
     - appdirs==1.4.4
     - async-timeout==4.0.2
     - attrs==22.1.0
-    - babelviscofdtd==0.9.10.post1
+    - babelviscofdtd==1.0.0-2
     - charset-normalizer==2.1.1
     - chart-studio==1.1.0
     - click==8.1.3
@@ -59,7 +59,7 @@ dependencies:
     - llvmlite==0.39.1
     - macholib==1.16.2
     - matplotlib==3.6.2
-    - metalcomputebabel==0.2.3
+    - metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@75a6adb378a8155c9b6765df8626256f42216224
     - multidict==6.0.2
     - networkx==2.8.8
     - nibabel==4.0.2
@@ -109,4 +109,4 @@ dependencies:
     - webcolors==1.12
     - wslink==1.9.1
     - yarl==1.8.1
-prefix: /Users/spichardo/opt/anaconda3/envs/Babel310
+prefix: /Users/spichardo/opt/anaconda3/envs/BabelBrain
