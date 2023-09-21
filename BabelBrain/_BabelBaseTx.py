@@ -8,7 +8,7 @@ from PySide6.QtGui import QPalette
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 
 import numpy as np
-
+import os
 from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
