@@ -53,6 +53,7 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                 Resample.InitOpenCL(DeviceName= devicename)
                 BinaryClosing.InitOpenCL(DeviceName= devicename)
                 LabelImage.InitOpenCL(DeviceName= devicename)
+                DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage, COMPUTING_BACKEND)
             else:
                 MedianFilter.InitMetal(DeviceName= devicename)
                 Voxelize.InitMetal(DeviceName= devicename)
@@ -66,7 +67,6 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
             DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
             DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo, COMPUTING_BACKEND)
             DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose, COMPUTING_BACKEND)
-            DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage, COMPUTING_BACKEND)
         else:
             assert(COMPUTING_BACKEND in [1,2])
 
