@@ -61,6 +61,11 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 
 # Version log
+- 0.2.9-a - Sep 21, 2023
+  - Add fix for Apple Silicon systems with latest versions of MacOS. In some systems, occasional crashes were occurring. Fix was addressed at the underlying library at https://github.com/ProteusMRIgHIFU/py-metal-compute.
+  - Address slow BHTE calculations in Step 3 in external AMD GPUs in Apple X64 system. Fix done in underlying library BabelViscoFDTD 1.0.1
+  - Extra GPU optimizations in Step 1
+  - Correct handling of dark mode display settings
 - 0.2.9 - Aug 1, 2023
   - Add scrolling of imaging planes of acoustic fields in Step 2
   - Add the possibility in Step 2 of adjusting the positioning of the transducer to recreate the transducer pressed on the scalp. Use with caution. The processing will remove tissue layers. Limited to 10 mm.
