@@ -173,6 +173,7 @@ def GetInputFromBrainsight():
     PathMat4Trajectory  = BabelBrain._BrainsightSyncPath + os.sep +'Input_Target.txt'
     PathT1W             = BabelBrain._BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
     Pathsimbnibs_path   = BabelBrain._BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
+    PathToSaveResults   = BabelBrain._BrainsightSyncPath + os.sep +'SimulationOutputPath.txt'
 
 
     if os.path.isfile(PathMat4Trajectory) and \
@@ -196,6 +197,12 @@ def GetInputFromBrainsight():
         with open (Pathsimbnibs_path,'r') as f:
             l=f.readlines()[0].strip()
         res['simbnibs_path']=l
+        res['outputfiles_path']=None
+        if os.path.isfile(PathToSaveResults):
+            with open (PathToSaveResults,'r') as f:
+                l=f.readlines()[0].strip()
+            if len(l)>0:
+                res['outputfiles_path']=l    
         
         if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory']):
                 print('Ignoring Brainsight config as files and dir may not exist anymore\n',res)
@@ -211,7 +218,7 @@ class BabelBrain(QWidget):
 
     _BrainsightSyncPath: str = str(Path.home()) + os.sep + '.BabelBrainSync'
 
-    def __init__(self,widget,bInUseWithBrainsight=False):
+    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
@@ -259,8 +266,13 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
-        self.Config['T1WIso']= self.Config['T1W'].replace('.nii.gz','-isotropic.nii.gz')
         
+        if AltOutputFilesPath is not None:
+            self.Config['OutputFilesPath']=AltOutputFilesPath
+        else:
+            self.Config['OutputFilesPath']=os.path.dirname(self.Config['T1W'])+os.sep+'Babel'+os.sep+self.Config['ID']
+        
+        self.Config['T1WIso']= self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-isotropic.nii.gz')
 
         self.SaveLatestSelection()
 
@@ -441,9 +453,20 @@ class BabelBrain(QWidget):
         BasePPW=self.Widget.USPPWSpinBox.property('UserData')
 
         self._prefix= self.Config['ID'] + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
-        self._prefix_path=os.path.dirname(self.Config['T1WIso'])+os.sep+self._prefix
+        basedir = self.Config['OutputFilesPath']
+        if not os.path.isdir(basedir):
+            try:
+                os.makedirs(basedir)
+            except:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Critical)
+                msgBox.setText("Unable to create directory to save results at:\n" + basedir)
+                msgBox.exec()
+                raise
+                
+        self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
-        self._BrainsightInput=self._prefix_path+'FullElasticSolution.nii.gz'
+        self._BrainsightInput=self._prefix_path+'FullElasticSolution_Sub_NORM.nii.gz'
 
         print('outname',self._outnameMask)
         self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
@@ -521,6 +544,7 @@ class BabelBrain(QWidget):
         
             with open(newFName,'w') as f:
                 f.write(outString)
+        return newFName
 
 
 
@@ -847,12 +871,14 @@ def main():
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])
 
+    AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
         Brainsight=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
         selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
         selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
+        AltOutputFilesPath=Brainsight['outputfiles_path']
 
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
@@ -861,7 +887,8 @@ def main():
     selwidget.exec()
     
     widget = BabelBrain(selwidget,
-                        bInUseWithBrainsight=args.bInUseWithBrainsight)
+                        bInUseWithBrainsight=args.bInUseWithBrainsight,
+                        AltOutputFilesPath=AltOutputFilesPath)
     widget.show()
     sys.exit(app.exec())
 

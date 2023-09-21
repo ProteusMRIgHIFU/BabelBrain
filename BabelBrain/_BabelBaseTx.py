@@ -19,6 +19,18 @@ from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
+
+    def ExportStep2Results(self,Results):
+        fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
+                                        CorY=Results['AdjustmentInRAS'][1],
+                                        CorZ=Results['AdjustmentInRAS'][2])
+        if self._MainApp._bInUseWithBrainsight:
+            NormalizedFile =  NRPath=RPath.replace('FullElasticSolution_Sub.nii.gz','FullElasticSolution_Sub_NORM.nii.gz')
+            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
+                f.write(self._MainApp._BrainsightInput)
+            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output_TargetModified.txt','w') as f:
+                f.write(fnameTrajectory)
+
     
     @Slot()
     def UpdateAcResults(self):
@@ -33,12 +45,8 @@ class BabelBaseTx(QWidget):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
-            if self._MainApp._bInUseWithBrainsight:
-                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                    f.write(self._MainApp._BrainsightInput)    
-            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+
+            self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)

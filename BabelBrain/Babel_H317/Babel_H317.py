@@ -185,12 +185,8 @@ class H317(BabelBaseTx):
             if self._MainApp._bInUseWithBrainsight:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
-                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
-                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                    f.write(self._MainApp._BrainsightInput) 
-            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+            self.ExportStep2Results(Skull)
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
@@ -350,7 +346,7 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1W'])[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 

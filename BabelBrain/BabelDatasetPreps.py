@@ -280,6 +280,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     '''
     #load T1W
+    SavePath= os.path.dirname(T1Conformal_nii)
     T1Conformal=nibabel.load(T1Conformal_nii)
     baseaffine=T1Conformal.affine.copy()
     print('baseaffine',baseaffine)
@@ -585,13 +586,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         if bIsZTE:
             print('Processing ZTE to pCT')
             with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
-                rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk)
+                rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,SavePath)
             with CodeTimer("Conversion ZTE to pCT",unit='s'):
                 rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),
                     ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType)
         else:
             with CodeTimer("Coregistration CT to T1",unit='s'):
-                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
+                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,SavePath,CoregCT_MRI)
         rCTdata=rCT.get_fdata()
         hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
         print('*'*40)
@@ -704,7 +705,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ndataCT[nfct]=qx
         UniqueHU=np.unique(ndataCT[nfct])
         print('Unique CT values',len(UniqueHU))
-        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        np.savez_compressed(SavePath+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
         with CodeTimer("Mapping unique values",unit='s'):
             if MapFilter is None:
                 ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
@@ -715,9 +716,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
         nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+        outname=SavePath+os.sep+prefix+'CT.nii.gz'
         nCT.to_filename(outname)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl'
+        outname=SavePath+os.sep+prefix+'CT_smooth.stl'
         smct.export(outname)
 
     with CodeTimer("final median filter ",unit='s'):
@@ -744,7 +745,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
-    outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
+    outname=SavePath+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):

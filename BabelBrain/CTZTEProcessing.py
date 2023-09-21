@@ -104,7 +104,7 @@ def N4BiasCorrec(input,output=None,shrinkFactor=4,
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
+def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
     # CoregCT_MRI =2 , coregister MRI-->CT space
@@ -112,7 +112,7 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz' 
+        T1fnameBiasCorrec =SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec.nii.gz' 
         N4BiasCorrec(InputT1,T1fnameBiasCorrec)
         #coreg
         if CoregCT_MRI==1:
@@ -120,7 +120,7 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
 
             fixed_image=nibabel.load(T1fnameBiasCorrec)
             fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
-            T1fname_CTRes=os.path.splitext(InputT1)[0] + '_BiasCorrec_CT_res.nii.gz'
+            T1fname_CTRes=SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec_CT_res.nii.gz'
             fixed_image.to_filename(T1fname_CTRes)
             CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
 
@@ -133,18 +133,18 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0):
             return nibabel.load(InputCT)
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask,SavePath):
     #Bias correction
-    T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
+    T1fnameBiasCorrec =SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec.nii.gz'
 
     N4BiasCorrec(InputT1,T1fnameBiasCorrec)
 
-    ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
+    ZTEfnameBiasCorrec=SavePath+os.sep+os.path.splitext(os.path.basename(InputZTE))[0] + '_BiasCorrec.nii.gz'
 
     N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
     #coreg
 
-    ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
+    ZTEInT1W=SavePath+os.sep+os.path.splitext(os.path.basename(InputZTE))[0] + '_InT1.nii.gz'
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
