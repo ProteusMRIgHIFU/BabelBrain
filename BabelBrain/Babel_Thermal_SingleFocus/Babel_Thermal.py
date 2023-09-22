@@ -32,6 +32,8 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
 import pandas as pd
 import platform
+import nibabel
+
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
@@ -71,6 +73,7 @@ class Babel_Thermal(QWidget):
 
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
+        self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
 
         while self.Widget.SelCombinationDropDown.count()>0:
             self.Widget.SelCombinationDropDown.removeItem(0)
@@ -167,6 +170,7 @@ class Babel_Thermal(QWidget):
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
+        self.Widget.ExportThermalMap.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
@@ -176,6 +180,7 @@ class Babel_Thermal(QWidget):
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
+            self._NiftiThermalNames=[]
             self._LastTMap=-1
             for combination in self.Config['AllDC_PRF_Duration']:
                 ThermalName=GetThermalOutName(BaseField,combination['Duration'],
@@ -183,7 +188,7 @@ class Babel_Thermal(QWidget):
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
                                                         combination['PRF'])+'.h5'
-
+                self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0]+'.nii.gz')
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
                     self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
@@ -215,9 +220,8 @@ class Babel_Thermal(QWidget):
        
         SelY=self.Widget.IsppaScrollBar.value()
 
- 
-
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
+        self._IsppaRatio=IsppaRatio
 
         PresRatio=np.sqrt(IsppaRatio)
 
@@ -420,7 +424,22 @@ class Babel_Thermal(QWidget):
         else:
             self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
-        
+    @Slot()
+    def ExportThermalMap(self):
+        OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
+        BasePath = OutName.split('_DataForSim')[0]
+        BasePath+='_FullElasticSolution_Sub_NORM.nii.gz'
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
+            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+                BasePath+='FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+        nidata = nibabel.load(BasePath)
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        SelIsppa=self.Widget.IsppaSpinBox.value()
+        IsppaRatio=SelIsppa/self.Config['BaseIsppa']
+        Tmap=(DataThermal['TempEndFUS']-37.0)*IsppaRatio+37.0
+        Tmap=np.flip(Tmap,axis=2)
+        nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
+        nii.to_filename(OutName)
 
 
 class RunThermalSim(QObject):

@@ -272,8 +272,6 @@ class H317(BabelBaseTx):
         else:
             sliceXZ=self._ISkull[:,SelY,:]
             sliceYZ = self._ISkull[SelX,:,:]
-        sliceXZ = sliceXZ/sliceXZ.max()
-        sliceYZ = sliceYZ/sliceYZ.max()
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
