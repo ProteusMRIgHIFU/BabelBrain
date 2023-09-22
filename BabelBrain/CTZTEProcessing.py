@@ -6,6 +6,7 @@ IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10),
 '''
 import nibabel
 from nibabel import processing
+from nibabel.spaces import vox2out_vox
 import SimpleITK as sitk
 import tempfile
 import os
@@ -18,6 +19,7 @@ from pathlib import Path
 import sys
 import subprocess
 import shutil
+from linetimer import CodeTimer
 
 
 
@@ -104,7 +106,7 @@ def N4BiasCorrec(input,output=None,shrinkFactor=4,
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0):
+def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0, ResampleFunc=None, ResampleBackend='OpenCL'):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
     # CoregCT_MRI =2 , coregister MRI-->CT space
@@ -117,9 +119,30 @@ def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0):
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
+            # Set up for Resample call
+            in_img=nibabel.load(T1fnameBiasCorrec)
 
-            fixed_image=nibabel.load(T1fnameBiasCorrec)
-            fixed_image=processing.resample_to_output(fixed_image,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=fixed_image.get_fdata().min())
+            voxel_sizes = nibabel.load(InputCT).header.get_zooms()
+            cval=in_img.get_fdata().min()
+
+            in_shape = in_img.shape
+            n_dim = len(in_shape)
+            if voxel_sizes is not None:
+                voxel_sizes = np.asarray(voxel_sizes)
+                if voxel_sizes.ndim == 0:  # Scalar
+                    voxel_sizes = np.repeat(voxel_sizes, n_dim)
+            # Allow 2D images by promoting to 3D.  We might want to see what a slice
+            # looks like when resampled into world coordinates
+            if n_dim < 3:  # Expand image to 3D, make voxel sizes match
+                new_shape = in_shape + (1,) * (3 - n_dim)
+                data = np.asanyarray(in_img.dataobj).reshape(new_shape)  # 2D data should be small
+                in_img = nibabel.Nifti1Image(data, in_img.affine, in_img.header)
+                if voxel_sizes is not None and len(voxel_sizes) == n_dim:
+                    # Need to pad out voxel sizes to match new image dimensions
+                    voxel_sizes = tuple(voxel_sizes) + (1,) * (3 - n_dim)
+            out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
+            
+            fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
             T1fname_CTRes=SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec_CT_res.nii.gz'
             fixed_image.to_filename(T1fname_CTRes)
             CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
