@@ -24,11 +24,10 @@ class BabelBaseTx(QWidget):
         fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
                                         CorY=Results['AdjustmentInRAS'][1],
                                         CorZ=Results['AdjustmentInRAS'][2])
-        if self._MainApp._bInUseWithBrainsight:
-            NormalizedFile =  NRPath=RPath.replace('FullElasticSolution_Sub.nii.gz','FullElasticSolution_Sub_NORM.nii.gz')
-            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
                 f.write(self._MainApp._BrainsightInput)
-            with open(self._MainApp._BrainsightSyncPath+os.sep+'Output_TargetModified.txt','w') as f:
+            with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
                 f.write(fnameTrajectory)
 
     

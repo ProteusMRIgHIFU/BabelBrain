@@ -182,7 +182,7 @@ class H317(BabelBaseTx):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
-            if self._MainApp._bInUseWithBrainsight:
+            if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
                     self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'

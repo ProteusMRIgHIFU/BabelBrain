@@ -170,10 +170,10 @@ def GetLatestSelection():
 
 def GetInputFromBrainsight():
     res=None
-    PathMat4Trajectory  = BabelBrain._BrainsightSyncPath + os.sep +'Input_Target.txt'
-    PathT1W             = BabelBrain._BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
-    Pathsimbnibs_path   = BabelBrain._BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
-    PathToSaveResults   = BabelBrain._BrainsightSyncPath + os.sep +'SimulationOutputPath.txt'
+    PathMat4Trajectory  = _BrainsightSyncPath + os.sep +'Input_Target.txt'
+    PathT1W             = _BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
+    Pathsimbnibs_path   = _BrainsightSyncPath + os.sep +'Input_SegmentationsPath.txt'
+    PathToSaveResults   = _BrainsightSyncPath + os.sep +'SimulationOutputPath.txt'
 
 
     if os.path.isfile(PathMat4Trajectory) and \
@@ -184,10 +184,33 @@ def GetInputFromBrainsight():
             l=f.readlines()[0].strip()
         res['T1W']=l
 
+        res['outputfiles_path']=None
+
+        if os.path.isfile(PathToSaveResults):
+            with open (PathToSaveResults,'r') as f:
+                l=f.readlines()[0].strip()
+            if len(l)>0:
+                res['outputfiles_path']=l   
+
         ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
+
+        if res['outputfiles_path'] is not None:
+            outpath = res['outputfiles_path'] 
+        else:
+            outpath = os.path.dirname(res['T1W']) + os.sep + 'Babel' + os.sep + ID 
+        
+        if not os.path.isdir(outpath):
+            try:
+                os.makedirs(outpath)
+            except:
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Critical)
+                msgBox.setText("Unable to create directory to save results at:\n" + outpath)
+                msgBox.exec()
+                raise
         
         #for the time being, we need the trajectory to be next to T1w
-        RPath=os.path.split(res['T1W'])[0]+os.sep+ID+'.txt'
+        RPath=outpath+os.sep+ID+'.txt'
         assert(shutil.copyfile(PathMat4Trajectory,RPath))
 
         print('ID,RPath',ID,RPath)
@@ -197,12 +220,8 @@ def GetInputFromBrainsight():
         with open (Pathsimbnibs_path,'r') as f:
             l=f.readlines()[0].strip()
         res['simbnibs_path']=l
-        res['outputfiles_path']=None
-        if os.path.isfile(PathToSaveResults):
-            with open (PathToSaveResults,'r') as f:
-                l=f.readlines()[0].strip()
-            if len(l)>0:
-                res['outputfiles_path']=l    
+        
+         
         
         if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory']):
                 print('Ignoring Brainsight config as files and dir may not exist anymore\n',res)
@@ -210,20 +229,17 @@ def GetInputFromBrainsight():
     return res
 
 ########################
+_BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 class BabelBrain(QWidget):
     '''
     Main LIFU Control application
 
     '''
 
-    _BrainsightSyncPath: str = str(Path.home()) + os.sep + '.BabelBrainSync'
-
     def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
-        self._bInUseWithBrainsight=bInUseWithBrainsight #this will be use to sync input and output with Brainsight
-        
         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
         T1W=widget.ui.T1WlineEdit.text()
         CT_or_ZTE_input=widget.ui.CTlineEdit.text()
@@ -266,6 +282,22 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
+
+        #filenames when saving results for Brainsight
+        self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
+        self.Config['BrainsightSyncPath']  = _BrainsightSyncPath
+        self.Config['Brainsight-Output']   = _BrainsightSyncPath+ os.sep+'Output.txt'
+        self.Config['Brainsight-Target']   = _BrainsightSyncPath+ os.sep+'Output_TargetModified.txt'
+        self.Config['Brainsight-ThermalOutput']  = _BrainsightSyncPath+ os.sep+'Output_Thermal.txt'
+
+        if bInUseWithBrainsight:
+            #if we are running from Brainsight
+            for k in ['Brainsight-Output','Brainsight-Target','Brainsight-ThermalOutput']:
+                fpath = self.Config[k]
+                if os.path.isfile(fpath):
+                    os.remove(fpath)
+
+        
         
         if AltOutputFilesPath is not None:
             self.Config['OutputFilesPath']=AltOutputFilesPath
@@ -502,7 +534,7 @@ class BabelBrain(QWidget):
 
     #this will modify the coordinates of the trajectory
     def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0):
-        newFName=os.path.join(os.path.split(self.Config['Mat4Trajectory'])[0],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
+        newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
             
         if self.Config['TrajectoryType']=='brainsight':
             OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])

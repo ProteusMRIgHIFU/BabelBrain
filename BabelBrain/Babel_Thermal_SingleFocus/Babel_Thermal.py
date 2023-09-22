@@ -5,10 +5,10 @@ import sys
 from multiprocessing import Process,Queue
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
+                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QTextEdit,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+                QErrorMessage, QMessageBox,QDialogButtonBox,QLabel)
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt,QEvent
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor
 
@@ -188,7 +188,7 @@ class Babel_Thermal(QWidget):
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
                                                         combination['PRF'])+'.h5'
-                self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0]+'.nii.gz')
+                self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
                     self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
@@ -427,19 +427,52 @@ class Babel_Thermal(QWidget):
     @Slot()
     def ExportThermalMap(self):
         OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
-        BasePath = OutName.split('_DataForSim')[0]
-        BasePath+='_FullElasticSolution_Sub_NORM.nii.gz'
-        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
-            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
-                BasePath+='FullElasticSolutionRefocus_Sub_NORM.nii.gz'
-        nidata = nibabel.load(BasePath)
-        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         SelIsppa=self.Widget.IsppaSpinBox.value()
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
+        BasePath = OutName.split('_DataForSim')[0]
+        print(OutName)
+        OutName = OutName.replace('_DataForSim','')
+        OutName = OutName.split('-Isppa')[0] + '-PRF' + ('_Isppa_%2.1fW' % (SelIsppa)).replace('.','p') + OutName.split('-PRF')[1]
+        OutName+='.nii.gz'
+        
+        suffix='_FullElasticSolution_Sub_NORM.nii.gz'
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
+            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+                suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+        BasePath+=suffix
+        nidata = nibabel.load(BasePath)
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         Tmap=(DataThermal['TempEndFUS']-37.0)*IsppaRatio+37.0
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
         nii.to_filename(OutName)
+        #If runnning with Brainsight, we save the path of thermal map
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
+                f.write(OutName)
+        txt = "Thermal map file\n" + os.path.basename(OutName) +'\nsaved at:\n '+os.path.dirname(OutName)
+        maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])
+        msgBox = DialogShowText(txt,"Saved thermal map")
+        msgBox.exec()
+
+class DialogShowText(QDialog):
+    def __init__(self, text,title,parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle(title)
+
+        QBtn = QDialogButtonBox.Ok 
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+        message = QLabel(text)
+        message.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        message.setStyleSheet(f"qproperty-alignment: {int(Qt.AlignmentFlag.AlignCenter)};")
+        self.layout.addWidget(message)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 
 class RunThermalSim(QObject):
