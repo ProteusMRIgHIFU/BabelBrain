@@ -30,7 +30,10 @@ class BabelBaseTx(QWidget):
             with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
                 f.write(fnameTrajectory)
 
-    
+    def GetExtraSuffixAcFields(self):
+        #By default, it returns empty string, useful when dealing with user-specified geometry
+        return ""
+
     @Slot()
     def UpdateAcResults(self):
         '''
@@ -44,6 +47,10 @@ class BabelBaseTx(QWidget):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
+
+            extrasuffix=self.GetExtraSuffixAcFields()
+
+            self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
 
             self.ExportStep2Results(Skull)    
 

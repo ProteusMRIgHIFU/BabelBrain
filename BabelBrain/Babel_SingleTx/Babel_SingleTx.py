@@ -132,15 +132,20 @@ class SingleTx(BabelBaseTx):
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
-      
-    @Slot()
-    def RunSimulation(self):
+
+    def GetExtraSuffixAcFields(self):
+        #redefined to indicate user-defined geometry
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
+        return extrasuffix
+
+      
+    @Slot()
+    def RunSimulation(self):
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
-        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
+        
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)

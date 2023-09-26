@@ -498,8 +498,7 @@ class BabelBrain(QWidget):
                 
         self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
-        self._BrainsightInput=self._prefix_path+'FullElasticSolution_Sub_NORM.nii.gz'
-
+        
         print('outname',self._outnameMask)
         self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
         bCalcMask=False
