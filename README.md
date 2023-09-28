@@ -59,6 +59,12 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
+# Citation
+If you find BabelBrain useful for your research, please consider adding a citation to:
+Pichardo, S., 2023. BabelBrain: An Open-Source Application for Prospective Modeling of Transcranial Focused Ultrasound for Neuromodulation Applications.  
+IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control.  
+doi:[10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046)
+
 
 # Version log
 - 0.2.9-a - Sep 21, 2023
