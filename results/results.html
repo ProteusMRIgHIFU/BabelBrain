@@ -129,7 +129,12 @@
 <p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution.nii.gz</code></p>
 <p>For example:</p>
 <p><code>STN_CTX_500_250kHz_6PPW_FullElasticSolution.nii.gz</code></p>
-<p>This file contains the 3D pressure field in T1W coordinates. A sub-sampled version (1:2 ratio) is also saved (<code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution_Sub.nii.gz</code>) for visualization tool that cannot handle very high-resolution Nifti files. Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required <span class="arithmatex"><span class="MathJax_Preview">I_{SPPA}</span><script type="math/tex">I_{SPPA}</script></span> value to use to program devices during real experimentations. These acoustic maps should be considered <strong>adimensional</strong> and are mostly used for visualization purposes. </p>
+<p>This file contains the 3D pressure field in T1W coordinates subsampled with a 1:2 ratio for visualization tool that cannot handle very high-resolution Nifti files.</p>
+<p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution_Sub.nii.gz</code></p>
+<p>This a sub-domain version with the original simulation resolution, suitable with tools such as fsleyes and 3DSlicer.</p>
+<p><code>&lt;Target ID&gt;_&lt;Tx ID&gt;_&lt;Frequency ID&gt;_&lt;PPW ID&gt;_FullElasticSolution_Sub_NORM.nii.gz</code></p>
+<p>This a sub-domain version with the original simulation resolution, normalized (0.0 to 1.0) with the pressure values in the brain region. All other tissue regions are set to 0.0. This file facilitates visualization to different normalized thresholds (e.g., 0.25, 0.5, etc.). Suitable with tools such as fsleyes and 3DSlicer.</p>
+<p>Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required <span class="arithmatex"><span class="MathJax_Preview">I_{SPPA}</span><script type="math/tex">I_{SPPA}</script></span> value to use to program devices during real experimentations. These acoustic maps should be considered <strong>adimensional</strong> and are mostly used for visualization purposes. </p>
 <h1 id="3-stl-files">3 - STL files</h1>
 <p>BabelBrain will generate STL files of the transducer that will be in T1W coordinates and aligned using the planning and simulation information. 
  If using 'charm' from Simbnibs 4.0, BabelBrain will generate STL files for skin, csf and skull 

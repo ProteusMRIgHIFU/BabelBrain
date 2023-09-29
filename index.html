@@ -91,6 +91,11 @@
               </ul>
             </li>
             
+            <li class="nav-item" data-level="1"><a href="#citation" class="nav-link">Citation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
             <li class="nav-item" data-level="1"><a href="#disclaimer" class="nav-link">Disclaimer</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#licensing" class="nav-link">Licensing</a>
@@ -105,6 +110,7 @@
                     <div class="col-md-9" role="main">
 
 <h1 id="babelbrain">BabelBrain</h1>
+<p><strong>v0.2.9</strong></p>
 <p>Samuel Pichardo, Ph.D<br />
 Associate Professor<br />
 Radiology and Clinical Neurosciences, Hotchkiss Brain Institute<br />
@@ -117,6 +123,11 @@ www.neurofus.ca</p>
 <p><img src="Target-demo.png"></p>
 <p>BabelBrain is a frontend application for research purposes only in the study of applications of transcranial focused ultrasound. BabelBrain calculates the transmitted acoustic field in the brain tissue, considering the distortion effects caused by the skull barrier. BabelBrain also calculates the thermal effects of a given ultrasound regime, which is regulated mainly by the total duration of ultrasound exposure, the duty cycle of ultrasound use, and the peak acoustic intensity,</p>
 <p>BabelBrain is designed to work in tandem with neuronavigation and/or visualization software (such as Rogue Research's Brainsight or 3DSlicer). This tool combines image processing to prepare domains for ultrasound simulation and uses  <a href="https://github.com/ProteusMRIgHIFU/BabelViscoFDTD">BabelViscoFDTD</a> extensively for transcranial modeling calculations. BabelViscoFDTD is a finite-difference time-difference solver of isotropic viscoelastic equation, which was implemented to support multiple GPU backends (Metal, OpenCL and CUDA).  Predictions of BabelViscoFDTD have been validated experimentally (<a href="https://pubmed.ncbi.nlm.nih.gov/28783716/">Pichardo <em>et al.</em>, 2017</a>) and cross-validated with other numerical tools for ultrasound propagation (<a href="https://asa.scitation.org/doi/10.1121/10.0013426">Aubry <em>et al.</em>, 2022</a>). BabelBrain supports multiple GPU backends (Metal, OpenCL and CUDA) and works in all major operating systems, with an emphasis on Apple ARM64-based systems, which are very common in brain imaging research.  </p>
+<h1 id="citation">Citation</h1>
+<p>If you find BabelBrain useful for your research, please consider adding a citation to:<br />
+Pichardo S. BabelBrain: An Open-Source Application for Prospective Modeling of Transcranial Focused Ultrasound for Neuromodulation Applications.<br />
+IEEE Trans Ultrason Ferroelectr Freq Control. 2023 Jul;70(7):587-599.<br />
+doi: <a href="https://doi.org/10.1109/TUFFC.2023.3274046">10.1109/TUFFC.2023.3274046</a>. Epub 2023 Jun 29. PMID: 37155375.</p>
 <h1 id="disclaimer">Disclaimer</h1>
 <p>This software is provided "as is" and it is intended exclusively for research purposes.</p>
 <h2 id="licensing">Licensing</h2>
@@ -233,5 +244,5 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p></div>
 
 <!--
 MkDocs version : 1.4.2
-Build Date UTC : 2023-04-08 15:51:37.258789+00:00
+Build Date UTC : 2023-09-29 16:39:31.217380+00:00
 -->
