@@ -432,7 +432,7 @@ class Babel_Thermal(QWidget):
         BasePath = OutName.split('_DataForSim')[0]
         print(OutName)
         OutName = OutName.replace('_DataForSim','')
-        OutName = OutName.split('-Isppa')[0] + '-PRF' + ('_Isppa_%2.1fW' % (SelIsppa)).replace('.','p') + OutName.split('-PRF')[1]
+        OutName = OutName.split('-Isppa')[0] + ('_Isppa_%2.1fW' % (SelIsppa)).replace('.','p') + '-PRF' + OutName.split('-PRF')[1]
         OutName+='.nii.gz'
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'

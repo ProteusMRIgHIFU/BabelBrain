@@ -143,12 +143,12 @@ class SingleTx(BabelBaseTx):
       
     @Slot()
     def RunSimulation(self):
+        extrasuffix=self.GetExtraSuffixAcFields()
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
-        
+        FocalLength = self.Widget.FocalLengthSpinBox.value()
+        Diameter = self.Widget.DiameterSpinBox.value()
 
-        print('FullSolName',self._FullSolName)
-        print('WaterSolName',self._WaterSolName)
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
