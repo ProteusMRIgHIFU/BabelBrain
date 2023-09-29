@@ -5,7 +5,7 @@ Installation and Running
 Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with NVidia GPUs (see this [guide](https://docs.nvidia.com/cuda/wsl-user-guide/index.html)). 
 
 ### GPU
-BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (12 GPU RAM or more) are recommended. ARM64 processors (M1, M2) in Mac systems with 32GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. 
+BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (8 GPU RAM or more) are recommended. ARM64 processors (M1, M2) in Mac systems with 24GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. 
 #### Note for Intel-based Mac systems
 Intel-based systems need to have a dedicated AMD GPU (internal or external via Thunderbolt). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 500 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 
@@ -38,12 +38,12 @@ Keep a copy of the `PlanningModels` and `ThermalProfiles` directories. `Planning
 # Manual Installation 
 Python 3.9/3.10. Anaconda/miniconda is recommended. - if running in Apple ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version.
 
-Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. The requirements are roughly a clean Python 3.9 or 3.10 environment. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019+ with CUDA 11.7+.
+Clone the [BabelBrain](https://github.com/ProteusMRIgHIFU/BabelBrain/) repository. The code can be run in a Python environment; consult examples of conda environment files in the repository. In macOS, you need a healthy XCode installation with command line tools installed. For Linux, an LTS Ubuntu installation such as 20.04 with a  CUDA installation. For Windows, Visual Studio 2019+ with CUDA 11.7+.
 
 
 # Running
-## Standalone macOS application
-Just open BabelBrain from the Applications section in macOS.
+## Standalone application
+Just open BabelBrain from the Applications section in macOS or in Windows from the Start Menu.
 
 ## Manual execution
 Activate the conda environment, change to the `BabelBrain/BabelBrain` directory and execute

@@ -20,6 +20,11 @@ BabelBrain is a frontend application for research purposes only in the study of 
 
 BabelBrain is designed to work in tandem with neuronavigation and/or visualization software (such as Rogue Research's Brainsight or 3DSlicer). This tool combines image processing to prepare domains for ultrasound simulation and uses  [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) extensively for transcranial modeling calculations. BabelViscoFDTD is a finite-difference time-difference solver of isotropic viscoelastic equation, which was implemented to support multiple GPU backends (Metal, OpenCL and CUDA).  Predictions of BabelViscoFDTD have been validated experimentally ([Pichardo *et al.*, 2017](https://pubmed.ncbi.nlm.nih.gov/28783716/)) and cross-validated with other numerical tools for ultrasound propagation ([Aubry *et al.*, 2022](https://asa.scitation.org/doi/10.1121/10.0013426)). BabelBrain supports multiple GPU backends (Metal, OpenCL and CUDA) and works in all major operating systems, with an emphasis on Apple ARM64-based systems, which are very common in brain imaging research.  
 
+# Citation
+If you find BabelBrain useful for your research, please consider adding a citation to:  
+Pichardo S. BabelBrain: An Open-Source Application for Prospective Modeling of Transcranial Focused Ultrasound for Neuromodulation Applications.  
+IEEE Trans Ultrason Ferroelectr Freq Control. 2023 Jul;70(7):587-599.  
+doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). Epub 2023 Jun 29. PMID: 37155375.
 
 # Disclaimer
 This software is provided "as is" and it is intended exclusively for research purposes.
