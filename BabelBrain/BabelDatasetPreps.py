@@ -164,6 +164,19 @@ def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         BinaryClosingFilterCOMPUTING_BACKEND='Metal'
 
+LabelImage=None
+LabelImageCOMPUTING_BACKEND=''
+def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+    global LabelImage
+    global LabelImageCOMPUTING_BACKEND
+    LabelImage = Callback
+    if COMPUTING_BACKEND==1:
+        LabelImageCOMPUTING_BACKEND='CUDA'
+    elif COMPUTING_BACKEND==2:
+        LabelImageCOMPUTING_BACKEND='OpenCL'
+    else:
+        LabelImageCOMPUTING_BACKEND='Metal'
+
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
@@ -592,7 +605,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
         else:
             with CodeTimer("Coregistration CT to T1",unit='s'):
-                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI)
+                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
         rCTdata=rCT.get_fdata()
         hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
         print('*'*40)
@@ -622,7 +635,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
         ##We will create an smooth surface
         with CodeTimer("skull surface CT",unit='s'):
-            label_img=label(nfct)
+            if LabelImage is None:
+                label_img=label(nfct)
+            else:
+                label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
             regions= regionprops(label_img)
             regions=sorted(regions,key=lambda d: d.area)
             nfct=label_img==regions[-1].label
@@ -687,7 +703,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             FinalMask[nfct]=2  #bone
         #we do a cleanup of islands 
         with CodeTimer("Labeling",unit='s'):
-            label_img = label(FinalMask==1)
+            if LabelImage is None:
+                label_img = label(FinalMask==1)
+            else:
+                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
           
         with CodeTimer("regionprops",unit='s'):
             regions= regionprops(label_img)

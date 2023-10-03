@@ -39,6 +39,7 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         from GPUMapping import MappingFilter
         from GPUResample import Resample
         from GPUBinaryClosing import BinaryClosing
+        from GPULabel import LabelImage
         print('sys.platform',sys.platform)
         if sys.platform not in ['linux','win32']: 
             assert(COMPUTING_BACKEND in [2,3])  
@@ -51,12 +52,15 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                 MappingFilter.InitOpenCL(DeviceName= devicename)
                 Resample.InitOpenCL(DeviceName= devicename)
                 BinaryClosing.InitOpenCL(DeviceName= devicename)
+                LabelImage.InitOpenCL(DeviceName= devicename)
+                DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage, COMPUTING_BACKEND)
             else:
                 MedianFilter.InitMetal(DeviceName= devicename)
                 Voxelize.InitMetal(DeviceName= devicename)
                 MappingFilter.InitMetal(DeviceName= devicename)
                 Resample.InitMetal(DeviceName= devicename)
                 BinaryClosing.InitMetal(DeviceName= devicename)
+                # LabelImage.InitMetal(DeviceName= devicename) # Metal version not ready
             
             DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilterSize7,COMPUTING_BACKEND)
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
@@ -71,18 +75,20 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
                 MappingFilter.InitCUDA(DeviceName= devicename)
                 Resample.InitCUDA(DeviceName= devicename)
                 BinaryClosing.InitCUDA(DeviceName= devicename)
+                LabelImage.InitCUDA(DeviceName= devicename)
             elif COMPUTING_BACKEND==2:
                 Voxelize.InitOpenCL(DeviceName= devicename)
                 MappingFilter.InitOpenCL(DeviceName= devicename)
                 Resample.InitOpenCL(DeviceName= devicename)
                 BinaryClosing.InitOpenCL(DeviceName= devicename)
+                LabelImage.InitOpenCL(DeviceName= devicename)
            
                 
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
             DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
             DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
             DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
-        
+            DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
                     
         DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
     except BaseException as e:
