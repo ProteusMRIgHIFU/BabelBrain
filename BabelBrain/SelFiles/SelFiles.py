@@ -189,7 +189,7 @@ class SelFiles(QDialog):
             "Select T1W", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
         if len(fT1W)>0:
             self.ui.T1WlineEdit.setText(fT1W)
-            self.ui.T1WlineEdit.setCursorPosition(len(T1fT1W))
+            self.ui.T1WlineEdit.setCursorPosition(len(fT1W))
 
     @Slot()
     def SelectCT(self):

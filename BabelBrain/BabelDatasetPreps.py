@@ -598,9 +598,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         if CTType in [2,3]:
             print('Processing ZTE/PETRA to pCT')
             bIsPetra = CTType==3
-            with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
+            with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
                 rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk)
-            with CodeTimer("Conversion ZTE to pCT",unit='s'):
+            with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
                 rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),
                     ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
         else:

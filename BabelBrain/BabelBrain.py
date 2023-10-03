@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QLabel
 )
 from linetimer import CodeTimer
 from matplotlib import pyplot as plt
@@ -352,6 +353,9 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.hide()
         elif self.Config['CTType'] not in [2,3]:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
+        elif self.Config['CTType']==3: #PETRA, we change the label
+            self.Widget.CTZTETabs.setTabText(0,"PETRA")
+            ZTE.findChild(QLabel,"RangeLabel").setText("Normalized PETRA Range")
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
 
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)

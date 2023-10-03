@@ -251,7 +251,7 @@ def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         arrCT[arrSkin!=0]=42.0 #soft tissue
         if bIsPetra: # FUN23 Miscouridou et al. https://github.com/ucl-bug/petra-to-ct
             print('Using PETRA specification to convert to pCT')
-            arrCT[arr2!=0]=-2928.8*arrZTE[arr2!=0]+ 3274.6
+            arrCT[arr2!=0]=-2929.6*arrZTE[arr2!=0]+ 3274.9
         else: # GE conversion (doi: 10.1109/TUFFC.2022.3198522)
             print('Using ZTE specification to convert to pCT')
             arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
