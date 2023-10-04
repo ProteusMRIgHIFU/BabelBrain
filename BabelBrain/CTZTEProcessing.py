@@ -13,6 +13,7 @@ import os
 import scipy
 from skimage.measure import label, regionprops
 import numpy as np
+from scipy import signal
 from operator import itemgetter
 import platform
 from pathlib import Path
@@ -114,7 +115,10 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0, ResampleFunc=None, ResampleBackend='
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz' 
+        BaseNameInT1=os.path.splitext(InputT1)[0]
+        if '.nii.gz' in InputT1:
+            BaseNameInT1 =os.path.splitext(BaseNameInT1)[0]
+        T1fnameBiasCorrec= BaseNameInT1 + '_BiasCorrec.nii.gz' 
         N4BiasCorrec(InputT1,T1fnameBiasCorrec)
         #coreg
         if CoregCT_MRI==1:
@@ -145,31 +149,43 @@ def CTCorreg(InputT1,InputCT,CoregCT_MRI=0, ResampleFunc=None, ResampleBackend='
             fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
 
 
-            T1fname_CTRes=os.path.splitext(InputT1)[0] + '_BiasCorrec_CT_res.nii.gz'
+            T1fname_CTRes=BaseNameInT1 + '_BiasCorrec_CT_res.nii.gz'
             fixed_image.to_filename(T1fname_CTRes)
-            CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
+
+            CTInT1W=os.path.splitext(InputCT)[0]
+            if '.nii.gz' in InputCT:
+                CTInT1W=os.path.splitext(CTInT1W)[0]
+            CTInT1W+= '_InT1.nii.gz'
 
             RunElastix(T1fname_CTRes,InputCT,CTInT1W)
             
             return nibabel.load(CTInT1W)
         else:
-            T1WinCT=os.path.splitext(InputT1)[0] + '_InCT.nii.gz'
+            T1WinCT=BaseNameInT1 + '_InCT.nii.gz'
             RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
             return nibabel.load(InputCT)
 
 
 def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     #Bias correction
-    T1fnameBiasCorrec =os.path.splitext(InputT1)[0] + '_BiasCorrec.nii.gz'
-
+    
+    BaseNameInT1 =os.path.splitext(InputT1)[0] 
+    if '.nii.gz' in InputT1:
+        BaseNameInT1=os.path.splitext(BaseNameInT1)[0] 
+    T1fnameBiasCorrec= BaseNameInT1 + '_BiasCorrec.nii.gz'
     N4BiasCorrec(InputT1,T1fnameBiasCorrec)
 
-    ZTEfnameBiasCorrec=os.path.splitext(InputZTE)[0] + '_BiasCorrec.nii.gz'
+
+    BaseNameInZTE=os.path.splitext(InputZTE)[0]
+    if '.nii.gz' in InputZTE:
+        BaseNameInZTE=os.path.splitext(BaseNameInZTE)[0]
+    ZTEfnameBiasCorrec= BaseNameInZTE + '_BiasCorrec.nii.gz'
 
     N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
     #coreg
 
-    ZTEInT1W=os.path.splitext(InputZTE)[0] + '_InT1.nii.gz'
+    ZTEInT1W=BaseNameInZTE+'_InT1.nii.gz'
+
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
@@ -185,8 +201,9 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask):
     sitk.WriteImage(img_out, ZTEInT1W)
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False):
-    print('converting ZTE to pCT with range',ThresoldsZTEBone)
+def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
+            PetraMRIPeakDistance=50,PetraNPeaks=2):
+    print('converting ZTE/PETRA to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
         #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
@@ -221,45 +238,62 @@ def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         
         arrZTE=volumeZTE.get_fdata()
         arrHead=volumeHead.get_fdata()
-        
-        
-        
-        maskedZTE =arrZTE.copy()
-        maskedZTE[arrMask==0]=-1000
-        
-        cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
-        
-        
-        arrZTE/=cutoff
-        
-        arrZTE[arrHead==0]=-0.5
+
+        if bIsPetra: # FUN23 Miscouridou et al. Adapted from  https://github.com/ucl-bug/petra-to-ct
+            print('Using PETRA specification to convert to pCT')
+
+            #histogram normalization
+            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins='auto')
+            bins = (edges[1:] + edges[:-1])/2
+            bins = bins[1:]
+            hist_vals = hist_vals[1:]
+
+            PeakDistance = int(PetraMRIPeakDistance/np.mean(np.diff(bins)))
+
+            pks,_ = signal.find_peaks(hist_vals,distance=PeakDistance)
+            locs = bins[pks]
+            pks=hist_vals[pks]
+
+            ind=np.argsort(pks)
+            ind=ind[::-1][:PetraNPeaks]
+            pks=pks[ind]
+            locs=locs[ind]
+            arrZTE/=np.max(locs)
+        else:
+            maskedZTE =arrZTE.copy()
+            maskedZTE[arrMask==0]=-1000
+            print('Using ZTE specification to convert to pCT') # as done in M. Miscouridou at al., IEEE Trans. Ultrason. Ferroelectr. Freq. Control, vol. 69, no. 10, pp. 2896-2905, Oct. 2022.  doi: 10.1109/TUFFC.2022.3198522
+            cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
+            arrZTE/=cutoff
+            arrZTE[arrHead==0]=-0.5
 
         arrGauss=arrZTE.copy()
         arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
         arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
-        
+            
         label_img = label(arr)
+        
         def pixelcount(regionmask):
             return np.sum(regionmask)
+        
         props = regionprops(label_img, extra_properties=(pixelcount,))
         props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
         arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-        
         arrCT=np.zeros_like(arrGauss)
         arrCT[arrSkin==0]=-1000 
         arrCT[arrSkin!=0]=42.0 #soft tissue
-        if bIsPetra: # FUN23 Miscouridou et al. https://github.com/ucl-bug/petra-to-ct
-            print('Using PETRA specification to convert to pCT')
+
+        if bIsPetra:
             arrCT[arr2!=0]=-2929.6*arrZTE[arr2!=0]+ 3274.9
-        else: # GE conversion (doi: 10.1109/TUFFC.2022.3198522)
-            print('Using ZTE specification to convert to pCT')
+        else:
             arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+
         arrCT[arrCT<-1000]=-1000 #air
         arrCT[arrCT>3300]=-1000 #air 
         arrCT[arrCavities!=0]=-1000
         
         pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-        CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
+        CTfname=InputZTE.split('_InT1.nii.gz')[0]+'_pCT.nii.gz'
         nibabel.save(pCT,CTfname)
     return pCT
