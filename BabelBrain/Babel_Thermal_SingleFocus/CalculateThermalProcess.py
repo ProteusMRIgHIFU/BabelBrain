@@ -71,14 +71,14 @@ def CalculateThermalProcess(queue,case,AllDC_PRF_Duration,**kargs):
                     SubData['p_map']=Data[f] #this will make it compatible for other purposes
                 SubData[f]=Data[f]
             AllCases.append(SubData)
-            Index.append([combination['DC'],np.round(kargs['Isppa'],1)])
+            Index.append([combination['DC'],combination['PRF'],combination['Duration'],combination['DurationOff'],np.round(kargs['Isppa'],1)])
         for f in lf:
             Data.pop(f)
         Index=np.array(Index)
 
         Data['AllData']=AllCases
         Data['Index']=Index
-        ConsolodidateName=fname.split('-DC-')[0]+'_AllCombinations'
+        ConsolodidateName=fname.split('-Duration-')[0]+'_AllCombinations'
         savemat(ConsolodidateName+'.mat',Data)
         SaveToH5py(Data,ConsolodidateName+'.h5')
 
