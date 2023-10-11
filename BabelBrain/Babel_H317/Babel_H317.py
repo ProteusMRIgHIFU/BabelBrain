@@ -70,7 +70,6 @@ class H317(BabelBaseTx):
     @Slot()
     def ZSteeringUpdate(self,value):
         self._ZSteering =self.Widget.ZSteeringSpinBox.value()/1e3
-        print('ZSteering',self._ZSteering*1e3)
 
     @Slot()
     def EnableRefocusing(self,value):

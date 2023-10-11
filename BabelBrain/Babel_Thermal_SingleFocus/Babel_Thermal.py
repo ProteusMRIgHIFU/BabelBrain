@@ -122,8 +122,6 @@ class Babel_Thermal(QWidget):
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
-
-
         if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
             ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
                                 "Do you want to recalculate?\nSelect No to reload",
