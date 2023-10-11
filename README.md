@@ -60,6 +60,8 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.2.9-b - Oct 11, 2023
+  - Small fix for Step 3 the AllCombinations file that was not saving correctly an index based on the combinations of DC, PRF and duration. 
 - 0.2.9-a - Sep 21, 2023
   - Add fix for Apple Silicon systems with latest versions of MacOS. In some systems, occasional crashes were occurring. Fix was addressed at the underlying library at https://github.com/ProteusMRIgHIFU/py-metal-compute.
   - Address slow BHTE calculations in Step 3 in external AMD GPUs in Apple X64 system. Fix done in underlying library BabelViscoFDTD 1.0.1
