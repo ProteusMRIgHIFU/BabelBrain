@@ -132,3 +132,5 @@ docs/site/**
 *.wxs
 *.wixobj
 *.pkg
+*.dmg
+BabelBrain/final
