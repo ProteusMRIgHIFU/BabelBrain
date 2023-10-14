@@ -131,3 +131,4 @@ docs/site/**
 *.wixpdb
 *.wxs
 *.wixobj
+*.pkg
