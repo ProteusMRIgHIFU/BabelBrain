@@ -60,7 +60,10 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
-- 0.2.9-b - Oct 11, 2023
+- 0.2.9-b - Oct 14, 2023
+  - macOS applications are now fully signed, and no more warnings from macOS Gatekeeper appear.
+  - PKG installer in macOS DMG distribution files replaces the "drag" macOS app into the application.
+  - Use of latest pyinstaller library (6.1.0) and new scripts to sign macOS applications.
   - Small fix for Step 3 the AllCombinations file that was not saving correctly an index based on the combinations of DC, PRF and duration. 
 - 0.2.9-a - Sep 21, 2023
   - Add fix for Apple Silicon systems with latest versions of MacOS. In some systems, occasional crashes were occurring. Fix was addressed at the underlying library at https://github.com/ProteusMRIgHIFU/py-metal-compute.
