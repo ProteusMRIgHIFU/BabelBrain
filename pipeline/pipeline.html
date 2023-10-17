@@ -157,8 +157,9 @@
 <p><strong>Mandatory</strong>: Execute  SimNIBS 3.x <code>headreco</code> or SimNIBS 4.x <code>charm</code> processing tool:</p>
 <p><code>headreco all &lt;ID&gt; &lt;Path to T1W Nifti file&gt; &lt;Path to T2W Nifti file&gt;</code></p>
 <p>or</p>
-<p><code>charm &lt;ID&gt; &lt;Path to T1W Nifti file&gt; &lt;Path to T2W Nifti file&gt; --forceqform</code></p>
-<p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual. The <code>--forceqform</code> parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. </p>
+<p><code>charm &lt;ID&gt; &lt;Path to T1W Nifti file&gt; &lt;Path to T2W Nifti file&gt;</code></p>
+<p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual.</p>
+<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
 </li>
 <li>
 <p><strong>Mandatory</strong>: Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
