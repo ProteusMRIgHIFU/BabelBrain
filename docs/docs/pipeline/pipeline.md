@@ -26,10 +26,12 @@ The specific capabilities of each transducer are considered during the simulatio
     or
 
     ```
-    charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file> --forceqform
+    charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
     ```
 
-    `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred to as the **SimNIBS output** directory in the following of this manual. The `--forceqform` parameter is required as often Nifti files are not 100% strict on how qform and sform matrices are saved. 
+    `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred to as the **SimNIBS output** directory in the following of this manual.
+    
+    **Note**: Sometimes, `charm` may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with `dcm2niix`. If `charm` complains, you can try passing the  `--forceqform` parameter when executing `charm`.  
 
 * **Mandatory**: Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
 
