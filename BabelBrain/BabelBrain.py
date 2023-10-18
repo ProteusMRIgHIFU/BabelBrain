@@ -79,6 +79,7 @@ sys.path.append(os.path.abspath('./'))
 
 _IS_MAC = platform.system() == 'Darwin'
 
+
 def resource_path():  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
     if not _IS_MAC:
