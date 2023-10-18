@@ -8,7 +8,6 @@ import nibabel
 from nibabel import processing
 from nibabel.spaces import vox2out_vox
 import SimpleITK as sitk
-import itk
 import tempfile
 import os
 import scipy
@@ -39,16 +38,17 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 def RunElastix(reference,moving,finalname):
-    parameter_object = itk.ParameterObject.New()
-    default_rigid_parameter_map = parameter_object.GetDefaultParameterMap('rigid')
-    parameter_object.AddParameterMap(default_rigid_parameter_map)
-    fixed_image = itk.imread(reference)
-    moving_image = itk.imread(moving)
-    result_image, result_transform_parameters = itk.elastix_registration_method(
-        fixed_image, moving_image,
-            parameter_object=parameter_object,
-            log_to_console=True)
-    itk.imwrite(result_image,finalname,compression=True)
+    if platform.system() == 'Darwin' and 'arm64' in platform.platform():
+        #in macOS arm64, we just call the function
+        RigidRegistration(reference,moving,finalname)
+    else:
+        #otherwise , we just called via subprocess
+        parameters = [sys.executable, "RunElastix.py", "'"+reference+"'","'"+moving+"'","'"+finalname+"'"]
+        result = subprocess.run(parameters,capture_output=True, text=True)
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        if result.returncode != 0:
+            raise SystemError("Error when trying to run elastix")
 
 def N4BiasCorrec(input,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
