@@ -8,6 +8,7 @@ import nibabel
 from nibabel import processing
 from nibabel.spaces import vox2out_vox
 import SimpleITK as sitk
+import itk
 import tempfile
 import os
 import scipy
@@ -38,45 +39,16 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 def RunElastix(reference,moving,finalname):
-    if sys.platform == 'linux' or _IS_MAC:
-        if sys.platform == 'linux':
-            shell='bash'
-            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
-        elif _IS_MAC:
-            shell='zsh'
-            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            result = subprocess.run(
-                    [shell,
-                    path_script,
-                    reference,
-                    moving,
-                    tmpdirname], capture_output=True, text=True
-            )
-            print("stdout:", result.stdout)
-            print("stderr:", result.stderr)
-            if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-
-        if result.returncode != 0:
-            raise SystemError("Error when trying to run elastix")
-    else:
-        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            result = subprocess.run(
-                    [path_script,
-                    reference,
-                    moving,
-                    tmpdirname], capture_output=True, text=True,shell=True,
-            )
-            print("stdout:", result.stdout)
-            print("stderr:", result.stderr)
-            if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-
-        if result.returncode != 0:
-            raise SystemError("Error when trying to run elastix")
+    parameter_object = itk.ParameterObject.New()
+    default_rigid_parameter_map = parameter_object.GetDefaultParameterMap('rigid')
+    parameter_object.AddParameterMap(default_rigid_parameter_map)
+    fixed_image = itk.imread(reference)
+    moving_image = itk.imread(moving)
+    result_image, result_transform_parameters = itk.elastix_registration_method(
+        fixed_image, moving_image,
+            parameter_object=parameter_object,
+            log_to_console=True)
+    itk.imwrite(result_image,finalname,compression=True)
 
 def N4BiasCorrec(input,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):

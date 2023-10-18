@@ -44,19 +44,6 @@ if 'Darwin' in platform.system(): #for Mac
     hiddenimports+=tmp_ret2[2]
 
     datas+=commonDatas
-
-
-    for l in glob.glob('ExternalBin'+os.sep+'**',recursive=True):
-        if os.path.isfile(l):
-            if 'Darwin' in platform.system() and 'mac' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Linux' in platform.system() and 'linux' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Windows' in platform.system() and 'windows' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif  '.txt' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-    print('binaries',binaries)
     if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
         hiddenimports+=['histoprint']
         libdir = compat.base_prefix + "/lib"
@@ -144,8 +131,7 @@ elif 'Windows' in platform.system(): #for Windows
         
     binaries+=[(os.environ['CONDA_PREFIX']+'/Library/bin/nvrtc-builtins64_117.dll','./')]
     datas+=commonDatas
-    datas+=[('ExternalBin/elastix/run_win.bat','./ExternalBin/elastix'),
-            ('SelFiles/form.ui','./SelFiles'),
+    datas+=[('SelFiles/form.ui','./SelFiles'),
             ('GPUVoxelize/helper_math.h','./GPUVoxelize'),
             ('../ThermalProfiles/Profile_1.yaml','./ThermalProfiles'),
             ('../ThermalProfiles/Profile_2.yaml','./ThermalProfiles'),
@@ -154,19 +140,6 @@ elif 'Windows' in platform.system(): #for Windows
             ('../PlanningModels/Trajectory-20-60-F#1.stl','./PlanningModels'),
             ('../PlanningModels/Trajectory-30-70-F#1.stl','./PlanningModels'),
             ('../PlanningModels/Trajectory-50-90-F#1.stl','./PlanningModels')]
-
-    for l in glob.glob('ExternalBin'+os.sep+'**',recursive=True):
-        if os.path.isfile(l):
-            if 'Darwin' in platform.system() and 'mac' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Linux' in platform.system() and 'linux' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Windows' in platform.system() and 'windows' in l:
-                print("Elastix for Windows")
-                print(f"Elastix binaries: {[(l,'.'+os.sep+os.path.dirname(l))]}")
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif  '.txt' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
 
     if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
         hiddenimports+=['histoprint']
@@ -253,19 +226,7 @@ else: #for Linux
             ('../PlanningModels/Trajectory-30-70-F#1.stl','./PlanningModels'),
             ('../PlanningModels/Trajectory-50-90-F#1.stl','./PlanningModels')]
 
-    for l in glob.glob('ExternalBin'+os.sep+'**',recursive=True):
-        if os.path.isfile(l):
-            if 'Darwin' in platform.system() and 'mac' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Linux' in platform.system() and 'linux' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif 'Windows' in platform.system() and 'windows' in l:
-                print("Elastix for Windows")
-                print(f"Elastix binaries: {[(l,'.'+os.sep+os.path.dirname(l))]}")
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-            elif  '.txt' in l:
-                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
-
+    
     if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
         hiddenimports+=['histoprint']
         libdir = compat.base_prefix + "/lib"
