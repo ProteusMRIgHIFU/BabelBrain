@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-
-
-
-
-
 version = '0.3'
 
 import logging
@@ -19,10 +14,6 @@ from pathlib import Path
 from time import sleep
 import sys
 from shutil import rmtree
-
-
-
-
 
 
 def strtobool (val):
@@ -122,14 +113,6 @@ def get_args():
     parser.add_argument('-t', '--staple', dest='staple_only',
                        action='store_true', default=None,
                        help='stape the notarization to the the package, but take no further action (can be combined with -s, -p, -n)')
-    
-    #parser.add_argument('-T', '--notarize_timer', type=int, default=60,
-    #                   metavar="<INTEGER>",
-    #                   help='base time in seconds to wait between checking notarization status with apple (default 60)')
-    
-    #parser.add_argument('-C', '--num_checks', type=int, default=5, 
-    #                   metavar="<INTEGER>",
-    #                   help='number of times to check notarization status with apple (default 5) -- each check doubles notarize_timer')
 
     parser.add_argument('-O', '--pkg_version', type=str, 
                         default=None, 
@@ -214,7 +197,7 @@ def sign(config):
     logging.debug(f'return code: {return_code}')
     logging.debug(f'stdout: {stdout}')
     logging.debug(f'stderr: {stderr}')
-    
+
     return return_code, stdout, stderr
     
 
@@ -267,11 +250,7 @@ def package(config, package_debug=False):
     
     r, o, e = run_command(final_list)
     
-    
-#     logging.debug(f'return code: {return_code}')
-#     logging.debug(f'stdout: {stdout}')
-#     logging.debug(f'stderr: {stderr}')
-    
+
     if not package_debug:
         rmtree(pkg_temp, ignore_errors=True)
     else:
@@ -281,69 +260,10 @@ def package(config, package_debug=False):
         
     
 
-
-
-
-
-
-# def package(config, package_debug=False):
-#     pkg_temp = tempfile.mkdtemp()
-#     pkg_temp_path = Path(pkg_temp).resolve()
-#     install_path = Path(config['package_details']['installation_path']).resolve()
-#     logging.debug(f'using pkg_temp_path: {pkg_temp_path}')
-#     logging.debug(f'install_path: {install_path}')
-#     for file in config['package_details']['file_list']:
-#         my_file = Path(file).resolve()
-#         file_name = my_file.name
-#         logging.debug(f'copying file: {file}')
-#         command = f'ditto {file} {pkg_temp_path/install_path/file_name}'
-#         logging.debug(f'run command:\n {command}')
-#         return_code, stderr, stdout = run_command(shlex.split(command))
-#         if return_code > 0:
-#             pkg_temp.cleanup()
-#             return return_code, stderr, stdout
-    
-#     args = {
-#         'command': 'productbuild',
-#         'identifier': f'--identifier {config["package_details"]["bundle_id"]}.pkg',
-#         'signature': f'--sign {config["identification"]["installer_id"]}',
-#         'args': '--timestamp',
-#         'version': f'--version {config["package_details"]["version"]}',
-#         'root': f'--root {pkg_temp_path} / ./{config["package_details"]["package_name"]}.pkg'
-        
-#     }
-    
-#     print(f'packaging {config["package_details"]["package_name"]}.pkg')
-#     final_list = [i if i is not None else '' for k, i in args.items()]
-    
-#     logging.debug('running command:')
-#     logging.debug(' '.join(final_list))    
-    
-#     return_code, stdout, stderr = run_command(final_list)
-    
-#     logging.debug(f'return code: {return_code}')
-#     logging.debug(f'stdout: {stdout}')
-#     logging.debug(f'stderr: {stderr}')
-    
-#     if not package_debug:
-#         rmtree(pkg_temp_path, ignore_errors=True)
-#     else:
-#         print(f'Package debugging active:')
-#         print(f'Temp files: {pkg_temp_path}')
-#     return return_code, stdout, stderr
-
-
-
-
-
-
 def notarize(config):
     notarize_args = {
         'command': 'xcrun notarytool',
         'args': 'submit --wait',
-        #'bundle_id': f'--primary-bundle-id {config["package_details"]["bundle_id"]}',
-        #'username': f'--username={config["identification"]["apple_id"]}',
-        #'password': f'--password {config["identification"]["password"]}',
         'keychain-profile': f'--keychain-profile {config["identification"]["keychain-profile"]}',
         'file': f'{config["package_details"]["package_name"]}.pkg'
     }
@@ -504,52 +424,6 @@ def process_return(return_value, stdout, stderr):
 
 
 
-
-
-## Testing code
-#sys.argv = sys.argv[:1]
-
-# sys.argv.extend(['-O', '9.9.9'])
-# sys.argv.append('insert_files_codesign.ini')
-
-
-# expected_config_keys = {
-#         'identification': {
-#             'application_id': 'Unique Substring of Developer ID Application Cert',
-#             'installer_id': 'Unique Substring of Developer ID Installer Cert',
-#             'apple_id': 'developer@domain.com',
-#             'password': '@keychain:App-Specific-Password-Name-In-Keychain',
-#         },
-#         'package_details': {
-#             'package_name': 'nameofpackage',
-#             'bundle_id': 'com.developer.packagename',
-#             'file_list': "include_file1, include_file2",
-#             'installation_path': '/Applications/',
-#             'entitlements': 'None',
-#             'version': '0.0.0'
-#         }
-#     }
-
-# logging.root.setLevel("DEBUG")
-# args = get_args()
-# config = get_config(args=args, default_config=expected_config_keys)
-
-# config.update({'main': {
-#         'notarize_timer': args.notarize_timer,
-#         'notrarize_max_check': args.num_checks,
-#         'new_config': args.new_config}
-#                   })
-
-# if args.pkg_version:
-#     config['package_details']['version'] = args.pkg_version
-
-# validate_config(config, expected_config_keys)
-
-
-
-
-
-
 def main():
     logger = logging.getLogger(__name__)
 
@@ -570,8 +444,6 @@ def main():
     }
     run_all = True
     
-#     notarize_timer = 60
-#     notrarize_max_check = 5
     halt = False
     
     args = get_args()
@@ -664,12 +536,6 @@ def main():
     
     return config        
     
-
-
-
-
-
-
 if __name__ == '__main__':
     c = main()
 
