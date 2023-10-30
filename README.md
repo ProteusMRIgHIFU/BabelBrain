@@ -20,11 +20,13 @@ BabelBrain is a frontend application specially designed to work in tandem with n
 This software is provided "as is" and it is intended exclusively for research purposes.
 
 # Hardware requirements
-* A decent GPU (AMD, Nvidia or Apple Silicon). For AMD and Nvidia GPUs, 8 GB or more is highly recommended. For Apple Silicon, M1 Max/Ultra or M2 Max with 24 GB RAM or more highly recommended. Intel-based Mac systems need a dedicated AMD GPU (internal or external). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 650 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
+* A decent GPU (AMD, Nvidia or Apple Silicon). For AMD and Nvidia GPUs, 4 GB or more is highly recommended. For Apple Silicon, M1 Max/Ultra or M2 Max with 16 GB RAM or more is highly recommended. Intel-based Mac systems need a dedicated AMD GPU (internal or external). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 650 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 * 16 GB RAM or more for main CPU memory for Intel-based systems.
 
 # Standalone application
-Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of macOS.
+Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. 
+* For macOS, download the correct DMG image according to your CPU architecture (Intel X64 or ARM64),  and double-click the PKG installer. The first time you use you will be prompted to authorize to run and access directories.
+* For Windows, download the MSI file and run the installer.
 
 **Note for Windows:** CUDA 11.7 or up must be installed.
 
