@@ -50,6 +50,7 @@ from ConvMatTransform import (
     BSight_to_itk,
     GetIDTrajectoryBrainsight,
     ReadTrajectoryBrainsight,
+    GetBrainSightHeader,
     itk_to_BSight,
     templateSlicer,
     read_itk_affine_transform,
@@ -184,7 +185,45 @@ def GetInputFromBrainsight():
         res['T1W']=l
 
         ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
-        
+        header =  GetBrainSightHeader(PathMat4Trajectory)
+        if header['Version']=='13':
+            EndWithError("Version 13 of export trajectory not supported.\nEnding BabelBrain execution")
+        else:
+            if header['Version']!='14':
+                msgBox = QMessageBox()
+                msgBox.setIcon(QMessageBox.Warning)
+                msgBox.setText("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur")
+                msgBox.exec()
+            if 'NIfTI' not in header['Coordinate system']:
+                EndWithError("BabelBrain only supports Nifti convention for trajectory")
+            InputT1 = nibabel.load(res['T1W'])
+            qformcode=int(InputT1.header['qform_code'])
+            sformcode=int(InputT1.header['sform_code'])
+            bValidT1W=False
+            #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
+            if header['Coordinate system'] == 'NIfTI:Q:Scanner':
+                bValidT1W = qformcode==1 and sformcode==0
+            elif header['Coordinate system'] == 'NIfTI:Q:Aligned':
+                bValidT1W = qformcode==2 and sformcode==0
+            elif header['Coordinate system'] == 'NIfTI:Q:MNI-152':
+                bValidT1W = qformcode==3 and sformcode==0
+            elif header['Coordinate system'] == 'NIfTI:Q:Talairach':
+                bValidT1W = qformcode==4 and sformcode==0
+            elif header['Coordinate system'] == 'NIfTI:Q:Other-Template':
+                bValidT1W = qformcode==5 and sformcode==0
+            elif header['Coordinate system'] == 'NIfTI:S:Scanner':
+                bValidT1W = sformcode==1 
+            elif header['Coordinate system'] == 'NIfTI:S:Aligned':
+                bValidT1W = sformcode==2 
+            elif header['Coordinate system'] == 'NIfTI:S:MNI-152':
+                bValidT1W = sformcode==3 
+            elif header['Coordinate system'] == 'NIfTI:S:Talairach':
+                bValidT1W = sformcode==4 
+            elif header['Coordinate system'] == 'NIfTI:S:Other-Template':
+                bValidT1W = sformcode==5 
+            if not bValidT1W:
+                EndWithError("Header coordinate system ("+header['Coordinate system'] +") does not match T1W Nifti header\n qformcode and sformcode [%i,%i]" %(qformcode,sformcode))
+                        
         #for the time being, we need the trajectory to be next to T1w
         RPath=os.path.split(res['T1W'])[0]+os.sep+ID+'.txt'
         assert(shutil.copyfile(PathMat4Trajectory,RPath))
@@ -200,7 +239,10 @@ def GetInputFromBrainsight():
         if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory']):
                 print('Ignoring Brainsight config as files and dir may not exist anymore\n',res)
                 res=None
-    return res
+    else:
+        EndWithError("Incomplete Brainsight input files at\n" + BabelBrain._BrainsightSyncPath)
+        
+    return res,header
 
 ########################
 class BabelBrain(QWidget):
@@ -780,9 +822,7 @@ class RunMaskGeneration(QObject):
             print("*"*5+" Error in execution.")
             print("*"*40)
             self.endError.emit()
-
 def main():
-
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR']='/usr/local/fsl'
         os.environ['FSLOUTPUTTYPE']='NIFTI_GZ'
@@ -800,7 +840,7 @@ def main():
     args = parser.parse_args()
 
     app = QApplication([])
-
+ 
     selwidget = SelFiles()
     
     prevConfig=GetLatestSelection()
