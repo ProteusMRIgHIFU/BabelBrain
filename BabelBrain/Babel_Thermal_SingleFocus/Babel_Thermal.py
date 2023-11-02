@@ -216,12 +216,11 @@ class Babel_Thermal(QWidget):
  
 
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
-
+        
         PresRatio=np.sqrt(IsppaRatio)
 
         AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
-
-        
+                
         DutyCycle=self.Config['AllDC_PRF_Duration'][self.Widget.SelCombinationDropDown.currentIndex()]['DC']
 
         self.Widget.IsppaWaterLabel.setProperty('UserData',AdjustedIsspa)

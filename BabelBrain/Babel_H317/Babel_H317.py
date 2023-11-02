@@ -251,9 +251,9 @@ class H317(BabelBaseTx):
             self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
             self._Water = Water
-            self._IWater = IWater
+            self._IWater = IWater/IWater.max()
             self._Skull = Skull
-            self._ISkull = ISkull
+            self._ISkull = ISkull/ISkull.max()
             self._DistanceToTarget = DistanceToTarget
 
             if hasattr(self,'_figAcField'):
@@ -275,8 +275,6 @@ class H317(BabelBaseTx):
         else:
             sliceXZ=self._ISkull[:,SelY,:]
             sliceYZ = self._ISkull[SelX,:,:]
-        sliceXZ = sliceXZ/sliceXZ.max()
-        sliceYZ = sliceYZ/sliceYZ.max()
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
