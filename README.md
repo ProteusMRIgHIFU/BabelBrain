@@ -62,9 +62,9 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
-- 0.3.0 - XXX
-  - Fix issue on display results on Step 3. Results were scaled to intensity at the target, instead of maximal intensity in brain region, as done when calculating required Isppa in water.
-  - Fix issue on display results
+- 0.3.0 - Nov 3, 2023
+  - Fix an issue on display results in Step 3. Results were scaled to the intensity at the target instead of maximal intensity in the brain region, as done when calculating the required Isppa in water.
+  - Fix issue on display results for H317 Tx.
 - 0.2.9-b - Oct 14, 2023
   - macOS applications are now fully signed, and no more warnings from macOS Gatekeeper appear.
   - PKG installer in macOS DMG distribution files replaces the "drag" macOS app into the application.
