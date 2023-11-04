@@ -81,6 +81,7 @@ class Babel_Thermal(QWidget):
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateThermalResults)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarkChange)
         self.Widget.IsppaScrollBar.setEnabled(False)
         self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaSpinBox.setEnabled(False)
@@ -159,6 +160,9 @@ class Babel_Thermal(QWidget):
         msgBox.setText("There was an error in execution -\nconsult log window for details")
         msgBox.exec()
 
+    @Slot()
+    def HideMarkChange(self,val):
+        self.UpdateThermalResults()
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
@@ -171,6 +175,7 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTS.setEnabled(True)
         self.Widget.LocMTC.setEnabled(True)
         self.Widget.LocMTB.setEnabled(True)
+        self.Widget.HideMarkscheckBox.setEnabled(True)
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
@@ -323,7 +328,7 @@ class Babel_Thermal(QWidget):
 
                 self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
                         cmap=plt.cm.jet)
-                static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+                self._marker1=static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0]
                 static_ax1.set_title('Isppa (W/cm$^2$)')
                 plt.colorbar(self._IntensityIm,ax=static_ax1)
 
@@ -333,7 +338,7 @@ class Babel_Thermal(QWidget):
 
                 self._ThermalIm=static_ax2.imshow(Tmap.T,
                         extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
-                static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)
+                self._marker2=static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0]
                 static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                 plt.colorbar(self._ThermalIm,ax=static_ax2)
@@ -344,16 +349,21 @@ class Babel_Thermal(QWidget):
                 self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
 
             self._bRecalculated=False
+            mc = [0.0,0.0,0.0,1.0]
+            if self.Widget.HideMarkscheckBox.isChecked():
+                mc[3]=0.0 
+            self._marker1.set_markerfacecolor(mc)
+            self._marker2.set_markerfacecolor(mc)
 
             yf=DataThermal['y_vec']
             yf-=yf[Loc[1]]
-
-            for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
-                if SelY == DataThermal[k][1]:
-                    self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
-                                    zf[DataThermal[k][2]],'wx',markersize=12)[0])
-                    self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
-                                    zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
+            if not self.Widget.HideMarkscheckBox.isChecked():
+                for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
+                    if SelY == DataThermal[k][1]:
+                        self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
+                                        zf[DataThermal[k][2]],'wx',markersize=12)[0])
+                        self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
+                                        zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
             self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
 
     @Slot()

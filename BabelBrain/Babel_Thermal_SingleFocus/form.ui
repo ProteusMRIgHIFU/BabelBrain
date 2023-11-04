@@ -893,6 +893,22 @@ Water (W/cm2) :</string>
     <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
+  <widget class="QCheckBox" name="HideMarkscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>1104</x>
+     <y>442</y>
+     <width>141</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Hide marks</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
