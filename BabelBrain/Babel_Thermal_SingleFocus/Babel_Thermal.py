@@ -175,7 +175,8 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTS.setEnabled(True)
         self.Widget.LocMTC.setEnabled(True)
         self.Widget.LocMTB.setEnabled(True)
-        self.Widget.HideMarkscheckBox.setEnabled(True)
+        if self.Widget.HideMarkscheckBox.isEnabled()== False:
+            self.Widget.HideMarkscheckBox.setEnabled(True)
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:

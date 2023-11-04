@@ -74,8 +74,8 @@ class SingleTx(BabelBaseTx):
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.up_load_ui()
 
     def DefaultConfig(self,cfile='default.yaml'):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -107,11 +107,14 @@ class SingleTx(BabelBaseTx):
         if self._bIgnoreUpdate:
             return
         self._bIgnoreUpdate=True
-        self.UpdateLimits()
         ZMec=self.Widget.ZMechanicSpinBox.value()
+        self.UpdateLimits()
         if ZMec > self.Widget.ZMechanicSpinBox.maximum():
-            self.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
+            self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
             ZMec=self.Widget.ZMechanicSpinBox.maximum()
+        if ZMec < self.Widget.ZMechanicSpinBox.minimum():
+            self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.minimum())
+            ZMec=self.Widget.ZMechanicSpinBox.minimum()
         
         CurDistance=self._ZMaxSkin-ZMec
         self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
@@ -132,6 +135,7 @@ class SingleTx(BabelBaseTx):
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
+        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
       
     @Slot()
     def RunSimulation(self):

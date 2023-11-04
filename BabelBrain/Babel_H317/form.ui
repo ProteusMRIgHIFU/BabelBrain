@@ -437,7 +437,7 @@ target (mm)</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1177</x>
+     <x>1130</x>
      <y>416</y>
      <width>71</width>
      <height>51</height>
@@ -447,6 +447,23 @@ target (mm)</string>
     <string>Show
 water
 only</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="HideMarkscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>1191</x>
+     <y>430</y>
+     <width>69</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Hide
+marks</string>
    </property>
   </widget>
  </widget>
