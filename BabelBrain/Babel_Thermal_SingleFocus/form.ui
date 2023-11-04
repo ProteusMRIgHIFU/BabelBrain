@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1251</width>
-    <height>463</height>
+    <height>472</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>347</x>
-     <y>10</y>
+     <y>13</y>
      <width>868</width>
      <height>400</height>
     </rect>
@@ -137,10 +137,13 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>19</x>
-     <y>390</y>
+     <y>410</y>
      <width>91</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Mechanical Index</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -156,7 +159,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>119</x>
-     <y>360</y>
+     <y>380</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -167,21 +170,30 @@ Thermal fields</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Cranium</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_15">
    <property name="geometry">
     <rect>
      <x>29</x>
-     <y>360</y>
+     <y>380</y>
      <width>81</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Cranium</string>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
@@ -200,10 +212,13 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>19</x>
-     <y>330</y>
+     <y>350</y>
      <width>91</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Skin</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -219,7 +234,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>117</x>
-     <y>300</y>
+     <y>320</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -230,18 +245,24 @@ Thermal fields</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Brain</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
   <widget class="QLabel" name="MTSLabel">
    <property name="geometry">
     <rect>
      <x>119</x>
-     <y>330</y>
+     <y>350</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -252,11 +273,17 @@ Thermal fields</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Skin</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
   <widget class="QLabel" name="IsptaLabel">
@@ -280,12 +307,15 @@ Thermal fields</string>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="MILabel">
    <property name="geometry">
     <rect>
      <x>119</x>
-     <y>389</y>
+     <y>409</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -296,11 +326,17 @@ Thermal fields</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Mechanical Index</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
   <widget class="QLabel" name="label_16">
@@ -347,6 +383,9 @@ T1W space :</string>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_10">
    <property name="geometry">
@@ -389,13 +428,16 @@ Water (W/cm2) :</string>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_11">
    <property name="geometry">
     <rect>
-     <x>33</x>
+     <x>110</x>
      <y>267</y>
-     <width>261</width>
+     <width>160</width>
      <height>41</height>
     </rect>
    </property>
@@ -403,7 +445,7 @@ Water (W/cm2) :</string>
     <string notr="true">color: rgb(255, 103, 100);</string>
    </property>
    <property name="text">
-    <string>Maximum safety metrics (in all volume)</string>
+    <string>Maximum safety metrics:</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -413,7 +455,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>278</x>
-     <y>304</y>
+     <y>324</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -424,21 +466,30 @@ Water (W/cm2) :</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Brain</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_17">
    <property name="geometry">
     <rect>
      <x>178</x>
-     <y>304</y>
+     <y>324</y>
      <width>91</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Brain</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -454,7 +505,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>277</x>
-     <y>360</y>
+     <y>380</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -465,21 +516,30 @@ Water (W/cm2) :</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Skull</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_18">
    <property name="geometry">
     <rect>
      <x>177</x>
-     <y>330</y>
+     <y>350</y>
      <width>91</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Brain</string>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -495,7 +555,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>277</x>
-     <y>330</y>
+     <y>350</y>
      <width>51</width>
      <height>21</height>
     </rect>
@@ -506,21 +566,30 @@ Water (W/cm2) :</string>
      <bold>true</bold>
     </font>
    </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Skin</string>
+   </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
     <string>-</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_19">
    <property name="geometry">
     <rect>
      <x>187</x>
-     <y>360</y>
+     <y>380</y>
      <width>81</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Skull</string>
    </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
@@ -542,7 +611,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>500</x>
-     <y>415</y>
+     <y>420</y>
      <width>577</width>
      <height>20</height>
     </rect>
@@ -579,10 +648,10 @@ Water (W/cm2) :</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>87</x>
-     <y>413</y>
+     <x>88</x>
+     <y>430</y>
      <width>176</width>
-     <height>48</height>
+     <height>38</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -599,10 +668,13 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>702</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Brain</string>
    </property>
    <property name="text">
     <string>MTB</string>
@@ -612,10 +684,13 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>756</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Skin</string>
    </property>
    <property name="text">
     <string>MTS</string>
@@ -625,10 +700,13 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>809</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Cranium</string>
    </property>
    <property name="text">
     <string>MTC</string>
@@ -638,10 +716,16 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>18</x>
-     <y>302</y>
+     <y>322</y>
      <width>91</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Brain</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>-1</number>
    </property>
    <property name="styleSheet">
     <string notr="true">color:rgb(22, 110, 255)</string>
@@ -651,6 +735,162 @@ Water (W/cm2) :</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_22">
+   <property name="geometry">
+    <rect>
+     <x>17</x>
+     <y>298</y>
+     <width>91</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Target</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>-1</number>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>MTT</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_23">
+   <property name="geometry">
+    <rect>
+     <x>177</x>
+     <y>300</y>
+     <width>91</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Target</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>CEM-target:</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="CEMTargetLabel">
+   <property name="geometry">
+    <rect>
+     <x>277</x>
+     <y>300</y>
+     <width>51</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>11</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Target</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="MTTLabel">
+   <property name="geometry">
+    <rect>
+     <x>116</x>
+     <y>296</y>
+     <width>51</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>11</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Target</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>338</x>
+     <y>445</y>
+     <width>205</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Maximum Temperature Target</string>
+   </property>
+   <property name="toolTipDuration">
+    <number>-1</number>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Distance from MTB to MTT (mm):</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="Distance_MTB_MTTLabel">
+   <property name="geometry">
+    <rect>
+     <x>554</x>
+     <y>445</y>
+     <width>51</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>11</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="toolTip">
+    <string>Maximal Thermal Dose Target</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
  </widget>

@@ -92,7 +92,7 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTS.clicked.connect(self.LocateMTS)
         self.Widget.LocMTS.setEnabled(False)
 
-        for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15]:
+        for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
             l.setText(l.text()+' ('+"\u2103"+'):')
 
 
@@ -210,10 +210,7 @@ class Babel_Thermal(QWidget):
         xf=self._xf
         zf=self._zf
 
-       
         SelY=self.Widget.IsppaScrollBar.value()
-
- 
 
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
         
@@ -229,23 +226,33 @@ class Babel_Thermal(QWidget):
         self.Widget.IsptaLabel.setProperty('UserData',SelIsppa*DutyCycle)
         self.Widget.IsptaLabel.setText('%4.2f' % self.Widget.IsptaLabel.property('UserData'))
         AdjustedTemp=((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)
-        DoseUpdate=np.sum(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),axis=1)*DataThermal['dt']/60
-        
+        DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
+   
         self.Widget.MILabel.setProperty('UserData',DataThermal['MI']*PresRatio)
-        self.Widget.MTBLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio+37)
-        self.Widget.MTCLabel.setProperty('UserData',DataThermal['TIC']*IsppaRatio+37)
-        self.Widget.MTSLabel.setProperty('UserData',DataThermal['TIS']*IsppaRatio+37)
+        self.Widget.MTBLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio+37.0)
+        self.Widget.MTCLabel.setProperty('UserData',DataThermal['TIC']*IsppaRatio+37.0)
+        self.Widget.MTSLabel.setProperty('UserData',DataThermal['TIS']*IsppaRatio+37.0)
+        TIT = (DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-37.0)*IsppaRatio+37.0
+        self.Widget.MTTLabel.setProperty('UserData',TIT)
 
         self.Widget.CEMSkinLabel.setProperty('UserData',DoseUpdate[0])
         self.Widget.CEMBrainLabel.setProperty('UserData',DoseUpdate[1])
         self.Widget.CEMSkullLabel.setProperty('UserData',DoseUpdate[2])
+        if len(DoseUpdate)==4:
+            self.Widget.CEMTargetLabel.setProperty('UserData',DoseUpdate[3])
+        else:
+            self.Widget.CEMTargetLabel.setProperty('UserData',DoseUpdate[1])
+
+        Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
+
+        self.Widget.Distance_MTB_MTTLabel.setProperty('UserData',Distance_MTB_MTT)
      
         self.Widget.AdjustRASLabel.setProperty('UserData',DataThermal['AdjustmentInRAS'])
-        for obj in [self.Widget.MILabel,self.Widget.MTBLabel,
-                    self.Widget.MTCLabel,self.Widget.MTSLabel]:
+        for obj in [self.Widget.MILabel,self.Widget.MTTLabel,self.Widget.MTBLabel,
+                    self.Widget.MTCLabel,self.Widget.MTSLabel,self.Widget.Distance_MTB_MTTLabel]:
                 obj.setText('%3.2f' % obj.property('UserData'))
-        for obj in [self.Widget.CEMBrainLabel,self.Widget.CEMSkullLabel,
-                    self.Widget.CEMSkinLabel]:
+        for obj in [self.Widget.CEMTargetLabel,self.Widget.CEMBrainLabel,
+                    self.Widget.CEMSkullLabel,self.Widget.CEMSkinLabel]:
                 obj.setText('%4.1G' % obj.property('UserData'))
 
         self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
@@ -381,22 +388,23 @@ class Babel_Thermal(QWidget):
         currentIsppa=self.Widget.IsppaSpinBox.value()
         currentCombination=self.Widget.SelCombinationDropDown.currentIndex()
         #now we create new Table to export safety metrics based on timing options and Isppa
-        print('self.Widget.SelCombinationDropDown.count()',self.Widget.SelCombinationDropDown.count())
         for n in range(self.Widget.SelCombinationDropDown.count()):
             self.Widget.SelCombinationDropDown.setCurrentIndex(n)
-            DataToExport['TimingExposure']=self.Widget.SelCombinationDropDown.currentText()
-            print('self.Widget.SelCombinationDropDown.currentText()',self.Widget.SelCombinationDropDown.currentText())
             with open(outCSV,'a') as f:
                 f.write('*'*80+'\n')
                 f.write('TimingExposure,'+self.Widget.SelCombinationDropDown.currentText()+'\n')
                 f.write('*'*80+'\n')
+
+            DataToExport={}
+            DataToExport['Distance from MTB to MTT:']=self.Widget.Distance_MTB_MTTLabel.property('UserData')
+            pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV,mode='a', header=False)
                 
             DataToExport={}
             DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
                 self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
                 for k in ['IsppaWater','MI','Ispta',
-                            ['MTB','MTBLabel'],['MTS','MTSLabel'],
+                            'MTT','MTB','MTS',
                             'MTC','CEMBrain','CEMSkin','CEMSkull']:
                     if type(k) is list:
                         if k[0] not in DataToExport:

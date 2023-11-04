@@ -91,6 +91,9 @@
    <property name="text">
     <string>0.0</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_21">
    <property name="geometry">
@@ -389,6 +392,9 @@ to skin (mm) :</string>
    </property>
    <property name="text">
     <string>0.0</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
   <widget class="QLabel" name="LabelTissueRemoved">

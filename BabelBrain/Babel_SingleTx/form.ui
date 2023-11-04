@@ -50,6 +50,9 @@
    <property name="text">
     <string>0.0</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_21">
    <property name="geometry">
@@ -313,6 +316,9 @@ to target (mm) :</string>
    <property name="text">
     <string>0.0</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_26">
    <property name="geometry">
@@ -355,6 +361,9 @@ to focus</string>
    </property>
    <property name="text">
     <string>0.0</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
   <widget class="QLabel" name="label_27">

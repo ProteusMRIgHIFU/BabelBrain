@@ -30,7 +30,7 @@ def resource_path():  # needed for bundling
 
 class SelFiles(QDialog):
     def __init__(self, parent=None,Trajectory='',T1W='',
-                    SimbNIBS='',CTType=0,CoregCT=0,CT='',
+                    SimbNIBS='',CTType=0,CoregCT=1,CT='',
                     SimbNIBSType=0,TrajectoryType=0,
                     GPU='CPU',
                     Backend='Metal'):
