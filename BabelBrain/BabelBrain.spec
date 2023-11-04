@@ -24,6 +24,9 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('../TranscranialModeling/MapPichardo.h5','./TranscranialModeling'),
         ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
 
+with open('version.txt','r') as f:
+    version=f.readlines()[0].strip()
+
 if 'Darwin' in platform.system(): #for Mac
     tmp_ret = collect_all('BabelViscoFDTD')
     binaries = tmp_ret[1]
@@ -119,6 +122,7 @@ if 'Darwin' in platform.system(): #for Mac
     app = BUNDLE(
         coll,
         name='BabelBrain.app',
+        version=version,
         bundle_identifier='com.ucalgary.babelbrain',
         icon='./Proteus-Alciato-logo.png',
     )
