@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
                 QErrorMessage, QMessageBox,QTableWidgetItem)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
-from PySide6 import QtCore
+from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor,QColor
 
@@ -114,13 +114,31 @@ class Babel_Thermal(QWidget):
         table_palette = self.Widget.tableWidget.palette()
         table_palette.setColor(QPalette.Base, bg_color)
         self.Widget.tableWidget.setPalette(table_palette)
+        if 'Windows' in platform.system():
+            
+            # self.Widget.tableWidget.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+            self.Widget.tableWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+            # self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(5)
         for n,v in enumerate(Ids):
             item=QTableWidgetItem(v)
             item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
+            if 'Windows' in platform.system():
+                font = item.font()
+                font.setPointSize(8)
+                item.setFont(font)
+            else:
+                font = item.font()
+                font.setPointSize(9)
+                item.setFont(font)
+
             self.Widget.tableWidget.setItem(n,0,item)
-        self.Widget.tableWidget.setColumnWidth(0,200)
-        self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-190)
-        self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(25)
+ 
+        self.Widget.tableWidget.setColumnWidth(0,180)
+        self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-180)
+        if 'Windows' in platform.system():
+            self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(5)
+        else:
+            self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(25)
         self.Widget.tableWidget.setFrameShape(QFrame.NoFrame)
 
     def DefaultConfig(self):
@@ -259,6 +277,8 @@ class Babel_Thermal(QWidget):
             # Set the font style to bold
             font = item.font()
             font.setBold(True)
+            if 'Windows' in platform.system():
+                font.setPointSize(8)
             item.setFont(font)
             return item
 
