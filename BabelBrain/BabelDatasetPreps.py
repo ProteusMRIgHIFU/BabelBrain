@@ -692,6 +692,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
         with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
             FinalMask[BinMaskConformalCSFRot]=4  
+            FinalMask[BinMaskConformalSkullRot==1]=4
         #brain
         with CodeTimer("FinalMask[nfct]=2",unit='s'):
             FinalMask[nfct]=2  #bone
