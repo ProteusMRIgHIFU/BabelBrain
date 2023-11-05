@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1309</width>
-    <height>736</height>
+    <height>757</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -62,7 +62,7 @@
      <x>7</x>
      <y>62</y>
      <width>1284</width>
-     <height>513</height>
+     <height>521</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -318,8 +318,8 @@ mask</string>
   <widget class="QTextBrowser" name="outputTerminal">
    <property name="geometry">
     <rect>
-     <x>9</x>
-     <y>590</y>
+     <x>7</x>
+     <y>607</y>
      <width>1282</width>
      <height>143</height>
     </rect>
@@ -331,8 +331,8 @@ mask</string>
   <widget class="QLabel" name="label_18">
    <property name="geometry">
     <rect>
-     <x>14</x>
-     <y>575</y>
+     <x>10</x>
+     <y>590</y>
      <width>114</width>
      <height>16</height>
     </rect>
