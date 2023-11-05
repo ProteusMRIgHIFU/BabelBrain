@@ -205,7 +205,6 @@ class SelFiles(QDialog):
         if len(fThermalProfile)>0:
             print('fThermalProfile',fThermalProfile)
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
-            self.ui.fThermalProfile.setCursorPosition(len(fThermalProfile))
 
     @Slot()
     def SelectSimbNIBS(self):

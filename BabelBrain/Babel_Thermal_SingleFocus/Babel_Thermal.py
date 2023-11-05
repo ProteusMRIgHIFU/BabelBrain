@@ -5,12 +5,14 @@ import sys
 from multiprocessing import Process,Queue
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
+                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QFrame,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox)
+                QErrorMessage, QMessageBox,QTableWidgetItem)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6 import QtCore
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor
+from PySide6.QtGui import QPalette, QTextCursor,QColor
+
 
 import numpy as np
 
@@ -93,9 +95,33 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTS.clicked.connect(self.LocateMTS)
         self.Widget.LocMTS.setEnabled(False)
 
-        for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
-            l.setText(l.text()+' ('+"\u2103"+'):')
+        # for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
+        #     l.setText(l.text()+' ('+"\u2103"+'):')
 
+        Ids=['Isppa at target (W/cm2):',
+             'Req. Isppa water (W/cm2):',
+             'Ispta (W/cm2):',
+             'Ispta at target (W/cm2):',
+             'Adjustment in RAS T1W space:',
+             'Max. temp. target ('+"\u2103"+') - CEM43:',
+             'Max. temp. brain ('+"\u2103"+') - CEM43:',
+             'Max. temp. skin ('+"\u2103"+') - CEM43:',
+             'Max. temp. skull ('+"\u2103"+') - CEM43:',
+             'Mechanical index:',
+             'Distance from MTB to MTT (mm):']
+        bg_color = self.Widget.tableWidget.parent().palette().color(self.Widget.backgroundRole())
+        text_color = self.Widget.tableWidget.parent().palette().color(self.Widget.foregroundRole())
+        table_palette = self.Widget.tableWidget.palette()
+        table_palette.setColor(QPalette.Base, bg_color)
+        self.Widget.tableWidget.setPalette(table_palette)
+        for n,v in enumerate(Ids):
+            item=QTableWidgetItem(v)
+            item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
+            self.Widget.tableWidget.setItem(n,0,item)
+        self.Widget.tableWidget.setColumnWidth(0,200)
+        self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-190)
+        self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(25)
+        self.Widget.tableWidget.setFrameShape(QFrame.NoFrame)
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
@@ -226,43 +252,54 @@ class Babel_Thermal(QWidget):
                 
         DutyCycle=self.Config['AllDC_PRF_Duration'][self.Widget.SelCombinationDropDown.currentIndex()]['DC']
 
-        self.Widget.IsppaWaterLabel.setProperty('UserData',AdjustedIsspa)
-        self.Widget.IsppaWaterLabel.setText('%4.2f' % self.Widget.IsppaWaterLabel.property('UserData'))
+        def NewItem(str,data,color="blue"):
+            item=QTableWidgetItem(str)
+            item.setData(QtCore.Qt.UserRole,data)
+            item.setForeground(QColor(color))
+            # Set the font style to bold
+            font = item.font()
+            font.setBold(True)
+            item.setFont(font)
+            return item
 
-        self.Widget.IsptaLabel.setProperty('UserData',SelIsppa*DutyCycle)
-        self.Widget.IsptaLabel.setText('%4.2f' % self.Widget.IsptaLabel.property('UserData'))
+        IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/\
+                      DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
+                      DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
+                      1e4*IsppaRatio
+        self.Widget.tableWidget.setItem(0,1,NewItem('%4.2f' % IsppaTarget,IsppaTarget))
+
+        self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f' % AdjustedIsspa,AdjustedIsspa))
+        self.Widget.tableWidget.setItem(2,1,NewItem('%4.2f' % (SelIsppa*DutyCycle),SelIsppa*DutyCycle))
+
+        self.Widget.tableWidget.setItem(3,1,NewItem('%4.2f' % (IsppaTarget*DutyCycle),IsppaTarget*DutyCycle))
+
+        self.Widget.tableWidget.setItem(4,1,NewItem(np.array2string(DataThermal['AdjustmentInRAS'],
+                                               formatter={'float_kind':lambda x: "%3.2f" % x}),DataThermal['AdjustmentInRAS']))
+
         AdjustedTemp=((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)
         DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
-        self.Widget.MILabel.setProperty('UserData',DataThermal['MI']*PresRatio)
-        self.Widget.MTBLabel.setProperty('UserData',DataThermal['TI']*IsppaRatio+37.0)
-        self.Widget.MTCLabel.setProperty('UserData',DataThermal['TIC']*IsppaRatio+37.0)
-        self.Widget.MTSLabel.setProperty('UserData',DataThermal['TIS']*IsppaRatio+37.0)
-        TIT = (DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-37.0)*IsppaRatio+37.0
-        self.Widget.MTTLabel.setProperty('UserData',TIT)
+        MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-37.0)*IsppaRatio+37.0
+        MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
+        self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
 
-        self.Widget.CEMSkinLabel.setProperty('UserData',DoseUpdate[0])
-        self.Widget.CEMBrainLabel.setProperty('UserData',DoseUpdate[1])
-        self.Widget.CEMSkullLabel.setProperty('UserData',DoseUpdate[2])
-        if len(DoseUpdate)==4:
-            self.Widget.CEMTargetLabel.setProperty('UserData',DoseUpdate[3])
-        else:
-            self.Widget.CEMTargetLabel.setProperty('UserData',DoseUpdate[1])
+        MTB=DataThermal['TI']*IsppaRatio+37.0
+        MTBCEM=DoseUpdate[1]
+        self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
+        
+        MTS=DataThermal['TIS']*IsppaRatio+37.0
+        MTSCEM=DoseUpdate[0]
+        self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
 
+        MTC=DataThermal['TIC']*IsppaRatio+37.0
+        MTCCEM=DoseUpdate[2]
+        self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
+
+        MI=DataThermal['MI']*PresRatio
+        self.Widget.tableWidget.setItem(9,1,NewItem('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
+    
         Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
-
-        self.Widget.Distance_MTB_MTTLabel.setProperty('UserData',Distance_MTB_MTT)
-     
-        self.Widget.AdjustRASLabel.setProperty('UserData',DataThermal['AdjustmentInRAS'])
-        for obj in [self.Widget.MILabel,self.Widget.MTTLabel,self.Widget.MTBLabel,
-                    self.Widget.MTCLabel,self.Widget.MTSLabel,self.Widget.Distance_MTB_MTTLabel]:
-                obj.setText('%3.2f' % obj.property('UserData'))
-        for obj in [self.Widget.CEMTargetLabel,self.Widget.CEMBrainLabel,
-                    self.Widget.CEMSkullLabel,self.Widget.CEMSkinLabel]:
-                obj.setText('%4.1G' % obj.property('UserData'))
-
-        self.Widget.AdjustRASLabel.setText(np.array2string(self.Widget.AdjustRASLabel.property('UserData'),
-                                               formatter={'float_kind':lambda x: "%3.2f" % x}))
+        self.Widget.tableWidget.setItem(10,1,NewItem('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
 
         if self._bRecalculated:
             XX,ZZ=np.meshgrid(xf,zf)
@@ -393,7 +430,7 @@ class Babel_Thermal(QWidget):
         for obj in [self._MainApp,self._MainApp.AcSim]:
             Export=obj.GetExport()
             DataToExport= DataToExport | Export
-        DataToExport['AdjustRAS']=self.Widget.AdjustRASLabel.property('UserData')
+        DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
         pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
         currentIsppa=self.Widget.IsppaSpinBox.value()
@@ -407,28 +444,37 @@ class Babel_Thermal(QWidget):
                 f.write('*'*80+'\n')
 
             DataToExport={}
-            DataToExport['Distance from MTB to MTT:']=self.Widget.Distance_MTB_MTTLabel.property('UserData')
+            DataToExport['Distance from MTB to MTT:']=self.Widget.tableWidget.item(10,1).data(QtCore.Qt.UserRole)
             pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV,mode='a', header=False)
                 
             DataToExport={}
             DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
                 self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
-                for k in ['IsppaWater','MI','Ispta',
-                            'MTT','MTB','MTS',
-                            'MTC','CEMBrain','CEMSkin','CEMSkull']:
-                    if type(k) is list:
-                        if k[0] not in DataToExport:
-                            DataToExport[k[0]]=[]
-                    else:
-                        if k not in DataToExport:
-                            DataToExport[k]=[]
-                    if type(k) is list: 
-                        obj=getattr(self.Widget,k[1])
-                        DataToExport[k[0]].append(obj.property('UserData'))
-                    else:
-                        obj=getattr(self.Widget,k+'Label')
-                        DataToExport[k].append(obj.property('UserData'))
+                for k,index in zip(['Isppa target',
+                            'Isppa water',
+                            'Mechanical index',
+                            'Ispta',
+                            'Ispta target',
+                            'Max. temp. target',
+                            'Max. temp. brain',
+                            'Max. temp. skin',
+                            'Max. temp. skull',
+                            'CEM target',
+                            'CEM brain',
+                            'CEM skin',
+                            'CEM skull'],
+                            [0,1,9,2,3,5,6,7,8,5,6,7,8]
+                            ):
+                    if k not in DataToExport:
+                        DataToExport[k]=[]
+                   
+                    data=self.Widget.tableWidget.item(index,1).data(QtCore.Qt.UserRole)
+                    if 'temp.' in k:
+                        data=data[0]
+                    elif 'CEM' in k:
+                        data=data[1]
+                    DataToExport[k].append(data)
                 
             pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)
         if currentCombination !=self.Widget.SelCombinationDropDown.currentIndex():

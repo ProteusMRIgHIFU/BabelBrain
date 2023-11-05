@@ -356,16 +356,15 @@ target (mm)</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1133</x>
+     <x>1151</x>
      <y>416</y>
-     <width>71</width>
+     <width>91</width>
      <height>51</height>
     </rect>
    </property>
    <property name="text">
     <string>Show
-water
-only</string>
+water only</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="HideMarkscheckBox">
@@ -374,15 +373,14 @@ only</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1187</x>
-     <y>429</y>
-     <width>69</width>
+     <x>255</x>
+     <y>430</y>
+     <width>95</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>Hide
-marks</string>
+    <string>Hide marks</string>
    </property>
   </widget>
  </widget>

@@ -374,7 +374,7 @@ will be removed!</string>
     <rect>
      <x>405</x>
      <y>410</y>
-     <width>710</width>
+     <width>720</width>
      <height>61</height>
     </rect>
    </property>
@@ -385,16 +385,15 @@ will be removed!</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1120</x>
+     <x>1139</x>
      <y>416</y>
-     <width>71</width>
+     <width>104</width>
      <height>51</height>
     </rect>
    </property>
    <property name="text">
     <string>Show
-water
-only</string>
+water only</string>
    </property>
   </widget>
   <widget class="QCheckBox" name="HideMarkscheckBox">
@@ -403,15 +402,14 @@ only</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1189</x>
-     <y>426</y>
-     <width>69</width>
+     <x>275</x>
+     <y>427</y>
+     <width>90</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>Hide
-marks</string>
+    <string>Hide marks</string>
    </property>
   </widget>
  </widget>
