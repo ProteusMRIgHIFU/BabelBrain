@@ -26,10 +26,10 @@
   <widget class="QPushButton" name="CalculateThermal">
    <property name="geometry">
     <rect>
-     <x>116</x>
-     <y>0</y>
-     <width>131</width>
-     <height>81</height>
+     <x>48</x>
+     <y>8</y>
+     <width>253</width>
+     <height>42</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -39,15 +39,14 @@
     <string notr="true"/>
    </property>
    <property name="text">
-    <string>Calculate
-Thermal fields</string>
+    <string>Calculate Thermal fields</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_20">
    <property name="geometry">
     <rect>
      <x>4</x>
-     <y>75</y>
+     <y>45</y>
      <width>143</width>
      <height>46</height>
     </rect>
@@ -64,7 +63,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>152</x>
-     <y>83</y>
+     <y>53</y>
      <width>213</width>
      <height>30</height>
     </rect>
@@ -74,7 +73,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>2</x>
-     <y>122</y>
+     <y>92</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -90,7 +89,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>150</x>
-     <y>120</y>
+     <y>90</y>
      <width>92</width>
      <height>22</height>
     </rect>
@@ -245,9 +244,9 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>25</x>
-     <y>154</y>
+     <y>117</y>
      <width>333</width>
-     <height>274</height>
+     <height>311</height>
     </rect>
    </property>
    <property name="font">
