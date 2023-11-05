@@ -128,13 +128,16 @@ class Babel_Thermal(QWidget):
                 item.setFont(font)
             else:
                 font = item.font()
-                font.setPointSize(9)
+                font.setPointSize(12)
                 item.setFont(font)
 
             self.Widget.tableWidget.setItem(n,0,item)
- 
-        self.Widget.tableWidget.setColumnWidth(0,180)
-        self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-180)
+        if 'Windows' in platform.system():
+            self.Widget.tableWidget.setColumnWidth(0,180)
+            self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-180)
+        else:
+            self.Widget.tableWidget.setColumnWidth(0,220)
+            self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-220)
         if 'Windows' in platform.system():
             self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(5)
         else:
@@ -279,6 +282,8 @@ class Babel_Thermal(QWidget):
             font.setBold(True)
             if 'Windows' in platform.system():
                 font.setPointSize(8)
+            else:
+                font.setPointSize(12)
             item.setFont(font)
             return item
 
