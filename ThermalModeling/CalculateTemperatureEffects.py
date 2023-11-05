@@ -319,7 +319,7 @@ def CalculateTemperatureEffects(InputPData,
         IndTarget=3
     SaveDict['TempProfileTarget']=TemperaturePoints[IndTarget,:]
     SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt
-    SaveDict['TemperaturePoints']=TemperaturePoints[:3,:] #these are max points in skin, brain and skull
+    SaveDict['TemperaturePoints']=TemperaturePoints #these are max points in skin, brain, skull and target
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1251</width>
-    <height>463</height>
+    <height>472</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,8 +16,8 @@
   <widget class="QWidget" name="AcField_plot1" native="true">
    <property name="geometry">
     <rect>
-     <x>347</x>
-     <y>10</y>
+     <x>370</x>
+     <y>13</y>
      <width>868</width>
      <height>400</height>
     </rect>
@@ -26,8 +26,8 @@
   <widget class="QPushButton" name="CalculateThermal">
    <property name="geometry">
     <rect>
-     <x>80</x>
-     <y>10</y>
+     <x>116</x>
+     <y>0</y>
      <width>131</width>
      <height>81</height>
     </rect>
@@ -47,7 +47,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>4</x>
-     <y>85</y>
+     <y>75</y>
      <width>143</width>
      <height>46</height>
     </rect>
@@ -64,8 +64,8 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>152</x>
-     <y>93</y>
-     <width>179</width>
+     <y>83</y>
+     <width>213</width>
      <height>30</height>
     </rect>
    </property>
@@ -74,7 +74,7 @@ Thermal fields</string>
    <property name="geometry">
     <rect>
      <x>2</x>
-     <y>136</y>
+     <y>122</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -89,9 +89,9 @@ Thermal fields</string>
   <widget class="QDoubleSpinBox" name="IsppaSpinBox">
    <property name="geometry">
     <rect>
-     <x>158</x>
-     <y>134</y>
-     <width>166</width>
+     <x>150</x>
+     <y>120</y>
+     <width>92</width>
      <height>22</height>
     </rect>
    </property>
@@ -114,427 +114,6 @@ Thermal fields</string>
     <double>5.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_9">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>206</y>
-     <width>150</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Ispta (W/cm2) :</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_12">
-   <property name="geometry">
-    <rect>
-     <x>19</x>
-     <y>390</y>
-     <width>91</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>MI:</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="MTCLabel">
-   <property name="geometry">
-    <rect>
-     <x>119</x>
-     <y>360</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_15">
-   <property name="geometry">
-    <rect>
-     <x>29</x>
-     <y>360</y>
-     <width>81</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>MTC</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_14">
-   <property name="geometry">
-    <rect>
-     <x>19</x>
-     <y>330</y>
-     <width>91</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>MTS</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="MTBLabel">
-   <property name="geometry">
-    <rect>
-     <x>117</x>
-     <y>300</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="MTSLabel">
-   <property name="geometry">
-    <rect>
-     <x>119</x>
-     <y>330</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="IsptaLabel">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>209</y>
-     <width>87</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="MILabel">
-   <property name="geometry">
-    <rect>
-     <x>119</x>
-     <y>389</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_16">
-   <property name="geometry">
-    <rect>
-     <x>48</x>
-     <y>236</y>
-     <width>141</width>
-     <height>39</height>
-    </rect>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Adjustment in RAS
-T1W space :</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="AdjustRASLabel">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>245</y>
-     <width>134</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_10">
-   <property name="geometry">
-    <rect>
-     <x>8</x>
-     <y>160</y>
-     <width>182</width>
-     <height>60</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Req. Isppa
-Water (W/cm2) :</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="IsppaWaterLabel">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>177</y>
-     <width>87</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_11">
-   <property name="geometry">
-    <rect>
-     <x>33</x>
-     <y>267</y>
-     <width>261</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color: rgb(255, 103, 100);</string>
-   </property>
-   <property name="text">
-    <string>Maximum safety metrics (in all volume)</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="CEMBrainLabel">
-   <property name="geometry">
-    <rect>
-     <x>278</x>
-     <y>304</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_17">
-   <property name="geometry">
-    <rect>
-     <x>178</x>
-     <y>304</y>
-     <width>91</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>CEM-brain:</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="CEMSkullLabel">
-   <property name="geometry">
-    <rect>
-     <x>277</x>
-     <y>360</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_18">
-   <property name="geometry">
-    <rect>
-     <x>177</x>
-     <y>330</y>
-     <width>91</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>CEM-skin:</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="CEMSkinLabel">
-   <property name="geometry">
-    <rect>
-     <x>277</x>
-     <y>330</y>
-     <width>51</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>11</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>-</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_19">
-   <property name="geometry">
-    <rect>
-     <x>187</x>
-     <y>360</y>
-     <width>81</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>CEM-skull:</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
   <widget class="QScrollBar" name="IsppaScrollBar">
    <property name="enabled">
     <bool>false</bool>
@@ -542,7 +121,7 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>500</x>
-     <y>415</y>
+     <y>420</y>
      <width>577</width>
      <height>20</height>
     </rect>
@@ -579,10 +158,10 @@ Water (W/cm2) :</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>87</x>
-     <y>413</y>
+     <x>88</x>
+     <y>430</y>
      <width>176</width>
-     <height>48</height>
+     <height>38</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -599,10 +178,13 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>702</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Brain</string>
    </property>
    <property name="text">
     <string>MTB</string>
@@ -612,10 +194,13 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>756</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Skin</string>
    </property>
    <property name="text">
     <string>MTS</string>
@@ -625,33 +210,91 @@ Water (W/cm2) :</string>
    <property name="geometry">
     <rect>
      <x>809</x>
-     <y>437</y>
+     <y>440</y>
      <width>43</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="toolTip">
+    <string>Go to Maximal Temperature Cranium</string>
    </property>
    <property name="text">
     <string>MTC</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_13">
+  <widget class="QCheckBox" name="HideMarkscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
-     <x>18</x>
-     <y>302</y>
-     <width>91</width>
-     <height>21</height>
+     <x>393</x>
+     <y>441</y>
+     <width>141</width>
+     <height>28</height>
     </rect>
    </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
    <property name="text">
-    <string>MTB</string>
+    <string>Hide marks</string>
    </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+  </widget>
+  <widget class="QTableWidget" name="tableWidget">
+   <property name="enabled">
+    <bool>true</bool>
    </property>
+   <property name="geometry">
+    <rect>
+     <x>25</x>
+     <y>154</y>
+     <width>333</width>
+     <height>274</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="autoScroll">
+    <bool>false</bool>
+   </property>
+   <property name="showGrid">
+    <bool>false</bool>
+   </property>
+   <property name="rowCount">
+    <number>11</number>
+   </property>
+   <property name="columnCount">
+    <number>2</number>
+   </property>
+   <attribute name="horizontalHeaderVisible">
+    <bool>false</bool>
+   </attribute>
+   <attribute name="horizontalHeaderMinimumSectionSize">
+    <number>19</number>
+   </attribute>
+   <attribute name="horizontalHeaderHighlightSections">
+    <bool>true</bool>
+   </attribute>
+   <attribute name="verticalHeaderVisible">
+    <bool>false</bool>
+   </attribute>
+   <attribute name="verticalHeaderHighlightSections">
+    <bool>false</bool>
+   </attribute>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
+   <column/>
+   <column/>
   </widget>
  </widget>
  <resources/>

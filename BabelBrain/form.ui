@@ -268,7 +268,7 @@ mask</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>1064</x>
+       <x>974</x>
        <y>452</y>
        <width>194</width>
        <height>20</height>
@@ -287,7 +287,7 @@ mask</string>
     <widget class="QLabel" name="label_6">
      <property name="geometry">
       <rect>
-       <x>940</x>
+       <x>850</x>
        <y>451</y>
        <width>115</width>
        <height>20</height>
@@ -295,6 +295,22 @@ mask</string>
      </property>
      <property name="text">
       <string>T1W transparency</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="HideMarkscheckBox">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>272</x>
+       <y>448</y>
+       <width>100</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Hide marks</string>
      </property>
     </widget>
    </widget>

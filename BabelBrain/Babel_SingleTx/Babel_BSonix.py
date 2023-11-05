@@ -66,9 +66,9 @@ class BSonix(SingleTx):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.up_load_ui()
         
         
     def DefaultConfig(self,cfile='defaultBSonix.yaml'):
@@ -89,6 +89,8 @@ class BSonix(SingleTx):
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
+        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+
 
     @Slot()
     def RunSimulation(self):
