@@ -62,15 +62,15 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
-- 0.3.0 - Nov 4, 2023
-  - Fix an issue on display results in Step 3. Results were scaled to the intensity at the target, instead of maximal intensity in the brain region, as done when calculating the required Isppa in water.
-  - Fix an issue on display results of H317 Transducer
-  - Fix the remaining "bleeding" of skin label in the brain region
-  - Fix NaN calculations when target is accidentally in the brain region
-  - Fix passing version to macOS bundle
-  - New: Add checkboxes to hide marks on plots
-  - New: Replace labels in Step 3 with a table to organize better output metrics
-  - New: Add metrics in Step 3 of temperature and thermal dose at the target, which often does match the maximal temperature in the brain
+- 0.3.0 - Nov 5, 2023
+  - New: Add checkboxes to hide marks on plots.
+  - New: Replace labels in Step 3 with a table to organize better output metrics.
+  - New: Add metrics in Step 3 of temperature and thermal dose at the target, which often does match the maximal temperature in the brain. Also, a metric of distance from maximal peak intensity in the brain to the target.
+  - Fix an issue with display results in Step 3. Results were scaled to the intensity at the target instead of maximal intensity in the brain region, as done when calculating the required Isppa in water.
+  - Fix an issue with the display results of the H317 Transducer.
+  - Fix the remaining "bleeding" of the skin label in the brain region.
+  - Fix NaN calculations when the target is accidentally in the brain region.
+  - Fix passing version to macOS bundle.
   
 - 0.2.9-b - Oct 14, 2023
   - macOS applications are now fully signed, and no more warnings from macOS Gatekeeper appear.
