@@ -19,6 +19,7 @@ from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
+        self._bRefocus=False # we will use this to select right files to display
 
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
@@ -41,6 +42,8 @@ class BabelBaseTx(QWidget):
             Skull=ReadFromH5py(self._FullSolName)
             #this will generate a modified trajectory file
             if self._MainApp._bInUseWithBrainsight:
+                if self._bRefocus: #we update the name of the file
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
                 with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
                     f.write(self._MainApp._BrainsightInput)    
             self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
@@ -50,9 +53,16 @@ class BabelBaseTx(QWidget):
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
 
-            for d in [Water,Skull]:
-                for t in ['p_amp','MaterialMap']:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
+            if self._bRefocus:
+                 SelP='p_amp_refocus'
+            else:
+                SelP='p_amp'
+
+            for t in [SelP,'MaterialMap']:
+                Skull[t]=np.ascontiguousarray(np.flip(Skull[t],axis=2))
+
+            for t in ['p_amp','MaterialMap']:
+                Water[t]=np.ascontiguousarray(np.flip(Water[t],axis=2))
 
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
             dx=  np.mean(np.diff(Skull['x_vec']))
@@ -69,23 +79,12 @@ class BabelBaseTx(QWidget):
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
 
-            ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
+            ISkull=Skull[SelP]**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
 
             IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
             IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
             
             ISkull[Skull['MaterialMap']!=3]=0
-            cxr,cyr,czr=np.where(ISkull==ISkull.max())
-            cxr=cxr[0]
-            cyr=cyr[0]
-            czr=czr[0]
-
-            EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
-
-            cxr,cyr,czr=np.where(IWater==IWater.max())
-            cxr=cxr[0]
-            cyr=cyr[0]
-            czr=czr[0]
             
             ISkull/=ISkull.max()
             IWater/=IWater.max()

@@ -260,6 +260,8 @@ class BabelBrain(QWidget):
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
         self.Config['T1WIso']= self.Config['T1W'].replace('.nii.gz','-isotropic.nii.gz')
+
+        self.Config['bUseRefocus'] = False
         
 
         self.SaveLatestSelection()
