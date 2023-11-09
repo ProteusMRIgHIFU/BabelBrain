@@ -56,29 +56,32 @@ def GetBlake2sHash(filename):
     
     return checksum
 
-def SaveHashInHeader(inputfiles, nifti, outputfile, CTType=None, HUT=None, ZTER=None):
-    
+def SaveHashInHeader(precursorfiles, nifti, outputfile, CTType=None, HUT=None, ZTER=None):
+    # CT type info to be saved
     if CTType == None:
         savedCTType = ""
-    elif CTType == 0:
-        savedCTType = f"CTType=ZTE,"
     elif CTType == 1:
-        savedCTType = f"CTType=PETRA,"
-    else:
         savedCTType = f"CTType=CT,"
+    elif CTType == 2:
+        savedCTType = f"CTType=ZTE,"
+    else: #3
+        savedCTType = f"CTType=PETRA,"
     
+    # HU Threshold info to be saved
     if HUT is None:
         savedHUThreshold = ""
     else:
         savedHUThreshold = f"HUT={int(HUT)},"
 
+    # ZTE range info to be saved
     if ZTER is None:
         saveZTERange = ""
     else:
         saveZTERange = f"ZTER={ZTER},"
 
+    # checksum info to be saved
     savedHashes = ""
-    for f in inputfiles:
+    for f in precursorfiles:
         savedHashes+=GetBlake2sHash(f)+","
     
     savedInfo = (savedCTType + savedHUThreshold + saveZTERange + savedHashes).encode('utf-8')
@@ -156,6 +159,8 @@ def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
 
     if output is not None:
         sitk.WriteImage(corrected_image_full_resolution, output)
+
+        # Reload nifti and save info in header
         corrected_image_full_resolution_nifti = nibabel.load(output)
         SaveHashInHeader(hashFiles,corrected_image_full_resolution_nifti,output)
 
@@ -169,19 +174,14 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        # BaseNameInT1=os.path.splitext(InputT1)[0]
-        # if '.nii.gz' in InputT1:
-        #     BaseNameInT1 =os.path.splitext(BaseNameInT1)[0]
-        # T1fnameBiasCorrec= BaseNameInT1 + '_BiasCorrec.nii.gz' 
-        # N4BiasCorrec(InputT1,T1fnameBiasCorrec)
-        N4BiasCorrec(InputT1,[outputfnames['SimbNIBStestinput'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],outputfnames['T1fnameBiasCorrec'])
+        T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
+        N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
         
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
             # Set up for Resample call
-            # in_img=nibabel.load(T1fnameBiasCorrec)
-            in_img=nibabel.load(outputfnames['T1fnameBiasCorrec'])
+            in_img=nibabel.load(T1fnameBiasCorrec)
 
             voxel_sizes = nibabel.load(InputCT).header.get_zooms()
             cval=in_img.get_fdata().min()
@@ -206,31 +206,25 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
             fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
 
 
-            # T1fname_CTRes=BaseNameInT1 + '_BiasCorrec_CT_res.nii.gz'
-            # fixed_image.to_filename(T1fname_CTRes)
-            SaveHashInHeader([outputfnames['T1fnameBiasCorrec']],fixed_image,outputfnames['T1fname_CTRes'],CTType=2)
+            T1fname_CTRes=outputfnames['T1fname_CTRes']
+            SaveHashInHeader([outputfnames['T1fnameBiasCorrec']],fixed_image,T1fname_CTRes,CTType=1)
 
-            # CTInT1W=os.path.splitext(InputCT)[0]
-            # if '.nii.gz' in InputCT:
-            #     CTInT1W=os.path.splitext(CTInT1W)[0]
-            # CTInT1W+= '_InT1.nii.gz'
+            CTInT1W=outputfnames['CTInT1W']
 
-            # RunElastix(T1fname_CTRes,InputCT,CTInT1W)
-            RunElastix(outputfnames['T1fname_CTRes'],InputCT,outputfnames['CTInT1W'])
+            RunElastix(outputfnames['T1fname_CTRes'],InputCT,CTInT1W)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
-                elastixoutput = nibabel.load(outputfnames['CTInT1W'])
-                SaveHashInHeader([outputfnames['T1fname_CTRes']],elastixoutput,outputfnames['CTInT1W'],CTType=2)
+                elastixoutput = nibabel.load(CTInT1W)
+                SaveHashInHeader([T1fname_CTRes],elastixoutput,CTInT1W,CTType=1)
             
             return elastixoutput
         else:
-            # T1WinCT=BaseNameInT1 + '_InCT.nii.gz'
-            # RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
-            RunElastix(InputCT,outputfnames['T1fnameBiasCorrec'],outputfnames['T1WinCT'])
+            T1WinCT=outputfnames['T1WinCT']
+            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
-                elastixoutput = nibabel.load(outputfnames['T1WinCT'])
-                SaveHashInHeader([outputfnames['T1fnameBiasCorrec']],elastixoutput,outputfnames['T1WinCT'],CTType=2)
+                elastixoutput = nibabel.load(T1WinCT)
+                SaveHashInHeader([T1fnameBiasCorrec],elastixoutput,T1WinCT,CTType=1)
 
             return elastixoutput
 
@@ -238,54 +232,38 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
 def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames):
     #Bias correction
     
-    # BaseNameInT1 =os.path.splitext(InputT1)[0] 
-    # if '.nii.gz' in InputT1:
-    #     BaseNameInT1=os.path.splitext(BaseNameInT1)[0] 
-    # T1fnameBiasCorrec= BaseNameInT1 + '_BiasCorrec.nii.gz'
-    # N4BiasCorrec(InputT1,T1fnameBiasCorrec)
-    N4BiasCorrec(InputT1,[outputfnames['SimbNIBStestinput'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],outputfnames['T1fnameBiasCorrec'])
+    T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
+    N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
 
-
-    # BaseNameInZTE=os.path.splitext(InputZTE)[0]
-    # if '.nii.gz' in InputZTE:
-    #     BaseNameInZTE=os.path.splitext(BaseNameInZTE)[0]
-    # ZTEfnameBiasCorrec= BaseNameInZTE + '_BiasCorrec.nii.gz'
-
-    # N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
-    N4BiasCorrec(InputZTE,[outputfnames['T1fnameBiasCorrec']],outputfnames['ZTEfnameBiasCorrec'])
-    #coreg
-
-    # ZTEInT1W=BaseNameInZTE+'_InT1.nii.gz'
-
-    # RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
-    RunElastix(outputfnames['T1fnameBiasCorrec'],outputfnames['ZTEfnameBiasCorrec'],outputfnames['ZTEInT1W'])
+    ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
+    N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
     
-    # img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
-    img=sitk.ReadImage(outputfnames['T1fnameBiasCorrec'], sitk.sitkFloat32)
+    #coreg
+    ZTEInT1W=outputfnames['ZTEInT1W']
+
+    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
+    
+    img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:
         img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    # sitk.WriteImage(img_out, T1fnameBiasCorrec)
-    sitk.WriteImage(img_out, outputfnames['T1fnameBiasCorrec'])
+    sitk.WriteImage(img_out, T1fnameBiasCorrec)
 
-    # img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
-    img=sitk.ReadImage(outputfnames['ZTEInT1W'], sitk.sitkFloat32)
+    img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
     img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    # sitk.WriteImage(img_out, ZTEInT1W)
-    sitk.WriteImage(img_out, outputfnames['ZTEInT1W'])
+    sitk.WriteImage(img_out, ZTEInT1W)
 
     with CodeTimer("Reloading niftis, adding hashes to header, and saving", unit="s"):
-        T1fnameBiasCorrecOutput = nibabel.load(outputfnames['T1fnameBiasCorrec'])
-        ZTEfnameBiasCorrecOutput = nibabel.load(outputfnames['ZTEfnameBiasCorrec'])
-        ZTEInT1WOutput = nibabel.load(outputfnames['ZTEInT1W'])
-        SaveHashInHeader([outputfnames['SimbNIBStestinput'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrecOutput,outputfnames['T1fnameBiasCorrec'])
-        SaveHashInHeader([outputfnames['T1fnameBiasCorrec']],ZTEfnameBiasCorrecOutput,outputfnames['ZTEfnameBiasCorrec'])
-        SaveHashInHeader([outputfnames['ZTEfnameBiasCorrec']],ZTEInT1WOutput,outputfnames['ZTEInT1W'])
+        T1fnameBiasCorrecOutput = nibabel.load(T1fnameBiasCorrec)
+        ZTEfnameBiasCorrecOutput = nibabel.load(ZTEfnameBiasCorrec)
+        ZTEInT1WOutput = nibabel.load(ZTEInT1W)
+        SaveHashInHeader([outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrecOutput,T1fnameBiasCorrec)
+        SaveHashInHeader([T1fnameBiasCorrec],ZTEfnameBiasCorrecOutput,ZTEfnameBiasCorrec)
+        SaveHashInHeader([ZTEfnameBiasCorrec],ZTEInT1WOutput,ZTEInT1W)
 
-    # return T1fnameBiasCorrec,ZTEInT1W
-    return outputfnames['T1fnameBiasCorrec'],outputfnames['ZTEInT1W']
+    return T1fnameBiasCorrec,ZTEInT1W
 
 def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
             PetraMRIPeakDistance=50,PetraNPeaks=2):
@@ -380,7 +358,6 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
         arrCT[arrCavities!=0]=-1000
         
         pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-        # CTfname=InputZTE.split('_InT1.nii.gz')[0]+'_pCT.nii.gz'
-        # nibabel.save(pCT,CTfname)
-        SaveHashInHeader([outputfnames['ZTEInT1W']],pCT,outputfnames['pCTfname'],CTType=bIsPetra)
+        CTfname=outputfnames['pCTfname']
+        SaveHashInHeader([outputfnames['ZTEInT1W']],pCT,CTfname,CTType=(bIsPetra+2))
     return pCT
