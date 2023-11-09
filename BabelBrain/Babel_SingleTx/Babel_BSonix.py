@@ -100,6 +100,7 @@ class BSonix(SingleTx):
         self._FullSolName=self._MainApp._prefix_path+model+'_DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+model+'_Water_DataForSim.h5' 
         extrasuffix=model+'_'
+        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
