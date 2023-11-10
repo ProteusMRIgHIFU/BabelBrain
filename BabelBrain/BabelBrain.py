@@ -361,7 +361,7 @@ class BabelBrain(QWidget):
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
-
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
         
         
     
@@ -542,6 +542,8 @@ class BabelBrain(QWidget):
         '''
         Refresh mask
         '''
+        if self.Widget.HideMarkscheckBox.isEnabled()== False:
+            self.Widget.HideMarkscheckBox.setEnabled(True)
         self.Widget.tabWidget.setEnabled(True)
         self.AcSim.setEnabled(True)
         Data=nibabel.load(self._outnameMask)
@@ -615,6 +617,7 @@ class BabelBrain(QWidget):
             self._imMasks=[]
             self._imT1W=[]
             self._imCtMasks=[]
+            self._markers=[]
 
             self._figMasks = Figure(figsize=(18, 6))
 
@@ -627,6 +630,7 @@ class BabelBrain(QWidget):
             self._layout.addWidget(self.static_canvas)
 
             axes=self.static_canvas.figure.subplots(1,3)
+            self._axes=axes
 
             for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
                                     [T1WXZ,T1WYZ,T1WXY],
@@ -645,12 +649,21 @@ class BabelBrain(QWidget):
                     self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
                 else:
                     self._imCtMasks.append(None)
-                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal'))   
-                static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)
+                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
+                self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
             self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
-
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
+
+    @Slot()
+    def HideMarks(self,v):
+        mc=[0.75, 0.75, 0.0,1.0]
+        if self.Widget.HideMarkscheckBox.isChecked():
+            mc[3] = 0.0
+        for m in self._markers:
+            m.set_markerfacecolor(mc)
+            m.set_markeredgecolor(mc)
+        self._figMasks.canvas.draw_idle()
     
     @Slot()
     def UpdateTransparency(self):

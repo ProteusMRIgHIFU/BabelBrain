@@ -6,3 +6,4 @@ TxDepth:                  14.0e-3    # Back of Tx to outplane
 USFrequencies:
     - 500000.0
 MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm

@@ -1,4 +1,4 @@
-BabelBrain v0.2.9
+BabelBrain v0.3.0
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -20,11 +20,13 @@ BabelBrain is a frontend application specially designed to work in tandem with n
 This software is provided "as is" and it is intended exclusively for research purposes.
 
 # Hardware requirements
-* A decent GPU (AMD, Nvidia or Apple Silicon). For AMD and Nvidia GPUs, 8 GB or more is highly recommended. For Apple Silicon, M1 Max/Ultra or M2 Max with 24 GB RAM or more highly recommended. Intel-based Mac systems need a dedicated AMD GPU (internal or external). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 650 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
+* A decent GPU (AMD, Nvidia or Apple Silicon). For AMD and Nvidia GPUs, 4 GB or more is highly recommended. For Apple Silicon, M1 Max/Ultra or M2 Max with 16 GB RAM or more is highly recommended. Intel-based Mac systems need a dedicated AMD GPU (internal or external). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 650 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 * 16 GB RAM or more for main CPU memory for Intel-based systems.
 
 # Standalone application
-Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Download, open and drag "BabelBrain" into the Applications folder. The first time you use you will be prompted to authorize to run and access directories. You may also need to authorize it in the Security settings of macOS.
+Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. 
+* For macOS, download the correct DMG image according to your CPU architecture (Intel X64 or ARM64),  and double-click the PKG installer. The first time you use you will be prompted to authorize to run and access directories.
+* For Windows, download the MSI file and run the installer.
 
 **Note for Windows:** CUDA 11.7 or up must be installed.
 
@@ -60,6 +62,21 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.0 - Nov 5, 2023
+  - New: Add checkboxes to hide marks on plots.
+  - New: Replace labels in Step 3 with a table to organize better output metrics.
+  - New: Add metrics in Step 3 of temperature and thermal dose at the target, which often does match the maximal temperature in the brain. Also, a metric of distance from maximal peak intensity in the brain to the target.
+  - Fix an issue with display results in Step 3. Results were scaled to the intensity at the target instead of maximal intensity in the brain region, as done when calculating the required Isppa in water.
+  - Fix an issue with the display results of the H317 Transducer.
+  - Fix the remaining "bleeding" of the skin label in the brain region.
+  - Fix NaN calculations when the target is accidentally in the brain region.
+  - Fix passing version to macOS bundle.
+  
+- 0.2.9-b - Oct 14, 2023
+  - macOS applications are now fully signed, and no more warnings from macOS Gatekeeper appear.
+  - PKG installer in macOS DMG distribution files replaces the "drag" macOS app into the application.
+  - Use of latest pyinstaller library (6.1.0) and new scripts to sign macOS applications.
+  - Small fix for Step 3 the AllCombinations file that was not saving correctly an index based on the combinations of DC, PRF and duration. 
 - 0.2.9-a - Sep 21, 2023
   - Add fix for Apple Silicon systems with latest versions of MacOS. In some systems, occasional crashes were occurring. Fix was addressed at the underlying library at https://github.com/ProteusMRIgHIFU/py-metal-compute.
   - Address slow BHTE calculations in Step 3 in external AMD GPUs in Apple X64 system. Fix done in underlying library BabelViscoFDTD 1.0.1
