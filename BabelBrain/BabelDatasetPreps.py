@@ -928,23 +928,23 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 print('ndataCT range',ndataCT.min(),ndataCT.max())
                 ndataCT[nfct==False]=0
 
-        with CodeTimer("CT binary_dilation",unit='s'):
-            BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
-        with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
-            FinalMask[BinMaskConformalCSFRot]=4  
-            FinalMask[BinMaskConformalSkullRot==1]=4
-        #brain
-        with CodeTimer("FinalMask[nfct]=2",unit='s'):
-            FinalMask[nfct]=2  #bone
-        #we do a cleanup of islands 
-        with CodeTimer("Labeling",unit='s'):
-            if LabelImage is None:
-                label_img = label(FinalMask==1)
-            else:
-                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
-          
-        with CodeTimer("regionprops",unit='s'):
-            regions= regionprops(label_img)
+            with CodeTimer("CT binary_dilation",unit='s'):
+                BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
+            with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
+                FinalMask[BinMaskConformalCSFRot]=4  
+                FinalMask[BinMaskConformalSkullRot==1]=4
+            #brain
+            with CodeTimer("FinalMask[nfct]=2",unit='s'):
+                FinalMask[nfct]=2  #bone
+            #we do a cleanup of islands 
+            with CodeTimer("Labeling",unit='s'):
+                if LabelImage is None:
+                    label_img = label(FinalMask==1)
+                else:
+                    label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            
+            with CodeTimer("regionprops",unit='s'):
+                regions= regionprops(label_img)
 
             print("number of skin region islands", len(regions))
             regions=sorted(regions,key=lambda d: d.area)
