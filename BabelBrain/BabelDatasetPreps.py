@@ -811,6 +811,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             # Grab previously generated mask
             FinalMaskNifti = nibabel.load(prevoutputfilenames['ReuseMask'])
             FinalMask = FinalMaskNifti.get_fdata()
+            if np.isfortran(FinalMask):
+                FinalMask = np.ascontiguousarray(FinalMask)
 
             # Load prev files that need to be resaved under curent file names
             CTCalNumpy = np.load(prevoutputfilenames['CTCalfname'])
