@@ -22,6 +22,9 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('form.ui','./'),
         ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
         ('../TranscranialModeling/MapPichardo.h5','./TranscranialModeling'),
+        ('../TranscranialModeling/WebbHU_SoS.csv','./TranscranialModeling'),
+        ('../TranscranialModeling/WebbHU_Att.csv','./TranscranialModeling'),
+        ('../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5','./TranscranialModeling'),
         ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
 
 with open('version.txt','r') as f:

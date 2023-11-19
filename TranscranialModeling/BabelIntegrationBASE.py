@@ -34,6 +34,8 @@ import gc
 import os
 import pickle
 import os
+import pandas as pd
+import h5py
 from linetimer import CodeTimer
 
 try:
@@ -232,6 +234,12 @@ def HUtoDensityMarsac(HUin):
     rhomax=2700.0
     return rhomin+ (rhomax-rhomin)*HUin/HUin.max()
 
+def HUtoDensityUCLLowEnergy(HuIn):
+    #using calibration reported in https://github.com/ucl-bug/petra-to-ct 
+    f = h5py.File(os.path.join(resource_path(),'ct-calibration-low-dose-30-March-2023-v1.h5'),'r')
+    ct_calibration=f['ct_calibration'][:][0,:,:].T
+    return np.interp(HuIn,ct_calibration[0,:],ct_calibration[1,:])
+
 def DensitytoLSOSMarsac(Density):
     cmin=1500.0
     cmax=3000.0
@@ -264,17 +272,46 @@ def PorositytoLAtt(Phi,Frequency):
     Att = amin + (amax - amin)*(Phi**0.5)
     return Att
 
-def HUtoAttenuationWebb(HU,Frequency):
+def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
     # DOI: 10.1109/TUFFC.2020.3039743
-    return (26.0*(Frequency/1e6)**1.3 * np.exp(HU*(-0.0016)))*100
 
-def HUtoLongSpeedofSoundWebb(HU):
+    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+    dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_Att.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    
+    sel=df.loc[[Params]]
+
+    print('Using Webb Att mapping with Params (Alpha_0, Beta, c)', 
+          Params, 
+          sel.iloc[0]['Alpha_0']*100,
+          sel.iloc[0]['Beta'],
+          sel.iloc[0]['c'])
+
+    return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
+
+
+def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
-    #Table I in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
-    return 0.75*HU + 1320.0
+
+    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+    dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    
+    sel=df.loc[[Params]]
+
+    print('Using Webb  SOS mapping with Params (slope, intercept)', 
+          Params, 
+          sel.iloc[0]['Slope'],
+          sel.iloc[0]['Intercept']*1000.0)
+
+    return sel.iloc[0]['Slope']*HU + sel.iloc[0]['Intercept']*1000.0
+
 
 def DensityToLSOSPichardo(Density,Frequency):
     return _PichardoSOS(Density,Frequency/1e6)
@@ -479,6 +516,7 @@ class BabelFTD_Simulations_BASE(object):
                  bWaterOnly=False,
                  QCorrection=3,
                  MappingMethod='Webb-Marsac',
+                 bPETRA = False, #Specify if CT is derived from PETRA
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
         
@@ -506,6 +544,7 @@ class BabelFTD_Simulations_BASE(object):
         self._CTFNAME=CTFNAME
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
+        self._bPETRA = bPETRA
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -530,9 +569,18 @@ class BabelFTD_Simulations_BASE(object):
             print('USING MAPPING METHOD = ',self._MappingMethod)
             Porosity=HUtoPorosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency)
+                if self._bPETRA:
+                    print('Using PETRA to low energy 70 Kvp CT settings')
+                    DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
+                    ParamsWebbSOS=['GE','80','B','','0.5, 0.6'] # Params at 80 Kvp
+                    ParamsWebbAtt=['GE','80','B','','0.49, 0.63'] # Params at 80 Kvp
+                else:
+                    print('Using 120 Kvp CT settings')
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                    ParamsWebbSOS=['GE','120','B','','0.5, 0.6']  # Params at 120 Kvp
+                    ParamsWebbAtt=['GE','120','B','','0.49, 0.63'] # Params at 80 Kvp
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=ParamsWebbSOS)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=ParamsWebbAtt)
             elif self._MappingMethod=='Aubry':
                 DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)

@@ -204,7 +204,7 @@ mask</string>
        </property>
        <layout class="QVBoxLayout" name="LayRange"/>
       </widget>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="RangeLabel">
        <property name="geometry">
         <rect>
          <x>36</x>
