@@ -73,7 +73,7 @@ class H246(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.up_load_ui()
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -214,7 +214,10 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self._mainApp.Config['CTType']==3:
+                kargs['bPETRA']=True
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 

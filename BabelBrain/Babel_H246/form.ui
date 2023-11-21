@@ -91,6 +91,9 @@
    <property name="text">
     <string>0.0</string>
    </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
   </widget>
   <widget class="QLabel" name="label_21">
    <property name="geometry">
@@ -342,7 +345,7 @@ target (mm)</string>
     <rect>
      <x>405</x>
      <y>410</y>
-     <width>730</width>
+     <width>725</width>
      <height>61</height>
     </rect>
    </property>
@@ -353,16 +356,31 @@ target (mm)</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1177</x>
+     <x>1151</x>
      <y>416</y>
-     <width>71</width>
+     <width>91</width>
      <height>51</height>
     </rect>
    </property>
    <property name="text">
     <string>Show
-water
-only</string>
+water only</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="HideMarkscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>255</x>
+     <y>430</y>
+     <width>95</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Hide marks</string>
    </property>
   </widget>
  </widget>

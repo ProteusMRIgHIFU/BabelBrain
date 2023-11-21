@@ -30,7 +30,7 @@ def resource_path():  # needed for bundling
 
 class SelFiles(QDialog):
     def __init__(self, parent=None,Trajectory='',T1W='',
-                    SimbNIBS='',CTType=0,CoregCT=0,CT='',
+                    SimbNIBS='',CTType=0,CoregCT=1,CT='',
                     SimbNIBSType=0,TrajectoryType=0,
                     GPU='CPU',
                     Backend='Metal'):
@@ -189,7 +189,7 @@ class SelFiles(QDialog):
             "Select T1W", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
         if len(fT1W)>0:
             self.ui.T1WlineEdit.setText(fT1W)
-            self.ui.T1WlineEdit.setCursorPosition(len(T1fT1W))
+            self.ui.T1WlineEdit.setCursorPosition(len(fT1W))
 
     @Slot()
     def SelectCT(self):
@@ -205,7 +205,6 @@ class SelFiles(QDialog):
         if len(fThermalProfile)>0:
             print('fThermalProfile',fThermalProfile)
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
-            self.ui.fThermalProfile.setCursorPosition(len(fThermalProfile))
 
     @Slot()
     def SelectSimbNIBS(self):

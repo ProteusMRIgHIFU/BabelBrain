@@ -74,9 +74,9 @@ class CTX500(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.up_load_ui()
 
     def DefaultConfig(self):
         #Specific parameters for the CTX500 - to be configured later via a yaml
@@ -100,7 +100,8 @@ class CTX500(BabelBaseTx):
         self._ZMaxSkin = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
         self._ZMaxSkin = np.round(self._ZMaxSkin,1)
         
-        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])  
+        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
+        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])  
         self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
         self.TPODistanceUpdate(0)
 
@@ -241,6 +242,10 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self._mainApp.Config['CTType']==3:
+                kargs['bPETRA']=True
 
         # Start mask generation as separate process.
         queue=Queue()

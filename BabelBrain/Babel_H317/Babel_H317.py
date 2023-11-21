@@ -65,8 +65,8 @@ class H317(BabelBaseTx):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
-
+        self.up_load_ui()
+       
     @Slot()
     def ZSteeringUpdate(self,value):
         self._ZSteering =self.Widget.ZSteeringSpinBox.value()/1e3
@@ -177,6 +177,8 @@ class H317(BabelBaseTx):
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            if self.Widget.HideMarkscheckBox.isEnabled()== False:
+                self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
@@ -233,7 +235,6 @@ class H317(BabelBaseTx):
             IWater/=IWater[Skull['MaterialMap']==3].max()
 
             Factor=EnergyAtFocusWater/EnergyAtFocusSkull
-            print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
             
             ISkull[Skull['MaterialMap']!=3]=0
 
@@ -251,9 +252,9 @@ class H317(BabelBaseTx):
             self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
             self._Water = Water
-            self._IWater = IWater
+            self._IWater = IWater/IWater.max()
             self._Skull = Skull
-            self._ISkull = ISkull
+            self._ISkull = ISkull/ISkull.max()
             self._DistanceToTarget = DistanceToTarget
 
             if hasattr(self,'_figAcField'):
@@ -275,8 +276,6 @@ class H317(BabelBaseTx):
         else:
             sliceXZ=self._ISkull[:,SelY,:]
             sliceYZ = self._ISkull[SelX,:,:]
-        sliceXZ = sliceXZ/sliceXZ.max()
-        sliceYZ = sliceYZ/sliceYZ.max()
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
@@ -317,7 +316,7 @@ class H317(BabelBaseTx):
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
             static_ax1.invert_yaxis()
-            static_ax1.plot(0,self._DistanceToTarget,'+y',markersize=18)
+            self._marker1,=static_ax1.plot(0,self._DistanceToTarget,'+k',markersize=18)
                 
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,sliceYZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
@@ -327,9 +326,15 @@ class H317(BabelBaseTx):
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')
             static_ax2.invert_yaxis()
-            static_ax2.plot(0,self._DistanceToTarget,'+y',markersize=18)
+            self._marker2,=static_ax2.plot(0,self._DistanceToTarget,'+k',markersize=18)
         
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
+
+        mc=[0.0,0.0,0.0,1.0]
+        if self.Widget.HideMarkscheckBox.isChecked():
+             mc[3] = 0.0
+        self._marker1.set_markerfacecolor(mc)
+        self._marker2.set_markerfacecolor(mc)
 
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
@@ -398,6 +403,10 @@ class RunAcousticSim(QObject):
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self._mainApp.Config['CTType']==3:
+                kargs['bPETRA']=True
 
         # Start mask generation as separate process.
         queue=Queue()

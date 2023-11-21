@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.2
+## Created by: Qt User Interface Compiler version 6.4.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -75,6 +75,7 @@ class Ui_Dialog(object):
         self.T1WlineEdit.setGeometry(QRect(401, 98, 607, 21))
         self.T1WlineEdit.setStyleSheet(u"")
         self.CTTypecomboBox = QComboBox(self.groupBox)
+        self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
@@ -165,6 +166,7 @@ class Ui_Dialog(object):
         self.CTTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"NO", None))
         self.CTTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"real CT", None))
         self.CTTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"ZTE", None))
+        self.CTTypecomboBox.setItemText(3, QCoreApplication.translate("Dialog", u"PETRA", None))
 
         self.SelSimbNIBSpushButton.setText(QCoreApplication.translate("Dialog", u"Select SimbNIBS ...", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Use CT?", None))

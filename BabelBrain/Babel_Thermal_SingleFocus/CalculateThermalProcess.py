@@ -70,7 +70,6 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
             kargsSub['Isppa']=kargs['Isppa']
             kargsSub['sel_p']=kargs['sel_p']
             kargsSub['bPlot']=False
-            kargsSub['bCalculateLosses']=True
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             fieldWorkerProcess = Process(target=SubProcess, 
