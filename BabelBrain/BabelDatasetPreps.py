@@ -962,8 +962,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             print("number of skin region islands", len(regions))
             regions=sorted(regions,key=lambda d: d.area)
+            AllLabels=[]
             for l in regions[:-1]:
-                FinalMask[label_img==l.label]=4
+                AllLabels.append(l.label)
+
+            FinalMask[np.isin(label_img,np.array(AllLabels))]=4
 
             FinalMaskNifti = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
             if CTType in [2,3]:
