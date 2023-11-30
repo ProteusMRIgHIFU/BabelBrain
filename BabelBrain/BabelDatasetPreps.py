@@ -524,6 +524,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold, currentZTER=ZTERange)
             else:
                 bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold)
+        bReuseFiles=False # SP: Nov 29, 2023. forcing temporarily to switch back to recalculate all the time we figure out some new issues
         print(f"bReuseFiles: {bReuseFiles}")
 
     if SimbNIBSType=='charm':
