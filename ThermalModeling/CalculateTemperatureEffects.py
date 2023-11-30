@@ -31,7 +31,6 @@ def CalculateTemperatureEffects(InputPData,
                                 DurationOff=40,
                                 bForceRecalc=False,
                                 OutTemperature=37,
-                                bCalculateLosses=False,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
     
@@ -145,72 +144,63 @@ def CalculateTemperatureEffects(InputPData,
     AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
     print('Acoustic Energy at maximum plane',AcousticEnergy)
     
-    if bCalculateLosses:
-        assert(type(InputPData) is str) # we only do this for single focus
-        WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
-        print('Load water',WaterInputPData)
-        InputWater=ReadFromH5py(WaterInputPData)
+    assert(type(InputPData) is str) # we only do this for single focus
+    WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
+    print('Load water',WaterInputPData)
+    InputWater=ReadFromH5py(WaterInputPData)
 
-        MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
-        xfr=Input['x_vec']
-        yfr=Input['y_vec']
-        zfr=Input['z_vec']
-        
-        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
-        PlanAtMaximumWater=pAmpWater[:,:,2] 
-        AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-        print('Water Acoustic Energy entering',AcousticEnergyWater)
-        if 'MaterialMapCT' in Input:
-            pAmpWater[MaterialMap!=2]=0.0
-        else:
-            pAmpWater[MaterialMap!=4]=0.0
-        cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
-        cxw=cxw[0]
-        cyw=cyw[0]
-        czw=czw[0]
-        print('Location Max Pessure Water',cxw,cyw,czw,'\n',
-              xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
-        
-        pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
-        if 'MaterialMapCT' in Input:
-            pAmpTissue[MaterialMap!=2]=0.0
-        else:
-            pAmpTissue[MaterialMap!=4]=0.0
+    MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+    xfr=Input['x_vec']
+    yfr=Input['y_vec']
+    zfr=Input['z_vec']
+    
+    pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+    PlanAtMaximumWater=pAmpWater[:,:,2] 
+    AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy entering',AcousticEnergyWater)
+    if 'MaterialMapCT' in Input:
+        pAmpWater[MaterialMap!=2]=0.0
+    else:
+        pAmpWater[MaterialMap!=4]=0.0
+    cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
+    cxw=cxw[0]
+    cyw=cyw[0]
+    czw=czw[0]
+    print('Location Max Pessure Water',cxw,cyw,czw,'\n',
+            xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
+    
+    pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
+    if 'MaterialMapCT' in Input:
+        pAmpTissue[MaterialMap!=2]=0.0
+    else:
+        pAmpTissue[MaterialMap!=4]=0.0
 
-        cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
-        print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
-              xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
-        
-
-        PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
-        AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-        print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
-        
-        PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
-        AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-        print('Water Acoustic Energy at maximum plane tissue max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
-        
-        
-        PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
-        AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
-        print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
-        
-        RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
-        print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
-        
+    cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
+    cxr=cxr[0]
+    cyr=cyr[0]
+    czr=czr[0]
+    print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
+            xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
     
 
-    IntensityTarget=PressureTarget**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
-    IntensityTarget=IntensityTarget/1e4
-    print('IntensityTarget',IntensityTarget,SaveDict['MaterialList']['SoS'][BrainID],SaveDict['MaterialList']['Density'][BrainID])
-    IntensityRatio=Isppa/IntensityTarget
+    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
+    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    
+    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
+    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane tissue max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    
+    PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
+    AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
+    print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
+    
+    RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
+    print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
+        
     PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
-    #PressureRatio=np.sqrt(IntensityRatio)
-    PressureRatio=PressureAdjust/PressureTarget
-    print('IntensityRatio,PressureRatio',IntensityRatio,PressureRatio)
+    PressureRatio=PressureAdjust/pAmpTissue.max()
+
 
     if 'MaterialMapCT' in Input:
         SelBrain=MaterialMap==2
@@ -329,7 +319,7 @@ def CalculateTemperatureEffects(InputPData,
         IndTarget=3
     SaveDict['TempProfileTarget']=TemperaturePoints[IndTarget,:]
     SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt
-    SaveDict['TemperaturePoints']=TemperaturePoints[:3,:] #these are max points in skin, brain and skull
+    SaveDict['TemperaturePoints']=TemperaturePoints #these are max points in skin, brain, skull and target
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3
@@ -356,8 +346,7 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
     SaveDict['TargetLocation']=Input['TargetLocation']
     SaveDict['ZIntoSkinPixels']=Input['ZIntoSkinPixels']
-    if bCalculateLosses:
-        SaveDict['RatioLosses']=RatioLosses
+    SaveDict['RatioLosses']=RatioLosses
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)

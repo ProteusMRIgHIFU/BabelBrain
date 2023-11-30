@@ -11,5 +11,6 @@ BSonix80mm:
     TxDiam:                   61.0e-3 #Tx aperture diameter
     AdjustDistanceSkin:       3.30e-3 #mm
 MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm
 USFrequencies:
     - 650000.0

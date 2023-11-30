@@ -21,8 +21,7 @@ def CalculateTemperatureEffects(InputPData,DutyCycle,Isppa,sel_p='p_amp',
                                 bPlot=True,
                                 PRF=1500,
                                 bUseTargetLocations=False,
-                                bForceRecalc=False,
-                                bCalculateLosses=False):#this will help to calculate the final voltage to apply during experiments
+                                bForceRecalc=False):
     if 'Windows' in platform() or 'Linux' in platform():
         Backend='CUDA'
     else:
@@ -134,68 +133,62 @@ def CalculateTemperatureEffects(InputPData,DutyCycle,Isppa,sel_p='p_amp',
     
     print('Acoustic Energy at maximum plane',AcousticEnergy)
     
-    if bCalculateLosses:
-        assert(type(InputPData) is str) # we only do this for single focus
-        WaterInputPData=InputPData.replace('DataForSim.h5','WaterOnly_DataForSim.h5')
-        InputWater=ReadFromH5py(WaterInputPData)
-        
-        RefocuInputPData=InputPData.replace('TxMoved_DataForSim.h5','DataForSim.h5')
-        InputRefocus=ReadFromH5py(RefocuInputPData)
-        #the refocus case will have a slighlty different matrix dimensions
-        MateriaMapRefocus=np.ascontiguousarray(np.flip(InputRefocus['MaterialMap'],axis=2))
-        xfr=InputRefocus['x_vec']
-        yfr=InputRefocus['y_vec']
-        zfr=InputRefocus['z_vec']
-        
-        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
-        pAmpWater[MaterialMap!=4]=0.0
-        if bUseTargetLocations:
-            cxw=InputRefocus['TargetLocation'][0]
-            cyw=InputRefocus['TargetLocation'][1]
-            czw=InputRefocus['TargetLocation'][2]
-        else:
-            cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
-            cxw=cxw[0]
-            cyw=cyw[0]
-            czw=czw[0]
-        print('Location Max Pessure Water',cxw,cyw,czw,'\n',
-              xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
-        
-        pAmpRefocus=np.ascontiguousarray(np.flip(InputRefocus['p_amp_refocus'],axis=2))
-        pAmpRefocus[MateriaMapRefocus!=4]=0.0
-        cxr,cyr,czr=np.where(pAmpRefocus==pAmpRefocus.max())
-        cxr=cxr[0]
-        cyr=cyr[0]
-        czr=czr[0]
-        print('Location Max Pessure Refocus',cxr,cyr,czr,'\n',
-              xfr[cxr],yfr[cyr],zfr[czr],pAmpRefocus.max()/1e6)
-        
-        PlanAtMaximumWater=pAmpWater[:,:,cz] 
-        AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-        print('Acoustic Energy at maximum plane water',AcousticEnergyWater)
-        
-        PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
-        AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-        print('Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
-        
-        PlanAtMaximumRefocus=pAmpRefocus[:,:,czr] 
-        AcousticEnergyRefocus=(PlanAtMaximumRefocus**2/2/MaterialList['Density'][4]/ MaterialList['SoS'][4]*((xf[1]-xf[0])**2)).sum()
-        print('Acoustic Energy at maximum plane refocus',AcousticEnergyRefocus)
-        if sel_p=='p_amp':
-            RatioLosses=AcousticEnergyRefocus/AcousticEnergyWaterMaxLoc
-        else:
-            RatioLosses=AcousticEnergy/AcousticEnergyWaterMaxLoc
-        print('Total losses ratio and in dB with',sel_p,RatioLosses,np.log10(RatioLosses)*10)
+
+    assert(type(InputPData) is str) # we only do this for single focus
+    WaterInputPData=InputPData.replace('DataForSim.h5','WaterOnly_DataForSim.h5')
+    InputWater=ReadFromH5py(WaterInputPData)
+    
+    RefocuInputPData=InputPData.replace('TxMoved_DataForSim.h5','DataForSim.h5')
+    InputRefocus=ReadFromH5py(RefocuInputPData)
+    #the refocus case will have a slighlty different matrix dimensions
+    MateriaMapRefocus=np.ascontiguousarray(np.flip(InputRefocus['MaterialMap'],axis=2))
+    xfr=InputRefocus['x_vec']
+    yfr=InputRefocus['y_vec']
+    zfr=InputRefocus['z_vec']
+    
+    pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+    pAmpWater[MaterialMap!=4]=0.0
+    if bUseTargetLocations:
+        cxw=InputRefocus['TargetLocation'][0]
+        cyw=InputRefocus['TargetLocation'][1]
+        czw=InputRefocus['TargetLocation'][2]
+    else:
+        cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
+        cxw=cxw[0]
+        cyw=cyw[0]
+        czw=czw[0]
+    print('Location Max Pessure Water',cxw,cyw,czw,'\n',
+        xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
+    
+    pAmpRefocus=np.ascontiguousarray(np.flip(InputRefocus['p_amp_refocus'],axis=2))
+    pAmpRefocus[MateriaMapRefocus!=4]=0.0
+    cxr,cyr,czr=np.where(pAmpRefocus==pAmpRefocus.max())
+    cxr=cxr[0]
+    cyr=cyr[0]
+    czr=czr[0]
+    print('Location Max Pessure Refocus',cxr,cyr,czr,'\n',
+        xfr[cxr],yfr[cyr],zfr[czr],pAmpRefocus.max()/1e6)
+    
+    PlanAtMaximumWater=pAmpWater[:,:,cz] 
+    AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Acoustic Energy at maximum plane water',AcousticEnergyWater)
+    
+    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
+    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    
+    PlanAtMaximumRefocus=pAmpRefocus[:,:,czr] 
+    AcousticEnergyRefocus=(PlanAtMaximumRefocus**2/2/MaterialList['Density'][4]/ MaterialList['SoS'][4]*((xf[1]-xf[0])**2)).sum()
+    print('Acoustic Energy at maximum plane refocus',AcousticEnergyRefocus)
+    if sel_p=='p_amp':
+        RatioLosses=AcousticEnergyRefocus/AcousticEnergyWaterMaxLoc
+    else:
+        RatioLosses=AcousticEnergy/AcousticEnergyWaterMaxLoc
+    print('Total losses ratio and in dB with',sel_p,RatioLosses,np.log10(RatioLosses)*10)
         
     
-
-    IntensityTarget=PressureTarget**2/(2.0*SaveDict['MaterialList']['SoS'][4]*SaveDict['MaterialList']['Density'][4])
-    IntensityTarget=IntensityTarget/1e4
-    IntensityRatio=Isppa/IntensityTarget
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][4]*SaveDict['MaterialList']['Density'][4])
-    #PressureRatio=np.sqrt(IntensityRatio)
-    PressureRatio=PressureAdjust/PressureTarget
-    print('IntensityRatio,PressureRatio',IntensityRatio,PressureRatio)
+    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
+    PressureRatio=PressureAdjust/pAmpTissue.max()
     
     if type(InputPData) is str:
         ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
@@ -274,8 +267,7 @@ def CalculateTemperatureEffects(InputPData,DutyCycle,Isppa,sel_p='p_amp',
     SaveDict['DoseEndFUS']=ResDose
     SaveDict['TargetLocation']=Input['TargetLocation'][[0,2]]
     
-    if bCalculateLosses:
-        SaveDict['RatioLosses']=RatioLosses
+    SaveDict['RatioLosses']=RatioLosses
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)

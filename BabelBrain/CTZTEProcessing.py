@@ -13,6 +13,7 @@ import os
 import scipy
 from skimage.measure import label, regionprops
 import numpy as np
+from scipy import signal
 from operator import itemgetter
 import platform
 from pathlib import Path
@@ -20,6 +21,7 @@ import sys
 import subprocess
 import shutil
 from linetimer import CodeTimer
+import hashlib
 
 
 
@@ -36,6 +38,60 @@ def resource_path():  # needed for bundling
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
+
+def GetBlake2sHash(filename):
+    # Create a Blake2s hash object of size 4 bytes
+    blake2s = hashlib.blake2s(digest_size=4)
+    
+    # Open the file in binary mode and read it in chunks
+    with open(filename, 'rb') as file:
+        while True:
+            data = file.read(65536)  # Read data in 64KB chunks
+            if not data:
+                break
+            blake2s.update(data)
+    
+    # Calculate the checksum, a string that is double the hash object size (i.e. 8 bytes)
+    checksum = blake2s.hexdigest()
+    
+    return checksum
+
+def SaveHashInHeader(precursorfiles, nifti, outputfile, CTType=None, HUT=None, ZTER=None):
+    # CT type info to be saved
+    if CTType == None:
+        savedCTType = ""
+    elif CTType == 1:
+        savedCTType = f"CTType=CT,"
+    elif CTType == 2:
+        savedCTType = f"CTType=ZTE,"
+    else: #3
+        savedCTType = f"CTType=PETRA,"
+    
+    # HU Threshold info to be saved
+    if HUT is None:
+        savedHUThreshold = ""
+    else:
+        savedHUThreshold = f"HUT={int(HUT)},"
+
+    # ZTE range info to be saved
+    if ZTER is None:
+        saveZTERange = ""
+    else:
+        saveZTERange = f"ZTER={ZTER},"
+
+    # checksum info to be saved
+    savedHashes = ""
+    for f in precursorfiles:
+        savedHashes+=GetBlake2sHash(f)+","
+    
+    savedInfo = (savedCTType + savedHUThreshold + saveZTERange + savedHashes).encode('utf-8')
+    
+    if len(savedInfo) <= 80: # Nifiti descrip header can only accept string < 80 bytes (80 utf-8 chars)
+        nifti.header['descrip'] = savedInfo
+        nibabel.save(nifti,outputfile)
+    else:
+        print(f"'descrip' string not saved in nifti header as it exceeds text limit ({len(savedInfo)} > 80)")
+        nibabel.save(nifit,outputfile)
 
 def RunElastix(reference,moving,finalname):
     if sys.platform == 'linux' or _IS_MAC:
@@ -78,7 +134,7 @@ def RunElastix(reference,moving,finalname):
         if result.returncode != 0:
             raise SystemError("Error when trying to run elastix")
 
-def N4BiasCorrec(input,output=None,shrinkFactor=4,
+def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
     inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
     image = inputImage
@@ -104,9 +160,13 @@ def N4BiasCorrec(input,output=None,shrinkFactor=4,
     if output is not None:
         sitk.WriteImage(corrected_image_full_resolution, output)
 
+        # Reload nifti and save info in header
+        corrected_image_full_resolution_nifti = nibabel.load(output)
+        SaveHashInHeader(hashFiles,corrected_image_full_resolution_nifti,output)
+
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0, ResampleFunc=None, ResampleBackend='OpenCL'):
+def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, ResampleFunc=None, ResampleBackend='OpenCL'):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
     # CoregCT_MRI =2 , coregister MRI-->CT space
@@ -114,8 +174,9 @@ def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0, ResampleFunc=None, Resample
     if CoregCT_MRI==0:
         return nibabel.load(InputCT)
     else:
-        T1fnameBiasCorrec =SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec.nii.gz' 
-        N4BiasCorrec(InputT1,T1fnameBiasCorrec)
+        T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
+        N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
+        
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
@@ -143,31 +204,43 @@ def CTCorreg(InputT1,InputCT,SavePath,CoregCT_MRI=0, ResampleFunc=None, Resample
             out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
             
             fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
-            T1fname_CTRes=SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec_CT_res.nii.gz'
-            fixed_image.to_filename(T1fname_CTRes)
-            CTInT1W=os.path.splitext(InputCT)[0] + '_InT1.nii.gz'
 
-            RunElastix(T1fname_CTRes,InputCT,CTInT1W)
+
+            T1fname_CTRes=outputfnames['T1fname_CTRes']
+            SaveHashInHeader([outputfnames['T1fnameBiasCorrec']],fixed_image,T1fname_CTRes,CTType=1)
+
+            CTInT1W=outputfnames['CTInT1W']
+
+            RunElastix(outputfnames['T1fname_CTRes'],InputCT,CTInT1W)
+
+            with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
+                elastixoutput = nibabel.load(CTInT1W)
+                SaveHashInHeader([T1fname_CTRes],elastixoutput,CTInT1W,CTType=1)
             
-            return nibabel.load(CTInT1W)
+            return elastixoutput
         else:
-            T1WinCT=os.path.splitext(InputT1)[0] + '_InCT.nii.gz'
+            T1WinCT=outputfnames['T1WinCT']
             RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
-            return nibabel.load(InputCT)
+
+            with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
+                elastixoutput = nibabel.load(T1WinCT)
+                SaveHashInHeader([T1fnameBiasCorrec],elastixoutput,T1WinCT,CTType=1)
+
+            return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask,SavePath):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames):
     #Bias correction
-    T1fnameBiasCorrec =SavePath+os.sep+os.path.splitext(os.path.basename(InputT1))[0] + '_BiasCorrec.nii.gz'
+    
+    T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
+    N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
 
-    N4BiasCorrec(InputT1,T1fnameBiasCorrec)
-
-    ZTEfnameBiasCorrec=SavePath+os.sep+os.path.splitext(os.path.basename(InputZTE))[0] + '_BiasCorrec.nii.gz'
-
-    N4BiasCorrec(InputZTE,ZTEfnameBiasCorrec)
+    ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
+    N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
+    
     #coreg
+    ZTEInT1W=outputfnames['ZTEInT1W']
 
-    ZTEInT1W=SavePath+os.sep+os.path.splitext(os.path.basename(InputZTE))[0] + '_InT1.nii.gz'
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
@@ -181,10 +254,20 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask,SavePath):
     img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
     img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
     sitk.WriteImage(img_out, ZTEInT1W)
+
+    with CodeTimer("Reloading niftis, adding hashes to header, and saving", unit="s"):
+        T1fnameBiasCorrecOutput = nibabel.load(T1fnameBiasCorrec)
+        ZTEfnameBiasCorrecOutput = nibabel.load(ZTEfnameBiasCorrec)
+        ZTEInT1WOutput = nibabel.load(ZTEInT1W)
+        SaveHashInHeader([outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrecOutput,T1fnameBiasCorrec)
+        SaveHashInHeader([T1fnameBiasCorrec],ZTEfnameBiasCorrecOutput,ZTEfnameBiasCorrec)
+        SaveHashInHeader([ZTEfnameBiasCorrec],ZTEInT1WOutput,ZTEInT1W)
+
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm'):
-    print('converting ZTE to pCT with range',ThresoldsZTEBone)
+def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
+            PetraMRIPeakDistance=50,PetraNPeaks=2):
+    print('converting ZTE/PETRA to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
         #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
@@ -219,40 +302,62 @@ def ConvertZTE_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,ThresoldsZTEBone=[0.1,0.6
         
         arrZTE=volumeZTE.get_fdata()
         arrHead=volumeHead.get_fdata()
-        
-        
-        
-        maskedZTE =arrZTE.copy()
-        maskedZTE[arrMask==0]=-1000
-        
-        cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
-        
-        
-        arrZTE/=cutoff
-        
-        arrZTE[arrHead==0]=-0.5
+
+        if bIsPetra: # FUN23 Miscouridou et al. Adapted from  https://github.com/ucl-bug/petra-to-ct
+            print('Using PETRA specification to convert to pCT')
+
+            #histogram normalization
+            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins='auto')
+            bins = (edges[1:] + edges[:-1])/2
+            bins = bins[1:]
+            hist_vals = hist_vals[1:]
+
+            PeakDistance = int(PetraMRIPeakDistance/np.mean(np.diff(bins)))
+
+            pks,_ = signal.find_peaks(hist_vals,distance=PeakDistance)
+            locs = bins[pks]
+            pks=hist_vals[pks]
+
+            ind=np.argsort(pks)
+            ind=ind[::-1][:PetraNPeaks]
+            pks=pks[ind]
+            locs=locs[ind]
+            arrZTE/=np.max(locs)
+        else:
+            maskedZTE =arrZTE.copy()
+            maskedZTE[arrMask==0]=-1000
+            print('Using ZTE specification to convert to pCT') # as done in M. Miscouridou at al., IEEE Trans. Ultrason. Ferroelectr. Freq. Control, vol. 69, no. 10, pp. 2896-2905, Oct. 2022.  doi: 10.1109/TUFFC.2022.3198522
+            cutoff=np.percentile(maskedZTE[maskedZTE>-500].flatten(),95)
+            arrZTE/=cutoff
+            arrZTE[arrHead==0]=-0.5
 
         arrGauss=arrZTE.copy()
         arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
         arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
-        
+            
         label_img = label(arr)
+        
         def pixelcount(regionmask):
             return np.sum(regionmask)
+        
         props = regionprops(label_img, extra_properties=(pixelcount,))
         props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
         arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-        
         arrCT=np.zeros_like(arrGauss)
         arrCT[arrSkin==0]=-1000 
         arrCT[arrSkin!=0]=42.0 #soft tissue
-        arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+
+        if bIsPetra:
+            arrCT[arr2!=0]=-2929.6*arrZTE[arr2!=0]+ 3274.9
+        else:
+            arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+
         arrCT[arrCT<-1000]=-1000 #air
         arrCT[arrCT>3300]=-1000 #air 
         arrCT[arrCavities!=0]=-1000
         
         pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-        CTfname=InputZTE.split('-InT1.nii.gz')[0]+'-pCT.nii.gz'
-        nibabel.save(pCT,CTfname)
+        CTfname=outputfnames['pCTfname']
+        SaveHashInHeader([outputfnames['ZTEInT1W']],pCT,CTfname,CTType=(bIsPetra+2))
     return pCT

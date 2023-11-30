@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QLabel
 )
 from linetimer import CodeTimer
 from matplotlib import pyplot as plt
@@ -391,16 +392,20 @@ class BabelBrain(QWidget):
         LayRange.addWidget(slider)
         self.Widget.ZTERangeSlider=slider
         self.Widget.setStyleSheet("QTabBar::tab::disabled {width: 0; height: 0; margin: 0; padding: 0; border: none;} ")
+        print("self.Config['CTType']",self.Config['CTType'])
         if self.Config['bUseCT'] == False:
             self.Widget.CTZTETabs.hide()
-        elif self.Config['CTType']!=2:
+        elif self.Config['CTType'] not in [2,3]:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
+        elif self.Config['CTType']==3: #PETRA, we change the label
+            self.Widget.CTZTETabs.setTabText(0,"PETRA")
+            ZTE.findChild(QLabel,"RangeLabel").setText("Normalized PETRA Range")
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
 
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
-
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
         
         
     
@@ -592,6 +597,8 @@ class BabelBrain(QWidget):
         '''
         Refresh mask
         '''
+        if self.Widget.HideMarkscheckBox.isEnabled()== False:
+            self.Widget.HideMarkscheckBox.setEnabled(True)
         self.Widget.tabWidget.setEnabled(True)
         self.AcSim.setEnabled(True)
         Data=nibabel.load(self._outnameMask)
@@ -665,6 +672,7 @@ class BabelBrain(QWidget):
             self._imMasks=[]
             self._imT1W=[]
             self._imCtMasks=[]
+            self._markers=[]
 
             self._figMasks = Figure(figsize=(18, 6))
 
@@ -677,6 +685,7 @@ class BabelBrain(QWidget):
             self._layout.addWidget(self.static_canvas)
 
             axes=self.static_canvas.figure.subplots(1,3)
+            self._axes=axes
 
             for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
                                     [T1WXZ,T1WYZ,T1WXY],
@@ -695,12 +704,21 @@ class BabelBrain(QWidget):
                     self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
                 else:
                     self._imCtMasks.append(None)
-                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal'))   
-                static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)
+                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
+                self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
             self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
-
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
+
+    @Slot()
+    def HideMarks(self,v):
+        mc=[0.75, 0.75, 0.0,1.0]
+        if self.Widget.HideMarkscheckBox.isChecked():
+            mc[3] = 0.0
+        for m in self._markers:
+            m.set_markerfacecolor(mc)
+            m.set_markeredgecolor(mc)
+        self._figMasks.canvas.draw_idle()
     
     @Slot()
     def UpdateTransparency(self):
@@ -720,7 +738,7 @@ class BabelBrain(QWidget):
         ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
         if self.Config['bUseCT']:
             ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
-            if self.Config['CTType']==2 : #ZTE
+            if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
         return self.Config | ExtraConfig
 
@@ -794,8 +812,8 @@ class RunMaskGeneration(QObject):
         kargs['bAlignToSkin']=True
         if self._mainApp.Config['bUseCT']:
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
-            kargs['bIsZTE']=self._mainApp.Config['CTType']==2
-            if kargs['bIsZTE']:
+            kargs['CTType']=self._mainApp.Config['CTType']
+            if kargs['CTType'] in [2,3]:
                 kargs['ZTERange']=self._mainApp.Widget.ZTERangeSlider.value()
             kargs['HUThreshold']=self._mainApp.Widget.HUTreshold.value()
         # Start mask generation as separate process.

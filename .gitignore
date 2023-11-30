@@ -131,3 +131,6 @@ docs/site/**
 *.wixpdb
 *.wxs
 *.wixobj
+*.pkg
+*.dmg
+BabelBrain/final

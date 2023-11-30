@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1309</width>
-    <height>736</height>
+    <height>757</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -62,7 +62,7 @@
      <x>7</x>
      <y>62</y>
      <width>1284</width>
-     <height>513</height>
+     <height>521</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -204,7 +204,7 @@ mask</string>
        </property>
        <layout class="QVBoxLayout" name="LayRange"/>
       </widget>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="RangeLabel">
        <property name="geometry">
         <rect>
          <x>36</x>
@@ -268,7 +268,7 @@ mask</string>
      </property>
      <property name="geometry">
       <rect>
-       <x>1064</x>
+       <x>974</x>
        <y>452</y>
        <width>194</width>
        <height>20</height>
@@ -287,7 +287,7 @@ mask</string>
     <widget class="QLabel" name="label_6">
      <property name="geometry">
       <rect>
-       <x>940</x>
+       <x>850</x>
        <y>451</y>
        <width>115</width>
        <height>20</height>
@@ -297,13 +297,29 @@ mask</string>
       <string>T1W transparency</string>
      </property>
     </widget>
+    <widget class="QCheckBox" name="HideMarkscheckBox">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>272</x>
+       <y>448</y>
+       <width>100</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Hide marks</string>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QTextBrowser" name="outputTerminal">
    <property name="geometry">
     <rect>
-     <x>9</x>
-     <y>590</y>
+     <x>7</x>
+     <y>607</y>
      <width>1282</width>
      <height>143</height>
     </rect>
@@ -315,8 +331,8 @@ mask</string>
   <widget class="QLabel" name="label_18">
    <property name="geometry">
     <rect>
-     <x>14</x>
-     <y>575</y>
+     <x>10</x>
+     <y>590</y>
      <width>114</width>
      <height>16</height>
     </rect>

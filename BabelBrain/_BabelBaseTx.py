@@ -34,15 +34,21 @@ class BabelBaseTx(QWidget):
         #By default, it returns empty string, useful when dealing with user-specified geometry
         return ""
 
+    def up_load_ui(self):
+        #please note this one needs to be called after child class called its load_ui
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.UpdateAcResults)
+    
     @Slot()
     def UpdateAcResults(self):
         '''
         This is a common function for most Tx to show results
         '''
         if self._bRecalculated:
-            #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            if self.Widget.HideMarkscheckBox.isEnabled()== False:
+                self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
@@ -93,13 +99,6 @@ class BabelBaseTx(QWidget):
             cxr=cxr[0]
             cyr=cyr[0]
             czr=czr[0]
-
-            EnergyAtFocusWater=IWater[:,:,czr].sum()*dx**2
-
-            print('EnergyAtFocusWater',EnergyAtFocusWater,'EnergyAtFocusSkull',EnergyAtFocusSkull)
-            
-            Factor=EnergyAtFocusWater/EnergyAtFocusSkull
-            print('*'*40+'\n'+'*'*40+'\n'+'Correction Factor for Isppa',Factor,'\n'+'*'*40+'\n'+'*'*40+'\n')
             
             ISkull/=ISkull.max()
             IWater/=IWater.max()
@@ -180,7 +179,7 @@ class BabelBaseTx(QWidget):
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
             static_ax1.invert_yaxis()
-            static_ax1.plot(0,self._DistanceToTarget,'+y',markersize=18)
+            self._marker1,=static_ax1.plot(0,self._DistanceToTarget,'+k',markersize=18)
 
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
@@ -190,11 +189,15 @@ class BabelBaseTx(QWidget):
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')
             static_ax2.invert_yaxis()
-            static_ax2.plot(0,self._DistanceToTarget,'+y',markersize=18)
+            self._marker2,=static_ax2.plot(0,self._DistanceToTarget,'+k',markersize=18)
 
         self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
 
-        #f.set_title('MAIN SIMULATION RESULTS')
+        mc=[0.0,0.0,0.0,1.0]
+        if self.Widget.HideMarkscheckBox.isChecked():
+             mc[3] = 0.0
+        self._marker1.set_markerfacecolor(mc)
+        self._marker2.set_markerfacecolor(mc)
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
  
