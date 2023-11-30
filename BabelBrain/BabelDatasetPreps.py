@@ -819,14 +819,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             # Grab previously generated mask
             fct = nibabel.load(prevoutputfilenames['ReuseMask'])
 
-            # Load prev files that need to be resaved under curent file names
-            FinalCTNifti = nibabel.load(prevoutputfilenames['CTfname'])
-
+            # Load in appropriate rCT and resave fct under curent file name
             if CTType in [2,3]:
                 rCT = nibabel.load(outputfilenames['pCTfname'])
 
                 SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
-                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
             else:
                 if CoregCT_MRI == 0:
                     rCT = nibabel.load(inputfilenames['CTZTEinput'])
@@ -840,8 +837,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     rCT = nibabel.load(outputfilenames['T1WinCT'])
 
                     SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
-                
-                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold)
 
             rCTdata=rCT.get_fdata()
         else:
