@@ -274,7 +274,7 @@ def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,C
         outputfiles['ReuseSimbNIBS'] = SimbNIBSDir + os.sep + 'final_tissues_babelbrain_reuse.npy' # This file is only used to confirm if inputs can be reused
     else:
         inputfiles['SimbNIBSinput'] = SimbNIBSDir + os.sep + 'skin.nii.gz'
-        outputfiles['ReuseSimbNIBS'] = SimbNIBSDir + os.sep + 'skin_reuse.nii.gz' # This file is only used to confirm if inputs can be reused
+        outputfiles['ReuseSimbNIBS'] = SimbNIBSDir + os.sep + 'skin_babelbrain_reuse.npy' # This file is only used to confirm if inputs can be reused
 
     # SimbNIBS stl file names
     outputfiles['Skull_STL'] = SimbNIBSDir+os.sep+'bone.stl'
@@ -316,14 +316,9 @@ def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,C
         # Intermediate mask file name
         outputfiles['ReuseMask'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'ReuseMask.nii.gz' # This file is only used to confirm if previously generated intermediate mask can be reused
         
-        # CT file names
-        outputfiles['CTCalfname'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
-        outputfiles['CTSmooth'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl'
+        # CT file name
         outputfiles['CTfname'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
 
-    # Step 2 input file name  
-    outputfiles['BabelViscoInput'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
-    
     return inputfiles, outputfiles
 
 def CheckReuseFiles(infnames, outfnames, currentCTType=None, currentHUT = None, currentZTER = None):
@@ -550,6 +545,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             SaveHashInfo(inputfilenames.values(),outputfilenames['ReuseSimbNIBS'])
     else:
         TMaskItk=sitk.ReadImage(inputfilenames['SimbNIBSinput'], sitk.sitkFloat32)>0 #we also kept an SITK Object
+        SaveHashInfo(inputfilenames.values(),outputfilenames['ReuseSimbNIBS'])
 
     #building a cone object representing acoustic beam pointing to desired location
     RadCone=TxDiam/2*factorEnlargeRadius
@@ -821,32 +817,33 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     else:
         if bReuseFiles:
             # Grab previously generated mask
-            FinalMaskNifti = nibabel.load(prevoutputfilenames['ReuseMask'])
-            FinalMask = FinalMaskNifti.get_fdata()
-            if np.isfortran(FinalMask):
-                FinalMask = np.ascontiguousarray(FinalMask)
+            fct = nibabel.load(prevoutputfilenames['ReuseMask'])
 
             # Load prev files that need to be resaved under curent file names
-            CTCalNumpy = np.load(prevoutputfilenames['CTCalfname'])
-            CTSmoothStl = trimesh.load_mesh(prevoutputfilenames['CTSmooth'])
             FinalCTNifti = nibabel.load(prevoutputfilenames['CTfname'])
 
-            np.savez_compressed(outputfilenames['CTCalfname'],UniqueHU = CTCalNumpy['UniqueHU'])
-            CTSmoothStl.export(outputfilenames['CTSmooth'])
-
             if CTType in [2,3]:
-                bIsPetra = CTType==3
-                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
-                SaveHashInfo([outputfilenames['ReuseMask'],outputfilenames['CTCalfname'],outputfilenames['CTSmooth']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
+                rCT = nibabel.load(outputfilenames['pCTfname'])
+
+                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
             else:
                 if CoregCT_MRI == 0:
-                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    rCT = nibabel.load(inputfilenames['CTZTEinput'])
+
+                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 elif CoregCT_MRI == 1:
-                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    rCT = nibabel.load(outputfilenames['CTInT1W'])
+
+                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 else:
-                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    rCT = nibabel.load(outputfilenames['T1WinCT'])
+
+                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 
-                SaveHashInfo([outputfilenames['ReuseMask'],outputfilenames['CTCalfname'],outputfilenames['CTSmooth']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold)
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],FinalCTNifti,CTType=CTType,HUT=HUThreshold)
+
+            rCTdata=rCT.get_fdata()
         else:
             if CTType in [2,3]:
                 print('Processing ZTE/PETRA to pCT')
@@ -880,136 +877,137 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
 
-            mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
-
-            with CodeTimer("median filter CT mask extrapol",unit='s'):
-                nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
-            nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
-
-            ##We will create an smooth surface
-            with CodeTimer("skull surface CT",unit='s'):
-                if LabelImage is None:
-                    label_img=label(nfct)
-                else:
-                    label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
-                regions= regionprops(label_img)
-                regions=sorted(regions,key=lambda d: d.area)
-                nfct=label_img==regions[-1].label
-                smct=MaskToStl(nfct,baseaffineRot)
-                    
-            with CodeTimer("CT skull voxelization",unit='s'):
-                if VoxelizeFilter is None:
-                    ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                else:
-                    ct_grid=VoxelizeFilter(smct,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-            
-            XYZ=ct_grid
-            XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=ct_grid.dtype))).T
-            AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
-
-            nfct=np.zeros_like(FinalMask)
-
-            inds=(AffIJK[:,0]<nfct.shape[0])&\
-                (AffIJK[:,1]<nfct.shape[1])&\
-                (AffIJK[:,2]<nfct.shape[2])
-            AffIJK=AffIJK[inds,:]
-
-            nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
-
-            with CodeTimer("CT median filter",unit='s'):
-                if sys.platform in ['linux','win32']:
-                    gnfct=cupy.asarray(nfct.astype(np.uint8))
-                    gnfct=cndimage.median_filter(gnfct,7)
-                    nfct=gnfct.get()
-                else:
-                    if MedianFilter is None:
-                        nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
-                    else:
-                        nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
-                nfct=nfct!=0
-
-            del XYZ
-            del ct_grid
-
-
-            ############
-            with CodeTimer("CT extrapol",unit='s'):
-                print('rCTdata range',rCTdata.min(),rCTdata.max())
-                rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
-                nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
-                ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-                ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
-                print('ndataCT range',ndataCT.min(),ndataCT.max())
-                ndataCT[nfct==False]=0
-
-            with CodeTimer("CT binary_dilation",unit='s'):
-                BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
-            with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
-                FinalMask[BinMaskConformalCSFRot]=4  
-                FinalMask[BinMaskConformalSkullRot==1]=4
-            #brain
-            with CodeTimer("FinalMask[nfct]=2",unit='s'):
-                FinalMask[nfct]=2  #bone
-            #we do a cleanup of islands 
-            with CodeTimer("Labeling",unit='s'):
-                if LabelImage is None:
-                    label_img = label(FinalMask==1)
-                else:
-                    label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
-            
-            with CodeTimer("regionprops",unit='s'):
-                regions= regionprops(label_img)
-
-            print("number of skin region islands", len(regions))
-            regions=sorted(regions,key=lambda d: d.area)
-            AllLabels=[]
-            for l in regions[:-1]:
-                AllLabels.append(l.label)
-
-            FinalMask[np.isin(label_img,np.array(AllLabels))]=4
-
-            FinalMaskNifti = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
+            # fct can be reused in future sims to save time
             if CTType in [2,3]:
-                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold,ZTER=ZTERange)
+                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold,ZTER=ZTERange)
             else:
                 if CoregCT_MRI == 0:
-                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 elif CoregCT_MRI == 1:
-                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 else:
-                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],FinalMaskNifti,CTType=CTType,HUT=HUThreshold)
+                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
+
+        with CodeTimer("median filter CT mask extrapol",unit='s'):
+            nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
+
+        ##We will create an smooth surface
+        with CodeTimer("skull surface CT",unit='s'):
+            if LabelImage is None:
+                label_img=label(nfct)
+            else:
+                label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            regions= regionprops(label_img)
+            regions=sorted(regions,key=lambda d: d.area)
+            nfct=label_img==regions[-1].label
+            smct=MaskToStl(nfct,baseaffineRot)
                 
-            CTBone=ndataCT[nfct]
-            CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
-            ndataCT[nfct]=CTBone
-            maxData=ndataCT[nfct].max()
-            minData=ndataCT[nfct].min()
+        with CodeTimer("CT skull voxelization",unit='s'):
+            if VoxelizeFilter is None:
+                ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
+            else:
+                ct_grid=VoxelizeFilter(smct,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+        
+        XYZ=ct_grid
+        XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=ct_grid.dtype))).T
+        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
+
+        nfct=np.zeros_like(FinalMask)
+
+        inds=(AffIJK[:,0]<nfct.shape[0])&\
+            (AffIJK[:,1]<nfct.shape[1])&\
+            (AffIJK[:,2]<nfct.shape[2])
+        AffIJK=AffIJK[inds,:]
+
+        nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
+
+        with CodeTimer("CT median filter",unit='s'):
+            if sys.platform in ['linux','win32']:
+                gnfct=cupy.asarray(nfct.astype(np.uint8))
+                gnfct=cndimage.median_filter(gnfct,7)
+                nfct=gnfct.get()
+            else:
+                if MedianFilter is None:
+                    nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
+                else:
+                    nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+            nfct=nfct!=0
+
+        del XYZ
+        del ct_grid
+
+
+        ############
+        with CodeTimer("CT extrapol",unit='s'):
+            print('rCTdata range',rCTdata.min(),rCTdata.max())
+            rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
+            nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+            ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+            ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
+            print('ndataCT range',ndataCT.min(),ndataCT.max())
+            ndataCT[nfct==False]=0
+
+        with CodeTimer("CT binary_dilation",unit='s'):
+            BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
+        with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
+            FinalMask[BinMaskConformalCSFRot]=4  
+            FinalMask[BinMaskConformalSkullRot==1]=4
+        #brain
+        with CodeTimer("FinalMask[nfct]=2",unit='s'):
+            FinalMask[nfct]=2  #bone
+        #we do a cleanup of islands 
+        with CodeTimer("Labeling",unit='s'):
+            if LabelImage is None:
+                label_img = label(FinalMask==1)
+            else:
+                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+        
+        with CodeTimer("regionprops",unit='s'):
+            regions= regionprops(label_img)
+
+        print("number of skin region islands", len(regions))
+        regions=sorted(regions,key=lambda d: d.area)
+        AllLabels=[]
+        for l in regions[:-1]:
+            AllLabels.append(l.label)
+
+        FinalMask[np.isin(label_img,np.array(AllLabels))]=4
             
-            A=maxData-minData
-            M = 2**CT_quantification-1
-            ResStep=A/M 
-            qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
-            ndataCT[nfct]=qx
-            UniqueHU=np.unique(ndataCT[nfct])
-            print('Unique CT values',len(UniqueHU))
-            np.savez_compressed(outputfilenames['CTCalfname'],UniqueHU=UniqueHU)
+        CTBone=ndataCT[nfct]
+        CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
+        ndataCT[nfct]=CTBone
+        maxData=ndataCT[nfct].max()
+        minData=ndataCT[nfct].min()
+        
+        A=maxData-minData
+        M = 2**CT_quantification-1
+        ResStep=A/M 
+        qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
+        ndataCT[nfct]=qx
+        UniqueHU=np.unique(ndataCT[nfct])
+        print('Unique CT values',len(UniqueHU))
+        CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
+        np.savez_compressed(CTCalfname,UniqueHU=UniqueHU)
 
-            with CodeTimer("Mapping unique values",unit='s'):
-                if MapFilter is None:
-                    ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
-                    for n,d in enumerate(UniqueHU):
-                        ndataCTMap[ndataCT==d]=n
-                    ndataCTMap[nfct==False]=0
-                else:
-                    ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+        with CodeTimer("Mapping unique values",unit='s'):
+            if MapFilter is None:
+                ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
+                for n,d in enumerate(UniqueHU):
+                    ndataCTMap[ndataCT==d]=n
+                ndataCTMap[nfct==False]=0
+            else:
+                ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
-                smct.export(outputfilenames['CTSmooth'])
-                nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
+            smct.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl')
+            nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
 
-                if CTType in [2,3]:
-                    SaveHashInfo([outputfilenames['ReuseMask'],outputfilenames['CTCalfname'],outputfilenames['CTSmooth']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
-                else:
-                    SaveHashInfo([outputfilenames['ReuseMask'],outputfilenames['CTCalfname'],outputfilenames['CTSmooth']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
+            if CTType in [2,3]:
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
+            else:
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
         if sys.platform in ['linux','win32']:
@@ -1035,13 +1033,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
-    if CT_or_ZTE_input is  None:
-        SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['BabelViscoInput'],mask_nifti2)
-    else:
-        if CTType in [2,3]:
-            SaveHashInfo([outputfilenames['CTfname']],outputfilenames['BabelViscoInput'],mask_nifti2,CTType=CTType,HUT=HUThreshold,ZTER=ZTERange)
-        else:
-            SaveHashInfo([outputfilenames['CTfname']],outputfilenames['BabelViscoInput'],mask_nifti2,CTType=CTType,HUT=HUThreshold)
+    outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
+    mask_nifti2.to_filename(outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
         T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
