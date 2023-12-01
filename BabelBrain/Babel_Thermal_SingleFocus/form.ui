@@ -278,6 +278,29 @@
    <column/>
    <column/>
   </widget>
+  <widget class="QPushButton" name="ExportThermalMap">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>178</x>
+     <y>412</y>
+     <width>152</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Export Current
+Thermal map (.nii.gz)</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

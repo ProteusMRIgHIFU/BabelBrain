@@ -20,6 +20,20 @@ class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
 
+    def ExportStep2Results(self,Results):
+        fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
+                                        CorY=Results['AdjustmentInRAS'][1],
+                                        CorZ=Results['AdjustmentInRAS'][2])
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
+                f.write(self._MainApp._BrainsightInput)
+            with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
+                f.write(fnameTrajectory)
+
+    def GetExtraSuffixAcFields(self):
+        #By default, it returns empty string, useful when dealing with user-specified geometry
+        return ""
+
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
@@ -39,13 +53,12 @@ class BabelBaseTx(QWidget):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
-            #this will generate a modified trajectory file
-            if self._MainApp._bInUseWithBrainsight:
-                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                    f.write(self._MainApp._BrainsightInput)    
-            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+
+            extrasuffix=self.GetExtraSuffixAcFields()
+
+            self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
+
+            self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)

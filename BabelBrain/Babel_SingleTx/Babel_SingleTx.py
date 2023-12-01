@@ -136,18 +136,22 @@ class SingleTx(BabelBaseTx):
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
-      
-    @Slot()
-    def RunSimulation(self):
+
+    def GetExtraSuffixAcFields(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
+        return extrasuffix
+
+      
+    @Slot()
+    def RunSimulation(self):
+        extrasuffix=self.GetExtraSuffixAcFields()
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
-        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
+        FocalLength = self.Widget.FocalLengthSpinBox.value()
+        Diameter = self.Widget.DiameterSpinBox.value()
 
-        print('FullSolName',self._FullSolName)
-        print('WaterSolName',self._WaterSolName)
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
@@ -219,7 +223,7 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1W'])[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 

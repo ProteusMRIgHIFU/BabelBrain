@@ -495,6 +495,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     '''
     #load T1W
+    SavePath= os.path.dirname(T1Conformal_nii)
     T1Conformal=nibabel.load(T1Conformal_nii)
     baseaffine=T1Conformal.affine.copy()
     print('baseaffine',baseaffine,"\n")
