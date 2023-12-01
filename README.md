@@ -69,7 +69,7 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
   - Fix an issue with display results in Step 3. Results were scaled to the intensity at the target instead of maximal intensity in the brain region, as done when calculating the required Isppa in water.
   - Fix an issue with the display results of the H317 Transducer.
   - Fix the remaining "bleeding" of the skin label in the brain region.
-  - Fix NaN calculations when the target is accidentally in the brain region.
+  - Fix NaN calculations when the target is accidentally in the bone region.
   - Fix passing version to macOS bundle.
   
 - 0.2.9-b - Oct 14, 2023

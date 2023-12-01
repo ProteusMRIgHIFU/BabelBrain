@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.linalg as npl
 import os
+import glob
 import trimesh
 import nibabel
 from nibabel import processing
@@ -33,10 +34,13 @@ import pandas as pd
 import platform
 import sys
 from linetimer import CodeTimer
+import re
 try:
     import CTZTEProcessing
+    from CTZTEProcessing import SaveHashInfo, GetBlake2sHash
 except:
     from . import CTZTEProcessing
+    from .CTZTEProcessing import SaveHashInfo, GetBlake2sHash
 import tempfile
 
 try:
@@ -253,12 +257,210 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
+def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix):
+    inputfiles = {}
+    outputfiles = {}
+
+    # T1W file name
+    inputfiles['T1input'] = T1Conformal_nii.replace('-isotropic.nii.gz','.nii.gz')
+
+    # CT,ZTE, or PETRA file name if a file is given
+    if CT_or_ZTE_input is not None:
+        inputfiles['CTZTEinput'] = CT_or_ZTE_input
+
+    # SimbNIBS input file name
+    if SimbNIBSType == 'charm':
+        inputfiles['SimbNIBSinput'] = SimbNIBSDir + os.sep + 'final_tissues.nii.gz'
+        outputfiles['ReuseSimbNIBS'] = SimbNIBSDir + os.sep + 'final_tissues_babelbrain_reuse.npy' # This file is only used to confirm if inputs can be reused
+    else:
+        inputfiles['SimbNIBSinput'] = SimbNIBSDir + os.sep + 'skin.nii.gz'
+        outputfiles['ReuseSimbNIBS'] = SimbNIBSDir + os.sep + 'skin_babelbrain_reuse.npy' # This file is only used to confirm if inputs can be reused
+
+    # SimbNIBS stl file names
+    outputfiles['Skull_STL'] = SimbNIBSDir+os.sep+'bone.stl'
+    outputfiles['CSF_STL'] = SimbNIBSDir+os.sep+'csf.stl'
+    outputfiles['Skin_STL'] = SimbNIBSDir+os.sep+'skin.stl'
+    
+    # BiasCorrec and Coreg File Names
+    if CT_or_ZTE_input is not None:
+        BaseNameInT1 = os.path.splitext(T1Conformal_nii)[0]
+        if '.nii.gz' in T1Conformal_nii:
+            BaseNameInT1 =os.path.splitext(BaseNameInT1)[0]
+
+        if CTType in [2,3]: # ZTE/PETRA
+            outputfiles['T1fnameBiasCorrec'] = BaseNameInT1 + '_BiasCorrec.nii.gz'
+            BaseNameInZTE=os.path.splitext(CT_or_ZTE_input)[0]
+            if '.nii.gz' in CT_or_ZTE_input:
+                BaseNameInZTE=os.path.splitext(BaseNameInZTE)[0]
+            
+            outputfiles['ZTEfnameBiasCorrec'] = BaseNameInZTE + '_BiasCorrec.nii.gz'
+            outputfiles['ZTEInT1W'] = BaseNameInZTE+'_InT1.nii.gz'
+            outputfiles['pCTfname'] = outputfiles["ZTEfnameBiasCorrec"] + '_pCT.nii.gz'
+
+        else: # CT
+            if CoregCT_MRI==0:
+                pass
+            elif CoregCT_MRI == 1:
+                outputfiles['T1fnameBiasCorrec'] = BaseNameInT1 + '_BiasCorrec.nii.gz'
+                outputfiles['T1fname_CTRes'] = BaseNameInT1 + '_BiasCorrec_CT_res.nii.gz'
+
+                CTInT1W = os.path.splitext(CT_or_ZTE_input)[0]
+                if '.nii.gz' in CT_or_ZTE_input:
+                    CTInT1W=os.path.splitext(CTInT1W)[0]
+                
+                CTInT1W += '_InT1.nii.gz'
+                outputfiles['CTInT1W'] = CTInT1W
+            else:
+                outputfiles['T1WinCT'] = BaseNameInT1 + '_InCT.nii.gz'
+
+        # Intermediate mask file name
+        outputfiles['ReuseMask'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'ReuseMask.nii.gz' # This file is only used to confirm if previously generated intermediate mask can be reused
+        
+        # CT file name
+        outputfiles['CTfname'] = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
+
+    return inputfiles, outputfiles
+
+def CheckReuseFiles(infnames, outfnames, currentCTType=None, currentHUT = None, currentZTER = None):
+    # This function grabs checksum and parameter information stored in the header of intermediate nifti files 
+    # generated in previous BabelBrain runs, and determines if those files can be reused to speed up current 
+    # run.
+
+    currentHashes = ""
+    expectedHashes = []
+    expectedCTTypes = []
+    expectedHUThresholds = []
+    expectedZTERanges = []
+    prevfiles = {}
+    CTTypePattern = "CTType=\w+"
+    HUTPattern = "HUT=\d+"
+    ZTERPattern = "ZTER=.+\)"
+
+    if currentCTType is not None:
+        if currentCTType == 1:
+            currentCTType = "CT"
+        elif currentCTType == 2:
+            currentCTType = "ZTE"
+        else: #3
+            currentCTType = "PETRA"
+
+    if currentHUT is not None:
+        currentHUT = int(currentHUT)
+
+    if currentZTER is not None:
+        currentZTER = str(currentZTER)
+
+    # Grab checksum and parameter information from existing nifti file headers
+    for key,file in outfnames.items():
+        prevfiles[key] = outfnames[key]
+
+        # Check if files already exist
+        if not os.path.isfile(file):
+
+            # If file doesn't exist for current target, use existing file for a different target
+            target = re.search("\w+(?=_[a-zA-Z0-9]+_[a-zA-Z0-9]+Hz.+)",file)
+
+            if target is not None:
+                prevTargetSearch = re.sub(target.group(),"*",file)
+                prevTargets = glob.glob(prevTargetSearch)
+
+                if len(prevTargets) > 0:
+                    prevfiles[key] = prevTargets[0] # Use first equivalent file at different target 
+                else:
+                    print(f"Previous files use different transducer, frequency, or PPW")
+                    return False, outfnames
+            else:
+                print(f"Previous files don't exist")
+                return False, outfnames
+
+        if ".nii.gz" in prevfiles[key]:
+            # Load stored information
+            try:
+                prevfile = nibabel.load(prevfiles[key])
+                description = str(prevfile.header['descrip'].astype('str'))
+            except:
+                print(f"{prevfiles[key]} was corrupted")
+                continue
+        elif "babelbrain_reuse.npy" in prevfiles[key]:
+            # Load stored information
+            try:
+                prevfile = np.load(prevfiles[key])
+                description = str(prevfile.astype('str'))
+            except:
+                print(f"final_tissues_babelbrain_reuse.npy was corrupted")
+                continue
+        else:
+            continue # No information stored in stl, npz, etc files
+
+        # Extract parameter information 
+        CTType = re.search(CTTypePattern,description)
+        HUT = re.search(HUTPattern,description)
+        ZTER = re.search(ZTERPattern,description)
+
+        if CTType is not None:
+            expectedCTTypes += [CTType.group()]
+            description = re.sub(CTTypePattern + ",", "",description)
+
+        if HUT is not None:
+            expectedHUThresholds += [HUT.group()]
+            description = re.sub(HUTPattern + ",", "",description)
+
+        if ZTER is not None:
+            expectedZTERanges += [ZTER.group()]
+            description = re.sub(ZTERPattern + ",", "",description)
+        
+        # Extract checksum information
+        expectedHashes += [description]
+    
+    # Grab current checksum information for both input and output files
+    for f in (infnames | prevfiles).values():
+        currentHashes += GetBlake2sHash(f)+","
+
+    # Check all expected hashes match current hashes
+    for expectedHash in expectedHashes:
+        if expectedHash not in currentHashes:
+            print(f"Missing expected hash")
+            return False, outfnames
+
+    # Check all CT Type of previous files match current ones
+    if currentCTType is not None and len(expectedCTTypes) == 0:
+        print(f"Previous files didn't use CT")
+        return False, outfnames
+    else:
+        for expectedCTType in expectedCTTypes:
+            if expectedCTType != f"CTType={currentCTType}":
+                print(f"Previous files used different CT Type")
+                return False, outfnames
+                
+    # Check all HU Threshold of previous files match current ones
+    if currentHUT is not None and len(expectedHUThresholds) == 0:
+        print(f"Previous files didn't have HUThreshold value")
+        return False, outfnames
+    else:
+        for expectedHUT in expectedHUThresholds:
+            if int(expectedHUT[4:]) != currentHUT:
+                print(f"Previous files used different HUThreshold")
+                return False, outfnames
+        
+    # Check all ZTE Range of previous files match current ones
+    if currentZTER is not None and len(expectedZTERanges) == 0:
+        print(f"Previous files didn't have ZTE/PETRA Range values")
+        return False, outfnames
+    else:
+        for expectedZTER in expectedZTERanges:
+            if expectedZTER[5:] != currentZTER:
+                print(f"Previous files used different ZTE/PETRA Range")
+                return False, outfnames
+    
+    print("Reusing previously generated files")
+    return True, prevfiles
+
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
-                                bIsZTE = False,
+                                CTType = 1,
                                 CoregCT_MRI=0, #if using CT, 0 does not coreg (assuming this was done previously), 1 from CT to MRI
                                 ZTERange=(0.1,0.6),
                                 HUThreshold=300.0,
@@ -295,7 +497,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     #load T1W
     T1Conformal=nibabel.load(T1Conformal_nii)
     baseaffine=T1Conformal.affine.copy()
-    print('baseaffine',baseaffine)
+    print('baseaffine',baseaffine,"\n")
     #sanity test to verify we have an isotropic scan
     assert(np.allclose(np.array(T1Conformal.header.get_zooms()),np.ones(3),rtol=1e-3))
     
@@ -303,30 +505,47 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
-    skull_stl=SimbNIBSDir+os.sep+'bone.stl'
-    csf_stl=SimbNIBSDir+os.sep+'csf.stl'
-    skin_stl=SimbNIBSDir+os.sep+'skin.stl'
+    inputfilenames, outputfilenames = GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix)
+    
+    skull_stl=outputfilenames['Skull_STL']
+    csf_stl=outputfilenames['CSF_STL']
+    skin_stl=outputfilenames['Skin_STL']
+    
+    with CodeTimer("Checking if previously generated files can be reused", unit="s"):
+        if CT_or_ZTE_input is None:
+            bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames)
+        else:
+            if CTType in [2,3]:
+                bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold, currentZTER=ZTERange)
+            else:
+                bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold)
+        print(f"bReuseFiles: {bReuseFiles}")
 
     if SimbNIBSType=='charm':
+        if bReuseFiles:
+            TMaskItk=sitk.ReadImage(inputfilenames['SimbNIBSinput'], sitk.sitkFloat32)>0 #we also kept an SITK Object
+        else:
+            #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
+            charminput = inputfilenames['SimbNIBSinput']
+            charm= nibabel.load(charminput)
+            charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+            AllTissueRegion=charmdata>0 #this mimics what the old headreco does for skin
+            TMaskItk=sitk.ReadImage(charminput, sitk.sitkFloat32)>0 #we also kept an SITK Object
 
-        #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
-        charminput = SimbNIBSDir+os.sep+'final_tissues.nii.gz'
-        charm= nibabel.load(charminput)
-        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
-        AllTissueRegion=charmdata>0 #this mimics what the old headreco does for skin
-        TMaskItk=sitk.ReadImage(charminput, sitk.sitkFloat32)>0 #we also kept an SITK Object
+            BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
+            CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
+            with CodeTimer("charm surface recon",unit='s'):
+                skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
+                csf_mesh=MaskToStl(CSFRegion,charm.affine)
+                skull_mesh=MaskToStl(BoneRegion,charm.affine)
+                skin_mesh.export(skin_stl)
+                csf_mesh.export(csf_stl)
+                skull_mesh.export(skull_stl)
 
-        BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
-        CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
-        with CodeTimer("charm surface recon",unit='s'):
-            skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
-            csf_mesh=MaskToStl(CSFRegion,charm.affine)
-            skull_mesh=MaskToStl(BoneRegion,charm.affine)
-            skin_mesh.export(skin_stl)
-            csf_mesh.export(csf_stl)
-            skull_mesh.export(skull_stl)
+            SaveHashInfo(inputfilenames.values(),outputfilenames['ReuseSimbNIBS'])
     else:
-        TMaskItk=sitk.ReadImage(SimbNIBSDir+os.sep+'skin.nii.gz', sitk.sitkFloat32)>0 #we also kept an SITK Object
+        TMaskItk=sitk.ReadImage(inputfilenames['SimbNIBSinput'], sitk.sitkFloat32)>0 #we also kept an SITK Object
+        SaveHashInfo(inputfilenames.values(),outputfilenames['ReuseSimbNIBS'])
 
     #building a cone object representing acoustic beam pointing to desired location
     RadCone=TxDiam/2*factorEnlargeRadius
@@ -592,39 +811,77 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     #Now we deal if CT or ZTE has beegn given as input
     if CT_or_ZTE_input is  None:
-        FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
-        FinalMask[BinMaskConformalCSFRot==1]=4#brain
+        with CodeTimer("Final Mask gen without CT/ZTE", unit="s"):
+            FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
+            FinalMask[BinMaskConformalCSFRot==1]=4#brain
     else:
-        if bIsZTE:
-            print('Processing ZTE to pCT')
-            with CodeTimer("Bias and coregistration ZTE to T1",unit='s'):
-                rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk)
-            with CodeTimer("Conversion ZTE to pCT",unit='s'):
-                rCT = CTZTEProcessing.ConvertZTE_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),
-                    ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType)
-        else:
-            with CodeTimer("Coregistration CT to T1",unit='s'):
-                rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input,CoregCT_MRI,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
-        rCTdata=rCT.get_fdata()
-        hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
-        print('*'*40)
-        print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
-        rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
-        sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
-        sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
-        with CodeTimer("median filter CT",unit='s'):
-            print('Theshold for bone',HUThreshold)
-            if sys.platform in ['linux','win32']:
-                gfct=cupy.asarray((rCTdata>HUThreshold))
-                gfct=cndimage.median_filter(gfct,sf)
-            else:
-                fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
+        if bReuseFiles:
+            # Grab previously generated mask
+            fct = nibabel.load(prevoutputfilenames['ReuseMask'])
 
-        with CodeTimer("binary closing CT",unit='s'):
-            if sys.platform in ['linux','win32']:
-                fct=gfct.get()
-            fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
-        fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
+            # Load in appropriate rCT and resave fct under curent file name
+            if CTType in [2,3]:
+                rCT = nibabel.load(outputfilenames['pCTfname'])
+
+                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
+            else:
+                if CoregCT_MRI == 0:
+                    rCT = nibabel.load(inputfilenames['CTZTEinput'])
+
+                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+                elif CoregCT_MRI == 1:
+                    rCT = nibabel.load(outputfilenames['CTInT1W'])
+
+                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+                else:
+                    rCT = nibabel.load(outputfilenames['T1WinCT'])
+
+                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+
+            rCTdata=rCT.get_fdata()
+        else:
+            if CTType in [2,3]:
+                print('Processing ZTE/PETRA to pCT')
+                bIsPetra = CTType==3
+                with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
+                    rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames)
+                with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
+                    rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),outputfilenames,
+                        ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
+            else:
+                with CodeTimer("Coregistration CT to T1",unit='s'):
+                    rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input, outputfilenames, CoregCT_MRI, bReuseFiles,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
+            rCTdata=rCT.get_fdata()
+            hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
+            print('*'*40)
+            print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
+            rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
+            sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
+            sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
+            with CodeTimer("median filter CT",unit='s'):
+                print('Theshold for bone',HUThreshold)
+                if sys.platform in ['linux','win32']:
+                    gfct=cupy.asarray((rCTdata>HUThreshold))
+                    gfct=cndimage.median_filter(gfct,sf)
+                else:
+                    fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
+
+            with CodeTimer("binary closing CT",unit='s'):
+                if sys.platform in ['linux','win32']:
+                    fct=gfct.get()
+                fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
+            fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
+
+            # fct can be reused in future sims to save time
+            if CTType in [2,3]:
+                SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold,ZTER=ZTERange)
+            else:
+                if CoregCT_MRI == 0:
+                    SaveHashInfo([outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+                elif CoregCT_MRI == 1:
+                    SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
+                else:
+                    SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
 
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
@@ -656,8 +913,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         nfct=np.zeros_like(FinalMask)
 
         inds=(AffIJK[:,0]<nfct.shape[0])&\
-             (AffIJK[:,1]<nfct.shape[1])&\
-             (AffIJK[:,2]<nfct.shape[2])
+            (AffIJK[:,1]<nfct.shape[1])&\
+            (AffIJK[:,2]<nfct.shape[2])
         AffIJK=AffIJK[inds,:]
 
         nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
@@ -702,15 +959,18 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 label_img = label(FinalMask==1)
             else:
                 label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
-          
+        
         with CodeTimer("regionprops",unit='s'):
             regions= regionprops(label_img)
 
         print("number of skin region islands", len(regions))
         regions=sorted(regions,key=lambda d: d.area)
+        AllLabels=[]
         for l in regions[:-1]:
-            FinalMask[label_img==l.label]=4
+            AllLabels.append(l.label)
 
+        FinalMask[np.isin(label_img,np.array(AllLabels))]=4
+            
         CTBone=ndataCT[nfct]
         CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
@@ -724,7 +984,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ndataCT[nfct]=qx
         UniqueHU=np.unique(ndataCT[nfct])
         print('Unique CT values',len(UniqueHU))
-        np.savez_compressed(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal',UniqueHU=UniqueHU)
+        CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
+        np.savez_compressed(CTCalfname,UniqueHU=UniqueHU)
+
         with CodeTimer("Mapping unique values",unit='s'):
             if MapFilter is None:
                 ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
@@ -734,11 +996,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
-        nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT.nii.gz'
-        nCT.to_filename(outname)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl'
-        smct.export(outname)
+            smct.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl')
+            nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
+
+            if CTType in [2,3]:
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold, ZTER=ZTERange)
+            else:
+                SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
         if sys.platform in ['linux','win32']:

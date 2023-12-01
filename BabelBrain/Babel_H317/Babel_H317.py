@@ -236,6 +236,10 @@ class RunAcousticSim(QObject):
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self._mainApp.Config['CTType']==3:
+                kargs['bPETRA']=True
 
         # Start mask generation as separate process.
         queue=Queue()
