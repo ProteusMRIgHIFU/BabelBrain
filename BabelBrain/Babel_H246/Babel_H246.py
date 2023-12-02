@@ -148,10 +148,12 @@ class H246(BabelBaseTx):
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 
     def NotifyError(self):
+        self._MainApp.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")

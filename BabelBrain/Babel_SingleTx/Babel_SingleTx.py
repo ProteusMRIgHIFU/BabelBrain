@@ -115,7 +115,11 @@ class SingleTx(BabelBaseTx):
         if ZMec < self.Widget.ZMechanicSpinBox.minimum():
             self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.minimum())
             ZMec=self.Widget.ZMechanicSpinBox.minimum()
-        
+        self.UpdateDistanceLabels()
+        self._bIgnoreUpdate=False 
+
+    def UpdateDistanceLabels(self):
+        ZMec=self.Widget.ZMechanicSpinBox.value()
         CurDistance=self._ZMaxSkin-ZMec
         self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
         if CurDistance<0:
@@ -124,8 +128,6 @@ class SingleTx(BabelBaseTx):
         else:
             self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
             self.Widget.LabelTissueRemoved.setVisible(False)
-            
-        self._bIgnoreUpdate=False 
 
 
     def UpdateLimits(self):
@@ -136,6 +138,7 @@ class SingleTx(BabelBaseTx):
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.UpdateDistanceLabels()
 
     def GetExtraSuffixAcFields(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
@@ -191,10 +194,13 @@ class SingleTx(BabelBaseTx):
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
+
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 
     def NotifyError(self):
+        self._MainApp.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")

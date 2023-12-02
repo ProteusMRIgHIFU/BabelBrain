@@ -200,11 +200,12 @@ class Babel_Thermal(QWidget):
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
             self._MainApp.Widget.tabWidget.setEnabled(False)
-            print('thermal sim thread initiated')
+            self._MainApp.showClockDialog()
         else:
             self.UpdateThermalResults()
 
     def NotifyError(self):
+        self._MainApp.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")
@@ -231,6 +232,7 @@ class Babel_Thermal(QWidget):
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
+            self._MainApp.hideClockDialog()
             self._NiftiThermalNames=[]
             self._LastTMap=-1
             for combination in self.Config['AllDC_PRF_Duration']:

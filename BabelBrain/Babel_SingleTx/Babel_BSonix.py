@@ -90,6 +90,7 @@ class BSonix(SingleTx):
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.UpdateDistanceLabels()
 
 
     @Slot()
@@ -140,6 +141,7 @@ class BSonix(SingleTx):
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 

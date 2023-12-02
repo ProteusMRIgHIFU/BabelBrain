@@ -45,6 +45,7 @@ class BabelBaseTx(QWidget):
         This is a common function for most Tx to show results
         '''
         if self._bRecalculated:
+            self._MainApp.hideClockDialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:

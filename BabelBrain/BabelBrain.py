@@ -381,7 +381,7 @@ class BabelBrain(QWidget):
         plt.rcParams['xtick.color'] = FIGTEXTCOLOR
         plt.rcParams['ytick.color'] = FIGTEXTCOLOR
 
-        self.WorkingDialog = ClockDialog(self)
+        self._WorkingDialog = ClockDialog(self)
         self.moveTimer = QTimer(self)
         self.moveTimer.setSingleShot(True)
         self.moveTimer.timeout.connect(self.centerClockDialog)
@@ -390,14 +390,17 @@ class BabelBrain(QWidget):
     def showClockDialog(self):
         self.centerClockDialog()
         # Show the dialog
-        self.WorkingDialog.show()
+        self._WorkingDialog.show()
+
+    def hideClockDialog(self):
+        self._WorkingDialog.hide()
 
     def centerClockDialog(self):
         # Calculate and set the new position for the dialog
         mainWindowCenter = self.geometry().center()
-        dialogWidth = self.WorkingDialog.width()
-        dialogHeight = self.WorkingDialog.height()
-        self.WorkingDialog.move(
+        dialogWidth = self._WorkingDialog.width()
+        dialogHeight = self._WorkingDialog.height()
+        self._WorkingDialog.move(
             mainWindowCenter.x() - 50,
             mainWindowCenter.y() - 50
         )
@@ -405,7 +408,7 @@ class BabelBrain(QWidget):
     def moveEvent(self, event):
         super().moveEvent(event)
         # Re-center the dialog when the main window moves
-        if self.WorkingDialog.isVisible():
+        if self._WorkingDialog.isVisible():
             self.moveTimer.start() # the timer will make the move of the wait dialog less clunky
 
     def SaveLatestSelection(self):
@@ -622,9 +625,9 @@ class BabelBrain(QWidget):
             
         if self.Config['TrajectoryType']=='brainsight':
             OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])
-            OrigTraj[0,3]+=CorX
-            OrigTraj[1,3]+=CorY
-            OrigTraj[2,3]+=CorZ
+            OrigTraj[0,3]-=CorX
+            OrigTraj[1,3]-=CorY
+            OrigTraj[2,3]-=CorZ
             with open(self.Config['Mat4Trajectory'],'r') as f:
                 allLines=f.readlines()
             for n,l in enumerate(allLines):
@@ -668,7 +671,7 @@ class BabelBrain(QWidget):
         self.AcSim.NotifyGeneratedMask()
 
     def NotifyError(self):
-        self.WorkingDialog.hide()
+        self.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")
@@ -678,7 +681,7 @@ class BabelBrain(QWidget):
         '''
         Refresh mask
         '''
-        self.WorkingDialog.hide()
+        self.hideClockDialog()
         if self.Widget.HideMarkscheckBox.isEnabled()== False:
             self.Widget.HideMarkscheckBox.setEnabled(True)
         self.Widget.tabWidget.setEnabled(True)

@@ -154,10 +154,12 @@ class H317(BabelBaseTx):
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 
     def NotifyError(self):
+        self._MainApp.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")
@@ -174,6 +176,7 @@ class H317(BabelBaseTx):
     def UpdateAcResults(self):
         #We overwrite the base class method
         if self._bRecalculated:
+            self._MainApp.hideClockDialog()
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
