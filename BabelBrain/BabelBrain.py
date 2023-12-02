@@ -20,8 +20,8 @@ import SimpleITK as sitk
 import nibabel
 import numpy as np
 import yaml
-from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot
-from PySide6.QtGui import QIcon, QPalette, QTextCursor
+from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
+from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -197,7 +197,8 @@ def GetInputFromBrainsight():
         ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
         header =  GetBrainSightHeader(PathMat4Trajectory)
         if header['Version']=='13':
-            EndWithError("Version 13 of export trajectory not supported.\nEnding BabelBrain execution")
+            # EndWithError("Version 13 of export trajectory not supported.\nEnding BabelBrain execution")
+            pass
         else:
             if header['Version']!='14':
                 msgBox = QMessageBox()
@@ -263,7 +264,31 @@ def GetInputFromBrainsight():
         
     return res,header
 
+def EndWithError(msg):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Critical)
+        msgBox.setText(msg)
+        msgBox.exec()
+        raise SystemError(msg)
 ########################
+class ClockDialog(QDialog):
+    def __init__(self, parent=None):
+        super(ClockDialog,self).__init__(parent)
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
+        self.setModal(False)
+
+        self.label = QLabel(self)
+        self.movie = QMovie( os.path.join(resource_path(),'icons8-hourglass.gif'))
+        self.label.setMovie(self.movie)
+        self.movie.start()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 class BabelBrain(QWidget):
     '''
@@ -356,6 +381,33 @@ class BabelBrain(QWidget):
         plt.rcParams['xtick.color'] = FIGTEXTCOLOR
         plt.rcParams['ytick.color'] = FIGTEXTCOLOR
 
+        self.WorkingDialog = ClockDialog(self)
+        self.moveTimer = QTimer(self)
+        self.moveTimer.setSingleShot(True)
+        self.moveTimer.timeout.connect(self.centerClockDialog)
+        self.moveTimer.setInterval(500) 
+
+    def showClockDialog(self):
+        self.centerClockDialog()
+        # Show the dialog
+        self.WorkingDialog.show()
+
+    def centerClockDialog(self):
+        # Calculate and set the new position for the dialog
+        mainWindowCenter = self.geometry().center()
+        dialogWidth = self.WorkingDialog.width()
+        dialogHeight = self.WorkingDialog.height()
+        self.WorkingDialog.move(
+            mainWindowCenter.x() - 50,
+            mainWindowCenter.y() - 50
+        )
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        # Re-center the dialog when the main window moves
+        if self.WorkingDialog.isVisible():
+            self.moveTimer.start() # the timer will make the move of the wait dialog less clunky
+
     def SaveLatestSelection(self):
         if not os.path.isfile(_LastSelConfig):
             try:
@@ -397,7 +449,7 @@ class BabelBrain(QWidget):
         elif self.Config['TxSystem'] =='BSonix':
             from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         else:
-            self.EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
+            EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
         from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
 
@@ -502,14 +554,6 @@ class BabelBrain(QWidget):
             obj.setProperty('UserData',obj.value())
 
 
-    def EndWithError(self,msg):
-         msgBox = QMessageBox()
-         msgBox.setIcon(QMessageBox.Critical)
-         msgBox.setText(msg)
-         msgBox.exec()
-         raise SystemError(msg)
-
-
 
     @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
@@ -567,6 +611,7 @@ class BabelBrain(QWidget):
 
             self.thread.start()
             self.Widget.tabWidget.setEnabled(False)
+            self.showClockDialog()
 
         else:
             self.UpdateMask()
@@ -623,6 +668,7 @@ class BabelBrain(QWidget):
         self.AcSim.NotifyGeneratedMask()
 
     def NotifyError(self):
+        self.WorkingDialog.hide()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")
@@ -632,6 +678,7 @@ class BabelBrain(QWidget):
         '''
         Refresh mask
         '''
+        self.WorkingDialog.hide()
         if self.Widget.HideMarkscheckBox.isEnabled()== False:
             self.Widget.HideMarkscheckBox.setEnabled(True)
         self.Widget.tabWidget.setEnabled(True)
@@ -955,11 +1002,12 @@ def main():
 
     AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
-        Brainsight=GetInputFromBrainsight()
+        Brainsight,header=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
         selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
         selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
+        selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(0)
         AltOutputFilesPath=Brainsight['outputfiles_path']
 
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))

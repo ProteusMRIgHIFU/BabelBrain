@@ -6,9 +6,9 @@ from multiprocessing import Process,Queue
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QTextEdit,
-                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
+                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,QFrame,
                 QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor,QColor
@@ -518,10 +518,11 @@ class Babel_Thermal(QWidget):
         SelIsppa=self.Widget.IsppaSpinBox.value()
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
         BasePath = OutName.split('_DataForSim')[0]
-        print(OutName)
+        
         OutName = OutName.replace('_DataForSim','')
         OutName = OutName.split('-Isppa')[0] + ('_Isppa_%2.1fW' % (SelIsppa)).replace('.','p') + '-PRF' + OutName.split('-PRF')[1]
         OutName+='.nii.gz'
+        print(OutName)
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
         if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
