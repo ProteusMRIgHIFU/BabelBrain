@@ -357,8 +357,6 @@ class BabelBrain(QWidget):
                 if os.path.isfile(fpath):
                     os.remove(fpath)
 
-        
-        
         if AltOutputFilesPath is not None:
             self.Config['OutputFilesPath']=AltOutputFilesPath
         else:
@@ -694,7 +692,7 @@ class BabelBrain(QWidget):
         T1WData=np.flip(T1WData,axis=2)
         self._T1WData=T1WData
         
-        self._DataMask=Data
+        self._MaskData=Data
         if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
             CTData=np.flip(self._CTnib.get_fdata(),axis=2)

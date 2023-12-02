@@ -85,7 +85,7 @@ class SingleTx(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -100,6 +100,7 @@ class SingleTx(BabelBaseTx):
             self.Widget.ZMechanicSpinBox.setValue(0.0) # Tx aligned at the target
         else:
             self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin) #if negative, we push back the Tx as it can't go below this
+        self._UnmodifiedZMechanic = 0.0
         
     
     @Slot()

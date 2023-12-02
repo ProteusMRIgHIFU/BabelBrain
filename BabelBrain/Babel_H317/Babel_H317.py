@@ -89,7 +89,7 @@ class H317(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -97,7 +97,7 @@ class H317(BabelBaseTx):
 
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
-
+        self._UnmodifiedZMechanic = 0.0
         self.ZSteeringUpdate(0)
 
     @Slot()

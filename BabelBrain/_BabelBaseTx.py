@@ -21,6 +21,22 @@ class BabelBaseTx(QWidget):
         super(BabelBaseTx, self).__init__(parent)
 
     def ExportStep2Results(self,Results):
+        FocIJK=np.ones((4,1))
+        FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
+
+        FocXYZ=self._MainApp._MaskData.affine@FocIJK
+        FocIJKAdjust=FocIJK.copy()
+        #we adjust in steps
+        FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[0]
+        FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[1]
+
+        FocXYZAdjust=self._MainApp._MaskData.affine@FocIJKAdjust
+        AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
+
+        print('AdjustmentInRAS recalc',AdjustmentInRAS)
+        print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
+
+
         fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
                                         CorY=Results['AdjustmentInRAS'][1],
                                         CorZ=Results['AdjustmentInRAS'][2])

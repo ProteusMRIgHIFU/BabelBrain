@@ -88,7 +88,7 @@ class CTX500(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -103,6 +103,7 @@ class CTX500(BabelBaseTx):
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])  
         self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
+        self._UnmodifiedZMechanic = self._ZMaxSkin
         self.TPODistanceUpdate(0)
 
     @Slot()

@@ -92,7 +92,7 @@ class H246(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -103,6 +103,7 @@ class H246(BabelBaseTx):
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
         self.TPODistanceUpdate(0)
+        self._UnmodifiedZMechanic = 0.0
 
     @Slot()
     def RunSimulation(self):
