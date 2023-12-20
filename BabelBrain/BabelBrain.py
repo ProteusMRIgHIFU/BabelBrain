@@ -261,6 +261,13 @@ def GetInputFromBrainsight():
                 res=None
     else:
         EndWithError("Incomplete Brainsight input files at\n" + BabelBrain._BrainsightSyncPath)
+
+    ofiles =[_BrainsightSyncPath+ os.sep+'Output.txt',
+            _BrainsightSyncPath+ os.sep+'Output_TargetModified.txt',
+            _BrainsightSyncPath+ os.sep+'Output_Thermal.txt']
+    for fpath in ofiles:
+        if os.path.isfile(fpath):
+            os.remove(fpath)
         
     return res,header
 
@@ -885,6 +892,7 @@ class RunMaskGeneration(QObject):
         kargs['CoregCT_MRI']=self._mainApp.Config['CoregCT_MRI']
         kargs['TrajectoryType']=self._mainApp.Config['TrajectoryType']
         kargs['Mat4Trajectory']=self._mainApp.Config['Mat4Trajectory'] #Path to trajectory file
+        kargs['T1Source_nii']=T1W
         kargs['T1Conformal_nii']=T1WIso
         kargs['nIterationsAlign']=10
         kargs['SpatialStep']=SpatialStep

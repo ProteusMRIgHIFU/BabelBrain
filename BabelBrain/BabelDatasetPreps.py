@@ -257,12 +257,12 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
-def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix):
+def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Source_nii,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix):
     inputfiles = {}
     outputfiles = {}
 
     # T1W file name
-    inputfiles['T1input'] = T1Conformal_nii.replace('-isotropic.nii.gz','.nii.gz')
+    inputfiles['T1input'] = T1Source_nii
 
     # CT,ZTE, or PETRA file name if a file is given
     if CT_or_ZTE_input is not None:
@@ -458,6 +458,7 @@ def CheckReuseFiles(infnames, outfnames, currentCTType=None, currentHUT = None, 
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
+                                T1Source_nii ='4007/4007_keep/m2m_4007_keep/T1.nii.gz',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
                                 CTType = 1,
@@ -506,7 +507,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
-    inputfilenames, outputfilenames = GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix)
+    inputfilenames, outputfilenames = GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Source_nii,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix)
     
     skull_stl=outputfilenames['Skull_STL']
     csf_stl=outputfilenames['CSF_STL']
