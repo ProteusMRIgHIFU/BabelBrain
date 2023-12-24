@@ -371,6 +371,8 @@ class BabelBrain(QWidget):
 
         
         self.Config['T1WIso']= self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-isotropic.nii.gz')
+        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
+            self.Config['version'] =f.readlines()[0]
 
         self.SaveLatestSelection()
 
@@ -528,9 +530,7 @@ class BabelBrain(QWidget):
             sel=self.Widget.USMaskkHzDropDown.findText('500')
             self.Widget.USMaskkHzDropDown.setCurrentIndex(sel)
 
-        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
-            version=f.readlines()[0]
-        self.setWindowTitle('BabelBrain V'+version +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
+        self.setWindowTitle('BabelBrain V'+self.Config['version'] +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
                             ' - ' + os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
         self.Widget.IDLabel.setText(self.Config['ID'])
         self.Widget.TXLabel.setText(self.Config['TxSystem'])
@@ -636,6 +636,8 @@ class BabelBrain(QWidget):
             with open(self.Config['Mat4Trajectory'],'r') as f:
                 allLines=f.readlines()
             for n,l in enumerate(allLines):
+                if 'Created by: ' in l:
+                    allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] +'\n' 
                 if l[0]!='#':
                     break
             LastLine=l.split('\t')
