@@ -330,6 +330,11 @@ target (mm)</string>
    </property>
    <item>
     <property name="text">
+     <string>35mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
      <string>55mm</string>
     </property>
    </item>
