@@ -213,15 +213,15 @@ def GetInputFromBrainsight():
             bValidT1W=False
             #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
             if header['Coordinate system'] == 'NIfTI:Q:Scanner':
-                bValidT1W = qformcode==1 and sformcode==0
+                bValidT1W = qformcode==1
             elif header['Coordinate system'] == 'NIfTI:Q:Aligned':
-                bValidT1W = qformcode==2 and sformcode==0
+                bValidT1W = qformcode==2
             elif header['Coordinate system'] == 'NIfTI:Q:MNI-152':
-                bValidT1W = qformcode==3 and sformcode==0
+                bValidT1W = qformcode==3
             elif header['Coordinate system'] == 'NIfTI:Q:Talairach':
-                bValidT1W = qformcode==4 and sformcode==0
+                bValidT1W = qformcode==4
             elif header['Coordinate system'] == 'NIfTI:Q:Other-Template':
-                bValidT1W = qformcode==5 and sformcode==0
+                bValidT1W = qformcode==5
             elif header['Coordinate system'] == 'NIfTI:S:Scanner':
                 bValidT1W = sformcode==1 
             elif header['Coordinate system'] == 'NIfTI:S:Aligned':
