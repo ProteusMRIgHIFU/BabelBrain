@@ -1,15 +1,15 @@
 BSonix35mm:
-    TxFoc:                    55.0e-3 #Tx focal length
-    TxDiam:                   61.0e-3 #Tx aperture diameter
-    AdjustDistanceSkin:       12.8e-3  
+    TxFoc:                    43.5e-3 #Tx focal length
+    TxDiam:                   48.0e-3 #Tx aperture diameter
+    AdjustDistanceSkin:       5.6e-3  
 BSonix55mm:
-    TxFoc:                    68.0e-3 #Tx focal length
+    TxFoc:                    68.5e-3 #Tx focal length
     TxDiam:                   61.0e-3 #Tx aperture diameter
-    AdjustDistanceSkin:       5.3e-3  
+    AdjustDistanceSkin:       6.8e-3  
 BSonix65mm:
-    TxFoc:                    74.0e-3 #Tx focal length
-    TxDiam:                   61.0e-3 # Tx aperture diameter
-    AdjustDistanceSkin:       3.00e-3 
+    TxFoc:                    88.8e-3 #Tx focal length
+    TxDiam:                   73.2e-3 # Tx aperture diameter #we use a F# =1.21, which was for the old Foc of 74 mm and diameter of 61, this will produce the same focal spot
+    AdjustDistanceSkin:       21.0e-3 
 BSonix80mm:
     TxFoc:                    89.0e-3 #Tx focal length
     TxDiam:                   61.0e-3 #Tx aperture diameter
