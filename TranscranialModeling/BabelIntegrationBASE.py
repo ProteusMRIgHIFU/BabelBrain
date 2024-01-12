@@ -386,10 +386,7 @@ class RUN_SIM_BASE(object):
                 **kargs):
         OutNames=[]
         for target in targets:
-            if 250e3 in Frequencies:
-                subsamplingFactor=1 
-            else:
-                subsamplingFactor=2# Brainsight can't handle very large 3D files with high res, so we need to 
+            subsamplingFactor=1 
             #sub sample when save the final results.
             for Frequency in Frequencies:
                 alignments=['']
