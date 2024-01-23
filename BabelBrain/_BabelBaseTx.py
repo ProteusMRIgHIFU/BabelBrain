@@ -16,8 +16,6 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from BabelBrain import ReturnCodes
-
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
