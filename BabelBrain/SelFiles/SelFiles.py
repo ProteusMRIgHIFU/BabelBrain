@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 
+
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
@@ -239,7 +240,8 @@ class SelFiles(QDialog):
 
     @Slot()
     def Cancel(self):
-        sys.exit(0)
+        self.done(-1)
+         
 if __name__ == "__main__":
     
     app = QApplication(sys.argv)

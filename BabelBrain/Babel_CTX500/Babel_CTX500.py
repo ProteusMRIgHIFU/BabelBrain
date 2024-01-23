@@ -175,13 +175,6 @@ class CTX500(BabelBaseTx):
         else:
             self.UpdateAcResults()
 
-    def NotifyError(self):
-        self._MainApp.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
-   
     def GetExport(self):
         Export={}
         for k in ['TPODistance','XMechanic','YMechanic']:

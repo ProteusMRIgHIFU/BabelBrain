@@ -2,7 +2,7 @@
 Base Class for Tx GUI, not to be instantiated directly
 '''
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QPalette
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
@@ -15,6 +15,8 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+
+from BabelBrain import ReturnCodes
 
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
@@ -54,12 +56,22 @@ class BabelBaseTx(QWidget):
         #please note this one needs to be called after child class called its load_ui
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.UpdateAcResults)
+
+    @Slot()
+    def NotifyError(self):
+        self._MainApp.SetErrorAcousticsCode()
+        self._MainApp.hideClockDialog()
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Critical)
+        msgBox.setText("There was an error in execution -\nconsult log window for details")
+        msgBox.exec()
     
     @Slot()
     def UpdateAcResults(self):
         '''
         This is a common function for most Tx to show results
         '''
+        self._MainApp.SetSuccesCode()
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:

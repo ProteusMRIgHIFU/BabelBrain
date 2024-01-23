@@ -115,6 +115,14 @@ def get_text_values(initial_texts, parent=None, title="", label=""):
 
 ###################################################################
 
+ReturnCodes={}
+ReturnCodes['SUCCES']=0
+ReturnCodes['CANCEL_OR_INCOMPLETE']=1
+ReturnCodes['ERROR_DOMAIN']=2
+ReturnCodes['ERROR_ACOUSTICS']=3
+
+##########################
+
 class OutputWrapper(QObject):
     outputWritten = Signal(object, object)
 
@@ -393,6 +401,8 @@ class BabelBrain(QWidget):
         self.moveTimer.setSingleShot(True)
         self.moveTimer.timeout.connect(self.centerClockDialog)
         self.moveTimer.setInterval(500) 
+
+        self.RETURN_CODE = ReturnCodes['CANCEL_OR_INCOMPLETE']
 
     def showClockDialog(self):
         self.centerClockDialog()
@@ -678,6 +688,7 @@ class BabelBrain(QWidget):
         self.AcSim.NotifyGeneratedMask()
 
     def NotifyError(self):
+        self.SetErrorDomainCode()
         self.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
@@ -833,6 +844,16 @@ class BabelBrain(QWidget):
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
         return self.Config | ExtraConfig
+    
+    ##
+    def SetSuccesCode(self):
+        self.RETURN_CODE = ReturnCodes['SUCCES']
+
+    def SetErrorDomainCode(self):
+        self.RETURN_CODE = ReturnCodes['ERROR_DOMAIN']
+
+    def SetErrorAcousticsCode(self):
+        self.RETURN_CODE = ReturnCodes['ERROR_ACOUSTICS']
 
 class RunMaskGeneration(QObject):
 
@@ -956,7 +977,7 @@ def main():
         def error(self, message):
             sys.stderr.write('error: %s\n' % message)
             self.print_help()
-            sys.exit(2)
+            sys.exit(10)
     
     parser = MyParser(prog='BabelBrain', usage='python %(prog)s.py [options]',description='Run BabelBrain simulation',  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-bInUseWithBrainsight', action='store_true')
@@ -1024,14 +1045,20 @@ def main():
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
 
-    
-    selwidget.exec()
+
+    ret=selwidget.exec()
+    if ret ==-1:
+        sys.exit(ReturnCodes['CANCEL_OR_INCOMPLETE'])
     
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight,
                         AltOutputFilesPath=AltOutputFilesPath)
     widget.show()
-    sys.exit(app.exec())
+    retcode=app.exec()
+    if (retcode==0):
+        sys.exit(widget.RETURN_CODE)
+    else:
+        return retcode
 
 if __name__ == "__main__":
 

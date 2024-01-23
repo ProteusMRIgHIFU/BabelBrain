@@ -158,13 +158,6 @@ class H317(BabelBaseTx):
         else:
             self.UpdateAcResults()
 
-    def NotifyError(self):
-        self._MainApp.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
-
     def GetExport(self):
         Export={}
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
@@ -174,6 +167,7 @@ class H317(BabelBaseTx):
 
     @Slot()
     def UpdateAcResults(self):
+        self._MainApp.SetSuccesCode()
         #We overwrite the base class method
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
