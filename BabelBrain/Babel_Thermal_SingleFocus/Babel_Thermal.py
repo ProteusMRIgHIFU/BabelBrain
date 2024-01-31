@@ -537,7 +537,7 @@ class Babel_Thermal(QWidget):
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
         nii.to_filename(OutName)
-        #If runnning with Brainsight, we save the path of thermal map
+        #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
                 f.write(OutName)

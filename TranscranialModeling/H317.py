@@ -43,7 +43,7 @@ def computeH317Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=9.5,FocalDi
             #we calculate the Euclidean distance 
             DistanceToOtherElements=np.linalg.norm(RestTx-np.repeat(SelElem,127,axis=0),axis=1)
             NormalizedDistance=DistanceToOtherElements/FocalDistance
-            #the angular distance between the tx elements is straighforward
+            #the angular distance between the tx elements is straightforward
             AngularDistance=2*np.arcsin(NormalizedDistance/2.0)
             
             assert(AngularDistance.size==127)

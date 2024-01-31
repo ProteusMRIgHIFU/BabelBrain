@@ -291,7 +291,7 @@ class SimulationConditions(SimulationConditionsBASE):
         if platform != "darwin":
             InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
-        #first we generate the high res source of the tx elemens
+        #first we generate the high res source of the tx elements
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
@@ -321,7 +321,7 @@ class SimulationConditions(SimulationConditionsBASE):
         ds=np.ones((1))*self._SpatialStep**2
 
         center=np.zeros((1,3),np.float32)
-        #to avoid adding an erroneus steering to the calculations, we need to discount the mechanical motion 
+        #to avoid adding an erroneous steering to the calculations, we need to discount the mechanical motion 
         center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
         center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
         center[0,2]=self._ZSteering

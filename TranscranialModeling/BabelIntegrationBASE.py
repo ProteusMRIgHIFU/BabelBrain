@@ -189,7 +189,7 @@ def primeCheck(n):
     if n==1 or n==0 or (n % 2 == 0 and n > 2):
         return False
     else:
-        # Not prime if divisable by another number less
+        # Not prime if divisible by another number less
         # or equal to the square root of itself.
         # n**(1/2) returns square root of n
         for i in range(3, int(n**(1/2))+1, 2):
@@ -503,7 +503,7 @@ class BabelFTD_Simulations_BASE(object):
                  bNoShear=False,
                  pressure=50e3,
                  SensorSubSampling=8,
-                 bTightNarrowBeamDomain=False, #if this set, simulations will be done only accross a section area that follows the acoustic beam, this is useful to reduce computational costs
+                 bTightNarrowBeamDomain=False, #if this set, simulations will be done only across a section area that follows the acoustic beam, this is useful to reduce computational costs
                  zLengthBeyonFocalPointWhenNarrow=4e-2,
                  TxMechanicalAdjustmentX=0.0, #Positioning of Tx
                  TxMechanicalAdjustmentY=0.0,
@@ -874,9 +874,9 @@ class SimulationConditionsBASE(object):
                       bDisplay=True,
                       bTightNarrowBeamDomain = False,
                       zLengthBeyonFocalPointWhenNarrow=4e-2,
-                      TxMechanicalAdjustmentX =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
-                      TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
-                      TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechnical adjustment can ensure focusing)
+                      TxMechanicalAdjustmentX =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
+                      TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
+                      TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
                       DensityCTMap=None, #use CT map
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
@@ -1368,7 +1368,7 @@ elif self._bTightNarrowBeamDomain:
         if self._Sensor['time'].shape[0]%(self._PPP/self._SensorSubSampling) !=0: #because some roundings, we may get
             print('Rounding of time vector was not exact multiple of PPP, truncating time vector a little')
             nDiff=int(self._Sensor['time'].shape[0]%(self._PPP/self._SensorSubSampling))
-            print(' Cutting %i entries from sensor from lenght %i to %i' %(nDiff,self._Sensor['time'].shape[0],self._Sensor['time'].shape[0]-nDiff))
+            print(' Cutting %i entries from sensor from length %i to %i' %(nDiff,self._Sensor['time'].shape[0],self._Sensor['time'].shape[0]-nDiff))
             self._Sensor['time']=self._Sensor['time'][:-nDiff]
             self._Sensor['Pressure']=self._Sensor['Pressure'][:-nDiff]
         assert((self._Sensor['time'].shape[0]%(self._PPP/self._SensorSubSampling))==0)

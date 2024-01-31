@@ -613,7 +613,7 @@ class BabelBrain(QWidget):
             bCalcMask = True
 
         if bCalcMask:
-            #We run the Backkground
+            #We run the Background
             self.thread = QThread()
             self.worker = RunMaskGeneration(self)
             self.worker.moveToThread(self.thread)
