@@ -16,6 +16,9 @@ import time
 from multiprocessing import Process, Queue
 from pathlib import Path
 
+sys.path.append(os.path.abspath('../'))
+sys.path.append(os.path.abspath('./'))
+
 import SimpleITK as sitk
 import nibabel
 import numpy as np
@@ -68,8 +71,6 @@ if sys.platform =='linux':
 
 
 
-sys.path.append(os.path.abspath('../'))
-sys.path.append(os.path.abspath('./'))
 
 
 
@@ -408,8 +409,8 @@ class BabelBrain(QWidget):
         #Then we update the GUI and control parameters
         self.UpdateMaskParameters()
 
-        stdout = OutputWrapper(self, True)
-        stdout.outputWritten.connect(self.handleOutput)
+        # stdout = OutputWrapper(self, True)
+        # stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
 
