@@ -90,17 +90,22 @@ class BSonix(SingleTx):
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.UpdateDistanceLabels()
+
+    def GetExtraSuffixAcFields(self):
+        #By default, it returns empty string, useful when dealing with user-specified geometry
+        model=self.GetTxModel()
+        return model+'_'
 
 
     @Slot()
     def RunSimulation(self):
+        extrasuffix=self.GetExtraSuffixAcFields()
         model=self.GetTxModel()
         FocalLength = self.Config[model]['TxFoc']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
         self._FullSolName=self._MainApp._prefix_path+model+'_DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+model+'_Water_DataForSim.h5' 
-        extrasuffix=model+'_'
-        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
@@ -140,6 +145,7 @@ class BSonix(SingleTx):
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 

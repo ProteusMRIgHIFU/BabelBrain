@@ -237,7 +237,7 @@ class SimulationConditions(SimulationConditionsBASE):
         if platform != "darwin":
             InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
-        #first we generate the high res source of the tx elemens
+        #first we generate the high res source of the tx elements
         self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
         self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         

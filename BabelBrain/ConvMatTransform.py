@@ -69,6 +69,11 @@ def GetIDTrajectoryBrainsight(fname):
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names).iloc[0]  
     return df['Target name']
 
+def GetBrainSightHeader(fname):
+    data = open(fname).readlines()
+    dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:-2]}
+    return dct
+
 def ReadTrajectoryBrainsight(fname):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',

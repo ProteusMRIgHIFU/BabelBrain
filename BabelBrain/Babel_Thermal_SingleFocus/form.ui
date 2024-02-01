@@ -157,10 +157,10 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>86</x>
-     <y>438</y>
-     <width>176</width>
-     <height>38</height>
+     <x>22</x>
+     <y>432</y>
+     <width>152</width>
+     <height>48</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -170,7 +170,8 @@
     <string notr="true"/>
    </property>
    <property name="text">
-    <string>Export summary (CSV)</string>
+    <string>Export summary
+(CSV)</string>
    </property>
   </widget>
   <widget class="QPushButton" name="LocMTB">
@@ -277,6 +278,29 @@
    <row/>
    <column/>
    <column/>
+  </widget>
+  <widget class="QPushButton" name="ExportThermalMap">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>190</x>
+     <y>432</y>
+     <width>152</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Export Current
+Thermal map (.nii.gz)</string>
+   </property>
   </widget>
  </widget>
  <resources/>

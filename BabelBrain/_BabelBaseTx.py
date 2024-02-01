@@ -2,7 +2,7 @@
 Base Class for Tx GUI, not to be instantiated directly
 '''
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QPalette
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
@@ -20,17 +20,58 @@ class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
 
+    def ExportStep2Results(self,Results):
+        FocIJK=np.ones((4,1))
+        FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
+
+        FocXYZ=self._MainApp._MaskData.affine@FocIJK
+        FocIJKAdjust=FocIJK.copy()
+        #we adjust in steps
+        FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[0]
+        FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[1]
+
+        FocXYZAdjust=self._MainApp._MaskData.affine@FocIJKAdjust
+        AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
+
+        print('AdjustmentInRAS recalc',AdjustmentInRAS)
+        print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
+
+
+        fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
+                                        CorY=Results['AdjustmentInRAS'][1],
+                                        CorZ=Results['AdjustmentInRAS'][2])
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
+                f.write(self._MainApp._BrainsightInput)
+            with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
+                f.write(fnameTrajectory)
+
+    def GetExtraSuffixAcFields(self):
+        #By default, it returns empty string, useful when dealing with user-specified geometry
+        return ""
+
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.UpdateAcResults)
+
+    @Slot()
+    def NotifyError(self):
+        self._MainApp.SetErrorAcousticsCode()
+        self._MainApp.hideClockDialog()
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Critical)
+        msgBox.setText("There was an error in execution -\nconsult log window for details")
+        msgBox.exec()
     
     @Slot()
     def UpdateAcResults(self):
         '''
         This is a common function for most Tx to show results
         '''
+        self._MainApp.SetSuccesCode()
         if self._bRecalculated:
+            self._MainApp.hideClockDialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
@@ -39,13 +80,12 @@ class BabelBaseTx(QWidget):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
-            #this will generate a modified trajectory file
-            if self._MainApp._bInUseWithBrainsight:
-                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                    f.write(self._MainApp._BrainsightInput)    
-            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+
+            extrasuffix=self.GetExtraSuffixAcFields()
+
+            self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
+
+            self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)

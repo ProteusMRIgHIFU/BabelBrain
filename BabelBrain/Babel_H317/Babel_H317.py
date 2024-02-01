@@ -89,7 +89,7 @@ class H317(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -97,7 +97,7 @@ class H317(BabelBaseTx):
 
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
-
+        self._UnmodifiedZMechanic = 0.0
         self.ZSteeringUpdate(0)
 
     @Slot()
@@ -154,14 +154,9 @@ class H317(BabelBaseTx):
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
-
-    def NotifyError(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
 
     def GetExport(self):
         Export={}
@@ -172,8 +167,10 @@ class H317(BabelBaseTx):
 
     @Slot()
     def UpdateAcResults(self):
+        self._MainApp.SetSuccesCode()
         #We overwrite the base class method
         if self._bRecalculated:
+            self._MainApp.hideClockDialog()
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
@@ -183,15 +180,14 @@ class H317(BabelBaseTx):
             self._MainApp.ThermalSim.setEnabled(True)
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
-            if self._MainApp._bInUseWithBrainsight:
+
+            if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
-                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus.nii.gz'
-                with open(self._MainApp._BrainsightSyncPath+os.sep+'Output.txt','w') as f:
-                    f.write(self._MainApp._BrainsightInput) 
-            self._MainApp.ExportTrajectory(CorX=Skull['AdjustmentInRAS'][0],
-                                        CorY=Skull['AdjustmentInRAS'][1],
-                                        CorZ=Skull['AdjustmentInRAS'][2])
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+                else:
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolution_Sub_NORM.nii.gz'
+            self.ExportStep2Results(Skull)
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
@@ -354,7 +350,7 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1W'])[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 

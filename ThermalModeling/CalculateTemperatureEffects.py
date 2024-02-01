@@ -111,7 +111,7 @@ def CalculateTemperatureEffects(InputPData,
         BrainID=2
         LimSoft=3
     else:
-        #Materal == 5 is the voxel of the desired targer, we set it as brain
+        #Materal == 5 is the voxel of the desired target, we set it as brain
         MaterialMap[MaterialMap>4]=4
         BrainID=4
         LimSoft=4

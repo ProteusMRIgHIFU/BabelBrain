@@ -189,7 +189,7 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     DataPath is the path to the main subject data directory where the XXXX_T1fs_conform.nii.gz SimbNIBS T1W output file is located
     T1Conformal_nii is the name of SimbNIBS T1W output file, such as SimbNIBS_LIFU_01_T1fs_conform.nii.gz
     
-    bUseFlirt (default True) indicates if usiing FSL flirt as the tool to convert from MNI to subject coordinates, otherwise use 
+    bUseFlirt (default True) indicates if using FSL flirt as the tool to convert from MNI to subject coordinates, otherwise use 
     PathSimnNIBS path to mni2subject_coords SimnNIBS tool
 
     ABOUT:
@@ -257,12 +257,12 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
-def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix):
+def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Source_nii,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix):
     inputfiles = {}
     outputfiles = {}
 
     # T1W file name
-    inputfiles['T1input'] = T1Conformal_nii.replace('-isotropic.nii.gz','.nii.gz')
+    inputfiles['T1input'] = T1Source_nii
 
     # CT,ZTE, or PETRA file name if a file is given
     if CT_or_ZTE_input is not None:
@@ -458,6 +458,7 @@ def CheckReuseFiles(infnames, outfnames, currentCTType=None, currentHUT = None, 
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
+                                T1Source_nii ='4007/4007_keep/m2m_4007_keep/T1.nii.gz',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
                                 CT_or_ZTE_input=None,
                                 CTType = 1,
@@ -475,7 +476,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 TrabecularProportion=0.8, #proportion of trabecular bone
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
-                                bDoNotAlign=False, #Use this to just move the Tx to match the coordinate with Tx facing S-->I, otherwise it will simulate the aligment of the Tx to be normal to the skull surface
+                                bDoNotAlign=False, #Use this to just move the Tx to match the coordinate with Tx facing S-->I, otherwise it will simulate the alignment of the Tx to be normal to the skull surface
                                 nIterationsAlign=10, # number of iterations to align the tx, 10 is often way more than enough for shallow targets
                                 InitialAligment='HF',
                                 bPlot=True,
@@ -495,6 +496,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     '''
     #load T1W
+    SavePath= os.path.dirname(T1Conformal_nii)
     T1Conformal=nibabel.load(T1Conformal_nii)
     baseaffine=T1Conformal.affine.copy()
     print('baseaffine',baseaffine,"\n")
@@ -505,7 +507,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     baseaffine[1,1]*=SpatialStep
     baseaffine[2,2]*=SpatialStep
 
-    inputfilenames, outputfilenames = GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix)
+    inputfilenames, outputfilenames = GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Source_nii,T1Conformal_nii,CT_or_ZTE_input,CTType,CoregCT_MRI,prefix)
     
     skull_stl=outputfilenames['Skull_STL']
     csf_stl=outputfilenames['CSF_STL']
@@ -693,7 +695,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         csf_mesh  =DoIntersect(csf_mesh,  BoxFOV)
         skin_mesh =DoIntersect(skin_mesh, BoxFOV)
     
-    #we first substract to find the pure bone region
+    #we first subtract to find the pure bone region
     if VoxelizeFilter is None:
         while(True):
             try:
@@ -819,7 +821,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             # Grab previously generated mask
             fct = nibabel.load(prevoutputfilenames['ReuseMask'])
 
-            # Load in appropriate rCT and resave fct under curent file name
+            # Load in appropriate rCT and resave fct under current file name
             if CTType in [2,3]:
                 rCT = nibabel.load(outputfilenames['pCTfname'])
 

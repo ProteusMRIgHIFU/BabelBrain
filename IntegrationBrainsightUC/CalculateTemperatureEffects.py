@@ -140,7 +140,7 @@ def CalculateTemperatureEffects(InputPData,DutyCycle,Isppa,sel_p='p_amp',
     
     RefocuInputPData=InputPData.replace('TxMoved_DataForSim.h5','DataForSim.h5')
     InputRefocus=ReadFromH5py(RefocuInputPData)
-    #the refocus case will have a slighlty different matrix dimensions
+    #the refocus case will have a slightly different matrix dimensions
     MateriaMapRefocus=np.ascontiguousarray(np.flip(InputRefocus['MaterialMap'],axis=2))
     xfr=InputRefocus['x_vec']
     yfr=InputRefocus['y_vec']

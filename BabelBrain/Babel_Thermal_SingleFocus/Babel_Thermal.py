@@ -5,10 +5,10 @@ import sys
 from multiprocessing import Process,Queue
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QFrame,
-                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox,QTableWidgetItem)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QTextEdit,
+                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,QFrame,
+                QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem)
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor,QColor
@@ -34,6 +34,8 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
 import pandas as pd
 import platform
+import nibabel
+
 _IS_MAC = platform.system() == 'Darwin'
 
 def resource_path():  # needed for bundling
@@ -73,6 +75,7 @@ class Babel_Thermal(QWidget):
 
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
+        self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
 
         while self.Widget.SelCombinationDropDown.count()>0:
             self.Widget.SelCombinationDropDown.removeItem(0)
@@ -197,11 +200,12 @@ class Babel_Thermal(QWidget):
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
             self._MainApp.Widget.tabWidget.setEnabled(False)
-            print('thermal sim thread initiated')
+            self._MainApp.showClockDialog()
         else:
             self.UpdateThermalResults()
 
     def NotifyError(self):
+        self._MainApp.hideClockDialog()
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
         msgBox.setText("There was an error in execution -\nconsult log window for details")
@@ -216,6 +220,7 @@ class Babel_Thermal(QWidget):
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
+        self.Widget.ExportThermalMap.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
@@ -227,6 +232,8 @@ class Babel_Thermal(QWidget):
 
         BaseField=self._MainApp.AcSim._FullSolName
         if len(self._ThermalResults)==0:
+            self._MainApp.hideClockDialog()
+            self._NiftiThermalNames=[]
             self._LastTMap=-1
             for combination in self.Config['AllDC_PRF_Duration']:
                 ThermalName=GetThermalOutName(BaseField,combination['Duration'],
@@ -234,7 +241,7 @@ class Babel_Thermal(QWidget):
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
                                                         combination['PRF'])+'.h5'
-
+                self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
                     self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
@@ -507,7 +514,56 @@ class Babel_Thermal(QWidget):
         else:
             self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
+    @Slot()
+    def ExportThermalMap(self):
+        OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
+        SelIsppa=self.Widget.IsppaSpinBox.value()
+        IsppaRatio=SelIsppa/self.Config['BaseIsppa']
+        BasePath = OutName.split('_DataForSim')[0]
         
+        OutName = OutName.replace('_DataForSim','')
+        OutName = OutName.split('-Isppa')[0] + ('_Isppa_%2.1fW' % (SelIsppa)).replace('.','p') + '-PRF' + OutName.split('-PRF')[1]
+        OutName+='.nii.gz'
+        print(OutName)
+        
+        suffix='_FullElasticSolution_Sub_NORM.nii.gz'
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
+            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+                suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+        BasePath+=suffix
+        nidata = nibabel.load(BasePath)
+        DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        Tmap=(DataThermal['TempEndFUS']-37.0)*IsppaRatio+37.0
+        Tmap=np.flip(Tmap,axis=2)
+        nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
+        nii.to_filename(OutName)
+        #If running with Brainsight, we save the path of thermal map
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
+                f.write(OutName)
+        txt = "Thermal map file\n" + os.path.basename(OutName) +'\nsaved at:\n '+os.path.dirname(OutName)
+        maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])
+        msgBox = DialogShowText(txt,"Saved thermal map")
+        msgBox.exec()
+
+class DialogShowText(QDialog):
+    def __init__(self, text,title,parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle(title)
+
+        QBtn = QDialogButtonBox.Ok 
+
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+
+        self.layout = QVBoxLayout()
+        message = QLabel(text)
+        message.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        message.setStyleSheet(f"qproperty-alignment: {int(Qt.AlignmentFlag.AlignCenter)};")
+        self.layout.addWidget(message)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 
 class RunThermalSim(QObject):

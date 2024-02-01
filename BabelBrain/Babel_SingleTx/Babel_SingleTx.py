@@ -85,7 +85,7 @@ class SingleTx(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._DataMask.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -100,6 +100,7 @@ class SingleTx(BabelBaseTx):
             self.Widget.ZMechanicSpinBox.setValue(0.0) # Tx aligned at the target
         else:
             self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin) #if negative, we push back the Tx as it can't go below this
+        self._UnmodifiedZMechanic = 0.0
         
     
     @Slot()
@@ -115,7 +116,11 @@ class SingleTx(BabelBaseTx):
         if ZMec < self.Widget.ZMechanicSpinBox.minimum():
             self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.minimum())
             ZMec=self.Widget.ZMechanicSpinBox.minimum()
-        
+        self.UpdateDistanceLabels()
+        self._bIgnoreUpdate=False 
+
+    def UpdateDistanceLabels(self):
+        ZMec=self.Widget.ZMechanicSpinBox.value()
         CurDistance=self._ZMaxSkin-ZMec
         self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
         if CurDistance<0:
@@ -124,8 +129,6 @@ class SingleTx(BabelBaseTx):
         else:
             self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
             self.Widget.LabelTissueRemoved.setVisible(False)
-            
-        self._bIgnoreUpdate=False 
 
 
     def UpdateLimits(self):
@@ -136,18 +139,23 @@ class SingleTx(BabelBaseTx):
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
-      
-    @Slot()
-    def RunSimulation(self):
+        self.UpdateDistanceLabels()
+
+    def GetExtraSuffixAcFields(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
+        return extrasuffix
+
+      
+    @Slot()
+    def RunSimulation(self):
+        extrasuffix=self.GetExtraSuffixAcFields()
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
-        self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution.nii.gz'
+        FocalLength = self.Widget.FocalLengthSpinBox.value()
+        Diameter = self.Widget.DiameterSpinBox.value()
 
-        print('FullSolName',self._FullSolName)
-        print('WaterSolName',self._WaterSolName)
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
@@ -187,14 +195,11 @@ class SingleTx(BabelBaseTx):
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
+
+            self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 
-    def NotifyError(self):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
    
     def GetExport(self):
         Export={}
@@ -219,7 +224,7 @@ class RunAcousticSim(QObject):
 
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
-        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1W'])[0])
+        basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
         basedir+=os.sep
         Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
 
