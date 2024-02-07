@@ -155,7 +155,7 @@ class H246(BabelBaseTx):
 
    
     def GetExport(self):
-        Export={}
+        Export=super(CTX500,self).GetExport()
         for k in ['TPODistance','XMechanic','YMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export

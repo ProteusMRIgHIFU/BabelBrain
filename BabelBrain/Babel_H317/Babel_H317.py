@@ -159,7 +159,7 @@ class H317(BabelBaseTx):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export={}
+        Export=super(CTX500,self).GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()

@@ -202,7 +202,7 @@ class SingleTx(BabelBaseTx):
 
    
     def GetExport(self):
-        Export={}
+        Export=super(CTX500,self).GetExport()
         for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export

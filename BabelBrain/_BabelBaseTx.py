@@ -228,3 +228,7 @@ class BabelBaseTx(QWidget):
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
  
+    def GetExport(self):
+        Export={}
+        Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
+        return Export
