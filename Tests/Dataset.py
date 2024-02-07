@@ -19,10 +19,10 @@ class Dataset:
 
         # Grab all scans
         self.CT_type = {}
-        for file in glob.glob(dataset_filepath + '*.nii.gz'):
-            if "T1W.nii.gz" in file:
+        for file in glob.glob(dataset_filepath + '*.nii*'):
+            if "T1W" in file:
                 self.T1W_file = file
-            elif "CT.nii.gz" in file:
+            elif "CT" in file:
                 self.CT_file = file
                 self.CT_type = 'real CT'
             elif "ZTE" in file:

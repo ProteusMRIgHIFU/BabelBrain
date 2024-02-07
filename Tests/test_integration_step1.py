@@ -9,8 +9,9 @@ import nibabel
 import trimesh
 import re
 from unittest.mock import patch
-from config import test_data_path
+import warnings
 
+from config import test_data_path
 from .Dataset import Dataset
 from BabelBrain.BabelBrain import BabelBrain
 from BabelBrain.SelFiles.SelFiles import SelFiles
@@ -40,19 +41,21 @@ SimNIBS_type = {
 }
 
 test_datasets = [
-    # Dataset(test_data_path,'SDR_0p31',trajectories),
-    # Dataset(test_data_path,'SDR_0p42',trajectories),
-    Dataset(test_data_path,'SDR_0p55',trajectories),
-    # Dataset(test_data_path,'SDR_0p67',trajectories),
-    # Dataset(test_data_path,'SDR_0p79',trajectories),
+    Dataset(test_data_path,'SDR_0p01',trajectories),      # ZTE Dataset
+    # Dataset(test_data_path,'SDR_0p02',trajectories),      # ZTE Dataset
+    # Dataset(test_data_path,'SDR_0p03',trajectories),      # ZTE Dataset
+    # Dataset(test_data_path,'SDR_0p31',trajectories),      # CT Dataset
+    # Dataset(test_data_path,'SDR_0p42',trajectories),      # CT Dataset
+    Dataset(test_data_path,'SDR_0p55',trajectories),      # CT Dataset
+    # Dataset(test_data_path,'SDR_0p67',trajectories),      # CT Dataset
+    # Dataset(test_data_path,'SDR_0p79',trajectories),      # CT Dataset
     # Dataset(test_data_path,'PETRA_TEST',trajectories),
-    # Dataset(test_data_path,'ZTE',trajectories),
 ]
 
 CT_type = {
     'NONE': 0,      # T1W Only
     'CT': 1,
-    # 'ZTE': 2,
+    'ZTE': 2,
     # 'PETRA': 3    # TO BE ADDED LATER
 }
 
@@ -62,20 +65,20 @@ coregistration = {
 }
 
 transducers = {
-    'H317': 2,
-    'BSonix': 4,
     'Single': 0,
     'CTX_500': 1,
+    'H317': 2,
     'H246': 3,
+    'BSonix': 4,
 }
 
-# # Not currently being tested
-# computing_backend = [
-#     'CPU',
-#     'OpenCL',
-#     'CUDA',
-#     'Metal'
-# ]
+# Not currently being tested
+computing_backend = [
+    'CPU',
+    'OpenCL',
+    'CUDA',
+    'Metal'
+]
 
 # CREATE TEST COMBINATIONS
 test_parameters_valid_cases = []
@@ -252,9 +255,8 @@ class TestStep1:
         else:
             truth_folder = ""
         
-        cumulative_mean_square_error = 0
+        cumulative_error = 0
         for truth_file in glob.glob(truth_folder + '*'):
-            current_mse = 0
             
             truth_file_name = os.path.basename(truth_file)
             gen_file = os.path.join(tmp_path,truth_file_name)
@@ -265,36 +267,31 @@ class TestStep1:
 
                 truth_data = truth_nib.get_fdata()
                 gen_data = gen_nib.get_fdata()
-
-                if len(truth_data) != len(gen_data):
-                    pytest.fail(f"\n{truth_file_name}\nNumber of voxels in truth data ({len(truth_data)}) does not match number in generated data ({len(gen_data)})\n")
-
-                current_mse = np.mean((gen_data - truth_data) ** 2)
             elif '.npz' in truth_file:
                 truth_data = np.load(truth_file)['UniqueHU']
                 gen_data = np.load(gen_file)['UniqueHU']
-
-                if len(truth_data) != len(gen_data):
-                    pytest.fail(f"\n{truth_file_name}\nNumber of voxels in truth data ({len(truth_data)}) does not match number in generated data ({len(gen_data)})\n")
-
-                current_mse = np.mean((gen_data - truth_data) ** 2)
             elif '.stl' in truth_file:
                 truth_stl = trimesh.load(truth_file)
                 gen_stl = trimesh.load(gen_file)
 
-                if len(truth_stl.vertices) != len(gen_stl.vertices):
-                    pytest.fail(f"\n{truth_file_name}\nNumber of vertices in truth data ({len(truth_stl.vertices)}) does not match number in generated data ({len(gen_stl.vertices)})\n")
-
-                current_mse =np.mean(np.sum((gen_stl.vertices - truth_stl.vertices) ** 2, axis=1))
+                truth_data = truth_stl.vertices
+                gen_data = gen_stl.vertices
             else:
                 pass
 
-            cumulative_mean_square_error += current_mse
+            if len(truth_data) != len(gen_data):
+                pytest.fail(f"\n{truth_file_name}\nNumber of voxels in truth data ({len(truth_data)}) does not match number in generated data ({len(gen_data)})\n")
 
-            if cumulative_mean_square_error > 0:
-                print(f'{truth_file_name} had a mean square error of {current_mse}')
+            current_mse = np.mean((gen_data - truth_data) ** 2)
+            current_range = np.max(truth_data) - np.min(truth_data)
+            current_norm_mse = current_mse / current_range
+
+            if current_norm_mse > 0:
+                warnings.warn(f"{truth_file_name} had a mean square error of {current_mse}, range of {current_range}, and a normal MSE of {current_norm_mse}")
+
+            cumulative_error += current_norm_mse
         
-        assert cumulative_mean_square_error < 1e-8
+        assert cumulative_error == 0, f"Cumulative error was {cumulative_error}"
 
     @pytest.mark.parametrize('test_parameters',test_parameters_invalid_cases, ids=ids_invalid_cases)
     def test_step1_invalid_cases(self,qtbot,babelbrain_widget,tmp_path,test_parameters,mock_NotifyError,mock_UpdateMask):

@@ -558,8 +558,8 @@ class BabelBrain(QWidget):
         #Then we update the GUI and control parameters
         self.UpdateMaskParameters()
 
-        # stdout = OutputWrapper(self, True)
-        # stdout.outputWritten.connect(self.handleOutput)
+        stdout = OutputWrapper(self, True)
+        stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
 
