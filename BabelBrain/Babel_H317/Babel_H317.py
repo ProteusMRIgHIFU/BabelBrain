@@ -61,6 +61,9 @@ class H317(BabelBaseTx):
         self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
+        
+        self.Widget.MultifocusLabel.setVisible(False)
+        self.Widget.MultifocuscheckBox.setVisible(False)
 
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
@@ -334,6 +337,11 @@ class H317(BabelBaseTx):
 
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
+    
+    def EnableMultiPoint(self):
+        self.Widget.MultifocusLabel.setVisible(True)
+        self.Widget.MultifocuscheckBox.setVisible(True)
+        self.Widget.MultifocuscheckBox.setChecked(True)
 
 
 class RunAcousticSim(QObject):

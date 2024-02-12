@@ -1,0 +1,22 @@
+BaseIsppa: 5.0 # W/cm2
+#Add an entry MultiPointTrajectory to specify here the focal spot locations with X,Y,Z coordinates, where origin (0,0,0) is at the GEOMETRICAL FOCUS.
+# +Z is the propagation direction.
+#if attribute MultiPointTrajectory is declared, tou need to specify at least one entry. Units are in mm
+#In this example we create a 3-spot steering list. 
+# Please specify 0 as 0.0
+MultiPoint:
+    -   X: 0.0
+        Y: -0.649519052838329
+        Z: 0.0
+    -   X: 0.00075
+        Y: -0.649519052838329
+        Z: 0.0
+    -   X: -0.75
+        Y: -0.649519052838329
+        Z: 0.0
+
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.3
+        PRF: 10.0
+        Duration: 40.0
+        DurationOff: 40.0

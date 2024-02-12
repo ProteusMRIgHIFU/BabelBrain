@@ -13,7 +13,7 @@ import platform
 import os
 from pathlib import Path
 import re
-
+import yaml
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -175,7 +175,57 @@ class SelFiles(QDialog):
             else:
                 self.msgDetails = "Selected SimbNIBS folder was not Headreco generated"
                 return False
+            
+    def ValidThermalProfile(self):
+        fProf = self.ui.ThermalProfilelineEdit.text()
 
+        if not os.path.isfile(fProf):
+            self.msgDetails = "Profile file was not specified"
+            return False
+
+        try:
+            with open(fProf,'r') as f:
+                profile=yaml.safe_load(f)
+        except:
+            self.msgDetails = "Invalid profile YAML file"
+            return False
+            
+        if 'BaseIsppa' not in profile:
+            self.msgDetails = "BaseIsppa entry must be in YAML file"
+            return False
+        
+        if type(profile['BaseIsppa']) is not float:
+            self.msgDetails = "BaseIsppa must be a single float"
+            return False
+        
+        if 'AllDC_PRF_Duration' not in profile:
+            self.msgDetails = "AllDC_PRF_Duration entry must be in YAML file"
+            return False
+        
+        if type(profile['AllDC_PRF_Duration']) is not list:
+            self.msgDetails = "AllDC_PRF_Duration must be a list"
+            return False
+        
+        for n,entry in enumerate(profile['AllDC_PRF_Duration']):
+            if type(entry) is not dict:
+                self.msgDetails = "entry %i in AllDC_PRF_Duration must be a dictionary" % (n)
+                return False
+            for k in ['DC','PRF','Duration','DurationOff']:
+                if k not in entry:
+                    self.msgDetails = "entry %i in AllDC_PRF_Duration must have a key %s" % (n,k)
+                    return False
+                if type(entry[k]) is not float:
+                    self.msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
+                    return False
+                
+        if 'MultiPoint' in profile:
+            selTx=self.ui.TransducerTypecomboBox.currentText()
+            ListTxSteering=['H317']
+            if selTx not in ListTxSteering:
+                self.msgDetails = "MultiPoint in profile can only be specified with a phased array-type transducer"
+                return False
+        return True
+    
     @Slot()
     def SelectTrajectory(self):
         fTraj=QFileDialog.getOpenFileName(self,
@@ -228,9 +278,9 @@ class SelFiles(QDialog):
         self.msgDetails = ""
         if not self.ValidTrajectory() or\
            not self.ValidSimNIBS() or\
+           not self.ValidThermalProfile() or\
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
-           (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())) or\
-           not os.path.isfile(self.ui.ThermalProfilelineEdit.text()) :
+           (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())):
             msgBox = QMessageBox()
             msgBox.setText("Please indicate valid entries")
             msgBox.setDetailedText(self.msgDetails)

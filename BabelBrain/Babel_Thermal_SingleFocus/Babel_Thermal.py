@@ -154,6 +154,10 @@ class Babel_Thermal(QWidget):
             config = yaml.safe_load(file)
         print("Thermal configuration:")
         print(config)
+        
+        #we check if multi point is present
+        if  'MultiPoint' in config:
+            self._MainApp.EnableMultiPoint()
 
         self.Config=config
 
