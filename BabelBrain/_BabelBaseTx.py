@@ -233,5 +233,6 @@ class BabelBaseTx(QWidget):
         Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
         return Export
     
-    def EnableMultiPoint(self):
+    def EnableMultiPoint(self,MultiPoint):
+        #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
         pass #to be defined by those Tx capable of multi-point

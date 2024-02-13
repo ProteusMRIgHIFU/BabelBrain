@@ -40,6 +40,7 @@ class H317(BabelBaseTx):
         super(H317, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
+        self._MultiPoint = None #if None, the default is to run one single focal point
         self.DefaultConfig()
         self.load_ui()
 
@@ -105,14 +106,25 @@ class H317(BabelBaseTx):
 
     @Slot()
     def RunSimulation(self):
-        self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
-        self._WaterSolName=self._MainApp._prefix_path+'Water_DataForSim.h5'
+        #we create an object to do a dryrun to recover filenames
+        dry=RunAcousticSim(self._MainApp,bDryRun=True)
+        FILENAMES = dry.run()
+        
+        self._FullSolName=FILENAMES['FilesSkull']
+        self._WaterSolName=FILENAMES['FilesWater']
 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
-        if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
-            Skull=ReadFromH5py(self._FullSolName)
+        bPrexistingFiles=True
+        for sskull,swater in zip(self._FullSolName,self._WaterSolName):
+            if not(os.path.isfile(sskull[0]) and os.path.isfile(swater[0])):
+                bPrexistingFiles=False
+                break
+                 
+        if bPrexistingFiles:
+            #we can use the first entry, this is valid for all files in the list
+            Skull=ReadFromH5py(self._FullSolName[0][0])
             ZSteering=Skull['ZSteering']
             if 'RotationZ' in Skull:
                 RotationZ=Skull['RotationZ']
@@ -145,10 +157,10 @@ class H317(BabelBaseTx):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self.EndSimulation)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
@@ -169,6 +181,20 @@ class H317(BabelBaseTx):
         return Export
 
     @Slot()
+    def EndSimulation(self,OutFiles):
+        assert(type(OutFiles['FilesSkull']) is list)
+        assert(type(OutFiles['FilesWater']) is list)
+        
+        if self._MultiPoint is None:
+            assert(len(OutFiles['FilesSkull'])==1)
+            assert(len(OutFiles['FilesWater'])==1)
+        else:
+            assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
+            assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
+            
+        self.UpdateAcResults()
+        
+    @Slot()
     def UpdateAcResults(self):
         self._MainApp.SetSuccesCode()
         #We overwrite the base class method
@@ -181,8 +207,8 @@ class H317(BabelBaseTx):
                 self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
             self._MainApp.ThermalSim.setEnabled(True)
-            Water=ReadFromH5py(self._WaterSolName)
-            Skull=ReadFromH5py(self._FullSolName)
+            Water=ReadFromH5py(self._WaterSolName[0][0])
+            Skull=ReadFromH5py(self._FullSolName[0][0])
 
             if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
@@ -338,24 +364,24 @@ class H317(BabelBaseTx):
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
     
-    def EnableMultiPoint(self):
+    def EnableMultiPoint(self,MultiPoint):
         self.Widget.MultifocusLabel.setVisible(True)
         self.Widget.MultifocuscheckBox.setVisible(True)
         self.Widget.MultifocuscheckBox.setChecked(True)
+        self._MultiPoint = MultiPoint
 
 
 class RunAcousticSim(QObject):
 
-    finished = Signal()
+    finished = Signal(object)
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp,bDryRun=False):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
+        self._bDryRun=bDryRun
 
     def run(self):
-
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
         basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
@@ -408,44 +434,64 @@ class RunAcousticSim(QObject):
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
         kargs['bPETRA'] = False
+        kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
+        kargs['bDryRun'] = self._bDryRun
+            
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
                 kargs['bPETRA']=True
 
-        # Start mask generation as separate process.
+        
         queue=Queue()
-        fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                    args=(queue,Target),
-                                    kwargs=kargs)
-        fieldWorkerProcess.start()      
-        # progress.
-        T0=time.time()
-        bNoError=True
-        while fieldWorkerProcess.is_alive():
-            time.sleep(0.1)
+        if self._bDryRun == False:
+            #in real run, we run this in background
+            # Start mask generation as separate process.
+            fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+                                        args=(queue,Target),
+                                        kwargs=kargs)
+            fieldWorkerProcess.start()      
+                
+            # progress.
+            T0=time.time()
+            bNoError=True
+            OutFiles=None
+            while fieldWorkerProcess.is_alive():
+                time.sleep(0.1)
+                while queue.empty() == False:
+                    cMsg=queue.get()
+                    if type(cMsg) is str:
+                        print(cMsg,end='')
+                        if '--Babel-Brain-Low-Error' in cMsg:
+                            bNoError=False
+                    else:
+                        assert(type(cMsg) is dict)
+                        OutFiles=cMsg
+            fieldWorkerProcess.join()
             while queue.empty() == False:
                 cMsg=queue.get()
-                print(cMsg,end='')
-                if '--Babel-Brain-Low-Error' in cMsg:
-                    bNoError=False  
-        fieldWorkerProcess.join()
-        while queue.empty() == False:
-            cMsg=queue.get()
-            print(cMsg,end='')
-            if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False
-        if bNoError:
-            TEnd=time.time()
-            print('Total time',TEnd-T0)
-            print("*"*40)
-            print("*"*5+" DONE ultrasound simulation.")
-            print("*"*40)
-            self.finished.emit()
+                if type(cMsg) is str:
+                    print(cMsg,end='')
+                    if '--Babel-Brain-Low-Error' in cMsg:
+                        bNoError=False
+                else:
+                    assert(type(cMsg) is dict)
+                    OutFiles=cMsg
+            if bNoError:
+                TEnd=time.time()
+                print('Total time',TEnd-T0)
+                print("*"*40)
+                print("*"*5+" DONE ultrasound simulation.")
+                print("*"*40)
+                print('OutFiles',OutFiles)
+                self.finished.emit(OutFiles)
+            else:
+                print("*"*40)
+                print("*"*5+" Error in execution.")
+                print("*"*40)
+                self.endError.emit()
         else:
-            print("*"*40)
-            print("*"*5+" Error in execution.")
-            print("*"*40)
-            self.endError.emit()
+            #in dry run, we just recover the filenames
+            return CalculateFieldProcess(queue,Target,**kargs)
 
 
 if __name__ == "__main__":

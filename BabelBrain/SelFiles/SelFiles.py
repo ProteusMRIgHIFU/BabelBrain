@@ -224,6 +224,22 @@ class SelFiles(QDialog):
             if selTx not in ListTxSteering:
                 self.msgDetails = "MultiPoint in profile can only be specified with a phased array-type transducer"
                 return False
+            if type(profile['MultiPoint']) is not list:
+                self.msgDetails = "MultiPoint must be a list" 
+                return False
+            for n,entry in enumerate(profile['MultiPoint']):
+                if type(entry) is not dict:
+                    self.msgDetails = "entry %i in MultiPoint must be a dictionary" % (n)
+                    return False
+                for k in ['X','Y','Z']:
+                    if k not in entry:
+                        self.msgDetails = "entry %i in MultiPoint must have a key %s" % (n,k)
+                        return False
+                    if type(entry[k]) is not float:
+                        self.msgDetails = "key %s in entry %i of MultiPoint must be float" % (k,n)
+                        return False
+            # we convert to mm
+            
         return True
     
     @Slot()

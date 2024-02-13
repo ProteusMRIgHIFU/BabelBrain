@@ -181,7 +181,7 @@ class SingleTx(BabelBaseTx):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread,
+            self.worker = RunAcousticSim(self._MainApp,
                             extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
@@ -212,10 +212,9 @@ class RunAcousticSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread,extrasuffix,Aperture,FocalLength):
+    def __init__(self,mainApp,extrasuffix,Aperture,FocalLength):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
         self._extrasuffix=extrasuffix
         self._Aperture=Aperture
         self._FocalLength=FocalLength

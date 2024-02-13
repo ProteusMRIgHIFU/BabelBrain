@@ -157,7 +157,11 @@ class Babel_Thermal(QWidget):
         
         #we check if multi point is present
         if  'MultiPoint' in config:
-            self._MainApp.EnableMultiPoint()
+            for n in range(len(config['MultiPoint'])):
+                #we convert to mm
+                for k in ['X','Y','Z']:
+                    config['MultiPoint'][n][k]=config['MultiPoint'][n][k] * 1e-3
+            self._MainApp.EnableMultiPoint(config['MultiPoint'])
 
         self.Config=config
 
@@ -191,7 +195,7 @@ class Babel_Thermal(QWidget):
         self._ThermalResults=[]
         if bCalcFields:
             self.thread = QThread()
-            self.worker = RunThermalSim(self._MainApp,self.thread)
+            self.worker = RunThermalSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateThermalResults)
@@ -575,10 +579,9 @@ class RunThermalSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp):
          super(RunThermalSim, self).__init__()
          self._mainApp=mainApp
-         self._thread=thread
 
     def run(self):
 

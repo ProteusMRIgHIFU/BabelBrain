@@ -73,13 +73,24 @@ class RUN_SIM(RUN_SIM_BASE):
                     ZSteering=0.0,
                     RotationZ=0.0,
                     DistanceConeToFocus=27e-3,
+                    MultiPoint=None,
                     **kargs):
-        self._XSteering=XSteering
-        self._YSteering=YSteering
-        self._ZSteering=ZSteering
         self._RotationZ=RotationZ
         self._DistanceConeToFocus=DistanceConeToFocus
-        return super().RunCases(**kargs)
+        if MultiPoint is None:
+            self._XSteering=XSteering
+            self._YSteering=YSteering
+            self._ZSteering=ZSteering
+            return [super().RunCases(**kargs)]
+        else:
+            fnames=[]
+            for entry in MultiPoint:
+                newextrasufffix="_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
+                self._XSteering=entry['X']+XSteering,
+                self._YSteering=entry['Y']+YSteering,
+                self._ZSteering=entry['Z']+ZSteering,
+                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)           
+        return fnames
 
     def RunSteeringCases(self,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
         ListPoints=CreateCircularCoverage(DiameterCoverage=DiameterCoverage)
@@ -96,22 +107,24 @@ class RUN_SIM(RUN_SIM_BASE):
                  
         return ListPoints,fnames
 
-    def RunSpreadCase(self,targets,extrasuffix='',ZSteering=0.0,**kargs):
-        ListPoints=CreateSpreadFocus()
-        print(ListPoints)
+    def RunSpreadCase(self,targets,extrasuffix='',
+                    XSteering=0.0,
+                    YSteering=0.0,
+                    ZSteering=0.0,
+                    MultiPoint=[{'X':0.0,'Y':0.0,'Z':0.0}],
+                    **kargs):
         fnames=[]
-        for n in range(ListPoints.shape[0]):
-            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_y_%2.1f_" % (ListPoints[n,0]*1e3,ListPoints[n,1]*1e3)
+        for entry in MultiPoint:
+            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
             fnames+=self.RunCases(
                     extrasuffix=newextrasufffix,
                     bMinimalSaving=True,
-                    XSteering=ListPoints[n,0],
-                    YSteering=ListPoints[n,1],
-                    ZSteering=ZSteering,
+                    XSteering=entry['X']+XSteering,
+                    YSteering=entry['Y']+YSteering,
+                    ZSteering=entry['Z']+ZSteering,
                     **kargs)
-            
-                    
-        return ListPoints,fnames
+                     
+        return fnames
 ##########################################
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):

@@ -158,7 +158,7 @@ class CTX500(BabelBaseTx):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateAcResults)
@@ -186,10 +186,9 @@ class RunAcousticSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
 
     def run(self):
 

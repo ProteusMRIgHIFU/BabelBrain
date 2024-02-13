@@ -855,9 +855,9 @@ class BabelBrain(QWidget):
     def SetErrorAcousticsCode(self):
         self.RETURN_CODE = ReturnCodes['ERROR_ACOUSTICS']
         
-    def EnableMultiPoint(self):
+    def EnableMultiPoint(self,MultiPoint):
         # triggered by the thermal pane if the profile file includes multi point focal points
-        self.AcSim.EnableMultiPoint()
+        self.AcSim.EnableMultiPoint(MultiPoint)
 
 class RunMaskGeneration(QObject):
 

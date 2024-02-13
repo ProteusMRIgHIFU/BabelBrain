@@ -33,29 +33,35 @@ def CalculateFieldProcess(queue,Target,**kargs):
             except AttributeError:
                 pass
 
-    
-    stdout = InOutputWrapper(queue,True)
+    if kargs['bDryRun']==False:
+        stdout = InOutputWrapper(queue,True)
     try:
-        
         R=RUN_SIM()
-        R.RunCases(targets=Target,
+        FilesSkull=R.RunCases(targets=Target,
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
                         bDisplay=False,
                         **kargs)
                         
         kargs.pop('bDoRefocusing')
-        kargs.pop('XSteering')
-        R.RunCases(targets=Target,
+        # kargs.pop('XSteering')
+        FilesWater=R.RunCases(targets=Target,
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
-                        XSteering=1e-6,
+                        # XSteering=1e-6,
                         bWaterOnly=True,
                         bDoRefocusing=False,
                         bDisplay=False,
                         **kargs)
+        outFiles={'FilesSkull':FilesSkull,'FilesWater':FilesWater}
+        if kargs['bDryRun']==False:
+            queue.put(outFiles)
+        else:
+            return outFiles
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())
         print(str(e))
+
+   
 
