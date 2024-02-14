@@ -252,7 +252,7 @@ kernel void voxelize_triangle_solid(const device float* triangle_data [[ buffer(
                 continue; 
             for (int z = bbox_min_grid.y; z <= bbox_max_grid.y; z++)
             {
-                if ((z<0) || (y>=info_gridsize.z))
+                if ((z<0) || (z>=info_gridsize.z))
                     continue;
                  #if defined(_OPENCL)
                 float2 point = (float2)((y + 0.5)*info_unit.y, (z + 0.5)*info_unit.z);
