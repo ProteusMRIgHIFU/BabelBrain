@@ -81,14 +81,14 @@ class RUN_SIM(RUN_SIM_BASE):
             self._XSteering=XSteering
             self._YSteering=YSteering
             self._ZSteering=ZSteering
-            return [super().RunCases(**kargs)]
+            return super().RunCases(**kargs)
         else:
             fnames=[]
             for entry in MultiPoint:
                 newextrasufffix="_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
-                self._XSteering=entry['X']+XSteering,
-                self._YSteering=entry['Y']+YSteering,
-                self._ZSteering=entry['Z']+ZSteering,
+                self._XSteering=entry['X']+XSteering
+                self._YSteering=entry['Y']+YSteering
+                self._ZSteering=entry['Z']+ZSteering
                 fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)           
         return fnames
 

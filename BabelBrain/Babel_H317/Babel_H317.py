@@ -64,7 +64,11 @@ class H317(BabelBaseTx):
         self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
         
         self.Widget.MultifocusLabel.setVisible(False)
-        self.Widget.MultifocuscheckBox.setVisible(False)
+        self.Widget.SelCombinationDropDown.setVisible(False)
+        while self.Widget.SelCombinationDropDown.count()>0:
+            self.Widget.SelCombinationDropDown.removeItem(0)
+        self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateAcResults)
 
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
@@ -113,18 +117,16 @@ class H317(BabelBaseTx):
         self._FullSolName=FILENAMES['FilesSkull']
         self._WaterSolName=FILENAMES['FilesWater']
 
-        print('FullSolName',self._FullSolName)
-        print('WaterSolName',self._WaterSolName)
         bCalcFields=False
         bPrexistingFiles=True
         for sskull,swater in zip(self._FullSolName,self._WaterSolName):
-            if not(os.path.isfile(sskull[0]) and os.path.isfile(swater[0])):
+            if not(os.path.isfile(sskull) and os.path.isfile(swater)):
                 bPrexistingFiles=False
                 break
-                 
+            
         if bPrexistingFiles:
             #we can use the first entry, this is valid for all files in the list
-            Skull=ReadFromH5py(self._FullSolName[0][0])
+            Skull=ReadFromH5py(self._FullSolName[0])
             ZSteering=Skull['ZSteering']
             if 'RotationZ' in Skull:
                 RotationZ=Skull['RotationZ']
@@ -200,6 +202,7 @@ class H317(BabelBaseTx):
         #We overwrite the base class method
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
+            self._AcResults =[]
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
@@ -207,9 +210,34 @@ class H317(BabelBaseTx):
                 self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
             self._MainApp.ThermalSim.setEnabled(True)
-            Water=ReadFromH5py(self._WaterSolName[0][0])
-            Skull=ReadFromH5py(self._FullSolName[0][0])
+            
+            for fwater,fskull in zip(self._WaterSolName,self._FullSolName):
+                Skull=ReadFromH5py(fskull)
+                Water=ReadFromH5py(fwater)
+    
+                if Skull['bDoRefocusing']:
+                    SelP='p_amp_refocus'
+                else:
+                    SelP='p_amp'
 
+                for t in [SelP,'MaterialMap']:
+                    Skull[t]=np.ascontiguousarray(np.flip(Skull[t],axis=2))
+
+                for t in ['p_amp','MaterialMap']:
+                    Water[t]=np.ascontiguousarray(np.flip(Water[t],axis=2))
+                
+                entry={'Skull':Skull,'Water':Water}
+                
+                self._AcResults.append(entry)
+            
+            Water=self._AcResults[0]['Water']
+            Skull=self._AcResults[0]['Skull']
+            
+            if Skull['bDoRefocusing']:
+                SelP='p_amp_refocus'
+            else:
+                SelP='p_amp'
+            
             if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
@@ -221,19 +249,6 @@ class H317(BabelBaseTx):
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
 
-            if Skull['bDoRefocusing']:
-                SelP='p_amp_refocus'
-            else:
-                SelP='p_amp'
-
-            for d in [Skull]:
-                for t in [SelP,'MaterialMap']:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
-            for d in [Water]:
-                for t in ['p_amp','MaterialMap']:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
 
             Water['z_vec']*=1e3
@@ -243,30 +258,40 @@ class H317(BabelBaseTx):
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-
-            IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
-
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-            ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
-
-            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-
-            EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
-            EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
-
-            ISkull/=ISkull[Skull['MaterialMap']==3].max()
-            IWater/=IWater[Skull['MaterialMap']==3].max()
-
-            Factor=EnergyAtFocusWater/EnergyAtFocusSkull
             
-            ISkull[Skull['MaterialMap']!=3]=0
-
+            self._ISkull=[]
+            self._IWater=[]
+            sz=self._AcResults[0]['Water']['p_amp'].shape
+            AllSkull=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
+            AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
+            for n,entry in enumerate(self._AcResults):
+                ISkull=entry['Skull'][SelP]**2/2/DensityMap/SoSMap/1e4
+                ISkull[Skull['MaterialMap']!=3]=0
+                IWater=entry['Water']['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
+                
+                AllSkull[:,:,:,n]=ISkull
+                AllWater[:,:,:,n]=IWater
+                ISkull/=ISkull.max()
+                IWater/=IWater.max()
+                
+                self._ISkull.append(ISkull)
+                self._IWater.append(IWater)
+            #now we add the max projection of fields, we add it at the top
+            AllSkull=AllSkull.max(axis=3)
+            AllSkull[Skull['MaterialMap']!=3]=0
+            AllSkull/=AllSkull.max()
+            AllWater=AllWater.max(axis=3)
+            AllWater/=AllWater.max()
+            
+            self._ISkull.insert(0,AllSkull)
+            self._IWater.insert(0,AllWater)
+            
             dz=np.diff(Skull['z_vec']).mean()
             Zvec=Skull['z_vec'].copy()
             Zvec-=Zvec[LocTarget[2]]
-            Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
+            Zvec+=DistanceToTarget
             XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
             self._XX = XX
             self._ZZX = ZZ
@@ -276,10 +301,11 @@ class H317(BabelBaseTx):
 
             self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
-            self._Water = Water
-            self._IWater = IWater/IWater.max()
+            # self._IWater = IWater/IWater.max()
+            # self._ISkull = ISkull/ISkull.max()
+            
             self._Skull = Skull
-            self._ISkull = ISkull/ISkull.max()
+            
             self._DistanceToTarget = DistanceToTarget
 
             if hasattr(self,'_figAcField'):
@@ -292,15 +318,20 @@ class H317(BabelBaseTx):
                     child.deleteLater()
                 delattr(self,'_figAcField')
                 self.Widget.AcField_plot1.repaint()
+                
+                
         
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
+        
+        IWater = self._IWater[self.Widget.SelCombinationDropDown.currentIndex()]
+        ISkull = self._ISkull[self.Widget.SelCombinationDropDown.currentIndex()]
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
-            sliceXZ=self._IWater[:,SelY,:]
-            sliceYZ = self._IWater[SelX,:,:]
+            sliceXZ=IWater[:,SelY,:]
+            sliceYZ = IWater[SelX,:,:]
         else:
-            sliceXZ=self._ISkull[:,SelY,:]
-            sliceYZ = self._ISkull[SelX,:,:]
+            sliceXZ=ISkull[:,SelY,:]
+            sliceYZ =ISkull[SelX,:,:]
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
@@ -366,8 +397,12 @@ class H317(BabelBaseTx):
     
     def EnableMultiPoint(self,MultiPoint):
         self.Widget.MultifocusLabel.setVisible(True)
-        self.Widget.MultifocuscheckBox.setVisible(True)
-        self.Widget.MultifocuscheckBox.setChecked(True)
+        self.Widget.SelCombinationDropDown.setVisible(True)
+        while self.Widget.SelCombinationDropDown.count()>0:
+            self.Widget.SelCombinationDropDown.removeItem(0)
+        self.Widget.SelCombinationDropDown.addItem('ALL')
+        for c in MultiPoint:
+            self.Widget.SelCombinationDropDown.addItem('X:%2.1f Y:%2.1f Z:%2.1f' %(c['X']*1e3,c['Y']*1e3,c['Z']*1e3))
         self._MultiPoint = MultiPoint
 
 
@@ -482,7 +517,6 @@ class RunAcousticSim(QObject):
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
-                print('OutFiles',OutFiles)
                 self.finished.emit(OutFiles)
             else:
                 print("*"*40)

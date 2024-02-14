@@ -3,16 +3,16 @@ BaseIsppa: 5.0 # W/cm2
 # +Z is the propagation direction.
 #if attribute MultiPointTrajectory is declared, tou need to specify at least one entry. Units are in mm
 #In this example we create a 3-spot steering list. 
-# Please specify 0 as 0.0
+# Please specify 0 as 0.0, in the example below, the points make a 3 point star with a radius from the origin of 2 mm
 MultiPoint:
-    -   X: 0.0
-        Y: -0.649519052838329
+    -   X: 2.0
+        Y: 0.0
         Z: 0.0
-    -   X: 0.00075
-        Y: -0.649519052838329
+    -   X: -1.0
+        Y: 1.73205081
         Z: 0.0
-    -   X: -0.75
-        Y: -0.649519052838329
+    -   X: -1.0
+        Y: -1.73205081
         Z: 0.0
 
 AllDC_PRF_Duration: #All combinations of timing that will be considered

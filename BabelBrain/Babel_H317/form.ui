@@ -464,32 +464,11 @@ water only</string>
     <string>Hide marks</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="MultifocuscheckBox">
-   <property name="geometry">
-    <rect>
-     <x>221</x>
-     <y>302</y>
-     <width>27</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::RightToLeft</enum>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
   <widget class="QLabel" name="MultifocusLabel">
    <property name="geometry">
     <rect>
-     <x>28</x>
-     <y>301</y>
+     <x>13</x>
+     <y>300</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -503,6 +482,21 @@ water only</string>
    <property name="alignment">
     <set>Qt::AlignCenter</set>
    </property>
+  </widget>
+  <widget class="QComboBox" name="SelCombinationDropDown">
+   <property name="geometry">
+    <rect>
+     <x>142</x>
+     <y>297</y>
+     <width>185</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>ALL</string>
+    </property>
+   </item>
   </widget>
  </widget>
  <resources/>
