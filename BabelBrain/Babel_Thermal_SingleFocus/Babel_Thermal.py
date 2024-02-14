@@ -169,7 +169,11 @@ class Babel_Thermal(QWidget):
     @Slot()
     def RunSimulation(self):
         bCalcFields=False
+        
         BaseField=self._MainApp.AcSim._FullSolName
+        
+        if type(BaseField) is list:
+            BaseField=BaseField[0]
 
         PrevFiles=[]
         for combination in self.Config['AllDC_PRF_Duration']:
@@ -239,6 +243,9 @@ class Babel_Thermal(QWidget):
             self.Widget.HideMarkscheckBox.setEnabled(True)
 
         BaseField=self._MainApp.AcSim._FullSolName
+        if type(BaseField) is list:
+            BaseField=BaseField[0]
+            
         if len(self._ThermalResults)==0:
             self._MainApp.hideClockDialog()
             self._NiftiThermalNames=[]

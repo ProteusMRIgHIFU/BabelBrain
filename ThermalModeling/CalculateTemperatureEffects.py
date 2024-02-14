@@ -18,7 +18,12 @@ from platform import platform
 from os.path import isfile
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF):
-    return InputPData.split('.h5')[0]+'-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    suffix = '-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    if '__Steer_X' in InputPData:
+        #we check if this a case for multifocal delivery
+        return InputPData.split('__Steer_X')[0]+'_DataForSim'+suffix
+    else:
+        return InputPData.split('.h5')[0]+suffix
 
 
 def CalculateTemperatureEffects(InputPData,
@@ -33,8 +38,11 @@ def CalculateTemperatureEffects(InputPData,
                                 OutTemperature=37,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
-    
-    outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF)
+
+    if type(InputPData) is str:    
+        outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF)
+    else:
+        outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF)
 
     print(outfname)
 
@@ -44,7 +52,49 @@ def CalculateTemperatureEffects(InputPData,
             print('skipping', outfname)
             return outfname
     dt=0.01
-    Input=ReadFromH5py(InputPData)
+    
+    if type(InputPData) is str:   
+        Input=ReadFromH5py(InputPData)
+        WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
+        print('Load water',WaterInputPData)
+        InputWater=ReadFromH5py(WaterInputPData)
+        
+        pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
+        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+        
+    else:
+        Input=ReadFromH5py(InputPData[0])
+        
+        AllInputs=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
+                            Input[sel_p].shape[2]),Input[sel_p].dtype)
+        AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
+                            Input[sel_p].shape[2]),Input[sel_p].dtype)
+        for n in range(len(InputPData)):
+            AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(InputPData[n])[sel_p],axis=2))
+            fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
+            AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+        
+        pAmp=AllInputs.max(axis=0) #this will find the maximum pressure at each point from all 
+        pAmpWater=AllInputsWater.max(axis=0)
+        
+        if DurationUS>len(InputPData)*2 #ad-hoc rule, if sonication last at least 2x seconds the number of focal spot
+        
+            DurationCalculations=1.0 #we approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
+        else:
+            DurationCalculations=0.1 # for short sonications, we approximate
+        
+        NCyclesOn=int(DutyCycle/dt)
+        NCyclesOff=int(1.0/dt)-NCyclesOn
+        assert(NCyclesOn>0)
+        assert(NCyclesOff>0 )
+        
+        nStepsOnOffList=np.zeros((len(InputPData),2),np.int32)
+        #all points have the same duration
+        nStepsOnOffList[:,0]=NCyclesOn
+        nStepsOnOffList[:,1]=NCyclesOff
+        
+        
+    
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
@@ -97,10 +147,8 @@ def CalculateTemperatureEffects(InputPData,
     xf=Input['x_vec']
     yf=Input['y_vec']
     zf=Input['z_vec']
-    
-    pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
-    print('pAmp.shape',pAmp.shape)
-    
+
+        
     if 'MaterialMapCT' in Input:
         MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
     else:
@@ -122,39 +170,21 @@ def CalculateTemperatureEffects(InputPData,
     else:
         pAmpBrain[MaterialMap<4]=0.0
 
-    # PressureTarget=pAmpBrain.max()
-    # cx,cy,cz=np.where(pAmpBrain==PressureTarget)
-    # cx=cx[0]
-    # cy=cy[0]
-    # cz=cz[0]
     cx=LocIJK[0]
     cy=LocIJK[1]
     cz=LocIJK[2]
-    PressureTarget=pAmpBrain[cx,cy,cz]
-    zl=cz
-    
-    print(' Max Pessure',cx,cy,cz,'\n',
-          xf[cx],yf[cy],zf[cz],
-          xf.shape,yf.shape,zf.shape,pAmp.shape,'\n',
-          PressureTarget/1e6)
-
-    
     
     PlanAtMaximum=pAmpBrain[:,:,cz]
     AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
     print('Acoustic Energy at maximum plane',AcousticEnergy)
     
-    assert(type(InputPData) is str) # we only do this for single focus
-    WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
-    print('Load water',WaterInputPData)
-    InputWater=ReadFromH5py(WaterInputPData)
-
+    
     MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
     xfr=Input['x_vec']
     yfr=Input['y_vec']
     zfr=Input['z_vec']
     
-    pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+    
     PlanAtMaximumWater=pAmpWater[:,:,2] 
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
@@ -214,19 +244,29 @@ def CalculateTemperatureEffects(InputPData,
         SelSkull =(MaterialMap>1) &\
             (MaterialMap<4)
 
-    ##We calculate first for 1s, to find the hottest locations in each region
-    TotalDurationSteps1s=int(1.0/dt)
-    nStepsOn1s=TotalDurationSteps1s
-    ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
+    
+    if type(InputPData) is str:
+        ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                        TotalDurationSteps,
+                                                        nStepsOn,
+                                                        cy,
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        DutyCycle=DutyCycle,
+                                                        Backend=Backend)
+    else:
+        ResTemp,ResDose,MonitorSlice,Qarr=BHTEMultiplePressureFields(AllInputs*PressureRatio,
                                                       MaterialMap,
                                                       MaterialList,
                                                       (Input['x_vec'][1]-Input['x_vec'][0]),
                                                       TotalDurationSteps,
-                                                      nStepsOn,
+                                                      nStepsOnOffList,
                                                       cy,
                                                       nFactorMonitoring=nFactorMonitoring,
                                                       dt=dt,
-                                                      DutyCycle=DutyCycle,
                                                       Backend=Backend)
 
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
