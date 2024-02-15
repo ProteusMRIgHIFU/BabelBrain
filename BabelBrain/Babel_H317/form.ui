@@ -499,6 +499,20 @@ water only</string>
    </item>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>RefocusingcheckBox</tabstop>
+  <tabstop>DistanceConeToFocusSpinBox</tabstop>
+  <tabstop>ZSteeringSpinBox</tabstop>
+  <tabstop>ZRotationSpinBox</tabstop>
+  <tabstop>XMechanicSpinBox</tabstop>
+  <tabstop>YMechanicSpinBox</tabstop>
+  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SelCombinationDropDown</tabstop>
+  <tabstop>MaxDepthSpinBox</tabstop>
+  <tabstop>CalculatePlanningMask</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>ShowWaterResultscheckBox</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

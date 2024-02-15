@@ -68,12 +68,12 @@ class H317(BabelBaseTx):
         while self.Widget.SelCombinationDropDown.count()>0:
             self.Widget.SelCombinationDropDown.removeItem(0)
         self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
-        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateAcResults)
-
+        
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
         self.up_load_ui()
+        
        
     @Slot()
     def ZSteeringUpdate(self,value):
@@ -176,7 +176,7 @@ class H317(BabelBaseTx):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export=super(CTX500,self).GetExport()
+        Export=super(H317,self).GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
@@ -404,6 +404,7 @@ class H317(BabelBaseTx):
         for c in MultiPoint:
             self.Widget.SelCombinationDropDown.addItem('X:%2.1f Y:%2.1f Z:%2.1f' %(c['X']*1e3,c['Y']*1e3,c['Z']*1e3))
         self._MultiPoint = MultiPoint
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateAcResults)
 
 
 class RunAcousticSim(QObject):
