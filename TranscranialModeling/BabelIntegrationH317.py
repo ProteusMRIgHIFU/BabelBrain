@@ -21,6 +21,7 @@ import trimesh
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
 from .H317 import GenerateH317Tx
+import nibabel
     
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -89,7 +90,33 @@ class RUN_SIM(RUN_SIM_BASE):
                 self._XSteering=entry['X']+XSteering
                 self._YSteering=entry['Y']+YSteering
                 self._ZSteering=entry['Z']+ZSteering
-                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)           
+                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)     
+            if kargs['bDryRun'] == False: 
+                #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
+                nSub=[]
+                nRefocus=[]
+                
+                for f in fnames:
+                    fsub=f.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz')
+                    nSub.append(nibabel.load(fsub))    
+                    if kargs['bDoRefocusing']:
+                        fsubrefocus=f.replace('DataForSim.h5','FullElasticSolutionRefocus_Sub_NORM.nii.gz')
+                        nRefocus.append(nibabel.load(fsubrefocus))    
+                
+                for ss,sub in zip(['','Refocus'],[nSub,nRefocus]):
+                    if len(sub)>0:
+                        AllpData=np.zeros((len(sub),sub[0].shape[0],sub[0].shape[1],sub[0].shape[2]))
+                        for n,entry in enumerate(sub):
+                            AllpData[n,:,:,:]=entry.get_fdata()
+                        AllpData=AllpData.max(axis=0)
+                        combinedNifti=nibabel.Nifti1Image(AllpData,sub[0].affine,header=sub[0].header)
+                        if 'Water_DataForSim.h5' in fnames[0] :
+                            send = '_Water_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
+                        else:
+                            send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
+                        finalName=fnames[0].split('__Steer_X')[0]+send
+                        combinedNifti.to_filename(finalName)
+            
         return fnames
 
     def RunSteeringCases(self,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
