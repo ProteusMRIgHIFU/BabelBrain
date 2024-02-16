@@ -118,7 +118,7 @@ class H246(BabelBaseTx):
             TPO=Skull['ZSteering']
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "ZSteering=%3.2f\n" %(TPO*1e3)+
+                                    "TPO distance=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                     "Do you want to recalculate?\nSelect No to reload",
@@ -130,6 +130,8 @@ class H246(BabelBaseTx):
                 self.Widget.TPODistanceSpinBox.setValue(TPO*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
             bCalcFields = True
         self._bRecalculated = True

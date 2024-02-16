@@ -1639,6 +1639,7 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['z_vec']=self._ZDim[self._ZLOffset:-self._ZROffset]
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
+        DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
         
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))

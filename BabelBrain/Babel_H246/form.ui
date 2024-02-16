@@ -384,6 +384,16 @@ water only</string>
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>TPODistanceSpinBox</tabstop>
+  <tabstop>XMechanicSpinBox</tabstop>
+  <tabstop>YMechanicSpinBox</tabstop>
+  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>MaxDepthSpinBox</tabstop>
+  <tabstop>CalculatePlanningMask</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>ShowWaterResultscheckBox</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -152,6 +152,8 @@ class CTX500(BabelBaseTx):
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
             bCalcFields = True
         self._bRecalculated = True

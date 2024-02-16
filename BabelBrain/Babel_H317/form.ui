@@ -500,7 +500,6 @@ water only</string>
   </widget>
  </widget>
  <tabstops>
-  <tabstop>RefocusingcheckBox</tabstop>
   <tabstop>DistanceConeToFocusSpinBox</tabstop>
   <tabstop>ZSteeringSpinBox</tabstop>
   <tabstop>ZRotationSpinBox</tabstop>
@@ -512,6 +511,7 @@ water only</string>
   <tabstop>CalculatePlanningMask</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
+  <tabstop>RefocusingcheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections/>

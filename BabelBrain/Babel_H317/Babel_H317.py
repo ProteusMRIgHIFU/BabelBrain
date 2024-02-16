@@ -150,6 +150,8 @@ class H317(BabelBaseTx):
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
                 if 'DistanceConeToFocus' in Skull:
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
@@ -178,6 +180,16 @@ class H317(BabelBaseTx):
     def GetExport(self):
         Export=super(H317,self).GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
+        def dict_to_string(d, separator=', ', equals_sign='='):
+            return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
+        if self._MultiPoint is not None:
+            st =''
+            for e in self._MultiPoint:
+                st+='[%s] ' % dict_to_string(e)
+            Export['MultiPoint']=st
+        else:
+            self._MultiPoint ='N/A'
+         
         for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export

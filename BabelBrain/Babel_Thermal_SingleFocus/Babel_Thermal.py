@@ -60,6 +60,7 @@ class Babel_Thermal(QWidget):
         super(Babel_Thermal, self).__init__(parent)
         self._MainApp=MainApp
         self._ThermalResults=[]
+        self._bMultiPoint = False
         self.static_canvas=None
         self.DefaultConfig()
         self.load_ui()
@@ -162,6 +163,7 @@ class Babel_Thermal(QWidget):
                 for k in ['X','Y','Z']:
                     config['MultiPoint'][n][k]=config['MultiPoint'][n][k] * 1e-3
             self._MainApp.EnableMultiPoint(config['MultiPoint'])
+            self._bMultiPoint=True
 
         self.Config=config
 
@@ -291,7 +293,12 @@ class Babel_Thermal(QWidget):
         
         PresRatio=np.sqrt(IsppaRatio)
 
-        AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
+        if self._bMultiPoint:
+            AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
+            AdjustedIsspaStDev = np.std(AdjustedIsspa)
+            AdjustedIsspa=np.mean(AdjustedIsspa)
+        else:
+            AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
                 
         DutyCycle=self.Config['AllDC_PRF_Duration'][self.Widget.SelCombinationDropDown.currentIndex()]['DC']
 
@@ -315,7 +322,11 @@ class Babel_Thermal(QWidget):
                       1e4*IsppaRatio
         self.Widget.tableWidget.setItem(0,1,NewItem('%4.2f' % IsppaTarget,IsppaTarget))
 
-        self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f' % AdjustedIsspa,AdjustedIsspa))
+        if self._bMultiPoint:
+            self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f (%4.2f)' % (AdjustedIsspa,AdjustedIsspaStDev),AdjustedIsspa))
+        else:
+            self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f' % AdjustedIsspa,AdjustedIsspa))
+            
         self.Widget.tableWidget.setItem(2,1,NewItem('%4.2f' % (SelIsppa*DutyCycle),SelIsppa*DutyCycle))
 
         self.Widget.tableWidget.setItem(3,1,NewItem('%4.2f' % (IsppaTarget*DutyCycle),IsppaTarget*DutyCycle))

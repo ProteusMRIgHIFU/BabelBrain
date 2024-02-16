@@ -427,6 +427,16 @@ mask</string>
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>USMaskkHzDropDown</tabstop>
+  <tabstop>USPPWSpinBox</tabstop>
+  <tabstop>CTZTETabs</tabstop>
+  <tabstop>CalculatePlanningMask</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>outputTerminal</tabstop>
+  <tabstop>HUThresholdSpinBox</tabstop>
+  <tabstop>tabWidget</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

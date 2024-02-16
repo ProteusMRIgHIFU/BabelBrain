@@ -130,6 +130,7 @@ def CalculateTemperatureEffects(InputPData,
         pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
         
     else:
+        ALL_ACFIELDSKULL=[]
         Input=ReadFromH5py(InputPData[0])
         
         AllInputs=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
@@ -137,7 +138,8 @@ def CalculateTemperatureEffects(InputPData,
         AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
                             Input[sel_p].shape[2]),Input[sel_p].dtype)
         for n in range(len(InputPData)):
-            AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(InputPData[n])[sel_p],axis=2))
+            ALL_ACFIELDSKULL.append(ReadFromH5py(InputPData[n]))
+            AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
             fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
             AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
         
@@ -247,7 +249,7 @@ def CalculateTemperatureEffects(InputPData,
             print('Calculating losses for spot ',n)
             PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf)
             print('*'*40)
-        print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)',np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses))
+        print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
 
 
@@ -420,14 +422,26 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['FinalTemp']=FinalTemp
     SaveDict['FinalDose']=FinalDose
     #we carry over these params to simplify analysis later
-    if 'ZSteering' in Input:
-        SaveDict['ZSteering']=Input['ZSteering']
+    if type(InputPData) is str: 
+        for k in ['XSteering','YSteering','ZSteering']:
+            if k in Input:
+                SaveDict[k]=Input[k]
+    else:
+        for k in ['XSteering','YSteering','ZSteering']:
+            if k in Input:
+                steering =np.ones(len(ALL_ACFIELDSKULL))
+                for n,entry in enumerate(ALL_ACFIELDSKULL):
+                    steering[n]=entry[k]
+                SaveDict[k]=steering
     SaveDict['AdjustmentInRAS']=Input['AdjustmentInRAS']
     SaveDict['DistanceFromSkin']=Input['DistanceFromSkin']
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
     SaveDict['TargetLocation']=Input['TargetLocation']
     SaveDict['ZIntoSkinPixels']=Input['ZIntoSkinPixels']
-    SaveDict['RatioLosses']=np.mean(RatioLosses)
+    SaveDict['RatioLosses']=RatioLosses
+    SaveDict['DurationUS']=DurationUS
+    SaveDict['DurationOff']=DurationOff
+    SaveDict['DutyCycle']=DutyCycle
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)

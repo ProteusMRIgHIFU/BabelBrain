@@ -5,25 +5,15 @@ BaseIsppa: 5.0 # W/cm2
 # Units are in mm
 # Please specify 0 as 0.0, 1 and 1.0, etc.
 # In this example we create a 3-point steering list that makes a 3 point star with a radius from the origin of 2 mm
-# MultiPoint:
-#     -   X: 2.0
-#         Y: 0.0
-#         Z: 0.0
-#     -   X: -1.0
-#         Y: 1.73205081
-#         Z: 0.0
-#     -   X: -2.0
-#         Y: -1.73205081
-#         Z: 0.0
 MultiPoint:
-    -   X: 0.0
-        Y: 0.0
-        Z: 0.0
-    -   X: 0.0
-        Y: 0.0
-        Z: 0.0
     -   X: 2.0
         Y: 0.0
+        Z: 0.0
+    -   X: -1.0
+        Y: 1.73205081
+        Z: 0.0
+    -   X: -1.0
+        Y: -1.73205081
         Z: 0.0
 AllDC_PRF_Duration: #All combinations of timing that will be considered
     -   DC: 0.3
