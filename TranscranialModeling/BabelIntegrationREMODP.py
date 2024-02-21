@@ -16,48 +16,133 @@ from sys import platform
 import os
 from stl import mesh
 import scipy
+from scipy.io import loadmat
 from trimesh import creation 
 import matplotlib.pyplot as plt
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
-from .H317 import GenerateH317Tx
-import nibabel
-    
-def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
-    RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
-    ListPoints=[[1e-6,0.0]] #center , and we do a trick to be sure all points gets the same treatment below (just make one coordinate different to 0 but very small)
-    nEven=0
-    for r in RadialL:
-        Perimeter=np.pi*r*2
-        nSteps=int(Perimeter/DiameterFocalBeam)
-        theta=np.arange(nSteps)*np.pi*2/nSteps
-        if nEven%2==0:
-            theta+=(theta[1]-theta[0])/2
-        nEven+=1
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
-        xxyy=np.vstack((x,y)).T
-        ListPoints+=xxyy.tolist()
-    ListPoints=np.array(ListPoints)
-  
-#    plt.figure()
-#    plt.plot(ListPoints[:,0],ListPoints[:,1],':+')
-#    plt.gca().set_aspect('equal')
-#    plt.title('Trajectory of points')
-    return ListPoints
+from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
 
-def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
-    BaseTriangle =  DiameterFocalBeam/2
-    HeightTriangle = np.sin(np.pi/3)*DiameterFocalBeam
-    ListPoints = [[0,HeightTriangle/2]]
-    ListPoints += [[BaseTriangle,-HeightTriangle/2]]
-    ListPoints += [[-BaseTriangle,-HeightTriangle/2]]
-    ListPoints=np.array(ListPoints)
-#    plt.figure()
-#    plt.plot(ListPoints[:,0]*1e3,ListPoints[:,1]*1e3,':+')
-#    plt.gca().set_aspect('equal')
-#    plt.title('Trajectory of points')
-    return ListPoints
+import nibabel
+
+PITCH = 3.08e-3 
+KERF = 0.5e-3
+FREQ=300e3
+APERTURE = 0.058
+DimensionElem = PITCH-KERF
+ZDistance=-1.2e-3 #distance from Tx elements to outplane
+
+def computeREMODPGeometry():
+    TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
+    return TxPos
+
+def GenerateSingleElem(PPW=12.0):
+    #60.08 PPW produces close to integer steps for both pitch and kerf
     
+    Tx = {}
+
+    step = 1500/FREQ/PPW
+    hstep=step/2.0
+    latSteps=int(np.round(DimensionElem/step))
+    step=DimensionElem/latSteps
+
+    centersX= np.arange(latSteps)*step
+    centersX-=np.mean(centersX)
+
+    SingElem = np.zeros((latSteps**2,3))
+    N = np.zeros((SingElem.shape[0],3))
+    N[:,2]=1
+    ds = np.ones((SingElem.shape[0],1))*step**2
+
+    VertDisplay=  np.zeros((SingElem.shape[0]*4,3))
+    FaceDisplay= np.arange(SingElem.shape[0]*4,dtype=int).reshape((SingElem.shape[0],4))
+
+    XX,YY=np.meshgrid(centersX,centersX)
+    SingElem[:,0]=XX.flatten()
+    SingElem[:,1]=YY.flatten()
+    SingElem[:,2]=ZDistance
+
+    VertDisplay[0::4,0]=SingElem[:,0]-hstep
+    VertDisplay[0::4,1]=SingElem[:,1]-hstep
+    
+    VertDisplay[1::4,0]=SingElem[:,0]+hstep
+    VertDisplay[1::4,1]=SingElem[:,1]-hstep
+
+    VertDisplay[2::4,0]=SingElem[:,0]+hstep
+    VertDisplay[2::4,1]=SingElem[:,1]+hstep
+
+    VertDisplay[3::4,0]=SingElem[:,0]-hstep
+    VertDisplay[3::4,1]=SingElem[:,1]+hstep
+
+    VertDisplay[:,2]= ZDistance
+   
+    Tx['center'] = SingElem 
+    Tx['ds'] = ds
+    Tx['normal'] = N
+    Tx['VertDisplay'] = VertDisplay 
+    Tx['FaceDisplay'] = FaceDisplay 
+    return Tx
+    
+
+def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0):
+   
+    #%This is the indiv tx element
+    TxElem=GenerateSingleElem()
+
+
+    transLoc = computeREMODPGeometry()
+
+    rotateMatrixZ = np.array([[-np.cos(RotationZ),np.sin(RotationZ),0],
+                              [-np.sin(RotationZ),-np.cos(RotationZ),0],[0,0,1]])
+            
+
+    ALLConfigs={'Total':{},'Sector1':{},'Sector2':{}}
+    for k in ALLConfigs:
+        ALLConfigs[k]['center'] = np.zeros((0,3))
+        if k == 'Total':
+            ALLConfigs[k]['elemcenter'] = np.zeros((256,3))
+        else:
+            ALLConfigs[k]['elemcenter'] = np.zeros((subsetLimit,3))
+        ALLConfigs[k]['ds'] = np.zeros((0,1))
+        ALLConfigs[k]['normal'] = np.zeros((0,3))
+        ALLConfigs[k]['elemdims']=TxElem['ds'].size
+        ALLConfigs[k]['NumberElems']=ALLConfigs[k]['elemcenter'].shape[0]
+        ALLConfigs[k]['VertDisplay'] = np.zeros((0,3))
+        ALLConfigs[k]['FaceDisplay'] = np.zeros((0,4),np.int64)
+
+    for n in range(transLoc.shape[0]):
+        if n <subsetLimit: #first sector
+            selc = ['Total','Sector1']
+        else:
+            selc = ['Total','Sector2']
+        for k in selc:
+            Tx=ALLConfigs[k]
+            prevFaceLength=Tx['VertDisplay'].shape[0]
+        
+            center=TxElem['center']+transLoc[n,:]
+
+            center=(rotateMatrixZ@center.T).T
+            
+            if k == 'Total':
+                Tx['elemcenter'][n,:]=np.mean(center,axis=0) 
+            else:
+                Tx['elemcenter'][n%subsetLimit,:]==np.mean(center,axis=0)  
+            
+            normal=TxElem['normal'].copy()
+            
+            VertDisplay=TxElem['VertDisplay']+transLoc[n,:]
+
+            VertDisplay=(rotateMatrixZ@VertDisplay.T).T
+           
+            Tx['center']=np.vstack((Tx['center'],center))
+            Tx['ds'] =np.vstack((Tx['ds'],TxElem['ds']))
+            Tx['normal'] =np.vstack((Tx['normal'],normal))
+            Tx['VertDisplay'] =np.vstack((Tx['VertDisplay'],VertDisplay))
+            Tx['FaceDisplay']=np.vstack((Tx['FaceDisplay'],TxElem['FaceDisplay']+prevFaceLength))
+        
+    print('Aperture dimensions (x,y) =',ALLConfigs['Total']['VertDisplay'][:,0].max()-ALLConfigs['Total']['VertDisplay'][:,0].min(),
+                                        ALLConfigs['Total']['VertDisplay'][:,1].max()-ALLConfigs['Total']['VertDisplay'][:,1].min())
+    ALLConfigs['Aperture']=np.max([ALLConfigs['Total']['VertDisplay'][:,0].max()-ALLConfigs['Total']['VertDisplay'][:,0].min(),
+                                        ALLConfigs['Total']['VertDisplay'][:,1].max()-ALLConfigs['Total']['VertDisplay'][:,1].min()]);
+    return ALLConfigs
 
 class RUN_SIM(RUN_SIM_BASE):
     def CreateSimObject(self,**kargs):
@@ -65,92 +150,23 @@ class RUN_SIM(RUN_SIM_BASE):
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
-                                    DistanceConeToFocus=self._DistanceConeToFocus,
-                                     **kargs)
+                                    TxSet=self._TxSet,
+                                    **kargs)
     def RunCases(self,
                     XSteering=0.0,
                     YSteering=0.0,
-                    ZSteering=0.0,
+                    ZSteering=60.0e-3,
                     RotationZ=0.0,
-                    DistanceConeToFocus=27e-3,
-                    MultiPoint=None,
+                    TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                     **kargs):
         self._RotationZ=RotationZ
-        self._DistanceConeToFocus=DistanceConeToFocus
-        if MultiPoint is None:
-            self._XSteering=XSteering
-            self._YSteering=YSteering
-            self._ZSteering=ZSteering
-            return super().RunCases(**kargs)
-        else:
-            fnames=[]
-            for entry in MultiPoint:
-                newextrasufffix="_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
-                self._XSteering=entry['X']+XSteering
-                self._YSteering=entry['Y']+YSteering
-                self._ZSteering=entry['Z']+ZSteering
-                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)     
-            if kargs['bDryRun'] == False: 
-                #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
-                nSub=[]
-                nRefocus=[]
-                
-                for f in fnames:
-                    fsub=f.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz')
-                    nSub.append(nibabel.load(fsub))    
-                    if kargs['bDoRefocusing']:
-                        fsubrefocus=f.replace('DataForSim.h5','FullElasticSolutionRefocus_Sub_NORM.nii.gz')
-                        nRefocus.append(nibabel.load(fsubrefocus))    
-                
-                for ss,sub in zip(['','Refocus'],[nSub,nRefocus]):
-                    if len(sub)>0:
-                        AllpData=np.zeros((len(sub),sub[0].shape[0],sub[0].shape[1],sub[0].shape[2]))
-                        for n,entry in enumerate(sub):
-                            AllpData[n,:,:,:]=entry.get_fdata()
-                        AllpData=AllpData.max(axis=0)
-                        combinedNifti=nibabel.Nifti1Image(AllpData,sub[0].affine,header=sub[0].header)
-                        if 'Water_DataForSim.h5' in fnames[0] :
-                            send = '_Water_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
-                        else:
-                            send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
-                        finalName=fnames[0].split('__Steer_X')[0]+send
-                        combinedNifti.to_filename(finalName)
-            
-        return fnames
-
-    def RunSteeringCases(self,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
-        ListPoints=CreateCircularCoverage(DiameterCoverage=DiameterCoverage)
-        print(ListPoints)
-        fnames=[]
-        for n in range(ListPoints.shape[0]):
-            newextrasufffix=extrasuffix+"_LargeSteer_X_%2.1f_y_%2.1f_" % (ListPoints[n,0]*1e3,ListPoints[n,1]*1e3)
-            fnames+=self.RunCases(
-                    extrasuffix=newextrasufffix,
-                    XSteering=ListPoints[n,0],
-                    YSteering=ListPoints[n,1],
-                    ZSteering=ZSteering,
-                    **kargs)
-                 
-        return ListPoints,fnames
-
-    def RunSpreadCase(self,targets,extrasuffix='',
-                    XSteering=0.0,
-                    YSteering=0.0,
-                    ZSteering=0.0,
-                    MultiPoint=[{'X':0.0,'Y':0.0,'Z':0.0}],
-                    **kargs):
-        fnames=[]
-        for entry in MultiPoint:
-            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
-            fnames+=self.RunCases(
-                    extrasuffix=newextrasufffix,
-                    bMinimalSaving=True,
-                    XSteering=entry['X']+XSteering,
-                    YSteering=entry['Y']+YSteering,
-                    ZSteering=entry['Z']+ZSteering,
-                    **kargs)
-                     
-        return fnames
+        self._XSteering=XSteering
+        self._YSteering=YSteering
+        self._ZSteering=ZSteering
+        self._TxSet=TxSet
+        
+        return super().RunCases(**kargs)
+        
 ##########################################
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
@@ -160,40 +176,29 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                  YSteering=0.0,
                  ZSteering=0.0,
                  RotationZ=0.0,
-                 DistanceConeToFocus=27e-3,
+                 TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                  **kargs):
         
         self._XSteering=XSteering
         self._YSteering=YSteering
         self._ZSteering=ZSteering
-        self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
+        self._TxSet=TxSet
         super().__init__(**kargs)
 
     def CreateSimConditions(self,**kargs):
         return SimulationConditions(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
-                                    DistanceConeToFocus=self._DistanceConeToFocus,
                                     RotationZ=self._RotationZ,
-                                    Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
-                                    FocalLength=135e-3,
+                                    TxSet=self._TxSet,
+                                    FocalLength=0.0,
+                                    Aperture=APERTURE, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                                     **kargs)
-
-    def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
-        Target=np.array(np.where(SkullMaskDataOrig==5.0)).flatten()
-        LineSight=SkullMaskDataOrig[Target[0],Target[1],:]
-        Distance=(Target[2]-np.where(LineSight>0)[0][0])*voxelS[2]
-        print('*'*20+'\n'+'Distance to target from skin (mm)=',Distance*1e3)
-        print('*'*20+'\n')
-        self._TxMechanicalAdjustmentZ=   self._DistanceConeToFocus - Distance
-
-        print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
-        print('*'*20+'\n')
 
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
-        TxVert=self._SIM_SETTINGS._TxH317_Orig['VertDisplay'].T.copy()
+        TxVert=self._SIM_SETTINGS._TxREMOPD['VertDisplay'].T.copy()
         TxVert/=self._SIM_SETTINGS.SpatialStep
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
@@ -201,16 +206,16 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
 
         TxVert[2,:]=-TxVert[2,:]
-        TxVert[0,:]+=LocSpot[0]
-        TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep
+        TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
+        TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
+        TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
 
         TxVert=np.dot(affine,TxVert)
 
-        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxREMOPD['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
 
         TxVert=TxVert.T[:,:3]
-        for i, f in enumerate(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay']):
+        for i, f in enumerate(self._SIM_SETTINGS._TxREMOPD['FaceDisplay']):
             TxStl.vectors[i*2][0] = TxVert[f[0],:]
             TxStl.vectors[i*2][1] = TxVert[f[1],:]
             TxStl.vectors[i*2][2] = TxVert[f[3],:]
@@ -227,8 +232,8 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         OrientVec=np.array([0,0,1]).reshape((1,3))
         TransformationCone[0,3]=LocSpot[0]
         TransformationCone[1,3]=LocSpot[1]
-        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
-        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.SpatialStep/2
+        HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.SpatialStep
         HeightCone=np.sqrt(HeightCone**2-RadCone**2)
         TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
         Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
@@ -242,8 +247,8 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         DataForSim['YSteering']=self._YSteering
         DataForSim['ZSteering']=self._ZSteering
         DataForSim['RotationZ']=self._RotationZ
+        DataForSim['TxSet']=self._TxSet
         DataForSim['bDoRefocusing']=self._bDoRefocusing
-        DataForSim['DistanceConeToFocus']=self._DistanceConeToFocus
         DataForSim['BasePhasedArrayProgrammingRefocusing']=self._SIM_SETTINGS.BasePhasedArrayProgrammingRefocusing
         DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
     
@@ -251,61 +256,37 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
-                      Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
-                      FocalLength=135e-3,
+    def __init__(self,Aperture=APERTURE, # m, aperture of the Tx, used tof calculated cross section area entering the domain
+                      FocalLength=0.0,
                       XSteering=0.0, #lateral steering
                       YSteering=0.0,
                       ZSteering=0.0,
                       RotationZ=0.0,#rotation of Tx over Z axis
-                      DistanceConeToFocus=0.0,
+                      TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                       **kargs):
-        super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=FocalLength*FactorEnlarge,**kargs)
-        self._FactorEnlarge=FactorEnlarge
-        self._OrigAperture=Aperture
-        self._OrigFocalLength=FocalLength
-        self._Aperture=Aperture*FactorEnlarge
-        self._FocalLength=FocalLength*FactorEnlarge
+        super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
         self._XSteering=XSteering
         self._YSteering=YSteering
         self._ZSteering=ZSteering
-        self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
+        self._TxSet = TxSet
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         if platform != "darwin":
             InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
-        
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
-
-            fig = plt.figure()
-            ax = Axes3D(fig)
-
-            ax.add_collection3d(Poly3DCollection(self._TxH317['VertDisplay'][self._TxH317['FaceDisplay']]*1e3)) #we plot the units in mm
-            #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._TxH317['Aperture']/2*1e3-5,self._TxH317['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._TxH317['Aperture']/2*1e3-5,self._TxH317['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
+        # and we select the set based on input
+        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ)[self._TxSet]
         
         for k in ['center','elemcenter','VertDisplay']:
-            self._TxH317[k][:,0]+=self._TxMechanicalAdjustmentX
-            self._TxH317[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ
+            self._TxREMOPD[k][:,0]+=self._TxMechanicalAdjustmentX
+            self._TxREMOPD[k][:,1]+=self._TxMechanicalAdjustmentY
+            self._TxREMOPD[k][:,2]+=self._TxMechanicalAdjustmentZ
 
         
-        print("self._TxH317['center'].min(axis=0)",self._TxH317['center'].min(axis=0))
-        print("self._TxH317['elemcenter'].min(axis=0)",self._TxH317['elemcenter'].min(axis=0))
+        print("self._TxREMOPD['center'].min(axis=0)",self._TxREMOPD['center'].min(axis=0))
+        print("self._TxREMOPD['elemcenter'].min(axis=0)",self._TxREMOPD['elemcenter'].min(axis=0))
       
         #we apply an homogeneous pressure 
        
@@ -313,8 +294,8 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
-        self.BasePhasedArrayProgramming=np.zeros(self._TxH317['NumberElems'],np.complex64)
-        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._TxH317['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgramming=np.zeros(self._TxREMOPD['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._TxREMOPD['NumberElems'],np.complex64)
         
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
@@ -327,30 +308,31 @@ class SimulationConditions(SimulationConditionsBASE):
             center=np.zeros((1,3),np.float32)
             center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX+self._XSteering
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+self._YSteering
-            center[0,2]=self._ZDim[self._FocalSpotLocation[2]]+self._TxMechanicalAdjustmentZ+self._ZSteering
+            center[0,2]=self._TxMechanicalAdjustmentZ+self._ZSteering
 
             print('center',center)
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
-            u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
+                                 u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+            u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
             nBase=0
-            for n in range(self._TxH317['NumberElems']):
+            for n in range(self._TxREMOPD['NumberElems']):
                 phi=np.angle(np.conjugate(u2back[n]))
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                u0[nBase:nBase+self._TxH317['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-                nBase+=self._TxH317['elemdims']
+                u0[nBase:nBase+self._TxREMOPD['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+                nBase+=self._TxREMOPD['elemdims']
         else:
-             u0=(np.ones((self._TxH317['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxH317['center'].shape[0],1),np.float32))*self._SourceAmpPa
+             u0=(np.ones((self._TxREMOPD['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxREMOPD['center'].shape[0],1),np.float32))*self._SourceAmpPa
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
-        yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
+        ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),
-                         self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
+                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -359,24 +341,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
         self._SourceMapRayleigh[:,-self._PMLThickness:]=0
-        
-        if self._bDisplay:
-            plt.figure(figsize=(12,6))
-            plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapRayleigh)/1e6,
-                       vmin=np.abs(self._SourceMapRayleigh[RegionMap]).min()/1e6,cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Incident map to be forwarded propagated (MPa)')
-
-            plt.subplot(1,2,2)
-        
-            plt.imshow((np.abs(u2[self._FocalSpotLocation[0],:,:]).T+
-                                    ((self._MaterialMap[self._FocalSpotLocation[0],:,:].T>=3).astype(float))*
-                                    np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
-                                    extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
-                                    cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Acoustic field with Rayleigh with skull and brain (MPa)')
 
           
         
@@ -420,6 +384,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PunctualSource=np.sin(2*np.pi*self._Frequency*TimeVectorSource).reshape(1,len(TimeVectorSource))
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocForRefocusing=self._FocalSpotLocation.copy()
+        LocForRefocusing[2]=0.0
         LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
         LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
         LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
@@ -448,7 +413,7 @@ class SimulationConditions(SimulationConditionsBASE):
         center=np.zeros((ypp.size,3),np.float32)
         center[:,0]=xpp.flatten()
         center[:,1]=ypp.flatten()
-        center[:,2]=self._ZDim[self._ZSourceLocation]
+        center[:,2]=self._TxMechanicalAdjustmentZ
             
         ds=np.ones((center.shape[0]))*self._SpatialStep**2
         
@@ -461,29 +426,31 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
         u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                             u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
-        u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
+        u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
         nBase=0
-        for n in range(self._TxH317['NumberElems']):
+        for n in range(self._TxREMOPD['NumberElems']):
             phi=np.angle(np.conjugate(u2back[n]))
             self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back[n])
-            u0[nBase:nBase+self._TxH317['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-            nBase+=self._TxH317['elemdims']
+            u0[nBase:nBase+self._TxREMOPD['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+            nBase+=self._TxREMOPD['elemdims']
 
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
-        yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
+        ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
+        
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
+        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),self._TxREMOPD['ds'].astype(np.float32),
                          u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0
         self._SourceMapRayleighRefocus[-self._PMLThickness:,:]=0
         self._SourceMapRayleighRefocus[:,:self._PMLThickness]=0
@@ -520,7 +487,3 @@ class SimulationConditions(SimulationConditionsBASE):
             nSource+=1
             
         self._PulseSourceRefocus=PulseSource
-         
-        
-                
-        

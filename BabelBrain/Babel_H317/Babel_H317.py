@@ -237,6 +237,7 @@ class H317(BabelBaseTx):
 
                 for t in ['p_amp','MaterialMap']:
                     Water[t]=np.ascontiguousarray(np.flip(Water[t],axis=2))
+                Water['p_amp'][:,:,0]=0.0
                 
                 entry={'Skull':Skull,'Water':Water}
                 
@@ -334,9 +335,13 @@ class H317(BabelBaseTx):
                 
         
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
-        
-        IWater = self._IWater[self.Widget.SelCombinationDropDown.currentIndex()]
-        ISkull = self._ISkull[self.Widget.SelCombinationDropDown.currentIndex()]
+
+        if hasattr(self.Widget,'SelCombinationDropDown'):
+            IWater = self._IWater[self.Widget.SelCombinationDropDown.currentIndex()]
+            ISkull = self._ISkull[self.Widget.SelCombinationDropDown.currentIndex()]
+        else:
+            IWater = self._IWater[0]
+            ISkull = self._ISkull[0]
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             sliceXZ=IWater[:,SelY,:]

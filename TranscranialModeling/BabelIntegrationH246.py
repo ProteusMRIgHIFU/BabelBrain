@@ -324,7 +324,7 @@ class SimulationConditions(SimulationConditionsBASE):
         #to avoid adding an erroneous steering to the calculations, we need to discount the mechanical motion 
         center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
         center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-        center[0,2]=self._ZSteering
+        center[0,2]=self._TxMechanicalAdjustmentZ+self._ZSteering
 
         u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
         nBase=0

@@ -380,7 +380,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
         
-        self._SourceMapRayleigh=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleigh=u2[:,:,self.self._ZSourceLocation].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
