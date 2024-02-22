@@ -518,7 +518,7 @@ water only</string>
     </rect>
    </property>
    <property name="text">
-    <string>YSteering  (mm)</string>
+    <string>XSteering  (mm)</string>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="XSteeringSpinBox">
