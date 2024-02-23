@@ -18,7 +18,7 @@ from stl import mesh
 import scipy
 from trimesh import creation 
 import matplotlib.pyplot as plt
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
 from .H317 import GenerateH317Tx
 import nibabel
     
@@ -273,8 +273,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._RotationZ=RotationZ
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
-        if platform != "darwin":
-            InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
@@ -332,7 +330,7 @@ class SimulationConditions(SimulationConditionsBASE):
             print('center',center)
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                                 u0,self._TxH317['elemcenter'].astype(np.float32))
             u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
             nBase=0
             for n in range(self._TxH317['NumberElems']):
@@ -350,7 +348,7 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),
-                         self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+                         self._TxH317['ds'].astype(np.float32),u0,rf)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -452,16 +450,13 @@ class SimulationConditions(SimulationConditionsBASE):
             
         ds=np.ones((center.shape[0]))*self._SpatialStep**2
         
-        if platform != "darwin":
-            InitCuda()
-
         #we apply an homogeneous pressure 
         u0=self._PressMapFourierBack[SelRegRayleigh]
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
         u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                             u0,self._TxH317['elemcenter'].astype(np.float32))
         
         #now we calculate forward back
         
@@ -481,7 +476,7 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
-                         u0,rf,deviceMetal=deviceName)
+                         u0,rf)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

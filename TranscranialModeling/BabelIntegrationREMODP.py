@@ -19,7 +19,7 @@ import scipy
 from scipy.io import loadmat
 from trimesh import creation 
 import matplotlib.pyplot as plt
-from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
 
 import nibabel
 
@@ -29,6 +29,7 @@ FREQ=300e3
 APERTURE = 0.058
 DimensionElem = PITCH-KERF
 ZDistance=-1.2e-3 #distance from Tx elements to outplane
+MaxDistanceRayleigh=5e-3
 
 def computeREMODPGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
@@ -272,8 +273,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxSet = TxSet
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
-        if platform != "darwin":
-            InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         # and we select the set based on input
@@ -313,7 +312,7 @@ class SimulationConditions(SimulationConditionsBASE):
             print('center',center)
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                                 u0,self._TxREMOPD['elemcenter'].astype(np.float32))
             u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
             nBase=0
             for n in range(self._TxREMOPD['NumberElems']):
@@ -332,11 +331,24 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
-                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+                         self._TxREMOPD['ds'].astype(np.float32),u0,rf)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
-        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
+        
+        #we re run imposing a limitation of distance between the Tx and the layer that is forward propagated
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,np.array([ZDim[self._ZSourceLocation]]),indexing='ij')
+        
+        print('Z distance Tx, Z distance layer',np.unique(self._TxREMOPD['center'][:,2]),ZDim[self._ZSourceLocation],np.unique(self._TxREMOPD['center'][:,2])-ZDim[self._ZSourceLocation])
+        nzf=1
+        rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        
+        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
+                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,
+                         MaxDistance=MaxDistanceRayleigh)
+        u2=np.reshape(u2,xp.shape)
+        
+        self._SourceMapRayleigh=u2[:,:,0].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
@@ -416,9 +428,7 @@ class SimulationConditions(SimulationConditionsBASE):
         center[:,2]=self._TxMechanicalAdjustmentZ
             
         ds=np.ones((center.shape[0]))*self._SpatialStep**2
-        
-        if platform != "darwin":
-            InitCuda()
+
 
         #we apply an homogeneous pressure 
         u0=self._PressMapFourierBack[SelRegRayleigh]
@@ -426,7 +436,7 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
         u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                             u0,self._TxREMOPD['elemcenter'].astype(np.float32))
         
         #now we calculate forward back
         
@@ -448,7 +458,7 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),self._TxREMOPD['ds'].astype(np.float32),
-                         u0,rf,deviceMetal=deviceName)
+                         u0,rf)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

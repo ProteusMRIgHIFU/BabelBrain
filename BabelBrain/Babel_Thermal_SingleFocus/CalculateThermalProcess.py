@@ -40,7 +40,7 @@ class InOutputWrapper(object):
 def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
     stdout = InOutputWrapper(queueMsg,True)
     if kargs['Backend']=='CUDA':
-        InitCuda()
+        InitCuda(deviceName)
     elif kargs['Backend']=='OpenCL':
         InitOpenCL(deviceName)
     else:

@@ -16,23 +16,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 from BabelViscoFDTD.PropagationModel import PropagationModel
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL
-from scipy import ndimage
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
 import SimpleITK as sitk
-from nibabel import processing
 from scipy import interpolate
-from skimage.draw import circle_perimeter,disk
-from skimage.transform import rotate
-from skimage.measure import regionprops, regionprops_table, label
-from scipy.io import loadmat, savemat
-from stl import mesh
-from pprint import pprint
 import warnings
 import time
 import gc
 import os
-import pickle
 import os
 import pandas as pd
 import h5py
@@ -361,6 +352,10 @@ def ResaveNormalized(RPath,Mask):
     ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
+    
+####
+bGPU_INITIALIZED = False
+###
 
 class RUN_SIM_BASE(object):
     def CreateSimObject(self,**kargs):
@@ -385,6 +380,18 @@ class RUN_SIM_BASE(object):
                 bWaterOnly=False,
                 bDryRun=False,
                 **kargs):
+        
+        global bGPU_INITIALIZED
+        
+        if not bGPU_INITIALIZED:
+            if COMPUTING_BACKEND==1:
+                InitCuda(deviceName)
+            elif COMPUTING_BACKEND==2:
+                InitOpenCL(deviceName)
+            elif COMPUTING_BACKEND==3:
+                InitMetal(deviceName)
+            bGPU_INITIALIZED=True
+            
         OutNames=[]
         for target in targets:
             subsamplingFactor=1 
