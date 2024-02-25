@@ -331,7 +331,7 @@ class SimulationConditions(SimulationConditionsBASE):
             SelCenters=self._TxRC['center'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
             SelDs=self._TxRC['ds'][nBase:nBase+self._TxRC['elemdims'][n][0],:].astype(np.float32)
             u2back[n]=ForwardSimple(cwvnb_extlay,SelCenters,SelDs,
-                                u0,center)[0]
+                                u0,center,deviceMetal=deviceName)[0]
             nBase+=self._TxRC['elemdims'][n][0]
 
         AllPhi=np.zeros(self._TxRC['NumberElems'])
@@ -356,8 +356,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
-                        self._TxRC['ds'].astype(np.float32),u0,rf)
+        u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         u2[zp==0]=0
         

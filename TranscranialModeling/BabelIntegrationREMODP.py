@@ -29,7 +29,13 @@ FREQ=300e3
 APERTURE = 0.058
 DimensionElem = PITCH-KERF
 ZDistance=-1.2e-3 #distance from Tx elements to outplane
-MaxDistanceRayleigh=5e-3
+MaxDistanceRayleighX=np.array([30e-3,60e-3])
+MaxDistanceRayleighY=np.array([3.75e-3,4e-3])
+MaxDistanceLineZ  = np.polyfit(MaxDistanceRayleighX, MaxDistanceRayleighY, 1)
+MaxDistanceRayleighX=np.array([0.0,20e-3])
+MaxDistanceRayleighY=np.array([0.0,0.8e-3])
+MaxDistanceLineXY  = np.polyfit(MaxDistanceRayleighX, MaxDistanceRayleighY, 1)
+
 
 def computeREMODPGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
@@ -311,8 +317,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
             print('center',center)
             
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxREMOPD['elemcenter'].astype(np.float32))
+            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
             u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
             nBase=0
             for n in range(self._TxREMOPD['NumberElems']):
@@ -331,7 +336,7 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
-                         self._TxREMOPD['ds'].astype(np.float32),u0,rf)
+                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -343,9 +348,12 @@ class SimulationConditions(SimulationConditionsBASE):
         nzf=1
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
+        MaxD = MaxDistanceLineZ[0]*self._ZSteering +  MaxDistanceLineZ[1]
+        MaxD += MaxDistanceLineXY[0]*self._XSteering +  MaxDistanceLineXY[1]
+        MaxD += MaxDistanceLineXY[0]*self._YSteering +  MaxDistanceLineXY[1]
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
                          self._TxREMOPD['ds'].astype(np.float32),u0,rf,
-                         MaxDistance=MaxDistanceRayleigh)
+                         MaxDistance=MaxD,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._SourceMapRayleigh=u2[:,:,0].copy()
@@ -436,7 +444,7 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
         u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxREMOPD['elemcenter'].astype(np.float32))
+                             u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
@@ -457,8 +465,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),self._TxREMOPD['ds'].astype(np.float32),
-                         u0,rf)
+        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

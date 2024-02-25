@@ -329,8 +329,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
             print('center',center)
             
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxH317['elemcenter'].astype(np.float32))
+            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
             u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
             nBase=0
             for n in range(self._TxH317['NumberElems']):
@@ -347,8 +346,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),
-                         self._TxH317['ds'].astype(np.float32),u0,rf)
+        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -455,8 +453,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
-        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxH317['elemcenter'].astype(np.float32))
+        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
@@ -475,8 +472,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
-                         u0,rf)
+        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0
