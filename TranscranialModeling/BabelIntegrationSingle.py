@@ -128,7 +128,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=4):
+def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
@@ -220,7 +220,7 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
+    def __init__(self,FactorEnlarge = 1.0, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
                       Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                       FocalLength=63.2e-3,
                       **kargs): # steering

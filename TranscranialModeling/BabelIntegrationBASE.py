@@ -1224,10 +1224,10 @@ elif self._bTightNarrowBeamDomain:
                        COMPUTING_BACKEND=1,bDoRefocusing=True):
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=2 #stress source
-        Ox=np.ones(self._MaterialMap.shape) #we do not do weigthing for a forwardpropagated source
-        Oy=np.array([1])
-        Oz=np.array([1])
+        TypeSource=0 #particle source
+        Ox=np.zeros(self._MaterialMap.shape) 
+        Oy=np.zeros(self._MaterialMap.shape) 
+        Oz=np.ones(self._MaterialMap.shape)
 
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
