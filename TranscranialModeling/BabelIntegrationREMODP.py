@@ -17,24 +17,21 @@ import os
 from stl import mesh
 import scipy
 from scipy.io import loadmat
+from scipy.interpolate import interpn
 from trimesh import creation 
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
-
+from BabelViscoFDTD.PropagationModel import PropagationModel
 import nibabel
+from linetimer import CodeTimer
 
 PITCH = 3.08e-3 
 KERF = 0.5e-3
 FREQ=300e3
 APERTURE = 0.058
+minPPPArray=60.08
 DimensionElem = PITCH-KERF
 ZDistance=-1.2e-3 #distance from Tx elements to outplane
-MaxDistanceRayleighX=np.array([30e-3,60e-3])
-MaxDistanceRayleighY=np.array([3.75e-3,4e-3])
-MaxDistanceLineZ  = np.polyfit(MaxDistanceRayleighX, MaxDistanceRayleighY, 1)
-MaxDistanceRayleighX=np.array([0.0,20e-3])
-MaxDistanceRayleighY=np.array([0.0,0.8e-3])
-MaxDistanceLineXY  = np.polyfit(MaxDistanceRayleighX, MaxDistanceRayleighY, 1)
 
 
 def computeREMODPGeometry():
@@ -325,8 +322,11 @@ class SimulationConditions(SimulationConditionsBASE):
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
                 u0[nBase:nBase+self._TxREMOPD['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
                 nBase+=self._TxREMOPD['elemdims']
+
+            
         else:
              u0=(np.ones((self._TxREMOPD['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxREMOPD['center'].shape[0],1),np.float32))*self._SourceAmpPa
+             
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
@@ -340,23 +340,42 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
+
+        Wavelength=1500/self._Frequency
+        SpatialStep=Wavelength/minPPPArray
+        XDimHR=np.arange(self._XDim[self._PMLThickness],self._XDim[-self._PMLThickness],SpatialStep)
+        YDimHR=np.arange(self._YDim[self._PMLThickness],self._YDim[-self._PMLThickness],SpatialStep)
+        N1HR=len(XDimHR)
+        N2HR=len(YDimHR)
+        print('N1HR,N2HR',N1HR,N2HR)
+        SourceMapHR=np.zeros((N1HR,N2HR),np.complex64)
         
-        #we re run imposing a limitation of distance between the Tx and the layer that is forward propagated
-        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,np.array([ZDim[self._ZSourceLocation]]),indexing='ij')
+        xp,yp=np.meshgrid(XDimHR,YDimHR,indexing='ij')
+        for n in range(self._TxREMOPD['elemcenter'].shape[0]):
+            phi=np.angle(self.BasePhasedArrayProgramming[n])
+            SourceMapHR[np.where((xp>=self._TxREMOPD['elemcenter'][n,0]-DimensionElem/2) &
+                (xp<=self._TxREMOPD['elemcenter'][n,0]+DimensionElem/2) &
+                (yp>=self._TxREMOPD['elemcenter'][n,1]-DimensionElem/2) &
+                (yp<=self._TxREMOPD['elemcenter'][n,1]+DimensionElem/2))] =self._SourceAmpPa*np.exp(1j*phi)
+
+        RatioPPW =int(minPPPArray/self._basePPW)
+        if RatioPPW % 2 == 0:
+            RatioPPW=RatioPPW+1
         
-        print('Z distance Tx, Z distance layer',np.unique(self._TxREMOPD['center'][:,2]),ZDim[self._ZSourceLocation],np.unique(self._TxREMOPD['center'][:,2])-ZDim[self._ZSourceLocation])
-        nzf=1
-        rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        kernel=np.ones((RatioPPW,RatioPPW))/RatioPPW**2
         
-        MaxD = MaxDistanceLineZ[0]*self._ZSteering +  MaxDistanceLineZ[1]
-        MaxD += MaxDistanceLineXY[0]*self._XSteering +  MaxDistanceLineXY[1]
-        MaxD += MaxDistanceLineXY[0]*self._YSteering +  MaxDistanceLineXY[1]
-        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
-                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,
-                         MaxDistance=MaxD,deviceMetal=deviceName)
-        u2=np.reshape(u2,xp.shape)
+        SourceMapHR=scipy.signal.convolve2d(SourceMapHR, kernel, mode='same')
+
+        xp,yp=np.meshgrid(self._XDim,self._YDim,indexing='ij')
+
+        self._SourceMapRayleigh=interpn((XDimHR,YDimHR),
+                                            SourceMapHR,
+                                            (xp.flatten(),yp.flatten()),method='nearest',
+                                            bounds_error=False, fill_value=0.0)
         
-        self._SourceMapRayleigh=u2[:,:,0].copy()
+        
+        self._SourceMapRayleigh=np.reshape(self._SourceMapRayleigh,xp.shape)
+
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
