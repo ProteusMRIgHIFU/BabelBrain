@@ -905,6 +905,7 @@ class SimulationConditionsBASE(object):
                       TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
+                      ZTxCorrecton=0.0, # this compensates for flat transducers that have a dead space before reaching the skin
                       DensityCTMap=None, #use CT map
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
@@ -940,6 +941,7 @@ class SimulationConditionsBASE(object):
         self._DensityCTMap=DensityCTMap
         self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
         self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
+        self._ZTxCorrecton=ZTxCorrecton
 
         
         
@@ -1040,6 +1042,7 @@ class SimulationConditionsBASE(object):
             OffsetForFlat=0
         #default offsets , this can change if the Rayleigh field does not fit
         self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray+OffsetForFlat
+        self._ZLOffset+=int(np.round(self._ZTxCorrecton/self._SpatialStep))
         self._XROffset=self._PMLThickness 
         self._YROffset=self._PMLThickness
         self._ZROffset=self._PMLThickness

@@ -62,7 +62,7 @@ def GenerateSingleElem(PPW=12.0):
     XX,YY=np.meshgrid(centersX,centersX)
     SingElem[:,0]=XX.flatten()
     SingElem[:,1]=YY.flatten()
-    SingElem[:,2]=ZDistance
+    SingElem[:,2]=0.0
 
     VertDisplay[0::4,0]=SingElem[:,0]-hstep
     VertDisplay[0::4,1]=SingElem[:,1]-hstep
@@ -76,7 +76,7 @@ def GenerateSingleElem(PPW=12.0):
     VertDisplay[3::4,0]=SingElem[:,0]-hstep
     VertDisplay[3::4,1]=SingElem[:,1]+hstep
 
-    VertDisplay[:,2]= ZDistance
+    VertDisplay[:,2]= 0.0
    
     Tx['center'] = SingElem 
     Tx['ds'] = ds
@@ -268,7 +268,9 @@ class SimulationConditions(SimulationConditionsBASE):
                       RotationZ=0.0,#rotation of Tx over Z axis
                       TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                       **kargs):
-        super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
+        super().__init__(Aperture=Aperture,FocalLength=FocalLength,
+                         ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
+                         **kargs)
         self._XSteering=XSteering
         self._YSteering=YSteering
         self._ZSteering=ZSteering
