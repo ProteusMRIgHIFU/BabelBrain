@@ -772,7 +772,10 @@ class BabelFTD_Simulations_BASE(object):
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
-        
+
+        nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater_Sub__.nii.gz')
+                             
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
@@ -1224,10 +1227,10 @@ elif self._bTightNarrowBeamDomain:
                        COMPUTING_BACKEND=1,bDoRefocusing=True):
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=2 #stress source
-        Ox=np.ones(self._MaterialMap.shape) #we do not do weigthing for a forwardpropagated source
-        Oy=np.array([1])
-        Oz=np.array([1])
+        TypeSource=0 #particle source
+        Ox=np.zeros(self._MaterialMap.shape) 
+        Oy=np.zeros(self._MaterialMap.shape) 
+        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(

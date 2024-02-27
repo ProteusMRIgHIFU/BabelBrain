@@ -212,7 +212,7 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
+    def __init__(self,FactorEnlarge = 1.0, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
                       Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                       FocalLength=135e-3,
                       XSteering=0.0, #lateral steering
