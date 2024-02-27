@@ -62,7 +62,7 @@ def GenerateSingleElem(PPW=12.0):
     XX,YY=np.meshgrid(centersX,centersX)
     SingElem[:,0]=XX.flatten()
     SingElem[:,1]=YY.flatten()
-    SingElem[:,2]=0.0
+    SingElem[:,2]=ZDistance
 
     VertDisplay[0::4,0]=SingElem[:,0]-hstep
     VertDisplay[0::4,1]=SingElem[:,1]-hstep
@@ -76,7 +76,7 @@ def GenerateSingleElem(PPW=12.0):
     VertDisplay[3::4,0]=SingElem[:,0]-hstep
     VertDisplay[3::4,1]=SingElem[:,1]+hstep
 
-    VertDisplay[:,2]= 0.0
+    VertDisplay[:,2]= ZDistance
    
     Tx['center'] = SingElem 
     Tx['ds'] = ds
@@ -269,7 +269,7 @@ class SimulationConditions(SimulationConditionsBASE):
                       TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,
-                         ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
+                         #ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
                          **kargs)
         self._XSteering=XSteering
         self._YSteering=YSteering
@@ -343,40 +343,42 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
 
-        Wavelength=1500/self._Frequency
-        SpatialStep=Wavelength/minPPPArray
-        XDimHR=np.arange(self._XDim[self._PMLThickness],self._XDim[-self._PMLThickness],SpatialStep)
-        YDimHR=np.arange(self._YDim[self._PMLThickness],self._YDim[-self._PMLThickness],SpatialStep)
-        N1HR=len(XDimHR)
-        N2HR=len(YDimHR)
-        print('N1HR,N2HR',N1HR,N2HR)
-        SourceMapHR=np.zeros((N1HR,N2HR),np.complex64)
+        # Wavelength=1500/self._Frequency
+        # SpatialStep=Wavelength/minPPPArray
+        # XDimHR=np.arange(self._XDim[self._PMLThickness],self._XDim[-self._PMLThickness],SpatialStep)
+        # YDimHR=np.arange(self._YDim[self._PMLThickness],self._YDim[-self._PMLThickness],SpatialStep)
+        # N1HR=len(XDimHR)
+        # N2HR=len(YDimHR)
+        # print('N1HR,N2HR',N1HR,N2HR)
+        # SourceMapHR=np.zeros((N1HR,N2HR),np.complex64)
         
-        xp,yp=np.meshgrid(XDimHR,YDimHR,indexing='ij')
-        for n in range(self._TxREMOPD['elemcenter'].shape[0]):
-            phi=np.angle(self.BasePhasedArrayProgramming[n])
-            SourceMapHR[np.where((xp>=self._TxREMOPD['elemcenter'][n,0]-DimensionElem/2) &
-                (xp<=self._TxREMOPD['elemcenter'][n,0]+DimensionElem/2) &
-                (yp>=self._TxREMOPD['elemcenter'][n,1]-DimensionElem/2) &
-                (yp<=self._TxREMOPD['elemcenter'][n,1]+DimensionElem/2))] =self._SourceAmpPa*np.exp(1j*phi)
+        # xp,yp=np.meshgrid(XDimHR,YDimHR,indexing='ij')
+        # for n in range(self._TxREMOPD['elemcenter'].shape[0]):
+        #     phi=np.angle(self.BasePhasedArrayProgramming[n])
+        #     SourceMapHR[np.where((xp>=self._TxREMOPD['elemcenter'][n,0]-DimensionElem/2) &
+        #         (xp<=self._TxREMOPD['elemcenter'][n,0]+DimensionElem/2) &
+        #         (yp>=self._TxREMOPD['elemcenter'][n,1]-DimensionElem/2) &
+        #         (yp<=self._TxREMOPD['elemcenter'][n,1]+DimensionElem/2))] =self._SourceAmpPa*np.exp(1j*phi)
 
-        RatioPPW =int(minPPPArray/self._basePPW)
-        if RatioPPW % 2 == 0:
-            RatioPPW=RatioPPW+1
+        # RatioPPW =int(minPPPArray/self._basePPW)
+        # if RatioPPW % 2 == 0:
+        #     RatioPPW=RatioPPW+1
         
-        kernel=np.ones((RatioPPW,RatioPPW))/RatioPPW**2
+        # kernel=np.ones((RatioPPW,RatioPPW))/RatioPPW**2
         
-        SourceMapHR=scipy.signal.convolve2d(SourceMapHR, kernel, mode='same')
+        # SourceMapHR=scipy.signal.convolve2d(SourceMapHR, kernel, mode='same')
 
-        xp,yp=np.meshgrid(self._XDim,self._YDim,indexing='ij')
+        # xp,yp=np.meshgrid(self._XDim,self._YDim,indexing='ij')
 
-        self._SourceMapRayleigh=interpn((XDimHR,YDimHR),
-                                            SourceMapHR,
-                                            (xp.flatten(),yp.flatten()),method='nearest',
-                                            bounds_error=False, fill_value=0.0)
+        # self._SourceMapRayleigh=interpn((XDimHR,YDimHR),
+        #                                     SourceMapHR,
+        #                                     (xp.flatten(),yp.flatten()),method='nearest',
+        #                                     bounds_error=False, fill_value=0.0)
         
         
-        self._SourceMapRayleigh=np.reshape(self._SourceMapRayleigh,xp.shape)
+        # self._SourceMapRayleigh=np.reshape(self._SourceMapRayleigh,xp.shape)
+
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation]
 
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
