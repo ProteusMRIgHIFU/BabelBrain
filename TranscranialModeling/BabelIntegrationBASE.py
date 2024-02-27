@@ -772,7 +772,10 @@ class BabelFTD_Simulations_BASE(object):
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
         ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
-        
+
+        nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater_Sub__.nii.gz')
+                             
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
