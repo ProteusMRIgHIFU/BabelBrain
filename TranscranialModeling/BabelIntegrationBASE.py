@@ -1230,7 +1230,7 @@ elif self._bTightNarrowBeamDomain:
         TypeSource=0 #particle source
         Ox=np.zeros(self._MaterialMap.shape) 
         Oy=np.zeros(self._MaterialMap.shape) 
-        Oz=np.ones(self._MaterialMap.shape)
+        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
