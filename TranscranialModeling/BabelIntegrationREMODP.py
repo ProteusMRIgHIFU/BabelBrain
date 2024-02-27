@@ -128,7 +128,7 @@ def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0):
             if k == 'Total':
                 Tx['elemcenter'][n,:]=np.mean(center,axis=0) 
             else:
-                Tx['elemcenter'][n%subsetLimit,:]==np.mean(center,axis=0)  
+                Tx['elemcenter'][n%subsetLimit,:]=np.mean(center,axis=0)  
             
             normal=TxElem['normal'].copy()
             
