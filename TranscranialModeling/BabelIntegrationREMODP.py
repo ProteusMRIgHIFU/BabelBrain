@@ -231,19 +231,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         bdir=os.path.dirname(self._MASKFNAME)
         TxStl.save(bdir+os.sep+prefix+'Tx.stl')
         
-        TransformationCone=np.eye(4)
-        TransformationCone[2,2]=-1
-        OrientVec=np.array([0,0,1]).reshape((1,3))
-        TransformationCone[0,3]=LocSpot[0]
-        TransformationCone[1,3]=LocSpot[1]
-        RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.SpatialStep/2
-        HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.SpatialStep
-        HeightCone=np.sqrt(HeightCone**2-RadCone**2)
-        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
-        Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
-        Cone.apply_transform(affine)
-        #we save the final cone profile
-        Cone.export(bdir+os.sep+prefix+'_Cone.stl')
+            # TransformationCone=np.eye(4)
+            # TransformationCone[2,2]=-1
+            # OrientVec=np.array([0,0,1]).reshape((1,3))
+            # TransformationCone[0,3]=LocSpot[0]
+            # TransformationCone[1,3]=LocSpot[1]
+            # RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.SpatialStep/2
+            # HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.SpatialStep
+            # HeightCone=np.sqrt(HeightCone**2-RadCone**2)
+            # TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+            # Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
+            # Cone.apply_transform(affine)
+            # #we save the final cone profile
+            # Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         
 
     def AddSaveDataSim(self,DataForSim):
@@ -314,7 +314,7 @@ class SimulationConditions(SimulationConditionsBASE):
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+self._YSteering
             center[0,2]=self._TxMechanicalAdjustmentZ+self._ZSteering
 
-            print('center',center)
+            print('center',center,np.mean(self._TxREMOPD['elemcenter'][:,2]))
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
             u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
@@ -334,6 +334,8 @@ class SimulationConditions(SimulationConditionsBASE):
         nzf=len(self._ZDim)
         ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
         xp,yp,zp=np.meshgrid(self._XDim,self._YDim,ZDim,indexing='ij')
+
+        print('ZDim[self._ZSourceLocation]',ZDim[self._ZSourceLocation])
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
@@ -342,41 +344,6 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
-
-        # Wavelength=1500/self._Frequency
-        # SpatialStep=Wavelength/minPPPArray
-        # XDimHR=np.arange(self._XDim[self._PMLThickness],self._XDim[-self._PMLThickness],SpatialStep)
-        # YDimHR=np.arange(self._YDim[self._PMLThickness],self._YDim[-self._PMLThickness],SpatialStep)
-        # N1HR=len(XDimHR)
-        # N2HR=len(YDimHR)
-        # print('N1HR,N2HR',N1HR,N2HR)
-        # SourceMapHR=np.zeros((N1HR,N2HR),np.complex64)
-        
-        # xp,yp=np.meshgrid(XDimHR,YDimHR,indexing='ij')
-        # for n in range(self._TxREMOPD['elemcenter'].shape[0]):
-        #     phi=np.angle(self.BasePhasedArrayProgramming[n])
-        #     SourceMapHR[np.where((xp>=self._TxREMOPD['elemcenter'][n,0]-DimensionElem/2) &
-        #         (xp<=self._TxREMOPD['elemcenter'][n,0]+DimensionElem/2) &
-        #         (yp>=self._TxREMOPD['elemcenter'][n,1]-DimensionElem/2) &
-        #         (yp<=self._TxREMOPD['elemcenter'][n,1]+DimensionElem/2))] =self._SourceAmpPa*np.exp(1j*phi)
-
-        # RatioPPW =int(minPPPArray/self._basePPW)
-        # if RatioPPW % 2 == 0:
-        #     RatioPPW=RatioPPW+1
-        
-        # kernel=np.ones((RatioPPW,RatioPPW))/RatioPPW**2
-        
-        # SourceMapHR=scipy.signal.convolve2d(SourceMapHR, kernel, mode='same')
-
-        # xp,yp=np.meshgrid(self._XDim,self._YDim,indexing='ij')
-
-        # self._SourceMapRayleigh=interpn((XDimHR,YDimHR),
-        #                                     SourceMapHR,
-        #                                     (xp.flatten(),yp.flatten()),method='nearest',
-        #                                     bounds_error=False, fill_value=0.0)
-        
-        
-        # self._SourceMapRayleigh=np.reshape(self._SourceMapRayleigh,xp.shape)
 
         self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
 
