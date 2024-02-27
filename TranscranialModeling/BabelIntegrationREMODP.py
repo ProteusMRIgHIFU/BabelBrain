@@ -269,7 +269,7 @@ class SimulationConditions(SimulationConditionsBASE):
                       TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,
-                         #ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
+                         ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
                          **kargs)
         self._XSteering=XSteering
         self._YSteering=YSteering
@@ -378,7 +378,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         # self._SourceMapRayleigh=np.reshape(self._SourceMapRayleigh,xp.shape)
 
-        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation]
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
 
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
