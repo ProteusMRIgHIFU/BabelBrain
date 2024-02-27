@@ -59,7 +59,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
     Diameter=9.5e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'],PPWSurface=8)
 
     # fig = plt.figure()
     # ax = Axes3D(fig)

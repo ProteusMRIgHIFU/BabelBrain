@@ -129,7 +129,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=4):
+def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
@@ -137,7 +137,7 @@ def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=4):
     return Tx
 
 
-def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=4):
+def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
     
