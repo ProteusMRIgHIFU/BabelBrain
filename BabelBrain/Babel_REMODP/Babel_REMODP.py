@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
                 QErrorMessage, QMessageBox)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor
 
@@ -151,8 +151,13 @@ class REMODP(H317): #we reuse H317 Tx class
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
-                if 'zLengthBeyonFocalPoint' in Skull:
-                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
+                self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
+                TxSet = Skull['TxSet']
+                if type(TxSet) is bytes:
+                    TxSet=TxSet.decode("utf-8")
+                index = self.Widget.SelTxSetDropDown.findText(TxSet, Qt.MatchFixedString)
+                if index >= 0:
+                    self.Widget.SelTxSetDropDown.setCurrentIndex(index)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
