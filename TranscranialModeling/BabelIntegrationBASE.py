@@ -1584,7 +1584,12 @@ elif self._bTightNarrowBeamDomain:
             upperZR=self._SkullMaskDataOrig.shape[2]
         else:
             upperZR=-self._ZShrink_R
-
+            
+        #we zero values before source line
+        self._u2RayleighField[:,:,:self._ZSourceLocation]=0.0
+        self._InPeakValue[:,:,:self._ZSourceLocation]=0.0
+        if bDoRefocusing:
+            self._InPeakValueRefocus[:,:,:self._ZSourceLocation]=0.0
         #we return the region not including the PML and padding
         RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         RayleighWater[self._XShrink_L:upperXR,
