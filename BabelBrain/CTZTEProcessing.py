@@ -108,29 +108,30 @@ def RunElastix(reference,moving,finalname):
         elif _IS_MAC:
             shell='zsh'
             path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '"'# >"' + tmpdirname+os.sep+'sout.txt" 2>"' + tmpdirname+os.sep+'serr.txt"'  
-            print(cmd)
-            result = os.system(cmd)
-            # result = subprocess.run(
-            #         [shell,
-            #         path_script,
-            #         reference,
-            #         moving,
-            #         tmpdirname], capture_output=False)
-            # print("stdout:", result.stdout)
-            # print("stderr:", result.stderr)
-            # if result == 0:
-            #     with open(tmpdirname+os.sep+'sout.txt','r') as f:
-            #         print(f.read())
-            #     with open(tmpdirname+os.sep+'serr.txt','r') as f:
-            #         print(f.read())
-            if result == 0:
+        if _IS_MAC:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '"'
+                print(cmd)
+                result = os.system(cmd)
+                if result == 0:
+                    shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+            if result != 0:
+                raise SystemError("Error when trying to run elastix")
+        else:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                result = subprocess.run(
+                        [shell,
+                        path_script,
+                        reference,
+                        moving,
+                        tmpdirname], capture_output=True, text=True
+                )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            if result.returncode == 0:
                 shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-
-        if result != 0:
-            raise SystemError("Error when trying to run elastix")
+            if result.returncode != 0:
+                raise SystemError("Error when trying to run elastix")
     else:
         path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
         with tempfile.TemporaryDirectory() as tmpdirname:
