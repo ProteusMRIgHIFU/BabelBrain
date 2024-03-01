@@ -278,6 +278,12 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
         self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         
+        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
+        
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
             from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -299,11 +305,17 @@ class SimulationConditions(SimulationConditionsBASE):
         for k in ['center','elemcenter','VertDisplay']:
             self._TxH317[k][:,0]+=self._TxMechanicalAdjustmentX
             self._TxH317[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ
+            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
 
         
-        print("self._TxH317['center'].min(axis=0)",self._TxH317['center'].min(axis=0))
-        print("self._TxH317['elemcenter'].min(axis=0)",self._TxH317['elemcenter'].min(axis=0))
+        if np.max(self._TxH317['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+            #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
+            for k in ['center','VertDisplay','elemcenter']:
+                self._TxH317[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        #if yet we are not there, we need to stop
+        if np.max(self._TxH317['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation])
+            raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
        

@@ -772,8 +772,8 @@ class BabelFTD_Simulations_BASE(object):
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
             
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
+        nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -852,7 +852,8 @@ class BabelFTD_Simulations_BASE(object):
         print('Adjustment in RAS - T1W space',AdjustmentInRAS)
             
         sname=FILENAMES['DataForSim']
-        SaveToH5py(DataForSim,sname)
+        if bMinimalSaving==False:
+            SaveToH5py(DataForSim,sname)
         gc.collect()
         
         return sname
@@ -1024,6 +1025,7 @@ class SimulationConditionsBASE(object):
         
         #we save the mask array and flipped
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
+        self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)
         if not (np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,6),np.round(voxelS,6))):
