@@ -254,6 +254,12 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
+        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
+        
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
             from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -276,8 +282,16 @@ class SimulationConditions(SimulationConditionsBASE):
             for k in ['center','VertDisplay','elemcenter']:
                 Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                 Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ
-        
+                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+        if np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+            #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
+            for Tx in [self._TxRC,self._TxRCOrig]:
+                for k in ['center','VertDisplay','elemcenter']:
+                    Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        #if yet we are not there, we need to stop
+        if np.max(self._TxRC['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation])
+            raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
        

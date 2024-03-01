@@ -1003,6 +1003,7 @@ class SimulationConditionsBASE(object):
         
         #we save the mask array and flipped
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
+        self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)
         if not (np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,6),np.round(voxelS,6))):

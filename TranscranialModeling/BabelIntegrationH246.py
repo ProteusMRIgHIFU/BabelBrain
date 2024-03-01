@@ -295,6 +295,10 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
         
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','RingVertDisplay','elemcenter']:
@@ -302,14 +306,29 @@ class SimulationConditions(SimulationConditionsBASE):
                     for n in range(len(Tx[k])):
                         Tx[k][n][:,0]+=self._TxMechanicalAdjustmentX
                         Tx[k][n][:,1]+=self._TxMechanicalAdjustmentY
-                        Tx[k][n][:,2]+=self._TxMechanicalAdjustmentZ
+                        Tx[k][n][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
                 else:
                     Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                     Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                    Tx[k][:,2]+=self._TxMechanicalAdjustmentZ
+                    Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
         
         #we apply an homogeneous pressure 
        
+       if np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+            #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
+            for Tx in [self._TxRC,self._TxRCOrig]:
+                for k in ['center','RingVertDisplay','elemcenter']:
+                    if k == 'RingVertDisplay':
+                        for n in range(len(Tx[k])):
+                            Tx[k][n][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+                    else:
+                        Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+                            
+        #if yet we are not there, we need to stop
+        if np.max(self._TxRC['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation])
+            raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
+      
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
