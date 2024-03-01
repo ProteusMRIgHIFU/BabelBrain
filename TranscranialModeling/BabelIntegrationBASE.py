@@ -748,8 +748,8 @@ class BabelFTD_Simulations_BASE(object):
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
             
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+        nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -759,19 +759,23 @@ class BabelFTD_Simulations_BASE(object):
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            if bMinimalSaving==False:
+                nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+                SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
-            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
+            if bMinimalSaving==False:
+                 ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
 
                 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        if bMinimalSaving==False:
+            nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
-        ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
+        if bMinimalSaving==False:
+            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
 
         nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater_Sub__.nii.gz')
@@ -828,7 +832,8 @@ class BabelFTD_Simulations_BASE(object):
         print('Adjustment in RAS - T1W space',AdjustmentInRAS)
             
         sname=bdir+os.sep+prefix+waterPrefix+'DataForSim.h5'
-        SaveToH5py(DataForSim,sname)
+        if bMinimalSaving==False:
+            SaveToH5py(DataForSim,sname)
         gc.collect()
         
         return sname

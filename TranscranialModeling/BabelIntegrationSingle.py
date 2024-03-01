@@ -128,7 +128,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=8):
+def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=5):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
