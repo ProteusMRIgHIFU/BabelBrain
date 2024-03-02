@@ -1564,6 +1564,8 @@ elif self._bTightNarrowBeamDomain:
         else:
             upperZR=-self._ZShrink_R
 
+        self._u2RayleighField[:,:,:self._ZSourceLocation]=0.0
+        
         #we return the region not including the PML and padding
         RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         RayleighWater[self._XShrink_L:upperXR,
@@ -1579,6 +1581,8 @@ elif self._bTightNarrowBeamDomain:
         MaskCalcRegions=np.zeros(MaskSkull.shape,bool)
         RayleighWaterOverlay=RayleighWater+MaskSkull*RayleighWater.max()/10
         
+        self._InPeakValue[:,:,:self._ZSourceLocation]=0.0
+        
         FullSolutionPressure=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         FullSolutionPressure[self._XShrink_L:upperXR,
                       self._YShrink_L:upperYR,
@@ -1591,6 +1595,7 @@ elif self._bTightNarrowBeamDomain:
         MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
         FullSolutionPressureRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         if bDoRefocusing:
+            self._InPeakValueRefocus[:,:,:self._ZSourceLocation]=0.0
             FullSolutionPressureRefocus[self._XShrink_L:upperXR,
                           self._YShrink_L:upperYR,
                           self._ZShrink_L:upperZR]=\
