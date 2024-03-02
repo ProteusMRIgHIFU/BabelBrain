@@ -329,7 +329,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
       
         #we apply an homogeneous pressure 
-       if np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+        if np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
             for Tx in [self._TxRC,self._TxRCOrig]:
                 for k in ['center','RingVertDisplay','elemcenter']:
