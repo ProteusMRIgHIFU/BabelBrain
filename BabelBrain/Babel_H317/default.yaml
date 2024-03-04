@@ -11,4 +11,5 @@ DefaultDistanceConeToFocus:       25.0e-3  # in m
 USFrequencies:
     - 250000.0
     - 700000.0
+    - 825000.0
 
