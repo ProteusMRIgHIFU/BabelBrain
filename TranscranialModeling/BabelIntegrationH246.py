@@ -149,9 +149,7 @@ def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
         n+=1
         TxVert=TxP['VertDisplay']*1e3
         TxVert[:,2]+=Foc
- 
-            
-            
+
         if bFirstRing:
             Tx=TxP
             bFirstRing=False
@@ -311,8 +309,8 @@ class SimulationConditions(SimulationConditionsBASE):
                     Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
         
         #we apply an homogeneous pressure 
-       
-        if np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+        Correction=0.0
+        while np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
             for Tx in [self._TxRC,self._TxRCOrig]:
                 for k in ['center','RingVertDisplay','elemcenter']:
@@ -321,6 +319,9 @@ class SimulationConditions(SimulationConditionsBASE):
                             Tx[k][n][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
                     else:
                         Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+            Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        if Correction>0:
+            print('Warning: Need to apply correction to reposition Tx for',Correction)
                             
         #if yet we are not there, we need to stop
         if np.max(self._TxRC['center'][:,2])>self._ZDim[self._ZSourceLocation]:
@@ -381,7 +382,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
         
-        self._SourceMapFlat=u2[:,:,self._PMLThickness]*0
+        self._SourceMapFlat=u2[:,:,self._ZSourceLocation]*0
         xpp,ypp=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
         
         

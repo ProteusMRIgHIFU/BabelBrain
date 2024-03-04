@@ -307,11 +307,14 @@ class SimulationConditions(SimulationConditionsBASE):
             self._TxH317[k][:,1]+=self._TxMechanicalAdjustmentY
             self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
 
-        
-        if np.max(self._TxH317['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+        Correction=0.0
+        while np.max(self._TxH317['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
             for k in ['center','VertDisplay','elemcenter']:
                 self._TxH317[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+            Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        if Correction>0:
+            print('Warning: Need to apply correction to reposition Tx for',Correction)
         #if yet we are not there, we need to stop
         if np.max(self._TxH317['center'][:,2])>self._ZDim[self._ZSourceLocation]:
             print("np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation])
@@ -486,7 +489,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0
         self._SourceMapRayleighRefocus[-self._PMLThickness:,:]=0
         self._SourceMapRayleighRefocus[:,:self._PMLThickness]=0
