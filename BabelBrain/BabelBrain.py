@@ -704,7 +704,10 @@ class BabelBrain(QWidget):
             self.Widget.HideMarkscheckBox.setEnabled(True)
         self.Widget.tabWidget.setEnabled(True)
         self.AcSim.setEnabled(True)
-        Data=nibabel.load(self._outnameMask)
+        try:
+            Data=nibabel.load(self._outnameMask)
+        except:
+            raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
         T1W=nibabel.load(self._T1W_resampled_fname)
