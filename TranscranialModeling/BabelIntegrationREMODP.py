@@ -283,11 +283,32 @@ class SimulationConditions(SimulationConditionsBASE):
         # and we select the set based on input
         self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ)[self._TxSet]
         
+        
+        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
+        
         for k in ['center','elemcenter','VertDisplay']:
             self._TxREMOPD[k][:,0]+=self._TxMechanicalAdjustmentX
             self._TxREMOPD[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxREMOPD[k][:,2]+=self._TxMechanicalAdjustmentZ
-
+            self._TxREMOPD[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+            
+        Correction=0.0
+        while np.max(self._TxREMOPD['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+            #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
+            for Tx in [self._TxREMOPD]:
+                for k in ['center','VertDisplay','elemcenter']:
+                    Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+            Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        if Correction>0:
+            print('Warning: Need to apply correction to reposition Tx for',Correction)
+        #if yet we are not there, we need to stop
+        if np.max(self._TxREMOPD['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._TxREMOPD['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxREMOPD['center'][:,2]),self._ZDim[self._ZSourceLocation])
+            raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
+      
         
         print("self._TxREMOPD['center'].min(axis=0)",self._TxREMOPD['center'].min(axis=0))
         print("self._TxREMOPD['elemcenter'].min(axis=0)",self._TxREMOPD['elemcenter'].min(axis=0))
