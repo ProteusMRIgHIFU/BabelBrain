@@ -330,7 +330,7 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
-        self._SourceMapRayleigh=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
@@ -459,7 +459,7 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
                          u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0
         self._SourceMapRayleighRefocus[-self._PMLThickness:,:]=0
         self._SourceMapRayleighRefocus[:,:self._PMLThickness]=0

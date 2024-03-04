@@ -385,7 +385,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
         
-        self._SourceMapFlat=u2[:,:,self._PMLThickness]*0
+        self._SourceMapFlat=u2[:,:,self._ZSourceLocation]*0
         xpp,ypp=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
         
         

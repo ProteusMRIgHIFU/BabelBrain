@@ -1196,7 +1196,7 @@ elif self._bTightNarrowBeamDomain:
                 self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
 
             #We remove tissue layers
-            self._MaterialMap[:,:,:self._ZSourceLocation] = 0 # we remove tissue layers by putting water
+            self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
         
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
