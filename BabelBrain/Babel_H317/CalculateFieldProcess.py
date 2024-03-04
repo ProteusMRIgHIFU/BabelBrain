@@ -48,7 +48,7 @@ def CalculateFieldProcess(queue,Target,**kargs):
         if XSteering==0.0:
             XSteering=1e-6
         
-        R.RunCases(targets=Target,
+        FilesWater=R.RunCases(targets=Target,
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
                         XSteering=XSteering,
