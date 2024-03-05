@@ -442,6 +442,7 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['DurationUS']=DurationUS
     SaveDict['DurationOff']=DurationOff
     SaveDict['DutyCycle']=DutyCycle
+    SaveDict['PRF']=PRF
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)
