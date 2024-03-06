@@ -301,11 +301,11 @@ inline bool checkVoxelInd(const size_t index, device const unsigned int * vtable
 
 #ifdef _OPENCL
 __kernel void ExtractPoints(__global const unsigned int* voxel_table,
-                             __global unsigned int * globalcount,
+                             __global ulong * globalcount,
                              __global float * Points,
                             const unsigned int total,
-                            const unsigned int base,
-                            const unsigned int basePoint,
+                            const ulong base,
+                            const ulong basePoint,
                             const unsigned int gx,
                             const unsigned int gy,
                             const unsigned int gz)
@@ -330,14 +330,20 @@ __kernel void ExtractPoints(__global const unsigned int* voxel_table,
 #ifdef _METAL                      
 kernel void ExtractPoints( device const unsigned int* voxel_table [[ buffer(0) ]],
                            device atomic_uint * globalcount [[ buffer(1) ]],
-                          constant unsigned int *inparas [[buffer(2)]],
-                          device float * Points [[ buffer(3) ]],
-                            uint gid[[thread_position_in_grid]])
-                            {
+                           device unsigned int *inparas [[buffer(2)]],
+                           device float * Points [[ buffer(3) ]],
+                           uint gid[[thread_position_in_grid]])
+                           {
     size_t k = (size_t)gid;
     #define  total  inparas[0]
-    #define  base  inparas[1]
-    #define  basePoint inparas[2]
+    size_t base = (size_t)(inparas[1]);
+    size_t base64 = (size_t)inparas[2];
+
+    #define  basePoint inparas[3]
+    
+    if (base64 > 0){
+        base += base64 * 4294967296;
+    }
     
 #endif
     if (k < (size_t)total) {
@@ -560,7 +566,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         elif GPUBackend=='Metal' :
             Points_dev=ctx.buffer(Points_part.nbytes)
             globalcount_dev=ctx.buffer(globalcount)
-            inparams=np.zeros(3,np.uint32)
+            inparams=np.zeros(4,np.uint32)
             
         totalGrid=gx*gy*gz
         prevPInd=0
@@ -607,8 +613,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                                                     globalcount_dev,
                                                     Points_dev,
                                                     np.uint32(ntotal),
-                                                    np.uint32(nt),
-                                                    np.uint32(prevPInd),
+                                                    np.uint64(nt),
+                                                    np.uint64(prevPInd),
                                                     np.uint32(gx),
                                                     np.uint32(gy),
                                                     np.uint32(gz))
@@ -620,7 +626,16 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                 else:
                     inparams[0]=ntotal
                     inparams[1]=nt
-                    inparams[2]=prevPInd
+                    inparams[3]=prevPInd
+
+                    # Since we can't send numbers larger than 32 bits in Metal due to buffer size restrictions, 
+                    # we check the size here, send info to kernel, and create number there as workaround
+                    nt64 = nt // (1 << 32)
+                    if nt64 >= 1:
+                        inparams[2] = nt64
+                        nt_temp = nt - (nt64 * (1 << 32)) 
+                        inparams[1] = nt_temp
+
                     inparams_dev=ctx.buffer(inparams)
                     ctx.init_command_buffer()
                     handle = prg.function('ExtractPoints')(ntotal,vtable_dev,globalcount_dev,inparams_dev,Points_dev)
@@ -631,12 +646,16 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                         ctx.sync_buffers((Points_dev,globalcount_dev))
                     Points_part=np.frombuffer(Points_dev,dtype=np.float32).reshape(sizePdev,3)
                     globalcount=np.frombuffer(globalcount_dev,dtype=np.uint64)
-            
-                Points[prevPInd:int(globalcount[0]),:]=Points_part[:int(globalcount[0])-prevPInd,:]
+                try:
+                    Points[prevPInd:int(globalcount[0]),:]=Points_part[:int(globalcount[0])-prevPInd,:]
+                except:
+                    raise ValueError("Error running voxelization for specified parameters, suggest lowering PPW")
                 prevPInd=int(globalcount[0])
             
             
         print('globalcount',globalcount)
+        if globalcount[0] != totalPoints:
+            raise ValueError("Error in running voxelization for specified parameters, suggest lowering PPW")
  
     Points[:,0]+=0.5
     Points[:,1]+=0.5
