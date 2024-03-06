@@ -78,7 +78,6 @@ class H246(BabelBaseTx):
     @Slot()
     def TPODistanceUpdate(self,value):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3
-        print('ZSteering',self._ZSteering*1e3)
 
     def DefaultConfig(self):
         #Specific parameters for the H246 - to be configured later via a yaml

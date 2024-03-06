@@ -109,7 +109,6 @@ class CTX500(BabelBaseTx):
     @Slot()
     def TPODistanceUpdate(self,value):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
-        print('ZSteering',self._ZSteering*1e3)
 
     @Slot()
     def UpdateDistanceFromSkin(self):
