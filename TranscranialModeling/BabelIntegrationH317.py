@@ -148,6 +148,12 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         print('*'*20+'\n'+'Distance to target from skin (mm)=',Distance*1e3)
         print('*'*20+'\n')
         self._TxMechanicalAdjustmentZ=   self._DistanceConeToFocus - Distance
+        if self._ZSteering > 0:
+            print('Adjust extra depth for cone with ',self._ZSteering*1e3)
+            self._ExtraDepthAdjust = self._ZSteering
+
+        self._ExtraAdjustX=self._XSteering
+        self._ExtraAdjustY=self._YSteering
 
         print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
         print('*'*20+'\n')
@@ -212,7 +218,7 @@ class SimulationConditions(SimulationConditionsBASE):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,FactorEnlarge = 2, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
+    def __init__(self,FactorEnlarge = 1.0, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
                       Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                       FocalLength=135e-3,
                       XSteering=0.0, #lateral steering
@@ -241,6 +247,12 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
         self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         
+        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
+        
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
             from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -262,11 +274,20 @@ class SimulationConditions(SimulationConditionsBASE):
         for k in ['center','elemcenter','VertDisplay']:
             self._TxH317[k][:,0]+=self._TxMechanicalAdjustmentX
             self._TxH317[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ
+            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
 
-        
-        print("self._TxH317['center'].min(axis=0)",self._TxH317['center'].min(axis=0))
-        print("self._TxH317['elemcenter'].min(axis=0)",self._TxH317['elemcenter'].min(axis=0))
+        Correction=0.0
+        while np.max(self._TxH317['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+            #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
+            for k in ['center','VertDisplay','elemcenter']:
+                self._TxH317[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+            Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
+        if Correction>0:
+            print('Warning: Need to apply correction to reposition Tx for',Correction)
+        #if yet we are not there, we need to stop
+        if np.max(self._TxH317['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation])
+            raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
        
@@ -315,7 +336,7 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
-        self._SourceMapRayleigh=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
@@ -444,7 +465,7 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
                          u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        self._SourceMapRayleighRefocus=u2[:,:,self._PMLThickness].copy()
+        self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0
         self._SourceMapRayleighRefocus[-self._PMLThickness:,:]=0
         self._SourceMapRayleighRefocus[:,:self._PMLThickness]=0

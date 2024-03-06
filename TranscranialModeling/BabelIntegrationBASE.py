@@ -542,6 +542,9 @@ class BabelFTD_Simulations_BASE(object):
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
         self._bPETRA = bPETRA
+        self._ExtraDepthAdjust = 0.0 
+        self._ExtraAdjustX = 0.0 
+        self._ExtraAdjustY = 0.0
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -639,7 +642,10 @@ class BabelFTD_Simulations_BASE(object):
                                 ZIntoSkin=self._ZIntoSkin,
                                 DensityCTMap=DensityCTMap,
                                 QCorrection=QCorrArr,
-                                DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
+                                DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
+                                ExtraDepthAdjust=self._ExtraDepthAdjust,
+                                ExtraAdjustX=self._ExtraAdjustX,
+                                ExtraAdjustY=self._ExtraAdjustY)
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
                 SelM=MatFreq[self._Frequency][k]
@@ -748,8 +754,8 @@ class BabelFTD_Simulations_BASE(object):
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
             
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+        nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -759,20 +765,27 @@ class BabelFTD_Simulations_BASE(object):
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            if bMinimalSaving==False:
+                nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+                SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
             SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
-            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
+            if bMinimalSaving==False:
+                 ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
 
                 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        if bMinimalSaving==False:
+            nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
-        ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
-        
+        if bMinimalSaving==False:
+            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
+
+        nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater_Sub__.nii.gz')
+                             
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
@@ -825,7 +838,8 @@ class BabelFTD_Simulations_BASE(object):
         print('Adjustment in RAS - T1W space',AdjustmentInRAS)
             
         sname=bdir+os.sep+prefix+waterPrefix+'DataForSim.h5'
-        SaveToH5py(DataForSim,sname)
+        if bMinimalSaving==False:
+            SaveToH5py(DataForSim,sname)
         gc.collect()
         
         return sname
@@ -879,6 +893,9 @@ class SimulationConditionsBASE(object):
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
                       DensityCTMap=None, #use CT map
+                      ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
+                      ExtraAdjustX =0.0,
+                      ExtraAdjustY =0.0,
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -913,6 +930,9 @@ class SimulationConditionsBASE(object):
         self._DensityCTMap=DensityCTMap
         self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
         self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
+        self._ExtraDepthAdjust=ExtraDepthAdjust
+        self._ExtraAdjustX =ExtraAdjustX
+        self._ExtraAdjustY =ExtraAdjustY
 
         
         
@@ -995,6 +1015,7 @@ class SimulationConditionsBASE(object):
         
         #we save the mask array and flipped
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
+        self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)
         if not (np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,6),np.round(voxelS,6))):
@@ -1053,8 +1074,8 @@ class SimulationConditionsBASE(object):
             zfield+=self._FocalLength
             TopZ=zfield[self._PMLThickness]
             if self._FocalLength!=0:
-                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ
-                Alpha=np.arcsin(self._Aperture/2/self._FocalLength)
+                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
+                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
                 RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
             else:
                 RadiusFace=self._Aperture/2*1.10
@@ -1065,6 +1086,7 @@ class SimulationConditionsBASE(object):
             ypp,xpp=np.meshgrid(yfield,xfield)
             
             RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
+            RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-self._ExtraAdjustX)**2+(ypp-self._TxMechanicalAdjustmentY-self._ExtraAdjustY)**2)<=RadiusFace**2)
             IndXMap,IndYMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
             
@@ -1187,7 +1209,7 @@ elif self._bTightNarrowBeamDomain:
                 self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
 
             #We remove tissue layers
-            self._MaterialMap[:,:,:self._ZSourceLocation] = 0 # we remove tissue layers by putting water
+            self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
         
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
@@ -1224,10 +1246,10 @@ elif self._bTightNarrowBeamDomain:
                        COMPUTING_BACKEND=1,bDoRefocusing=True):
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=2 #stress source
-        Ox=np.ones(self._MaterialMap.shape) #we do not do weigthing for a forwardpropagated source
-        Oy=np.array([1])
-        Oz=np.array([1])
+        TypeSource=0 #particle source
+        Ox=np.zeros(self._MaterialMap.shape) 
+        Oy=np.zeros(self._MaterialMap.shape) 
+        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
@@ -1555,6 +1577,8 @@ elif self._bTightNarrowBeamDomain:
         else:
             upperZR=-self._ZShrink_R
 
+        self._u2RayleighField[:,:,:self._ZSourceLocation]=0.0
+        
         #we return the region not including the PML and padding
         RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         RayleighWater[self._XShrink_L:upperXR,
@@ -1570,6 +1594,8 @@ elif self._bTightNarrowBeamDomain:
         MaskCalcRegions=np.zeros(MaskSkull.shape,bool)
         RayleighWaterOverlay=RayleighWater+MaskSkull*RayleighWater.max()/10
         
+        self._InPeakValue[:,:,:self._ZSourceLocation]=0.0
+        
         FullSolutionPressure=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         FullSolutionPressure[self._XShrink_L:upperXR,
                       self._YShrink_L:upperYR,
@@ -1582,6 +1608,7 @@ elif self._bTightNarrowBeamDomain:
         MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
         FullSolutionPressureRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         if bDoRefocusing:
+            self._InPeakValueRefocus[:,:,:self._ZSourceLocation]=0.0
             FullSolutionPressureRefocus[self._XShrink_L:upperXR,
                           self._YShrink_L:upperYR,
                           self._ZShrink_L:upperZR]=\
