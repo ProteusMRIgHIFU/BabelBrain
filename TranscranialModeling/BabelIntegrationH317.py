@@ -152,6 +152,9 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             print('Adjust extra depth for cone with ',self._ZSteering*1e3)
             self._ExtraDepthAdjust = self._ZSteering
 
+        self._ExtraAdjustX=self._XSteering
+        self._ExtraAdjustY=self._YSteering
+
         print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
         print('*'*20+'\n')
 

@@ -641,7 +641,9 @@ class BabelFTD_Simulations_BASE(object):
                                 DensityCTMap=DensityCTMap,
                                 QCorrection=QCorrArr,
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
-                                ExtraDepthAdjust=self._ExtraDepthAdjust)
+                                ExtraDepthAdjust=self._ExtraDepthAdjust,
+                                ExtraAdjustX=self._ExtraAdjustX,
+                                ExtraAdjustY=self._ExtraAdjustY)
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
                 SelM=MatFreq[self._Frequency][k]
@@ -890,6 +892,8 @@ class SimulationConditionsBASE(object):
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
                       DensityCTMap=None, #use CT map
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
+                      ExtraAdjustX =0.0,
+                      ExtraAdjustY =0.0,
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -925,6 +929,8 @@ class SimulationConditionsBASE(object):
         self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
         self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
         self._ExtraDepthAdjust=ExtraDepthAdjust
+        self._ExtraAdjustX =ExtraAdjustX
+        self._ExtraAdjustY =ExtraAdjustY
 
         
         
@@ -1078,6 +1084,7 @@ class SimulationConditionsBASE(object):
             ypp,xpp=np.meshgrid(yfield,xfield)
             
             RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
+            RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-self._ExtraAdjustX)**2+(ypp-self._TxMechanicalAdjustmentY-self._ExtraAdjustY)**2)<=RadiusFace**2)
             IndXMap,IndYMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
             
