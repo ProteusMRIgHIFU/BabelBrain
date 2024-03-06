@@ -16,23 +16,14 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 from BabelViscoFDTD.PropagationModel import PropagationModel
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL
-from scipy import ndimage
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
 import SimpleITK as sitk
-from nibabel import processing
 from scipy import interpolate
-from skimage.draw import circle_perimeter,disk
-from skimage.transform import rotate
-from skimage.measure import regionprops, regionprops_table, label
-from scipy.io import loadmat, savemat
-from stl import mesh
-from pprint import pprint
 import warnings
 import time
 import gc
 import os
-import pickle
 import os
 import pandas as pd
 import h5py
@@ -361,6 +352,10 @@ def ResaveNormalized(RPath,Mask):
     ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
+    
+####
+bGPU_INITIALIZED = False
+###
 
 class RUN_SIM_BASE(object):
     def CreateSimObject(self,**kargs):
@@ -383,13 +378,25 @@ class RUN_SIM_BASE(object):
                 bForceRecalc=False,
                 bUseCT=False,
                 bWaterOnly=False,
+                bDryRun=False,
                 **kargs):
+        
+        global bGPU_INITIALIZED
+        
+        if not bGPU_INITIALIZED:
+            if COMPUTING_BACKEND==1:
+                InitCuda(deviceName)
+            elif COMPUTING_BACKEND==2:
+                InitOpenCL(deviceName)
+            elif COMPUTING_BACKEND==3:
+                InitMetal(deviceName)
+            bGPU_INITIALIZED=True
+            
         OutNames=[]
         for target in targets:
             subsamplingFactor=1 
             #sub sample when save the final results.
             for Frequency in Frequencies:
-                alignments=['']
                 fstr='_%ikHz_' %(int(Frequency/1e3))
                 
                 AlphaCFL=0.5
@@ -407,92 +414,112 @@ class RUN_SIM_BASE(object):
                     else:
                         SensorSubSampling=1
 
-                    for alignment in alignments:
-                        prefix=basedir+ID+os.sep
-                        MASKFNAME=prefix+target+alignment+fstr+ppws+ 'BabelViscoInput.nii.gz'
-                        print (MASKFNAME)
-                        if bUseCT:
-                            CTFNAME=prefix+target+alignment+fstr+ppws+ 'CT.nii.gz'
-                        else:
-                            CTFNAME=None
-                        for noshear in [False]:
-                            if noshear:
-                                snoshear='_NoShear_'
-                            else:
-                                snoshear=''
+                    prefix=basedir+ID+os.sep
+                    MASKFNAME=prefix+target+fstr+ppws+ 'BabelViscoInput.nii.gz'
+                    
+                    print (MASKFNAME)
+                    if bUseCT:
+                        CTFNAME=prefix+target+fstr+ppws+ 'CT.nii.gz'
+                    else:
+                        CTFNAME=None
 
-                            sFreq='%ikHz_' %(int(Frequency/1e3))
-                            outName=target+alignment+fstr+ppws+snoshear+extrasuffix
-                            bdir=os.path.dirname(MASKFNAME)
-                            cname=bdir+os.sep+outName+'DataForSim.h5'
-                            print(cname)
-                            if os.path.isfile(cname)and not bForceRecalc:
-                                print('*'*50)
-                                print (' Skipping '+ cname)
-                                print('*'*50)
-                                OutNames.append(bdir+os.sep+outName+'DataForSim.h5')
-                                continue
+                    FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
+                    cname=FILENAMES['DataForSim']
+                    print(cname)
+                    OutNames.append(cname)
+                    if (os.path.isfile(cname)and not bForceRecalc):
+                        print('*'*50)
+                        print (' Skipping '+ cname)
+                        print('*'*50)
+                        continue
+                    
+                    if bDryRun:
+                        #we just need to calculate the filenames
+                        continue
 
-                            
+                    TestClass=self.CreateSimObject(MASKFNAME=MASKFNAME,
+                                                    bTightNarrowBeamDomain=bTightNarrowBeamDomain,
+                                                    Frequency=Frequency,
+                                                    basePPW=PPW,
+                                                    SensorSubSampling=SensorSubSampling,
+                                                    AlphaCFL=AlphaCFL,
+                                                    bWaterOnly=bWaterOnly,
+                                                    TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
+                                                    TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
+                                                    TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
+                                                    bDoRefocusing=bDoRefocusing,
+                                                    CTFNAME=CTFNAME,
+                                                    bDisplay=bDisplay,
+                                                    **kargs)
+                    print('  Step 1')
 
-                            print('*'*50)
-                            print(target,'noshear',noshear)
-                            TestClass=self.CreateSimObject(MASKFNAME=MASKFNAME,
-                                                            bNoShear=noshear,
-                                                            bTightNarrowBeamDomain=bTightNarrowBeamDomain,
-                                                            Frequency=Frequency,
-                                                            basePPW=PPW,
-                                                            SensorSubSampling=SensorSubSampling,
-                                                            AlphaCFL=AlphaCFL,
-                                                            bWaterOnly=bWaterOnly,
-                                                            TxMechanicalAdjustmentX=TxMechanicalAdjustmentX,
-                                                            TxMechanicalAdjustmentY=TxMechanicalAdjustmentY,
-                                                            TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ,
-                                                            bDoRefocusing=bDoRefocusing,
-                                                            CTFNAME=CTFNAME,
-                                                            bDisplay=bDisplay,
-                                                            **kargs)
-                            print('  Step 1')
+                    #with suppress_stdout():
+                    with CodeTimer("Time for step 1",unit='s'):
+                        TestClass.Step1_InitializeConditions()
+                    print('  Step 2')
+                    with CodeTimer("Time for step 2",unit='s'):
+                        TestClass.Step2_CalculateRayleighFieldsForward(prefix=FILENAMES['outName'],
+                                                                    deviceName=deviceName,
+                                                                    bSkipSavingSTL= bMinimalSaving)
 
-                            #with suppress_stdout():
-                            with CodeTimer("Time for step 1",unit='s'):
-                                TestClass.Step1_InitializeConditions()
-                            print('  Step 2')
-                            with CodeTimer("Time for step 2",unit='s'):
-                                TestClass.Step2_CalculateRayleighFieldsForward(prefix=outName,
-                                                                            deviceName=deviceName,
-                                                                            bSkipSavingSTL= bMinimalSaving)
+                    print('  Step 3')
+                    with CodeTimer("Time for step 3",unit='s'):
+                        TestClass.Step3_CreateSourceSignal_and_Sensor()
+                    print('  Step 4')
+                    with CodeTimer("Time for step 4",unit='s'):
+                        TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                    print('  Step 5')
+                    with CodeTimer("Time for step 5",unit='s'):
+                        TestClass.Step5_ExtractPhaseDataForwardandBack()
+                    if bDoRefocusing:
 
-                            print('  Step 3')
-                            with CodeTimer("Time for step 3",unit='s'):
-                                TestClass.Step3_CreateSourceSignal_and_Sensor()
-                            print('  Step 4')
-                            with CodeTimer("Time for step 4",unit='s'):
-                                TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                            print('  Step 5')
-                            with CodeTimer("Time for step 5",unit='s'):
-                                TestClass.Step5_ExtractPhaseDataForwardandBack()
-                            if bDoRefocusing:
-
-                                print('  Step 6')
-                                with CodeTimer("Time for step 6",unit='s'):
-                                    TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
-                                print('  Step 7')
-                                with CodeTimer("Time for step 7",unit='s'):
-                                    TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
-                                print('  Step 8')
-                                with CodeTimer("Time for step 8",unit='s'):
-                                    TestClass.Step8_ExtractPhaseDataRefocus()
-                            print('  Step 9')
-                            with CodeTimer("Time for step 9",unit='s'):
-                                TestClass.Step9_PrepAndPlotData()
-                            print('  Step 10')
-                            with CodeTimer("Time for step 10",unit='s'):
-                                oname=TestClass.Step10_GetResults(prefix=outName,subsamplingFactor=subsamplingFactor,
-                                                                bMinimalSaving=bMinimalSaving)
-                            OutNames.append(oname)
+                        print('  Step 6')
+                        with CodeTimer("Time for step 6",unit='s'):
+                            TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
+                        print('  Step 7')
+                        with CodeTimer("Time for step 7",unit='s'):
+                            TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                        print('  Step 8')
+                        with CodeTimer("Time for step 8",unit='s'):
+                            TestClass.Step8_ExtractPhaseDataRefocus()
+                    print('  Step 9')
+                    with CodeTimer("Time for step 9",unit='s'):
+                        TestClass.Step9_PrepAndPlotData()
+                    print('  Step 10')
+                    with CodeTimer("Time for step 10",unit='s'):
+                        TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
+                                                        bMinimalSaving=bMinimalSaving)
+                    
         return OutNames
     
+def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
+    #this create a centralized filenaming of output files that can be used in GUI and in the simulations
+    if bWaterOnly:
+        waterPrefix='Water_'
+    else:
+        waterPrefix=''
+
+    bdir=os.path.dirname(MASKFNAME)
+    fstr='_%ikHz_' %(int(Frequency/1e3))
+    ppws='%iPPW_' % PPW
+    
+    outName=target+fstr+ppws+extrasuffix
+    CPREFIX = bdir+os.sep+outName+waterPrefix
+    OUT_FNAMES={}
+    OUT_FNAMES['outName']=outName
+    OUT_FNAMES['RayleighFreeWaterWOverlay__'] = CPREFIX+'RayleighFreeWaterWOverlay__.nii.gz'
+    OUT_FNAMES['RayleighFreeWater__'] = CPREFIX+'RayleighFreeWater__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocus']=CPREFIX+'FullElasticSolutionRefocus.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocus_Sub']=CPREFIX+'FullElasticSolutionRefocus_Sub.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocus__']=CPREFIX+'FullElasticSolutionRefocus__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocus_Sub__']=CPREFIX+'FullElasticSolutionRefocus_Sub__.nii.gz'
+    OUT_FNAMES['FullElasticSolution']=CPREFIX+'FullElasticSolution.nii.gz'
+    OUT_FNAMES['FullElasticSolution_Sub']=CPREFIX+'FullElasticSolution_Sub.nii.gz'
+    OUT_FNAMES['FullElasticSolution__']=CPREFIX+'FullElasticSolution__.nii.gz'
+    OUT_FNAMES['FullElasticSolution_Sub__']=CPREFIX+'FullElasticSolution_Sub__.nii.gz'
+    OUT_FNAMES['DataForSim']=CPREFIX+'DataForSim.h5'
+    return OUT_FNAMES
+
 class BabelFTD_Simulations_BASE(object):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,MASKFNAME='',
@@ -735,12 +762,9 @@ class BabelFTD_Simulations_BASE(object):
     def AddSaveDataSim(self,DataForSim):
         pass
 
-    def Step10_GetResults(self,prefix='',subsamplingFactor=1,bMinimalSaving=False):
+    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False):
         ss=subsamplingFactor
-        if self._bWaterOnly:
-            waterPrefix='Water_'
-        else:
-            waterPrefix=''
+
         RayleighWater,RayleighWaterOverlay,\
             FullSolutionPressure,\
             FullSolutionPressureRefocus,\
@@ -749,13 +773,13 @@ class BabelFTD_Simulations_BASE(object):
         affine=self._SkullMask.affine.copy()
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
-        bdir=os.path.dirname(self._MASKFNAME)
+
         if bMinimalSaving==False:
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWaterWOverlay__.nii.gz')
+            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
             
         nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater__.nii.gz')
+        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -765,27 +789,23 @@ class BabelFTD_Simulations_BASE(object):
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
-            if bMinimalSaving==False:
-                nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-                SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus__.nii.gz')
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus__'])
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub__.nii.gz')
-            if bMinimalSaving==False:
-                 ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolutionRefocus_Sub.nii.gz',self._SkullMask)
+            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
+            ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
 
                 
-        if bMinimalSaving==False:
-            nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution__.nii.gz')
+        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub__.nii.gz')
-        if bMinimalSaving==False:
-            ResaveNormalized(bdir+os.sep+prefix+waterPrefix+'FullElasticSolution_Sub.nii.gz',self._SkullMask)
+        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
+        ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
 
         nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,bdir+os.sep+prefix+waterPrefix+'RayleighFreeWater_Sub__.nii.gz')
-                             
+        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
+        
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
@@ -837,7 +857,7 @@ class BabelFTD_Simulations_BASE(object):
         DataForSim['AdjustmentInRAS']=AdjustmentInRAS
         print('Adjustment in RAS - T1W space',AdjustmentInRAS)
             
-        sname=bdir+os.sep+prefix+waterPrefix+'DataForSim.h5'
+        sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
             SaveToH5py(DataForSim,sname)
         gc.collect()
@@ -892,6 +912,7 @@ class SimulationConditionsBASE(object):
                       TxMechanicalAdjustmentY =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
+                      ZTxCorrecton=0.0, # this compensates for flat transducers that have a dead space before reaching the skin
                       DensityCTMap=None, #use CT map
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
                       ExtraAdjustX =0.0,
@@ -1034,6 +1055,7 @@ class SimulationConditionsBASE(object):
             OffsetForFlat=0
         #default offsets , this can change if the Rayleigh field does not fit
         self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray+OffsetForFlat
+        self._ZLOffset+=int(np.round(self._ZTxCorrecton/self._SpatialStep))
         self._XROffset=self._PMLThickness 
         self._YROffset=self._PMLThickness
         self._ZROffset=self._PMLThickness
@@ -1649,6 +1671,7 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['z_vec']=self._ZDim[self._ZLOffset:-self._ZROffset]
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
+        DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
         
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))

@@ -2,7 +2,7 @@ import sys
 import platform
 import traceback
 
-from TranscranialModeling.BabelIntegrationH317 import RUN_SIM
+from TranscranialModeling.BabelIntegrationREMODP import RUN_SIM
 
 def CalculateFieldProcess(queue,Target,**kargs):
     
@@ -44,14 +44,10 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         **kargs)
                         
         kargs.pop('bDoRefocusing')
-        XSteering=kargs.pop('XSteering')
-        if XSteering==0.0:
-            XSteering=1e-6
-        
+        # kargs.pop('XSteering')
         FilesWater=R.RunCases(targets=Target,
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
-                        XSteering=XSteering,
                         bWaterOnly=True,
                         bDoRefocusing=False,
                         bDisplay=False,

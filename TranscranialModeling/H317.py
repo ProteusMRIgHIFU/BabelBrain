@@ -1,22 +1,10 @@
-from re import S
+
 import numpy as np
-#from mkl_fft import fft
-from numpy.fft import fft
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
-from  scipy.io import loadmat
-from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, InitCuda, InitOpenCL , GenerateFocusTx,SpeedofSoundWater
-from BabelViscoFDTD.PropagationModel import PropagationModel
-from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
-from pprint import pprint
-from scipy.io import loadmat
-from sys import platform
-from time import time
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
 import os
 
-PModel=PropagationModel()
-import gc
-import time
 
 extlay={}
 TemperatureWater=37.0

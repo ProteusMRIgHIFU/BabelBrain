@@ -40,7 +40,7 @@ class InOutputWrapper(object):
 def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
     stdout = InOutputWrapper(queueMsg,True)
     if kargs['Backend']=='CUDA':
-        InitCuda()
+        InitCuda(deviceName)
     elif kargs['Backend']=='OpenCL':
         InitOpenCL(deviceName)
     else:
@@ -55,8 +55,9 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
         Backend = ['CUDA','OpenCL','Metal'][kargs['COMPUTING_BACKEND']-1]
         deviceName=kargs['deviceName']
         AllCases=[]
+        #These fields will preseved individually per sonication regime
         lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','MonitorSlice','TI','TIC','TIS','TempProfileTarget',\
-            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI']
+            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff','DutyCycle','PRF']
         Index=[]
         for combination in AllDC_PRF_Duration:
             SubData={}
@@ -87,7 +88,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
             AllCases.append(SubData)
             Index.append([combination['DC'],combination['PRF'],combination['Duration'],combination['DurationOff'],np.round(kargs['Isppa'],1)])
         for f in lf:
-            Data.pop(f)
+            if f in Data: #this will prevent failing with fields that are specific to phase arrays such as steering
+                Data.pop(f)
         Index=np.array(Index)
 
         Data['AllData']=AllCases

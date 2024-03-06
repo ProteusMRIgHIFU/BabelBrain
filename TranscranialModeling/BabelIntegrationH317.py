@@ -17,10 +17,10 @@ import os
 from stl import mesh
 import scipy
 from trimesh import creation 
-import trimesh
 import matplotlib.pyplot as plt
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
 from .H317 import GenerateH317Tx
+import nibabel
     
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -73,13 +73,50 @@ class RUN_SIM(RUN_SIM_BASE):
                     ZSteering=0.0,
                     RotationZ=0.0,
                     DistanceConeToFocus=27e-3,
+                    MultiPoint=None,
                     **kargs):
-        self._XSteering=XSteering
-        self._YSteering=YSteering
-        self._ZSteering=ZSteering
         self._RotationZ=RotationZ
         self._DistanceConeToFocus=DistanceConeToFocus
-        return super().RunCases(**kargs)
+        if MultiPoint is None:
+            self._XSteering=XSteering
+            self._YSteering=YSteering
+            self._ZSteering=ZSteering
+            return super().RunCases(**kargs)
+        else:
+            fnames=[]
+            for entry in MultiPoint:
+                newextrasufffix="_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
+                self._XSteering=entry['X']+XSteering
+                self._YSteering=entry['Y']+YSteering
+                self._ZSteering=entry['Z']+ZSteering
+                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)     
+            if kargs['bDryRun'] == False: 
+                #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
+                nSub=[]
+                nRefocus=[]
+                
+                for f in fnames:
+                    fsub=f.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz')
+                    nSub.append(nibabel.load(fsub))    
+                    if kargs['bDoRefocusing']:
+                        fsubrefocus=f.replace('DataForSim.h5','FullElasticSolutionRefocus_Sub_NORM.nii.gz')
+                        nRefocus.append(nibabel.load(fsubrefocus))    
+                
+                for ss,sub in zip(['','Refocus'],[nSub,nRefocus]):
+                    if len(sub)>0:
+                        AllpData=np.zeros((len(sub),sub[0].shape[0],sub[0].shape[1],sub[0].shape[2]))
+                        for n,entry in enumerate(sub):
+                            AllpData[n,:,:,:]=entry.get_fdata()
+                        AllpData=AllpData.max(axis=0)
+                        combinedNifti=nibabel.Nifti1Image(AllpData,sub[0].affine,header=sub[0].header)
+                        if 'Water_DataForSim.h5' in fnames[0] :
+                            send = '_Water_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
+                        else:
+                            send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
+                        finalName=fnames[0].split('__Steer_X')[0]+send
+                        combinedNifti.to_filename(finalName)
+            
+        return fnames
 
     def RunSteeringCases(self,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
         ListPoints=CreateCircularCoverage(DiameterCoverage=DiameterCoverage)
@@ -96,22 +133,24 @@ class RUN_SIM(RUN_SIM_BASE):
                  
         return ListPoints,fnames
 
-    def RunSpreadCase(self,targets,extrasuffix='',ZSteering=0.0,**kargs):
-        ListPoints=CreateSpreadFocus()
-        print(ListPoints)
+    def RunSpreadCase(self,targets,extrasuffix='',
+                    XSteering=0.0,
+                    YSteering=0.0,
+                    ZSteering=0.0,
+                    MultiPoint=[{'X':0.0,'Y':0.0,'Z':0.0}],
+                    **kargs):
         fnames=[]
-        for n in range(ListPoints.shape[0]):
-            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_y_%2.1f_" % (ListPoints[n,0]*1e3,ListPoints[n,1]*1e3)
+        for entry in MultiPoint:
+            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
             fnames+=self.RunCases(
                     extrasuffix=newextrasufffix,
                     bMinimalSaving=True,
-                    XSteering=ListPoints[n,0],
-                    YSteering=ListPoints[n,1],
-                    ZSteering=ZSteering,
+                    XSteering=entry['X']+XSteering,
+                    YSteering=entry['Y']+YSteering,
+                    ZSteering=entry['Z']+ZSteering,
                     **kargs)
-            
-                    
-        return ListPoints,fnames
+                     
+        return fnames
 ##########################################
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
@@ -240,8 +279,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._RotationZ=RotationZ
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
-        if platform != "darwin":
-            InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
@@ -313,8 +350,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
             print('center',center)
             
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),
-                                 u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
             u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
             nBase=0
             for n in range(self._TxH317['NumberElems']):
@@ -331,8 +367,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),
-                         self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -430,20 +465,16 @@ class SimulationConditions(SimulationConditionsBASE):
         center=np.zeros((ypp.size,3),np.float32)
         center[:,0]=xpp.flatten()
         center[:,1]=ypp.flatten()
-        center[:,2]=self._ZDim[self._PMLThickness]
+        center[:,2]=self._ZDim[self._ZSourceLocation]
             
         ds=np.ones((center.shape[0]))*self._SpatialStep**2
         
-        if platform != "darwin":
-            InitCuda()
-
         #we apply an homogeneous pressure 
         u0=self._PressMapFourierBack[SelRegRayleigh]
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
-        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
@@ -462,8 +493,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),
-                         u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

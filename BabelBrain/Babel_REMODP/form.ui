@@ -20,7 +20,7 @@
    <property name="geometry">
     <rect>
      <x>31</x>
-     <y>146</y>
+     <y>211</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -29,11 +29,11 @@
     <string>Mechanical adj. X (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="TPODistanceSpinBox">
+  <widget class="QDoubleSpinBox" name="ZSteeringSpinBox">
    <property name="geometry">
     <rect>
-     <x>202</x>
-     <y>21</y>
+     <x>231</x>
+     <y>102</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -61,20 +61,20 @@
    <property name="geometry">
     <rect>
      <x>29</x>
-     <y>22</y>
+     <y>103</y>
      <width>143</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>TPO Distance (mm)</string>
+    <string>ZSteering  (mm)</string>
    </property>
   </widget>
   <widget class="QLabel" name="DistanceSkinLabel">
    <property name="geometry">
     <rect>
-     <x>205</x>
-     <y>96</y>
+     <x>180</x>
+     <y>169</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -99,7 +99,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>97</y>
+     <y>168</y>
      <width>150</width>
      <height>31</height>
     </rect>
@@ -115,52 +115,11 @@ to target (mm) :</string>
     <number>0</number>
    </property>
   </widget>
-  <widget class="QLabel" name="label_22">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>50</y>
-     <width>159</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Range TPO distance (mm)</string>
-   </property>
-   <property name="indent">
-    <number>0</number>
-   </property>
-  </widget>
-  <widget class="QLabel" name="TPORangeLabel">
-   <property name="geometry">
-    <rect>
-     <x>205</x>
-     <y>55</y>
-     <width>88</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>[0.0 - 0.0]</string>
-   </property>
-  </widget>
   <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>199</x>
-     <y>144</y>
+     <x>228</x>
+     <y>209</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -172,10 +131,10 @@ to target (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-5.000000000000000</double>
+    <double>-10.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>5.000000000000000</double>
+    <double>10.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -188,7 +147,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>176</y>
+     <y>241</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -200,8 +159,8 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="YMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>200</x>
-     <y>174</y>
+     <x>229</x>
+     <y>239</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -213,10 +172,10 @@ to target (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-5.000000000000000</double>
+    <double>-10.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>5.000000000000000</double>
+    <double>10.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -228,8 +187,8 @@ to target (mm) :</string>
   <widget class="QPushButton" name="CalculatePlanningMask">
    <property name="geometry">
     <rect>
-     <x>66</x>
-     <y>290</y>
+     <x>124</x>
+     <y>373</y>
      <width>131</width>
      <height>81</height>
     </rect>
@@ -254,11 +213,24 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>32</x>
+     <y>272</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Mechanical adj. Z (mm)</string>
+   </property>
+  </widget>
   <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>201</x>
-     <y>206</y>
+     <x>229</x>
+     <y>270</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -270,10 +242,10 @@ to target (mm) :</string>
     <number>1</number>
    </property>
    <property name="minimum">
-    <double>-35.000000000000000</double>
+    <double>-90.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>0.000000000000000</double>
+    <double>90.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -282,24 +254,109 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_24">
+  <widget class="QCheckBox" name="RefocusingcheckBox">
    <property name="geometry">
     <rect>
-     <x>33</x>
-     <y>208</y>
+     <x>223</x>
+     <y>23</y>
+     <width>27</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>18</pointsize>
+    </font>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::RightToLeft</enum>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_22">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>22</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Refocusing</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_26">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>135</y>
      <width>143</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
+    <string>Z Rotation (degrees)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="ZRotationSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>232</x>
+     <y>134</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-180.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>180.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_27">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>332</y>
+     <width>153</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Max. depth beyond
+target (mm)</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
    <property name="geometry">
     <rect>
-     <x>201</x>
-     <y>262</y>
+     <x>229</x>
+     <y>340</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -323,29 +380,12 @@ to target (mm) :</string>
     <double>40.000000000000000</double>
    </property>
   </widget>
-  <widget class="QLabel" name="label_25">
-   <property name="geometry">
-    <rect>
-     <x>33</x>
-     <y>254</y>
-     <width>153</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Max. depth beyond
-target (mm)</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-   </property>
-  </widget>
   <widget class="QWidget" name="IsppaScrollBars" native="true">
    <property name="geometry">
     <rect>
      <x>405</x>
      <y>410</y>
-     <width>725</width>
+     <width>730</width>
      <height>61</height>
     </rect>
    </property>
@@ -356,9 +396,9 @@ target (mm)</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>1151</x>
-     <y>416</y>
-     <width>91</width>
+     <x>1148</x>
+     <y>417</y>
+     <width>93</width>
      <height>51</height>
     </rect>
    </property>
@@ -373,9 +413,9 @@ water only</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>255</x>
-     <y>430</y>
-     <width>95</width>
+     <x>281</x>
+     <y>422</y>
+     <width>97</width>
      <height>28</height>
     </rect>
    </property>
@@ -383,16 +423,172 @@ water only</string>
     <string>Hide marks</string>
    </property>
   </widget>
+  <widget class="QLabel" name="MultifocusLabel">
+   <property name="geometry">
+    <rect>
+     <x>28</x>
+     <y>300</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Tx Elements Set</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="SelTxSetDropDown">
+   <property name="geometry">
+    <rect>
+     <x>225</x>
+     <y>297</y>
+     <width>102</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>Total</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Sector1</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Sector2</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QDoubleSpinBox" name="YSteeringSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>231</x>
+     <y>75</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-5.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_25">
+   <property name="geometry">
+    <rect>
+     <x>29</x>
+     <y>76</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>YSteering  (mm)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_28">
+   <property name="geometry">
+    <rect>
+     <x>28</x>
+     <y>49</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>XSteering  (mm)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="XSteeringSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>48</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-5.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="LabelTissueRemoved">
+   <property name="geometry">
+    <rect>
+     <x>233</x>
+     <y>168</y>
+     <width>104</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: red</string>
+   </property>
+   <property name="text">
+    <string>Tissue layers
+will be removed!</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
  </widget>
  <tabstops>
-  <tabstop>TPODistanceSpinBox</tabstop>
+  <tabstop>XSteeringSpinBox</tabstop>
+  <tabstop>YSteeringSpinBox</tabstop>
+  <tabstop>ZSteeringSpinBox</tabstop>
+  <tabstop>ZRotationSpinBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
   <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SelTxSetDropDown</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>CalculatePlanningMask</tabstop>
-  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>RefocusingcheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections/>

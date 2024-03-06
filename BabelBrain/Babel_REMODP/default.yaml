@@ -1,0 +1,13 @@
+TxDiam:                58.0e-3 # Tx aperture diameter
+MinimalXSteering:      -35.0e-3  # in m
+MaximalXSteering:      35.0e-3  # in m
+MinimalYSteering:      -35.0e-3  # in m
+MaximalYSteering:      35.0e-3  # in m
+MinimalZSteering:      20.0e-3  # in m
+MaximalZSteering:      100.0e-3  # in m
+DefaultZSteering:      30.0e-3  # in m
+USFrequencies:
+    - 300000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm
+

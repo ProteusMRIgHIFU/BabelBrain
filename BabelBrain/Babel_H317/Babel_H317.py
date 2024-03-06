@@ -40,6 +40,7 @@ class H317(BabelBaseTx):
         super(H317, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
+        self._MultiPoint = None #if None, the default is to run one single focal point
         self.DefaultConfig()
         self.load_ui()
 
@@ -61,11 +62,18 @@ class H317(BabelBaseTx):
         self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
-
+        
+        self.Widget.MultifocusLabel.setVisible(False)
+        self.Widget.SelCombinationDropDown.setVisible(False)
+        while self.Widget.SelCombinationDropDown.count()>0:
+            self.Widget.SelCombinationDropDown.removeItem(0)
+        self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
+        
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
         self.up_load_ui()
+        
        
     @Slot()
     def ZSteeringUpdate(self,value):
@@ -102,14 +110,23 @@ class H317(BabelBaseTx):
 
     @Slot()
     def RunSimulation(self):
-        self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
-        self._WaterSolName=self._MainApp._prefix_path+'Water_DataForSim.h5'
+        #we create an object to do a dryrun to recover filenames
+        dry=RunAcousticSim(self._MainApp,bDryRun=True)
+        FILENAMES = dry.run()
+        
+        self._FullSolName=FILENAMES['FilesSkull']
+        self._WaterSolName=FILENAMES['FilesWater']
 
-        print('FullSolName',self._FullSolName)
-        print('WaterSolName',self._WaterSolName)
         bCalcFields=False
-        if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
-            Skull=ReadFromH5py(self._FullSolName)
+        bPrexistingFiles=True
+        for sskull,swater in zip(self._FullSolName,self._WaterSolName):
+            if not(os.path.isfile(sskull) and os.path.isfile(swater)):
+                bPrexistingFiles=False
+                break
+            
+        if bPrexistingFiles:
+            #we can use the first entry, this is valid for all files in the list
+            Skull=ReadFromH5py(self._FullSolName[0])
             ZSteering=Skull['ZSteering']
             if 'RotationZ' in Skull:
                 RotationZ=Skull['RotationZ']
@@ -133,6 +150,8 @@ class H317(BabelBaseTx):
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
                 if 'DistanceConeToFocus' in Skull:
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
@@ -142,10 +161,10 @@ class H317(BabelBaseTx):
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self.EndSimulation)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
@@ -159,18 +178,43 @@ class H317(BabelBaseTx):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export={}
+        Export=super(H317,self).GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
+        def dict_to_string(d, separator=', ', equals_sign='='):
+            return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
+        if self._MultiPoint is not None:
+            st =''
+            for e in self._MultiPoint:
+                st+='[%s] ' % dict_to_string(e)
+            Export['MultiPoint']=st
+        else:
+            self._MultiPoint ='N/A'
+         
         for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
 
+    @Slot()
+    def EndSimulation(self,OutFiles):
+        assert(type(OutFiles['FilesSkull']) is list)
+        assert(type(OutFiles['FilesWater']) is list)
+        
+        if self._MultiPoint is None:
+            assert(len(OutFiles['FilesSkull'])==1)
+            assert(len(OutFiles['FilesWater'])==1)
+        else:
+            assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
+            assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
+            
+        self.UpdateAcResults()
+        
     @Slot()
     def UpdateAcResults(self):
         self._MainApp.SetSuccesCode()
         #We overwrite the base class method
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
+            self._AcResults =[]
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
@@ -178,9 +222,35 @@ class H317(BabelBaseTx):
                 self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
             self._MainApp.ThermalSim.setEnabled(True)
-            Water=ReadFromH5py(self._WaterSolName)
-            Skull=ReadFromH5py(self._FullSolName)
+            
+            for fwater,fskull in zip(self._WaterSolName,self._FullSolName):
+                Skull=ReadFromH5py(fskull)
+                Water=ReadFromH5py(fwater)
+    
+                if Skull['bDoRefocusing']:
+                    SelP='p_amp_refocus'
+                else:
+                    SelP='p_amp'
 
+                for t in [SelP,'MaterialMap']:
+                    Skull[t]=np.ascontiguousarray(np.flip(Skull[t],axis=2))
+
+                for t in ['p_amp','MaterialMap']:
+                    Water[t]=np.ascontiguousarray(np.flip(Water[t],axis=2))
+                Water['p_amp'][:,:,0]=0.0
+                
+                entry={'Skull':Skull,'Water':Water}
+                
+                self._AcResults.append(entry)
+            
+            Water=self._AcResults[0]['Water']
+            Skull=self._AcResults[0]['Skull']
+            
+            if Skull['bDoRefocusing']:
+                SelP='p_amp_refocus'
+            else:
+                SelP='p_amp'
+            
             if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
@@ -192,19 +262,6 @@ class H317(BabelBaseTx):
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
 
-            if Skull['bDoRefocusing']:
-                SelP='p_amp_refocus'
-            else:
-                SelP='p_amp'
-
-            for d in [Skull]:
-                for t in [SelP,'MaterialMap']:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
-            for d in [Water]:
-                for t in ['p_amp','MaterialMap']:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
 
             Water['z_vec']*=1e3
@@ -214,30 +271,40 @@ class H317(BabelBaseTx):
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
-
-            IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
-
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-            ISkull=Skull[SelP]**2/2/DensityMap/SoSMap/1e4
-
-            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-
-            EnergyAtFocusWater=IWater[:,:,LocTarget[2]].sum()
-            EnergyAtFocusSkull=ISkull[:,:,LocTarget[2]].sum()
-
-            ISkull/=ISkull[Skull['MaterialMap']==3].max()
-            IWater/=IWater[Skull['MaterialMap']==3].max()
-
-            Factor=EnergyAtFocusWater/EnergyAtFocusSkull
             
-            ISkull[Skull['MaterialMap']!=3]=0
-
+            self._ISkull=[]
+            self._IWater=[]
+            sz=self._AcResults[0]['Water']['p_amp'].shape
+            AllSkull=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
+            AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
+            for n,entry in enumerate(self._AcResults):
+                ISkull=entry['Skull'][SelP]**2/2/DensityMap/SoSMap/1e4
+                ISkull[Skull['MaterialMap']!=3]=0
+                IWater=entry['Water']['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
+                
+                AllSkull[:,:,:,n]=ISkull
+                AllWater[:,:,:,n]=IWater
+                ISkull/=ISkull.max()
+                IWater/=IWater.max()
+                
+                self._ISkull.append(ISkull)
+                self._IWater.append(IWater)
+            #now we add the max projection of fields, we add it at the top
+            AllSkull=AllSkull.max(axis=3)
+            AllSkull[Skull['MaterialMap']!=3]=0
+            AllSkull/=AllSkull.max()
+            AllWater=AllWater.max(axis=3)
+            AllWater/=AllWater.max()
+            
+            self._ISkull.insert(0,AllSkull)
+            self._IWater.insert(0,AllWater)
+            
             dz=np.diff(Skull['z_vec']).mean()
             Zvec=Skull['z_vec'].copy()
             Zvec-=Zvec[LocTarget[2]]
-            Zvec+=DistanceToTarget#+self.Widget.ZSteeringSpinBox.value()
+            Zvec+=DistanceToTarget
             XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
             self._XX = XX
             self._ZZX = ZZ
@@ -247,10 +314,11 @@ class H317(BabelBaseTx):
 
             self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
-            self._Water = Water
-            self._IWater = IWater/IWater.max()
+            # self._IWater = IWater/IWater.max()
+            # self._ISkull = ISkull/ISkull.max()
+            
             self._Skull = Skull
-            self._ISkull = ISkull/ISkull.max()
+            
             self._DistanceToTarget = DistanceToTarget
 
             if hasattr(self,'_figAcField'):
@@ -263,15 +331,24 @@ class H317(BabelBaseTx):
                     child.deleteLater()
                 delattr(self,'_figAcField')
                 self.Widget.AcField_plot1.repaint()
+                
+                
         
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
 
-        if self.Widget.ShowWaterResultscheckBox.isChecked():
-            sliceXZ=self._IWater[:,SelY,:]
-            sliceYZ = self._IWater[SelX,:,:]
+        if hasattr(self.Widget,'SelCombinationDropDown'):
+            IWater = self._IWater[self.Widget.SelCombinationDropDown.currentIndex()]
+            ISkull = self._ISkull[self.Widget.SelCombinationDropDown.currentIndex()]
         else:
-            sliceXZ=self._ISkull[:,SelY,:]
-            sliceYZ = self._ISkull[SelX,:,:]
+            IWater = self._IWater[0]
+            ISkull = self._ISkull[0]
+
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            sliceXZ=IWater[:,SelY,:]
+            sliceYZ = IWater[SelX,:,:]
+        else:
+            sliceXZ=ISkull[:,SelY,:]
+            sliceYZ =ISkull[SelX,:,:]
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
@@ -334,20 +411,30 @@ class H317(BabelBaseTx):
 
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
+    
+    def EnableMultiPoint(self,MultiPoint):
+        self.Widget.MultifocusLabel.setVisible(True)
+        self.Widget.SelCombinationDropDown.setVisible(True)
+        while self.Widget.SelCombinationDropDown.count()>0:
+            self.Widget.SelCombinationDropDown.removeItem(0)
+        self.Widget.SelCombinationDropDown.addItem('ALL')
+        for c in MultiPoint:
+            self.Widget.SelCombinationDropDown.addItem('X:%2.1f Y:%2.1f Z:%2.1f' %(c['X']*1e3,c['Y']*1e3,c['Z']*1e3))
+        self._MultiPoint = MultiPoint
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateAcResults)
 
 
 class RunAcousticSim(QObject):
 
-    finished = Signal()
+    finished = Signal(object)
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp,bDryRun=False):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
+        self._bDryRun=bDryRun
 
     def run(self):
-
         deviceName=self._mainApp.Config['ComputingDevice']
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
         basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
@@ -400,44 +487,63 @@ class RunAcousticSim(QObject):
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
         kargs['bPETRA'] = False
+        kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
+        kargs['bDryRun'] = self._bDryRun
+            
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
                 kargs['bPETRA']=True
 
-        # Start mask generation as separate process.
+        
         queue=Queue()
-        fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                    args=(queue,Target),
-                                    kwargs=kargs)
-        fieldWorkerProcess.start()      
-        # progress.
-        T0=time.time()
-        bNoError=True
-        while fieldWorkerProcess.is_alive():
-            time.sleep(0.1)
+        if self._bDryRun == False:
+            #in real run, we run this in background
+            # Start mask generation as separate process.
+            fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+                                        args=(queue,Target),
+                                        kwargs=kargs)
+            fieldWorkerProcess.start()      
+                
+            # progress.
+            T0=time.time()
+            bNoError=True
+            OutFiles=None
+            while fieldWorkerProcess.is_alive():
+                time.sleep(0.1)
+                while queue.empty() == False:
+                    cMsg=queue.get()
+                    if type(cMsg) is str:
+                        print(cMsg,end='')
+                        if '--Babel-Brain-Low-Error' in cMsg:
+                            bNoError=False
+                    else:
+                        assert(type(cMsg) is dict)
+                        OutFiles=cMsg
+            fieldWorkerProcess.join()
             while queue.empty() == False:
                 cMsg=queue.get()
-                print(cMsg,end='')
-                if '--Babel-Brain-Low-Error' in cMsg:
-                    bNoError=False  
-        fieldWorkerProcess.join()
-        while queue.empty() == False:
-            cMsg=queue.get()
-            print(cMsg,end='')
-            if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False
-        if bNoError:
-            TEnd=time.time()
-            print('Total time',TEnd-T0)
-            print("*"*40)
-            print("*"*5+" DONE ultrasound simulation.")
-            print("*"*40)
-            self.finished.emit()
+                if type(cMsg) is str:
+                    print(cMsg,end='')
+                    if '--Babel-Brain-Low-Error' in cMsg:
+                        bNoError=False
+                else:
+                    assert(type(cMsg) is dict)
+                    OutFiles=cMsg
+            if bNoError:
+                TEnd=time.time()
+                print('Total time',TEnd-T0)
+                print("*"*40)
+                print("*"*5+" DONE ultrasound simulation.")
+                print("*"*40)
+                self.finished.emit(OutFiles)
+            else:
+                print("*"*40)
+                print("*"*5+" Error in execution.")
+                print("*"*40)
+                self.endError.emit()
         else:
-            print("*"*40)
-            print("*"*5+" Error in execution.")
-            print("*"*40)
-            self.endError.emit()
+            #in dry run, we just recover the filenames
+            return CalculateFieldProcess(queue,Target,**kargs)
 
 
 if __name__ == "__main__":
