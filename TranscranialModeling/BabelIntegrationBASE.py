@@ -542,6 +542,7 @@ class BabelFTD_Simulations_BASE(object):
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
         self._bPETRA = bPETRA
+        self._ExtraDepthAdjust = 0.0 
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -639,7 +640,8 @@ class BabelFTD_Simulations_BASE(object):
                                 ZIntoSkin=self._ZIntoSkin,
                                 DensityCTMap=DensityCTMap,
                                 QCorrection=QCorrArr,
-                                DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721])
+                                DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
+                                ExtraDepthAdjust=self._ExtraDepthAdjust)
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
                 SelM=MatFreq[self._Frequency][k]
@@ -887,6 +889,7 @@ class SimulationConditionsBASE(object):
                       TxMechanicalAdjustmentZ =0, # in case we want to move mechanically the Tx (useful when targeting shallow locations such as M1 and we want to evaluate if an small mechanical adjustment can ensure focusing)
                       ZIntoSkin=0.0, # in case we want to push the Tx "into" the skin simulating compressing the Tx in the scalp (removing tissue layers)
                       DensityCTMap=None, #use CT map
+                      ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -921,6 +924,7 @@ class SimulationConditionsBASE(object):
         self._DensityCTMap=DensityCTMap
         self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
         self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
+        self._ExtraDepthAdjust=ExtraDepthAdjust
 
         
         
@@ -1062,8 +1066,8 @@ class SimulationConditionsBASE(object):
             zfield+=self._FocalLength
             TopZ=zfield[self._PMLThickness]
             if self._FocalLength!=0:
-                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ
-                Alpha=np.arcsin(self._Aperture/2/self._FocalLength)
+                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
+                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
                 RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
             else:
                 RadiusFace=self._Aperture/2*1.10

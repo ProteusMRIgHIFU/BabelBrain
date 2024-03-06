@@ -148,6 +148,9 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         print('*'*20+'\n'+'Distance to target from skin (mm)=',Distance*1e3)
         print('*'*20+'\n')
         self._TxMechanicalAdjustmentZ=   self._DistanceConeToFocus - Distance
+        if self._ZSteering > 0:
+            print('Adjust extra depth for cone with ',self._ZSteering*1e3)
+            self._ExtraDepthAdjust = self._ZSteering
 
         print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
         print('*'*20+'\n')
