@@ -543,6 +543,8 @@ class BabelFTD_Simulations_BASE(object):
         self._MappingMethod=MappingMethod
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
+        self._ExtraAdjustX = 0.0 
+        self._ExtraAdjustY = 0.0
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
