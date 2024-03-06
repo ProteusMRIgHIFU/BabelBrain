@@ -63,12 +63,13 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 # Version log
 - 0.3.2 - March 3rd, 2024
-  - New: Full integration with Brainsight (Rogue Research) version XXX is now operational. In Brainsight, you need to start a new Simbnibs project and during the planning stage, a new "FUS" button in the Brainsight GUI can be used to invoke BabelBrain. Once simulations are completed, the results of the normalized transcranial simulation (normalized between 0 and 1 in the brain region) will be loaded automatically in Brainsight. 
+  - New: Full integration with Brainsight (Rogue Research) version 2.5.3 is now operational. In Brainsight, you need to start a new Simbnibs project and during the planning stage, a new "FUS" button in the Brainsight GUI can be used to invoke BabelBrain. Once simulations are completed, the results of the normalized transcranial simulation (normalized between 0 and 1 in the brain region) will be loaded automatically in Brainsight. 
   - New: Export of thermal maps into Nifti format. In Step 3, the current thermal simulation on display can be now exported in Nifti for inspection in neuronavigation and visualization software.
   - New: Smart reuse of preexisting middle files. Previous versions recalculate in Step 1 every single middle file required to generate the domain for simulations. Some of these files can be perfectly reused in recalculations with the same subject if frequency and resolution are the same.  However, there is an important safety aspect to preserve; that is why the first versions we opted to always recalculate everything. In this new version, we developed a method to use hash signatures that help to detect any external changes to the files. If no changes are detected, then the middle files can be reused. This approach can save from 20% up to 80 % time or more (especially when using CT) in the execution time of Step 1. 
   - New: Support for PETRA scans. We adopted the formulas proposed by Brad Treeby's lab at UCL ([petra-to-ct](https://github.com/ucl-bug/petra-to-ct)). Now in the first screen of BabelBrain you can select between real CT, ZTE, PETRA or none in the options to use CT-type data for the simulations. 
   - New: Add 35-mm focusing devices to the list of devices associated with [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781)
-  - Improved precision for all transducers. The method that couples the Rayleigh integral component, which models the transducer sources, to the FDTD domain was revised, improving precision of calculations.
+  - Improvement: The precision for all transducers was improved. The method that couples the Rayleigh integral component, which models the transducer sources, to the FDTD domain was revised, improving precision for all calculations.
+  - Fix: Re-enable support for older versions of macOS (Monterey and up) for ARM64.
   - Fix: Saved modified trajectory had an incorrect sign direction. 
   - Fix: Far field PML had an issue in Metal backend (solved in BabelViscoFDTD 1.0.5)
 - 0.3.0 - Nov 5, 2023
