@@ -954,6 +954,7 @@ class SimulationConditionsBASE(object):
         self._ExtraDepthAdjust=ExtraDepthAdjust
         self._ExtraAdjustX =ExtraAdjustX
         self._ExtraAdjustY =ExtraAdjustY
+        self._ZTxCorrecton=ZTxCorrecton
 
         
         
