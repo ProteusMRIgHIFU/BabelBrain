@@ -82,9 +82,16 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
 #endif
 
     float out = 0.0;
+    #ifdef _METAL
+    const int xsize_0 = in_dims_0;
+    const int xsize_1 = in_dims_1;
+    const int xsize_2 = in_dims_2;
+    #endif
+    #ifdef _OPENCL
     const ptrdiff_t xsize_0 = in_dims_0;
     const ptrdiff_t xsize_1 = in_dims_1;
     const ptrdiff_t xsize_2 = in_dims_2;
+    #endif
     const size_t sx_2 = 1;
     const size_t sx_1 = sx_2 * xsize_2;
     const size_t sx_0 = sx_1 * xsize_1;
