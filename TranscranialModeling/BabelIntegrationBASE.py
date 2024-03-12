@@ -131,7 +131,7 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,1050e3,50e3):
+for f in np.arange(100e3,1025e3,25e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
