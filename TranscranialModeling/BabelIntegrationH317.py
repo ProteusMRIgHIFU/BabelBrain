@@ -81,15 +81,28 @@ class RUN_SIM(RUN_SIM_BASE):
             self._XSteering=XSteering
             self._YSteering=YSteering
             self._ZSteering=ZSteering
-            return super().RunCases(**kargs)
+            ExtraAdjustX = [XSteering]
+            ExtraAdjustY = [YSteering]
+            return super().RunCases(ExtraAdjustX=ExtraAdjustX,
+                                    ExtraAdjustY=ExtraAdjustY,
+                                    **kargs)
         else:
+            #we need to expand accordingly to all points
+            ExtraAdjustX=[]
+            ExtraAdjustY=[]
+            for entry in MultiPoint:
+                ExtraAdjustX.append(entry['X']+XSteering)
+                ExtraAdjustY.append(entry['Y']+YSteering)
             fnames=[]
             for entry in MultiPoint:
                 newextrasufffix="_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
                 self._XSteering=entry['X']+XSteering
                 self._YSteering=entry['Y']+YSteering
                 self._ZSteering=entry['Z']+ZSteering
-                fnames+=super().RunCases(extrasuffix=newextrasufffix,**kargs)     
+                fnames+=super().RunCases(extrasuffix=newextrasufffix,
+                                         ExtraAdjustX=ExtraAdjustX,
+                                         ExtraAdjustY=ExtraAdjustY,
+                                         **kargs)     
             if kargs['bDryRun'] == False: 
                 #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
                 nSub=[]
@@ -118,39 +131,6 @@ class RUN_SIM(RUN_SIM_BASE):
             
         return fnames
 
-    def RunSteeringCases(self,DiameterCoverage=10e-3,extrasuffix='',ZSteering=0.0,**kargs):
-        ListPoints=CreateCircularCoverage(DiameterCoverage=DiameterCoverage)
-        print(ListPoints)
-        fnames=[]
-        for n in range(ListPoints.shape[0]):
-            newextrasufffix=extrasuffix+"_LargeSteer_X_%2.1f_y_%2.1f_" % (ListPoints[n,0]*1e3,ListPoints[n,1]*1e3)
-            fnames+=self.RunCases(
-                    extrasuffix=newextrasufffix,
-                    XSteering=ListPoints[n,0],
-                    YSteering=ListPoints[n,1],
-                    ZSteering=ZSteering,
-                    **kargs)
-                 
-        return ListPoints,fnames
-
-    def RunSpreadCase(self,targets,extrasuffix='',
-                    XSteering=0.0,
-                    YSteering=0.0,
-                    ZSteering=0.0,
-                    MultiPoint=[{'X':0.0,'Y':0.0,'Z':0.0}],
-                    **kargs):
-        fnames=[]
-        for entry in MultiPoint:
-            newextrasufffix=extrasuffix+"_Steer_X_%2.1f_Y_%2.1f_Z_%2.1f_" % (entry['X']*1e3,entry['Y']*1e3,entry['Z']*1e3)
-            fnames+=self.RunCases(
-                    extrasuffix=newextrasufffix,
-                    bMinimalSaving=True,
-                    XSteering=entry['X']+XSteering,
-                    YSteering=entry['Y']+YSteering,
-                    ZSteering=entry['Z']+ZSteering,
-                    **kargs)
-                     
-        return fnames
 ##########################################
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
@@ -190,9 +170,6 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         if self._ZSteering > 0:
             print('Adjust extra depth for cone with ',self._ZSteering*1e3)
             self._ExtraDepthAdjust = self._ZSteering
-
-        self._ExtraAdjustX=self._XSteering
-        self._ExtraAdjustY=self._YSteering
 
         print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
         print('*'*20+'\n')
