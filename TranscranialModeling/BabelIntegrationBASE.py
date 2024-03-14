@@ -379,6 +379,7 @@ class RUN_SIM_BASE(object):
                 bUseCT=False,
                 bWaterOnly=False,
                 bDryRun=False,
+                bUseRayleighForWater=False,
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -488,7 +489,8 @@ class RUN_SIM_BASE(object):
                     print('  Step 10')
                     with CodeTimer("Time for step 10",unit='s'):
                         TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
-                                                        bMinimalSaving=bMinimalSaving)
+                                                        bMinimalSaving=bMinimalSaving,
+                                                        bUseRayleighForWater=bUseRayleighForWater)
                     
         return OutNames
     
@@ -762,14 +764,14 @@ class BabelFTD_Simulations_BASE(object):
     def AddSaveDataSim(self,DataForSim):
         pass
 
-    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False):
+    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False):
         ss=subsamplingFactor
 
         RayleighWater,RayleighWaterOverlay,\
             FullSolutionPressure,\
             FullSolutionPressureRefocus,\
             DataForSim,\
-            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing)
+            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
         affine=self._SkullMask.affine.copy()
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
@@ -812,6 +814,8 @@ class BabelFTD_Simulations_BASE(object):
                 kt.append('MaterialMapCT')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
+            if bUseRayleighForWater:
+                kt.append('p_amp_water')
             for k in kt:
                 DataForSim[k]=DataForSim[k][::ss,::ss,::ss]
             for k in ['x_vec','y_vec','z_vec']:
@@ -1585,7 +1589,7 @@ elif self._bTightNarrowBeamDomain:
                      [0,np.max(LineInPeak)],':')
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
-    def ReturnResults(self,bDoRefocusing=True):
+    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False):
         if self._XShrink_R==0:
             upperXR=self._SkullMaskDataOrig.shape[0]
         else:
@@ -1672,7 +1676,10 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
-        
+        if bUseRayleighForWater:
+            DataForSim['p_amp_water']=np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset])
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))
         return  RayleighWater,\
