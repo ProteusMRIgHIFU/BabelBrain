@@ -75,16 +75,23 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     #define order int_params[6]
     #define cval float_params[0]
 
-    const int xind =  gid/(out_dims_1*out_dims_2);
-    const int yind =  (gid-xind*out_dims_1*out_dims_2)/out_dims_2;
-    const int zind =  gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    const size_t xind =  gid/(out_dims_1*out_dims_2);
+    const size_t yind =  (gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const size_t zind =  gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
     #define _i gid
 #endif
 
     float out = 0.0;
+    #ifdef _METAL
+    const int xsize_0 = in_dims_0;
+    const int xsize_1 = in_dims_1;
+    const int xsize_2 = in_dims_2;
+    #endif
+    #ifdef _OPENCL
     const ptrdiff_t xsize_0 = in_dims_0;
     const ptrdiff_t xsize_1 = in_dims_1;
-    const ptrdiff_t  xsize_2 = in_dims_2;
+    const ptrdiff_t xsize_2 = in_dims_2;
+    #endif
     const size_t sx_2 = 1;
     const size_t sx_1 = sx_2 * xsize_2;
     const size_t sx_0 = sx_1 * xsize_1;
@@ -137,7 +144,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
             weights_0[0] = wy * wy * wy / 6.0;
             weights_0[3] = 1.0 - weights_0[0] - weights_0[1] - weights_0[2];
             start = (ptrdiff_t)floor((float)c_0) - 1;
+            #ifdef _METAL
+            int ci_0[4];
+            #endif
+            #ifdef _OPENCL
             ptrdiff_t ci_0[4];
+            #endif
             ci_0[0] = start + 0;
             if (xsize_0 == 1) 
             {
@@ -208,7 +220,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 weights_1[0] = wy * wy * wy / 6.0;
                 weights_1[3] = 1.0 - weights_1[0] - weights_1[1] - weights_1[2];
                 start = (ptrdiff_t)floor((float)c_1) - 1;
+                #ifdef _METAL
+                int ci_1[4];
+                #endif
+                #ifdef _OPENCL
                 ptrdiff_t ci_1[4];
+                #endif
                 ci_1[0] = start + 0;
                 if (xsize_1 == 1) 
                 {
@@ -279,7 +296,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     weights_2[0] = wy * wy * wy / 6.0;
                     weights_2[3] = 1.0 - weights_2[0] - weights_2[1] - weights_2[2];
                     start = (ptrdiff_t)floor((float)c_2) - 1;
+                    #ifdef _METAL
+                    int ci_2[4];
+                    #endif
+                    #ifdef _OPENCL
                     ptrdiff_t ci_2[4];
+                    #endif
                     ci_2[0] = start + 0;
                     if (xsize_2 == 1) 
                     {
@@ -951,6 +973,9 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
     else: # Metal
 
         filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval,GPUBackend=GPUBackend)
+        
+        if output.size > 1 << 32: # i.e. bigger than what uint32 can represent
+            raise ValueError("Error running resample step, suggest lowering PPW")
         
         filtered = filtered.astype("float32", copy=False)
         m = m.astype("float32", copy=False)

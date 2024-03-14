@@ -131,7 +131,7 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,1050e3,50e3):
+for f in np.arange(100e3,1025e3,25e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -537,6 +537,8 @@ class BabelFTD_Simulations_BASE(object):
                  TxMechanicalAdjustmentX=0.0, #Positioning of Tx
                  TxMechanicalAdjustmentY=0.0,
                  TxMechanicalAdjustmentZ=0.0,
+                 ExtraAdjustX=[0.0], #these parameters help to enlarge the FOV for any reason (Steering, multipoint, etc.)
+                 ExtraAdjustY=[0.0],
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
@@ -572,8 +574,8 @@ class BabelFTD_Simulations_BASE(object):
         self._MappingMethod=MappingMethod
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
-        self._ExtraAdjustX = 0.0 
-        self._ExtraAdjustY = 0.0
+        self._ExtraAdjustX = ExtraAdjustX 
+        self._ExtraAdjustY = ExtraAdjustY
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -919,8 +921,8 @@ class SimulationConditionsBASE(object):
                       ZTxCorrecton=0.0, # this compensates for flat transducers that have a dead space before reaching the skin
                       DensityCTMap=None, #use CT map
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
-                      ExtraAdjustX =0.0,
-                      ExtraAdjustY =0.0,
+                      ExtraAdjustX =[0.0],
+                      ExtraAdjustY =[0.0],
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -958,6 +960,7 @@ class SimulationConditionsBASE(object):
         self._ExtraDepthAdjust=ExtraDepthAdjust
         self._ExtraAdjustX =ExtraAdjustX
         self._ExtraAdjustY =ExtraAdjustY
+        self._ZTxCorrecton=ZTxCorrecton
 
         
         
@@ -1075,6 +1078,7 @@ class SimulationConditionsBASE(object):
         self.bMapFit=False
         bCompleteForShrinking=False
         self._nCountShrink=0
+        print('self._ExtraAdjustX, self._ExtraAdjustY',self._ExtraAdjustX,self._ExtraAdjustY)
         while not self.bMapFit or not bCompleteForShrinking:
             self.bMapFit=True
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
@@ -1112,8 +1116,9 @@ class SimulationConditionsBASE(object):
             ypp,xpp=np.meshgrid(yfield,xfield)
             
             RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
-            RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-self._ExtraAdjustX)**2+(ypp-self._TxMechanicalAdjustmentY-self._ExtraAdjustY)**2)<=RadiusFace**2)
-            IndXMap,IndYMap=np.nonzero(RegionMap)
+            for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
+                IndXMap,IndYMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
             
             def fgen(var):
