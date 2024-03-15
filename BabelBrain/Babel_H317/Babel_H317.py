@@ -191,7 +191,8 @@ class H317(BabelBaseTx):
             self._MultiPoint ='N/A'
          
         for k in ['ZSteering','ZRotation','DistanceConeToFocus','XMechanic','YMechanic','ZMechanic']:
-            Export[k]=getattr(self.Widget,k+'SpinBox').value()
+            if hasattr(self.Widget,k+'SpinBox'):
+                Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
 
     @Slot()
@@ -532,10 +533,12 @@ class RunAcousticSim(QObject):
                     OutFiles=cMsg
             if bNoError:
                 TEnd=time.time()
-                print('Total time',TEnd-T0)
+                TotalTime = TEnd-T0
+                print('Total time',TotalTime)
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
+                self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
                 self.finished.emit(OutFiles)
             else:
                 print("*"*40)

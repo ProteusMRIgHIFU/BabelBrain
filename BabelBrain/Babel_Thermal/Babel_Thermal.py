@@ -44,7 +44,7 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'Babel_Thermal_SingleFocus'
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_Thermal'
     else:
         bundle_dir = Path(__file__).parent
 
@@ -655,10 +655,12 @@ class RunThermalSim(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE thermal simulation.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('thermal',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

@@ -405,6 +405,10 @@ class BabelBrain(QWidget):
 
         self.RETURN_CODE = ReturnCodes['CANCEL_OR_INCOMPLETE']
 
+        self._TrackingTime={'Calculation time domain':0.0,
+                            'Calculation time ultrasound':0.0,
+                            'Calculation time thermal':0.0}
+
     def showClockDialog(self):
         self.centerClockDialog()
         # Show the dialog
@@ -474,7 +478,7 @@ class BabelBrain(QWidget):
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
-        from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
+        from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
 
         new_tab = WidgetAcSim(parent=self.Widget.tabWidget,MainApp=self)
         grid_tab = QGridLayout(new_tab)
@@ -603,6 +607,9 @@ class BabelBrain(QWidget):
                 
         self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
+        self._trackingtimefile = self._prefix_path+'ExecutionTimes.yml'
+        if not os.path.isfile(self._trackingtimefile):
+            self.UpdateComputationalTime('domain',0.0) #this will initalize the trackig file
         
         print('outname',self._outnameMask)
         self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
@@ -849,7 +856,9 @@ class BabelBrain(QWidget):
             ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
-        return self.Config | ExtraConfig
+        with open(self._trackingtimefile,'r') as f:
+            self._TrackingTime=yaml.load(f,yaml.SafeLoader)
+        return self.Config | ExtraConfig | self._TrackingTime
     
     ##
     def SetSuccesCode(self):
@@ -864,6 +873,21 @@ class BabelBrain(QWidget):
     def EnableMultiPoint(self,MultiPoint):
         # triggered by the thermal pane if the profile file includes multi point focal points
         self.AcSim.EnableMultiPoint(MultiPoint)
+
+    def UpdateComputationalTime(self,step,steptime):
+        if os.path.isfile(self._trackingtimefile):
+            with open(self._trackingtimefile,'r') as f:
+                self._TrackingTime=yaml.load(f,yaml.SafeLoader)
+        if step == 'domain':
+            self._TrackingTime['Calculation time domain']=steptime
+        elif step == 'ultrasound':
+            self._TrackingTime['Calculation time ultrasound']=steptime
+        elif step == 'thermal':
+            self._TrackingTime['Calculation time thermal']=steptime
+        else:
+            raise ValueError('type of step to track time not valid -'+step)
+        with open(self._trackingtimefile,'w') as f:
+            yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
 class RunMaskGeneration(QObject):
 
@@ -967,10 +991,12 @@ class RunMaskGeneration(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE calculating mask.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('domain',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

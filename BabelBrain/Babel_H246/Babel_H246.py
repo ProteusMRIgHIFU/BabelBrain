@@ -240,10 +240,12 @@ class RunAcousticSim(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

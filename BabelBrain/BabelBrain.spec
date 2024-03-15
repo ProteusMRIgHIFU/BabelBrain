@@ -29,7 +29,7 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('../TranscranialModeling/WebbHU_Att.csv','./TranscranialModeling'),
         ('../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5','./TranscranialModeling'),
         ('../TranscranialModeling/REMOPD_ElementPosition.mat','./TranscranialModeling'),
-        ('Babel_Thermal_SingleFocus/form.ui','./Babel_Thermal_SingleFocus')]
+        ('Babel_Thermal/form.ui','./Babel_Thermal')]
 
 with open('version.txt','r') as f:
     version=f.readlines()[0].strip()
