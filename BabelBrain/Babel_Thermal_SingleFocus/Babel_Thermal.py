@@ -509,9 +509,14 @@ class Babel_Thermal(QWidget):
             DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
                 self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
-                for k,index in zip(['Isppa target',
-                            'Isppa water',
-                            'Mechanical index',
+                collection = ['Isppa target']
+                source = [0,1]
+                if self._bMultiPoint:
+                    collection+=['Isppa water (avg)','Isppa water (std)']
+                    source+=[1]
+                else:
+                    collection+=['Isppa water']
+                collection+=['Mechanical index',
                             'Ispta',
                             'Ispta target',
                             'Max. temp. target',
@@ -521,9 +526,9 @@ class Babel_Thermal(QWidget):
                             'CEM target',
                             'CEM brain',
                             'CEM skin',
-                            'CEM skull'],
-                            [0,1,9,2,3,5,6,7,8,5,6,7,8]
-                            ):
+                            'CEM skull']
+                source+=[9,2,3,5,6,7,8,5,6,7,8]
+                for k,index in zip(collection,source):
                     if k not in DataToExport:
                         DataToExport[k]=[]
                    
@@ -532,6 +537,10 @@ class Babel_Thermal(QWidget):
                         data=data[0]
                     elif 'CEM' in k:
                         data=data[1]
+                    elif k in ['Isppa water (avg)','Isppa water']:
+                        data=np.mean(data)
+                    elif k == 'Isppa water (std)':
+                        data=np.std(data)
                     DataToExport[k].append(data)
                 
             pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)

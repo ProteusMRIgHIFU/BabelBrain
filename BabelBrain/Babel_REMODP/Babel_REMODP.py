@@ -31,7 +31,7 @@ import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from .CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import CalculateFieldProcess
 
 from _BabelBaseTx import BabelBaseTx
 
@@ -265,6 +265,7 @@ class RunAcousticSim(QObject):
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         kargs['bDryRun'] = self._bDryRun
             
@@ -278,7 +279,7 @@ class RunAcousticSim(QObject):
             #in real run, we run this in background
             # Start mask generation as separate process.
             fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                        args=(queue,Target),
+                                        args=(queue,Target,self._mainApp.Config['TxSystem']),
                                         kwargs=kargs)
             fieldWorkerProcess.start()      
                 
@@ -321,7 +322,7 @@ class RunAcousticSim(QObject):
                 self.endError.emit()
         else:
             #in dry run, we just recover the filenames
-            return CalculateFieldProcess(queue,Target,**kargs)
+            return CalculateFieldProcess(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
 
 
 if __name__ == "__main__":

@@ -342,6 +342,7 @@ class BabelBrain(QWidget):
         elif Backend=='Metal':
             ComputingBackend=3
 
+        self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
         self.Config['ComputingDevice']=ComputingDevice
         self.Config['TxSystem']=widget.ui.TransducerTypecomboBox.currentText()

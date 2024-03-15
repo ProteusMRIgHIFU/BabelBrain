@@ -425,6 +425,10 @@ class RUN_SIM_BASE(object):
                         CTFNAME=None
 
                     FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
+                    FILENAMESWater=None
+                    if bUseRayleighForWater:
+                        # we store also the filenames for water only
+                        FILENAMESWater=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,True)
                     cname=FILENAMES['DataForSim']
                     print(cname)
                     OutNames.append(cname)
@@ -490,7 +494,8 @@ class RUN_SIM_BASE(object):
                     with CodeTimer("Time for step 10",unit='s'):
                         TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
                                                         bMinimalSaving=bMinimalSaving,
-                                                        bUseRayleighForWater=bUseRayleighForWater)
+                                                        bUseRayleighForWater=bUseRayleighForWater,
+                                                        FILENAMESWater=FILENAMESWater)
                     
         return OutNames
     
@@ -766,7 +771,7 @@ class BabelFTD_Simulations_BASE(object):
     def AddSaveDataSim(self,DataForSim):
         pass
 
-    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False):
+    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
         ss=subsamplingFactor
 
         RayleighWater,RayleighWaterOverlay,\
@@ -778,12 +783,13 @@ class BabelFTD_Simulations_BASE(object):
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
 
-        if bMinimalSaving==False:
+        if bMinimalSaving==False and not bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
-            
-        nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
+        
+        if not bUseRayleighForWater: 
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -802,13 +808,22 @@ class BabelFTD_Simulations_BASE(object):
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
+        if bUseRayleighForWater:
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
         ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
 
-        nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
+        if bUseRayleighForWater:
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution_Sub__'])
+            ResaveNormalized(FILENAMESWater['FullElasticSolution_Sub'],self._SkullMask)
+
+        if not bUseRayleighForWater: 
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
@@ -824,7 +839,11 @@ class BabelFTD_Simulations_BASE(object):
                 DataForSim[k]=DataForSim[k][::ss]
             DataForSim['SpatialStep']*=ss
             DataForSim['TargetLocation']=np.round(DataForSim['TargetLocation']/ss).astype(int)
-            
+        
+        if bUseRayleighForWater:
+            #We pop the water field temporarily
+            p_amp_water =DataForSim.pop('p_amp_water')
+
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['affine']=affine
 
@@ -866,6 +885,14 @@ class BabelFTD_Simulations_BASE(object):
         sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
             SaveToH5py(DataForSim,sname)
+            if bUseRayleighForWater:
+                #we save now the h5 file for water
+                DataForSim['p_amp']= p_amp_water
+                if self._bDoRefocusing:
+                    DataForSim.pop('p_amp_refocus')
+                sname=FILENAMESWater['DataForSim']
+                SaveToH5py(DataForSim,sname)
+
         gc.collect()
         
         return sname
@@ -1672,6 +1699,10 @@ elif self._bTightNarrowBeamDomain:
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==5.0)).flatten()
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==5.0]=4.0 #we switch it back to soft tissue
         
+        if bUseRayleighForWater:
+            DataForSim['p_amp_water']=np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset])
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
@@ -1681,10 +1712,7 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
-        if bUseRayleighForWater:
-            DataForSim['p_amp_water']=np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
-                                   self._YLOffset:-self._YROffset,
-                                   self._ZLOffset:-self._ZROffset])
+        
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))
         return  RayleighWater,\
