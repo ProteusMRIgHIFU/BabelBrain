@@ -108,7 +108,7 @@
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
-    <string>Distance skin
+    <string>Distance device
 to target (mm) :</string>
    </property>
    <property name="indent">

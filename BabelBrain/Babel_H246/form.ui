@@ -73,9 +73,9 @@
   <widget class="QLabel" name="DistanceSkinLabel">
    <property name="geometry">
     <rect>
-     <x>205</x>
+     <x>160</x>
      <y>96</y>
-     <width>76</width>
+     <width>46</width>
      <height>31</height>
     </rect>
    </property>
@@ -100,7 +100,7 @@
     <rect>
      <x>30</x>
      <y>97</y>
-     <width>150</width>
+     <width>105</width>
      <height>31</height>
     </rect>
    </property>
@@ -108,7 +108,7 @@
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
-    <string>Distance skin
+    <string>Distance device
 to target (mm) :</string>
    </property>
    <property name="indent">
@@ -381,6 +381,31 @@ water only</string>
    </property>
    <property name="text">
     <string>Hide marks</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="LabelTissueRemoved">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>98</y>
+     <width>104</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: red</string>
+   </property>
+   <property name="text">
+    <string>Tissue layers
+will be removed!</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
  </widget>

@@ -74,9 +74,9 @@ class REMODP(H317): #we reuse H317 Tx class
     def UpdateDistanceFromSkin(self):
         self._bIgnoreUpdate=True
         ZMec=self.Widget.ZMechanicSpinBox.value()
-        CurDistance=-ZMec
-        self.Widget.DistanceSkinLabel.setText('%3.1f' %(CurDistance))
-        if CurDistance<0:
+        DistanceSkin=self.Widget.DistanceSkinLabel.property('UserData')
+        self.Widget.DistanceSkinLabel.setText('%3.1f' %(DistanceSkin-ZMec))
+        if ZMec>0:
             self.Widget.DistanceSkinLabel.setStyleSheet("color: red")
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
@@ -100,7 +100,7 @@ class REMODP(H317): #we reuse H317 Tx class
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
         DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
-
+        
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
@@ -244,6 +244,9 @@ class RunAcousticSim(QObject):
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
 
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        ZIntoSkin =0.0
+        if TxMechanicalAdjustmentZ > 0:
+            ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)
         T0=time.time()
 
         kargs={}
@@ -268,6 +271,7 @@ class RunAcousticSim(QObject):
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         kargs['bDryRun'] = self._bDryRun
+        kargs['ZIntoSkin'] = ZIntoSkin
             
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:

@@ -72,8 +72,26 @@ class H246(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
+        self.Widget.ZMechanicSpinBox.setMaximum(self.Config['MaxNegativeDistance'])
+        self.Widget.ZMechanicSpinBox.setMinimum(-self.Config['MaxDistanceToSkin'])  
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.LabelTissueRemoved.setVisible(False)
         self.up_load_ui()
+        
+        
+    @Slot()
+    def UpdateDistanceFromSkin(self):
+        self._bIgnoreUpdate=True
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        DistanceSkin=self.Widget.DistanceSkinLabel.property('UserData')
+        self.Widget.DistanceSkinLabel.setText('%3.1f' %(DistanceSkin-ZMec))
+        if ZMec>0:
+            self.Widget.DistanceSkinLabel.setStyleSheet("color: red")
+            self.Widget.LabelTissueRemoved.setVisible(True)
+        else:
+            self.Widget.DistanceSkinLabel.setStyleSheet("color: blue")
+            self.Widget.LabelTissueRemoved.setVisible(False) 
 
     @Slot()
     def TPODistanceUpdate(self,value):
@@ -102,7 +120,7 @@ class H246(BabelBaseTx):
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
         self.TPODistanceUpdate(0)
-        self._UnmodifiedZMechanic = 0.0
+    
 
     @Slot()
     def RunSimulation(self):
@@ -197,6 +215,9 @@ class RunAcousticSim(QObject):
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        ZIntoSkin =0.0
+        if TxMechanicalAdjustmentZ > 0:
+            ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)
         T0=time.time()
         kargs={}
         kargs['ID']=ID
@@ -213,6 +234,7 @@ class RunAcousticSim(QObject):
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
+        kargs['ZIntoSkin'] = ZIntoSkin
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
                 kargs['bPETRA']=True

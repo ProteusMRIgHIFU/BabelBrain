@@ -290,10 +290,15 @@ class SimulationConditions(SimulationConditionsBASE):
         StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
         print('StartSkin',StartSkin)
         
+        if self._TxMechanicalAdjustmentZ <0:
+            zCorrec= self._TxMechanicalAdjustmentZ
+        else:
+            zCorrec=0.0
+        
         for k in ['center','elemcenter','VertDisplay']:
             self._TxREMOPD[k][:,0]+=self._TxMechanicalAdjustmentX
             self._TxREMOPD[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxREMOPD[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+            self._TxREMOPD[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3+zCorrec
             
         Correction=0.0
         while np.max(self._TxREMOPD['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
@@ -333,7 +338,7 @@ class SimulationConditions(SimulationConditionsBASE):
             center=np.zeros((1,3),np.float32)
             center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX+self._XSteering
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+self._YSteering
-            center[0,2]=self._TxMechanicalAdjustmentZ+self._ZSteering
+            center[0,2]=self._ZDim[self._ZSourceLocation]+self._ZSteering+zCorrec
 
             print('center',center,np.mean(self._TxREMOPD['elemcenter'][:,2]))
             
@@ -353,10 +358,9 @@ class SimulationConditions(SimulationConditionsBASE):
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
-        ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
-        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,ZDim,indexing='ij')
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
 
-        print('ZDim[self._ZSourceLocation]',ZDim[self._ZSourceLocation])
+        print('ZDim[self._ZSourceLocation]',self._ZDim[self._ZSourceLocation])
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         

@@ -1081,14 +1081,9 @@ class SimulationConditionsBASE(object):
         self._XLOffset=self._PMLThickness 
         self._YLOffset=self._PMLThickness
         
-        bIsFlatTX=False
-        if self._FocalLength ==0:
-            bIsFlatTX=True
-            OffsetForFlat = -int(np.round(self._TxMechanicalAdjustmentZ/SpatialStep))
-        else:
-            OffsetForFlat=0
+
         #default offsets , this can change if the Rayleigh field does not fit
-        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray+OffsetForFlat
+        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray
         self._ZLOffset+=int(np.round(self._ZTxCorrecton/self._SpatialStep))
         self._XROffset=self._PMLThickness 
         self._YROffset=self._PMLThickness
@@ -1181,7 +1176,7 @@ elif self._bTightNarrowBeamDomain:
             exec(fgen('Y'))
 
             if self._bTightNarrowBeamDomain:
-                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)-OffsetForFlat
+                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
                 self._ZShrink_R+=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
