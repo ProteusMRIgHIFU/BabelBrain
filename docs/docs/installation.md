@@ -5,7 +5,7 @@ Installation and Running
 Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) with NVidia GPUs (see this [guide](https://docs.nvidia.com/cuda/wsl-user-guide/index.html)). 
 
 ### GPU
-BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (8 GPU RAM or more) are recommended. ARM64 processors (M1, M2) in Mac systems with 24GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. 
+BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (8 GPU RAM or more) are recommended. ARM64 processors (M1, M2, M3) in Mac systems with 16GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on M1 and M2 processors as primary targets. 
 #### Note for Intel-based Mac systems
 Intel-based systems need to have a dedicated AMD GPU (internal or external via Thunderbolt). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 500 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 ## Extra software required to run BabelBrain
@@ -21,6 +21,8 @@ While BabelBrain does not invoke directly SimNIBS tools, BabelBrain depends on t
 
 ### Navigation-planning software
 While not strictly required, it is highly recommended to use planning software to establish the target localization and orientation, called **trajectory** in the following documentation, of the ultrasound transducer for the simulation of transcranial ultrasound. The trajectory is just a transformation matrix in the T1W space that represents the translation-rotation of a vector describing the target and direction of ultrasound. BabelBrain can import trajectories defined in proprietary software ([Rogue Research's](https://www.rogue-research.com/) Brainsight) or open-source visualization software ([3DSlicer](https://www.slicer.org/)). Instructions are detailed in the pipeline section of this documentation. 
+
+Starting with BabelBrain v0.3.2 and Brainsight v2.5.3, BabelBrain can be directly called from Brainsight, importing simulations automatically once the BabelBrain execution is completed.
 
 # Standalone application
 Ready-to-use applications (no need for Python installation) for macOS and Windows are available in the [Releases](https://github.com/ProteusMRIgHIFU/BabelBrain/releases) section. Please note that for macOS there are installers for ARM64 (M1 and newer Apple Silicon processors) and Intel X64, so be sure of picking the correct version matching your hardware. 

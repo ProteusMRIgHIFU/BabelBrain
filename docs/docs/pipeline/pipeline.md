@@ -10,7 +10,7 @@ Currently, five types of transducers are supported:
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
 * **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
 * **H246**. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
-* **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
+* **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
 
 The specific capabilities of each transducer are considered during the simulations. 
 
@@ -45,7 +45,7 @@ The specific capabilities of each transducer are considered during the simulatio
     
 
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
-* *Optional*:: ZTE scan of the participant. A pseudo-CT scan can be reconstructed using a Zero Echo Time (ZTE) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522). The user needs only to provide the Nifti file of the ZTE scan. BabelBrain will do the transformation to pseudo-CT as detailed in Miscouridou *et al.* A Nifti file with the pseudo-CT will be generated.
+* *Optional*:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository [petra-to-ct](https://github.com/ucl-bug/petra-to-ct), both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated.
 
 ## 1.a - Availability of CT/ZTE scans
 If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
@@ -124,11 +124,13 @@ BabelBrain includes a series of complementary STL files representing the "acoust
 ## 2.b - Planning with Brainsight
 Alternatively, planning can also be performed with the proprietary software Brainsight made by Rogue Research (Montreal, Canada) for the planning and execution of non-invasive neuromodulation. This software has an existing feature that exports a trajectory that can be used in BabelBrain. The workflow to export a trajectory is very similar to 3DSlicer.
 
-1. Create a new "empty" or "SimNIBS" project; use SimNIBS only if you used SimNIBS 3.x with `headreco`.
+**Important**: Starting with BabelBrain v0.3.2 and Brainsight v2.5.3, BabelBrain can be directly called from Brainsight, importing simulations automatically once the BabelBrain execution is completed.
+
+1. If using Brainsight v2.5.3, create a new "SimNIBS" project; If using an older version of Brainsight, create an "empty" project.
 
 <img src="Planning-14.png" height=200px>
 
-2. Load T1W planning data.  If using  "SimNIBS" project, it will preload the T1W imaging dataset.
+2. If using  "SimNIBS" project, it will preload the T1W imaging dataset automatically. Otherwise, load T1W planning data manually.  
 
     <img src="Planning-15.png" height=250px>
 
@@ -145,22 +147,30 @@ Alternatively, planning can also be performed with the proprietary software Brai
     <img src="Planning-18.png" height=200px>
 
 6. Rename the trajectory with a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.)
-4. Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. 
+
+4. **If using a version of Brainsight previous to 2.5.3**:  Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. This step is not required if using Brainsight version 2.5.3 and up.
 
     <img src="Planning-19.png" height=250px>
 
 # 3 - Simulation with BabelBrain
-Now that planning is done, open BabelBrain either from the Applications menu in macOS if the DMG installer was used or with `python BabelBrain.py` as indicated in the installation section.
+Now that planning is done, you can open BabelBrain.
 
 <img src="Simulation-1.png" height=150px>
 
+1. **If using a version of Brainsight previous to 2.5.3**: Open BabelBrain either from the Applications menu in macOS if the DMG installer was used, from the Start menu if in Windows or with `python BabelBrain.py` if using the manual installation.
+
+2. **If using Brainsight version 2.5.3 and up**: In the lower-left corner of Brainsight's target UI, there is a simulation panel. Specify first an output directory to save the results, then click on the "FUS" button and the BabelBrain GUI will open.
+<img src="Planning-20.png" height=250px>
+
+
 ## 3.a - Input data
-An input dialog will prompt the different input files required for the simulation.
+An input dialog will prompt the different input files required for the simulation. If running directly from BrainSight, some of these fields (marked below with an "*") will be pre-populated.
 <img src="Simulation-2.png" height=250px>
 
-1. Specify the path to the trajectory file and the source (Slicer or Brainsight)
-2. Select the SimNIBS output directory associated to this test and indicate what tool was used to generate it (`headreco` or `charm`)
-3. Select the path to the T1W Nifti file
+
+1. Specify the path to the trajectory file and the source (Slicer or Brainsight) (*).
+2. Select the SimNIBS output directory associated with this test and indicate what tool was used to generate it (`headreco` or `charm`) (*)
+3. Select the path to the T1W Nifti file (*)
 4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
 5. Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
 
