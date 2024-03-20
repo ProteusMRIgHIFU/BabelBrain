@@ -198,19 +198,20 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
         knl_1px=prgcl.function('median_reflect_w7_7_7')
 
         data_out = np.zeros_like(data)
-        step = 1000000000
+        step = 240000000
         totalPoints = np.prod(data_out.shape)
         int_params=np.zeros(3,np.int32)
         int_params[0] = data_out.shape[0]
         int_params[1] = data_out.shape[1]
 
         for point in range(0,totalPoints,step):
-            # Grab z index
+            # Grab z indexes
             z_idx_1 = (point // (data_out.shape[0] * data_out.shape[1]))
             z_idx_2 = ((point + step) // (data_out.shape[0] * data_out.shape[1]))
 
             # Determine start and end indices for data section
-            z_start = max(0, z_idx_1 - 1)
+            # Need slightly larger array to account for median filter size
+            z_start = max(0, z_idx_1 - 2)
             z_end = min(data_out.shape[2], z_idx_2 + 4)
 
             # Grab section of data
@@ -220,7 +221,7 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
             int_params[2] = data_section.shape[2]
 
             data_section_pr = ctx.buffer(data_section)
-            data_section_out = np.empty_like(data_section)
+            data_section_out = np.zeros_like(data_section)
             data_section_out_pr = ctx.buffer(data_section_out)
             int_params_pr = ctx.buffer(int_params)
             
@@ -239,8 +240,8 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
             elif z_start == 0 and z_end < data_out.shape[2]:                        # First section
                 data_out[:,:,:(z_idx_2+1)] = data_section_out[:,:,:-3]
             elif z_start != 0 and z_end == data_out.shape[2]:                       # Last section
-                data_out[:,:,(z_idx_1+1):] = data_section_out[:,:,2:]
+                data_out[:,:,(z_idx_1+1):] = data_section_out[:,:,3:]
             else:                                                                   # Middle sections
-                data_out[:,:,(z_idx_1+1):(z_idx_2+1)] = data_section_out[:,:,2:-3]
+                data_out[:,:,(z_idx_1+1):(z_idx_2+1)] = data_section_out[:,:,3:-3]
 
     return data_out
