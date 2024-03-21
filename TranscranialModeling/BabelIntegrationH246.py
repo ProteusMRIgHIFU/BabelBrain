@@ -129,7 +129,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=4):
+def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
@@ -137,7 +137,7 @@ def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=4):
     return Tx
 
 
-def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=4):
+def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
     
@@ -149,9 +149,7 @@ def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=4):
         n+=1
         TxVert=TxP['VertDisplay']*1e3
         TxVert[:,2]+=Foc
- 
-            
-            
+
         if bFirstRing:
             Tx=TxP
             bFirstRing=False
@@ -295,6 +293,11 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
+        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('StartSkin',StartSkin)
+
         
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','RingVertDisplay','elemcenter']:
@@ -302,20 +305,19 @@ class SimulationConditions(SimulationConditionsBASE):
                     for n in range(len(Tx[k])):
                         Tx[k][n][:,0]+=self._TxMechanicalAdjustmentX
                         Tx[k][n][:,1]+=self._TxMechanicalAdjustmentY
-                        Tx[k][n][:,2]+=self._TxMechanicalAdjustmentZ
+                        Tx[k][n][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3
                 else:
                     Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                     Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                    Tx[k][:,2]+=self._TxMechanicalAdjustmentZ
+                    Tx[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3
         
-        #we apply an homogeneous pressure 
-       
+        print("self._TxRC['center'].max()",self._TxRC['center'][:,2].max(),self._ZDim[self._ZSourceLocation])
+         #we apply an homogeneous pressure 
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
-        self.BasePhasedArrayProgramming=np.zeros(self._TxRC['NumberElems'],np.complex64)
-        
+        self.BasePhasedArrayProgramming=np.zeros(self._TxRC['NumberElems'],np.complex64) 
         
         print('Running Steering')
         ds=np.ones((1))*self._SpatialStep**2
@@ -324,8 +326,10 @@ class SimulationConditions(SimulationConditionsBASE):
         #to avoid adding an erroneous steering to the calculations, we need to discount the mechanical motion 
         center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
         center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-        center[0,2]=self._ZSteering
+        center[0,2]=self._ZSteering+self._TxRC['center'][:,2].max()
 
+        print('center',center,self._TxRC['center'][:,2].max(),self._ZDim[self._ZSourceLocation],self._TxRC['center'][:,2].max()-center[0,2])
+       
         u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
         nBase=0
         for n in range(self._TxRC['NumberElems']):
@@ -354,27 +358,18 @@ class SimulationConditions(SimulationConditionsBASE):
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
 
-        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim+self._ZSteering-self._TxMechanicalAdjustmentZ,indexing='ij')
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
                         self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        u2[zp==0]=0
         
         self._u2RayleighField=u2
         
-        self._SourceMapFlat=u2[:,:,self._PMLThickness]*0
-        xpp,ypp=np.meshgrid(self._XDim+self._TxMechanicalAdjustmentX,self._YDim+self._TxMechanicalAdjustmentY,indexing='ij')
+        self._SourceMapFlat=u2[:,:,self._ZSourceLocation]
         
-        
-        EqCircle=xpp**2+ypp**2
-        for n in range(2):
-            RegionMap=(EqCircle>=(self._InDiameters[n]/2)**2) & (EqCircle<=(self._OutDiameters[n]/2)**2) 
-            self._SourceMapFlat[RegionMap]=self._SourceAmpPa*np.exp(1j*AllPhi[n])
-
-       
         if self._bDisplay:
             plt.figure(figsize=(6,3))
             plt.subplot(1,2,1)

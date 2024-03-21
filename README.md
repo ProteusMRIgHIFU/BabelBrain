@@ -1,4 +1,4 @@
-BabelBrain v0.3.0
+BabelBrain v0.3.2
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -62,6 +62,16 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.2 - March 3rd, 2024
+  - New: Full integration with Brainsight (Rogue Research) version 2.5.3 is now operational. In Brainsight, you need to start a new Simbnibs project and during the planning stage, a new "FUS" button in the Brainsight GUI can be used to invoke BabelBrain. Once simulations are completed, the results of the normalized transcranial simulation (normalized between 0 and 1 in the brain region) will be loaded automatically in Brainsight. 
+  - New: Export of thermal maps into Nifti format. In Step 3, the current thermal simulation on display can now be exported in Nifti for inspection in neuronavigation and visualization software.
+  - New: Smart reuse of preexisting middle files. Previous versions recalculate in Step 1 every single middle file required to generate the domain for simulations. Some of these files can be perfectly reused in recalculations with the same subject if frequency and resolution are the same.  However, there is an important safety aspect to preserve; that is why, in the first versions, we opted always to recalculate everything. In this new version, we developed a method to use hash signatures that help to detect any external changes to the files. If no changes are detected, then the middle files can be reused. This approach can save from 20% to 80 % of time or more (especially when using CT) in the execution time of Step 1. 
+  - New: Support for PETRA scans. We adopted the formulas proposed by Brad Treeby's lab at UCL ([petra-to-ct](https://github.com/ucl-bug/petra-to-ct)). Now in the first screen of BabelBrain you can select between real CT, ZTE, PETRA or none in the options to use CT-type data for the simulations. 
+  - New: Add 35-mm focusing devices to the list of devices associated with [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781)
+  - Improvement: The precision for all transducers was improved. The method that couples the Rayleigh integral component, which models the transducer sources, to the FDTD domain was revised, improving precision for all calculations.
+  - Fix: Re-enable support for older versions of macOS (Monterey and up) for ARM64.
+  - Fix: Saved modified trajectory had an incorrect sign direction. 
+  - Fix: Far field PML had an issue in Metal backend (solved in BabelViscoFDTD 1.0.5)
 - 0.3.0 - Nov 5, 2023
   - New: Add checkboxes to hide marks on plots.
   - New: Replace labels in Step 3 with a table to organize better output metrics.
@@ -75,7 +85,7 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 - 0.2.9-b - Oct 14, 2023
   - macOS applications are now fully signed, and no more warnings from macOS Gatekeeper appear.
   - PKG installer in macOS DMG distribution files replaces the "drag" macOS app into the application.
-  - Use of latest pyinstaller library (6.1.0) and new scripts to sign macOS applications.
+  - Use of the latest pyinstaller library (6.1.0) and new scripts to sign macOS applications.
   - Small fix for Step 3 the AllCombinations file that was not saving correctly an index based on the combinations of DC, PRF and duration. 
 - 0.2.9-a - Sep 21, 2023
   - Add fix for Apple Silicon systems with latest versions of MacOS. In some systems, occasional crashes were occurring. Fix was addressed at the underlying library at https://github.com/ProteusMRIgHIFU/py-metal-compute.

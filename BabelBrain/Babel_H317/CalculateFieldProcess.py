@@ -45,11 +45,14 @@ def CalculateFieldProcess(queue,Target,**kargs):
                         **kargs)
                         
         kargs.pop('bDoRefocusing')
-        kargs.pop('XSteering')
+        XSteering=kargs.pop('XSteering')
+        if XSteering==0.0:
+            XSteering=1e-6
+        
         R.RunCases(targets=Target,
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
-                        XSteering=1e-6,
+                        XSteering=XSteering,
                         bWaterOnly=True,
                         bDoRefocusing=False,
                         bDisplay=False,
