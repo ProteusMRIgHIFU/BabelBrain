@@ -151,7 +151,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
-        TxVert=self._SIM_SETTINGS._TxH317_Orig['VertDisplay'].T.copy()
+        TxVert=self._SIM_SETTINGS._TxOrig['VertDisplay'].T.copy()
         TxVert/=self._SIM_SETTINGS.SpatialStep
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
@@ -165,10 +165,10 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
         TxVert=np.dot(affine,TxVert)
 
-        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxOrig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
 
         TxVert=TxVert.T[:,:3]
-        for i, f in enumerate(self._SIM_SETTINGS._TxH317_Orig['FaceDisplay']):
+        for i, f in enumerate(self._SIM_SETTINGS._TxOrig['FaceDisplay']):
             TxStl.vectors[i*2][0] = TxVert[f[0],:]
             TxStl.vectors[i*2][1] = TxVert[f[1],:]
             TxStl.vectors[i*2][2] = TxVert[f[3],:]
@@ -229,13 +229,15 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
+
+    def GenTransducerGeom(self):
+        self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self._TxH317=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxH317_Orig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
-        
+        self.GenTransducerGeom()
         #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
         TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
         LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
@@ -250,10 +252,10 @@ class SimulationConditions(SimulationConditionsBASE):
             fig = plt.figure()
             ax = Axes3D(fig)
 
-            ax.add_collection3d(Poly3DCollection(self._TxH317['VertDisplay'][self._TxH317['FaceDisplay']]*1e3)) #we plot the units in mm
+            ax.add_collection3d(Poly3DCollection(self._Tx['VertDisplay'][self._Tx['FaceDisplay']]*1e3)) #we plot the units in mm
             #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._TxH317['Aperture']/2*1e3-5,self._TxH317['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._TxH317['Aperture']/2*1e3-5,self._TxH317['Aperture']/2*1e3+5)
+            ax.set_xlim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
+            ax.set_ylim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
             ax.set_zlim(0,135)
             ax.set_xlabel('x (mm)')
             ax.set_ylabel('y (mm)')
@@ -261,21 +263,21 @@ class SimulationConditions(SimulationConditionsBASE):
             plt.show()
         
         for k in ['center','elemcenter','VertDisplay']:
-            self._TxH317[k][:,0]+=self._TxMechanicalAdjustmentX
-            self._TxH317[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxH317[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+            self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX
+            self._Tx[k][:,1]+=self._TxMechanicalAdjustmentY
+            self._Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
 
         Correction=0.0
-        while np.max(self._TxH317['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+        while np.max(self._Tx['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
             for k in ['center','VertDisplay','elemcenter']:
-                self._TxH317[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
+                self._Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
             Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
         if Correction>0:
             print('Warning: Need to apply correction to reposition Tx for',Correction)
         #if yet we are not there, we need to stop
-        if np.max(self._TxH317['center'][:,2])>self._ZDim[self._ZSourceLocation]:
-            print("np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxH317['center'][:,2]),self._ZDim[self._ZSourceLocation])
+        if np.max(self._Tx['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._Tx['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._Tx['center'][:,2]),self._ZDim[self._ZSourceLocation])
             raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
@@ -284,8 +286,8 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
-        self.BasePhasedArrayProgramming=np.zeros(self._TxH317['NumberElems'],np.complex64)
-        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._TxH317['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgramming=np.zeros(self._Tx['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._Tx['NumberElems'],np.complex64)
         
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
@@ -302,16 +304,16 @@ class SimulationConditions(SimulationConditionsBASE):
 
             print('center',center)
             
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
-            u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
+            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._Tx['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+            u0=np.zeros((self._Tx['center'].shape[0],1),np.complex64)
             nBase=0
-            for n in range(self._TxH317['NumberElems']):
+            for n in range(self._Tx['NumberElems']):
                 phi=np.angle(np.conjugate(u2back[n]))
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                u0[nBase:nBase+self._TxH317['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-                nBase+=self._TxH317['elemdims']
+                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+                nBase+=self._Tx['elemdims']
         else:
-             u0=(np.ones((self._TxH317['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxH317['center'].shape[0],1),np.float32))*self._SourceAmpPa
+             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))*self._SourceAmpPa
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
@@ -319,7 +321,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -426,17 +428,17 @@ class SimulationConditions(SimulationConditionsBASE):
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
-        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),u0,self._TxH317['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+        u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),u0,self._Tx['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
-        u0=np.zeros((self._TxH317['center'].shape[0],1),np.complex64)
+        u0=np.zeros((self._Tx['center'].shape[0],1),np.complex64)
         nBase=0
-        for n in range(self._TxH317['NumberElems']):
+        for n in range(self._Tx['NumberElems']):
             phi=np.angle(np.conjugate(u2back[n]))
             self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back[n])
-            u0[nBase:nBase+self._TxH317['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-            nBase+=self._TxH317['elemdims']
+            u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+            nBase+=self._Tx['elemdims']
 
         nxf=len(self._XDim)
         nyf=len(self._YDim)
@@ -445,7 +447,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxH317['center'].astype(np.float32),self._TxH317['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

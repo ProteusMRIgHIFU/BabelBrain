@@ -475,6 +475,8 @@ class BabelBrain(QWidget):
             from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         elif self.Config['TxSystem'] =='REMODP':
             from Babel_REMODP.Babel_REMODP import REMODP as WidgetAcSim
+        elif self.Config['TxSystem'] =='I12378':
+            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 

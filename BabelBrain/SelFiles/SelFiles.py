@@ -220,7 +220,7 @@ class SelFiles(QDialog):
                 
         if 'MultiPoint' in profile:
             selTx=self.ui.TransducerTypecomboBox.currentText()
-            ListTxSteering=['H317']
+            ListTxSteering=['H317','I12378']
             if selTx not in ListTxSteering:
                 self.msgDetails = "MultiPoint in profile can only be specified with a phased array-type transducer"
                 return False
