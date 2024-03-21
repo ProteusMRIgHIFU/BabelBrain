@@ -438,6 +438,11 @@ profile ...</string>
       <string>I12378</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>ATAC</string>
+     </property>
+    </item>
    </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
