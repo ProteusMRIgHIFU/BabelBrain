@@ -61,9 +61,14 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
 
-        self.Widget.ZSteeringSpinBox.setMinimum(self.Config['MinimalZSteering']*1e3)
-        self.Widget.ZSteeringSpinBox.setMaximum(self.Config['MaximalZSteering']*1e3)
-        self.Widget.ZSteeringSpinBox.setValue(0.0)
+        for spinbox,ID in zip([self.Widget.XSteeringSpinBox,
+                               self.Widget.YSteeringSpinBox,
+                               self.Widget.ZSteeringSpinBox],
+                               ['X','Y','Z']):
+            
+            spinbox.setMinimum(self.Config['Minimal'+ID+'Steering']*1e3)
+            spinbox.setMaximum(self.Config['Maximal'+ID+'Steering']*1e3)
+            spinbox.setValue(0.0)
 
         self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
         self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
@@ -459,7 +464,11 @@ class RunAcousticSim(QObject):
             TxMechanicalAdjustmentZ=0
         ###############
         ZSteering=self._mainApp.AcSim.Widget.ZSteeringSpinBox.value()/1e3  #Add here the final adjustment)
-        XSteering=1e-6
+        XSteering=self._mainApp.AcSim.Widget.XSteeringSpinBox.value()/1e3
+        YSteering=self._mainApp.AcSim.Widget.YSteeringSpinBox.value()/1e3
+
+        if XSteering==0.0 and YSteering==0.0 and ZSteering==0.0:
+            XSteering=1e-6
         ##############
         RotationZ=self._mainApp.AcSim.Widget.ZRotationSpinBox.value()
 
