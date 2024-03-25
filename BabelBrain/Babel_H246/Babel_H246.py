@@ -75,7 +75,7 @@ class H246(BabelBaseTx):
         self.Widget.ZMechanicSpinBox.setMaximum(self.Config['MaxNegativeDistance'])
         self.Widget.ZMechanicSpinBox.setMinimum(-self.Config['MaxDistanceToSkin'])  
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.up_load_ui()
         

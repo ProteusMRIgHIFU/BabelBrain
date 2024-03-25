@@ -76,7 +76,7 @@ class REMODP(BabelBasePhaseArray):
         print('self.Widget.ZMechanicSpinBox.setValue',self.Widget.ZMechanicSpinBox.value())
 
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.up_load_ui()

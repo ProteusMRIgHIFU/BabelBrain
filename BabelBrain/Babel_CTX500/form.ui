@@ -260,7 +260,7 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QPushButton" name="CalculatePlanningMask">
+  <widget class="QPushButton" name="CalculateAcField">
    <property name="geometry">
     <rect>
      <x>105</x>
@@ -454,7 +454,7 @@ will be removed!</string>
   <tabstop>YMechanicSpinBox</tabstop>
   <tabstop>ZMechanicSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
-  <tabstop>CalculatePlanningMask</tabstop>
+  <tabstop>CalculateAcField</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
  </tabstops>

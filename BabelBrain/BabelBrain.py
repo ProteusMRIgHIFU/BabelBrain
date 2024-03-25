@@ -1131,7 +1131,7 @@ def main():
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])
         if 'MultiPoint' in prevConfig:
-            if 'EnableMultiPoint' in prevConfig:
+            if prevConfig['EnableMultiPoint']:
                 selwidget.ui.MultiPointTypecomboBox.setCurrentIndex(1)
             if len(prevConfig['MultiPoint'].strip())>0:
                 selwidget.ui.MultiPointlineEdit.setText(prevConfig['MultiPoint'])

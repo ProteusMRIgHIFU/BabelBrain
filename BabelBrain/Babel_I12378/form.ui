@@ -184,7 +184,7 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QPushButton" name="CalculatePlanningMask">
+  <widget class="QPushButton" name="CalculateAcField">
    <property name="geometry">
     <rect>
      <x>124</x>
@@ -594,7 +594,7 @@ water only</string>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
   <tabstop>RefocusingcheckBox</tabstop>
-  <tabstop>CalculatePlanningMask</tabstop>
+  <tabstop>CalculateAcField</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
  </tabstops>
  <resources/>
