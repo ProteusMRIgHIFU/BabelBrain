@@ -61,9 +61,10 @@ class Babel_Thermal(QWidget):
         self._MainApp=MainApp
         self._ThermalResults=[]
         self._bMultiPoint = False
+        self.bDisableUpdate=False
         self.static_canvas=None
-        self.DefaultConfig()
         self.load_ui()
+        self.DefaultConfig()
         self._LastTMap=-1
 
     def load_ui(self):
@@ -74,15 +75,12 @@ class Babel_Thermal(QWidget):
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
 
+        self.Widget.SelectProfile.clicked.connect(self.SelectProfile)
+        self.Widget.SelectProfile.setStyleSheet("color: green")
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateThermal.setStyleSheet("color: red")
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
         self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
-
-        while self.Widget.SelCombinationDropDown.count()>0:
-            self.Widget.SelCombinationDropDown.removeItem(0)
-
-        for c in self.Config['AllDC_PRF_Duration']:
-            self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
@@ -150,23 +148,29 @@ class Babel_Thermal(QWidget):
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
-
         with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
-        print("Thermal configuration:")
-        print(config)
-        
-        #we check if multi point is present
-        if  'MultiPoint' in config:
-            for n in range(len(config['MultiPoint'])):
-                #we convert to mm
-                for k in ['X','Y','Z']:
-                    config['MultiPoint'][n][k]=config['MultiPoint'][n][k] * 1e-3
-            self._MainApp.EnableMultiPoint(config['MultiPoint'])
-            self._bMultiPoint=True
+            print("Thermal configuration:")
+            print(config)
+            self.Config=config
+            self.bDisableUpdate=True
 
-        self.Config=config
+            while self.Widget.SelCombinationDropDown.count()>0:
+                self.Widget.SelCombinationDropDown.removeItem(0)
 
+            for c in self.Config['AllDC_PRF_Duration']:
+                self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
+            self.bDisableUpdate=False
+
+    @Slot()
+    def SelectProfile(self):
+        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
+        if len(fThermalProfile)>0:
+            self._MainApp.UpdateThermalProfile(fThermalProfile)
+            self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
+            self.DefaultConfig()  
+            self.RunSimulation()
+                
 
     @Slot()
     def RunSimulation(self):
@@ -231,8 +235,9 @@ class Babel_Thermal(QWidget):
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
+        if self.bDisableUpdate:
+            return
         self._MainApp.Widget.tabWidget.setEnabled(True)
-        self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.ExportThermalMap.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
@@ -581,6 +586,8 @@ class Babel_Thermal(QWidget):
         msgBox = DialogShowText(txt,"Saved thermal map")
         msgBox.exec()
 
+
+
 class DialogShowText(QDialog):
     def __init__(self, text,title,parent=None):
         super().__init__(parent)
@@ -600,6 +607,7 @@ class DialogShowText(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+    
 
 class RunThermalSim(QObject):
 

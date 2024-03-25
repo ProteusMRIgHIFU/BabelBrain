@@ -551,11 +551,7 @@ class BabelBrain(QWidget):
             sel=self.Widget.USMaskkHzDropDown.findText('500')
             self.Widget.USMaskkHzDropDown.setCurrentIndex(sel)
 
-        self.setWindowTitle('BabelBrain V'+self.Config['version'] +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
-                            ' - ' + os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
-        self.Widget.IDLabel.setText(self.Config['ID'])
-        self.Widget.TXLabel.setText(self.Config['TxSystem'])
-        self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+        self.UpdateWindowTitle()
 
         #we connect callbacks
         self.Widget.CalculatePlanningMask.clicked.connect(self.GenerateMask)
@@ -572,6 +568,67 @@ class BabelBrain(QWidget):
         stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
+
+    def UpdateWindowTitle(self):
+        self.setWindowTitle('BabelBrain V'+
+                            self.Config['version'] +' - ' + 
+                            self.Config['ID'] + ' - ' + 
+                            self.Config['TxSystem'] + ' - ' + 
+                            os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+        self.Widget.IDLabel.setText(self.Config['ID'])
+        self.Widget.TXLabel.setText(self.Config['TxSystem'])
+        self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+
+    def ValidThermalProfile(self,fProf):
+        msgDetails=None
+        result=True
+        try:
+            with open(fProf,'r') as f:
+                profile=yaml.safe_load(f)
+        except:
+            msgDetails = "Invalid profile YAML file"
+            result=False,msgDetails
+            
+        if 'BaseIsppa' not in profile:
+            msgDetails = "BaseIsppa entry must be in YAML file"
+            return False,msgDetails
+        
+        if type(profile['BaseIsppa']) is not float:
+            msgDetails = "BaseIsppa must be a single float"
+            return False,msgDetails
+        
+        if 'AllDC_PRF_Duration' not in profile:
+            msgDetails = "AllDC_PRF_Duration entry must be in YAML file"
+            return False,msgDetails
+        
+        if type(profile['AllDC_PRF_Duration']) is not list:
+            msgDetails = "AllDC_PRF_Duration must be a list"
+            return False,msgDetails
+        
+        for n,entry in enumerate(profile['AllDC_PRF_Duration']):
+            if type(entry) is not dict:
+                msgDetails = "entry %i in AllDC_PRF_Duration must be a dictionary" % (n)
+                return False,msgDetails
+            for k in ['DC','PRF','Duration','DurationOff']:
+                if k not in entry:
+                    self.msgDetails = "entry %i in AllDC_PRF_Duration must have a key %s" % (n,k)
+                    False,msgDetails
+                if type(entry[k]) is not float:
+                    self.msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
+                    False,msgDetails
+        return True,msgDetails
+    
+    def UpdateThermalProfile(self,fThermalProfile):
+        bValid,msg = self.ValidThermalProfile(fThermalProfile)
+        if not bValid:
+            msgBox = QMessageBox()
+            msgBox.setText("Please indicate valid entries in the profile")
+            msgBox.setDetailedText(msg)
+            msgBox.exec()
+        else:
+            self.Config['ThermalProfile']=fThermalProfile
+            self.UpdateWindowTitle()
+            self.SaveLatestSelection()
 
     def UpdateMaskParameters(self):
         '''

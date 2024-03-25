@@ -26,9 +26,9 @@
   <widget class="QPushButton" name="CalculateThermal">
    <property name="geometry">
     <rect>
-     <x>48</x>
-     <y>8</y>
-     <width>253</width>
+     <x>10</x>
+     <y>10</y>
+     <width>176</width>
      <height>42</height>
     </rect>
    </property>
@@ -39,14 +39,14 @@
     <string notr="true"/>
    </property>
    <property name="text">
-    <string>Calculate Thermal fields</string>
+    <string>Calculate Thermal Fields</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_20">
    <property name="geometry">
     <rect>
      <x>4</x>
-     <y>45</y>
+     <y>50</y>
      <width>143</width>
      <height>46</height>
     </rect>
@@ -63,7 +63,7 @@
    <property name="geometry">
     <rect>
      <x>152</x>
-     <y>53</y>
+     <y>58</y>
      <width>213</width>
      <height>30</height>
     </rect>
@@ -88,9 +88,9 @@
   <widget class="QDoubleSpinBox" name="IsppaSpinBox">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>159</x>
      <y>90</y>
-     <width>92</width>
+     <width>100</width>
      <height>22</height>
     </rect>
    </property>
@@ -302,7 +302,39 @@
 Thermal map (.nii.gz)</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="SelectProfile">
+   <property name="geometry">
+    <rect>
+     <x>196</x>
+     <y>10</y>
+     <width>190</width>
+     <height>42</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Update Profile and Calculate</string>
+   </property>
+  </widget>
  </widget>
+ <tabstops>
+  <tabstop>SelectProfile</tabstop>
+  <tabstop>CalculateThermal</tabstop>
+  <tabstop>SelCombinationDropDown</tabstop>
+  <tabstop>IsppaSpinBox</tabstop>
+  <tabstop>tableWidget</tabstop>
+  <tabstop>ExportSummary</tabstop>
+  <tabstop>ExportThermalMap</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>LocMTB</tabstop>
+  <tabstop>LocMTC</tabstop>
+  <tabstop>LocMTS</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
