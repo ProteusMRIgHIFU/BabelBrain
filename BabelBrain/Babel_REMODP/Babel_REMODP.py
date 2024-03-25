@@ -24,26 +24,37 @@ from matplotlib.backends.backend_qtagg import (
 #import cv2 as cv
 import os
 import sys
-import shutil
+import platform
 from datetime import datetime
 import time
 import yaml
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from CalculateFieldProcess import CalculateFieldProcess
 
-from _BabelBaseTx import BabelBaseTx
+from _BabelBasePhasedArray import BabelBasePhaseArray
 
-from Babel_H317.Babel_H317 import H317
+_IS_MAC = platform.system() == 'Darwin'
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
 
-class REMODP(H317): #we reuse H317 Tx class
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_H317'
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
+
+class REMODP(BabelBasePhaseArray): 
     def __init__(self,parent=None,MainApp=None):
-        super(REMODP, self).__init__(parent=parent,MainApp=MainApp)
+        super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
 
-    def load_ui(self):
+    def load_ui(self,formfile):
         loader = QUiLoader()
-        path = os.fspath(Path(__file__).resolve().parent / "form.ui")
+        path = os.fspath(formfile)
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
