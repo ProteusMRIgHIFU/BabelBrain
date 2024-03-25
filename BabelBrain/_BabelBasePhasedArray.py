@@ -83,6 +83,8 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
+        self.Widget.ZMechaniclabel.setVisible(False)
         self.up_load_ui()
         
        

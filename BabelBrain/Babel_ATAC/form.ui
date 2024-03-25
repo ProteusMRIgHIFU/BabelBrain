@@ -213,7 +213,7 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_24">
+  <widget class="QLabel" name="ZMechaniclabel">
    <property name="geometry">
     <rect>
      <x>32</x>
