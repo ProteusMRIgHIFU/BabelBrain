@@ -168,14 +168,6 @@ def GetLatestSelection():
                 print('Unable to load previous selection')
                 print(e)
                 res=None
-        try:
-            if res is not None:
-                if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory'])\
-                or not os.path.isfile(res['ThermalProfile']):
-                    print('Ignoring config as files and dir may not exist anymore\n',res)
-                    res=None
-        except:
-            res = None
     return res
 
 def GetInputFromBrainsight():
@@ -383,10 +375,26 @@ class BabelBrain(QWidget):
         with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
             self.Config['version'] =f.readlines()[0]
 
+        self.Config['MultiPoint']=''
+        self.Config['EnableMultiPoint']=False
+        if widget.ui.MultiPointTypecomboBox.currentIndex()==1:
+            self.Config['EnableMultiPoint']=True    
+            self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
+
         self.SaveLatestSelection()
 
-
         self.load_ui()
+        #in case of multipoint , we prepared 
+        if len(self.Config['MultiPoint'].strip())>0 and\
+            self.Config['EnableMultiPoint']:
+            with open(self.Config['MultiPoint'],'r') as f:
+                profile=yaml.safe_load(f)
+            for n in range(len(profile['MultiPoint'])):
+                #we convert to mm
+                for k in ['X','Y','Z']:
+                    profile['MultiPoint'][n][k]=profile['MultiPoint'][n][k] * 1e-3 #in mm
+            self.AcSim.EnableMultiPoint(profile['MultiPoint'])
+            self.ThermalSim.EnableMultiPoint()
         self.InitApplication()
         self.static_canvas=None
 
@@ -524,8 +532,6 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
-        
-        
     
     @Slot()
     def handleOutput(self, text, stdout):
@@ -931,10 +937,6 @@ class BabelBrain(QWidget):
     def SetErrorAcousticsCode(self):
         self.RETURN_CODE = ReturnCodes['ERROR_ACOUSTICS']
         
-    def EnableMultiPoint(self,MultiPoint):
-        # triggered by the thermal pane if the profile file includes multi point focal points
-        self.AcSim.EnableMultiPoint(MultiPoint)
-
     def UpdateComputationalTime(self,step,steptime):
         if os.path.isfile(self._trackingtimefile):
             with open(self._trackingtimefile,'r') as f:
@@ -1128,7 +1130,12 @@ def main():
 
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])
-
+        if 'MultiPoint' in prevConfig:
+            if 'EnableMultiPoint' in prevConfig:
+                selwidget.ui.MultiPointTypecomboBox.setCurrentIndex(1)
+            if len(prevConfig['MultiPoint'].strip())>0:
+                selwidget.ui.MultiPointlineEdit.setText(prevConfig['MultiPoint'])
+                
     AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
         Brainsight,header=GetInputFromBrainsight()

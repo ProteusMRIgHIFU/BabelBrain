@@ -162,6 +162,9 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
             self.bDisableUpdate=False
 
+    def EnableMultiPoint(self):
+        self._bMultiPoint=True
+
     @Slot()
     def SelectProfile(self):
         fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]

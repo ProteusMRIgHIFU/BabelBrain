@@ -43,7 +43,7 @@ from _BabelBaseTx import BabelBaseTx
 
 class BabelBasePhaseArray(BabelBaseTx):
     def __init__(self,parent=None,MainApp=None,formfile=None):
-        super(BabelBasePhaseArray, self).__init__(parent)
+        super().__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
         self._MultiPoint = None #if None, the default is to run one single focal point
@@ -185,7 +185,7 @@ class BabelBasePhaseArray(BabelBaseTx):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export=super(H317,self).GetExport()
+        Export=super().GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         def dict_to_string(d, separator=', ', equals_sign='='):
             return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
@@ -426,6 +426,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         while self.Widget.SelCombinationDropDown.count()>0:
             self.Widget.SelCombinationDropDown.removeItem(0)
         self.Widget.SelCombinationDropDown.addItem('ALL')
+        print('MultiPoint',MultiPoint)
         for c in MultiPoint:
             self.Widget.SelCombinationDropDown.addItem('X:%2.1f Y:%2.1f Z:%2.1f' %(c['X']*1e3,c['Y']*1e3,c['Z']*1e3))
         self._MultiPoint = MultiPoint
@@ -438,7 +439,7 @@ class RunAcousticSim(QObject):
     endError = Signal()
 
     def __init__(self,mainApp,bDryRun=False):
-        super(RunAcousticSim, self).__init__()
+        super().__init__()
         self._mainApp=mainApp
         self._bDryRun=bDryRun
 
