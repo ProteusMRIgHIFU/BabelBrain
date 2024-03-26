@@ -260,25 +260,6 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QPushButton" name="CalculateAcField">
-   <property name="geometry">
-    <rect>
-     <x>105</x>
-     <y>347</y>
-     <width>131</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="autoFillBackground">
-    <bool>false</bool>
-   </property>
-   <property name="styleSheet">
-    <string notr="true"/>
-   </property>
-   <property name="text">
-    <string>Calculate Fields</string>
-   </property>
-  </widget>
   <widget class="QWidget" name="AcField_plot1" native="true">
    <property name="geometry">
     <rect>
@@ -447,6 +428,44 @@ will be removed!</string>
     <string>Hide marks</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="CalculateAcField">
+   <property name="geometry">
+    <rect>
+     <x>31</x>
+     <y>338</y>
+     <width>226</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Fields</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="CalculateMechAdj">
+   <property name="geometry">
+    <rect>
+     <x>31</x>
+     <y>385</y>
+     <width>227</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Mechanical Adjustments</string>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>TPODistanceSpinBox</tabstop>
@@ -454,7 +473,6 @@ will be removed!</string>
   <tabstop>YMechanicSpinBox</tabstop>
   <tabstop>ZMechanicSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
-  <tabstop>CalculateAcField</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
  </tabstops>

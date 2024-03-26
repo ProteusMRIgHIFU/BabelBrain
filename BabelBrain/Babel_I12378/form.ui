@@ -20,7 +20,7 @@
    <property name="geometry">
     <rect>
      <x>31</x>
-     <y>234</y>
+     <y>221</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -119,7 +119,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>228</x>
-     <y>232</y>
+     <y>219</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -147,7 +147,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>264</y>
+     <y>251</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -160,7 +160,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>262</y>
+     <y>249</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -184,25 +184,6 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QPushButton" name="CalculateAcField">
-   <property name="geometry">
-    <rect>
-     <x>124</x>
-     <y>390</y>
-     <width>131</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="autoFillBackground">
-    <bool>false</bool>
-   </property>
-   <property name="styleSheet">
-    <string notr="true"/>
-   </property>
-   <property name="text">
-    <string>Calculate Fields</string>
-   </property>
-  </widget>
   <widget class="QWidget" name="AcField_plot1" native="true">
    <property name="geometry">
     <rect>
@@ -217,7 +198,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>295</y>
+     <y>282</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -230,7 +211,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>293</y>
+     <y>280</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -380,7 +361,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>355</y>
+     <y>342</y>
      <width>153</width>
      <height>30</height>
     </rect>
@@ -397,7 +378,7 @@ target (mm)</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>363</y>
+     <y>350</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -468,7 +449,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>13</x>
-     <y>323</y>
+     <y>310</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -487,7 +468,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>142</x>
-     <y>320</y>
+     <y>307</y>
      <width>185</width>
      <height>30</height>
     </rect>
@@ -580,6 +561,44 @@ water only</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
+  <widget class="QPushButton" name="CalculateMechAdj">
+   <property name="geometry">
+    <rect>
+     <x>44</x>
+     <y>425</y>
+     <width>227</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Mechanical Adjustments</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="CalculateAcField">
+   <property name="geometry">
+    <rect>
+     <x>44</x>
+     <y>378</y>
+     <width>226</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Fields</string>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>DistanceConeToFocusSpinBox</tabstop>
@@ -594,7 +613,6 @@ water only</string>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
   <tabstop>RefocusingcheckBox</tabstop>
-  <tabstop>CalculateAcField</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
  </tabstops>
  <resources/>

@@ -85,6 +85,8 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
         self.Widget.ZMechaniclabel.setVisible(False)
+        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
+        self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
         
        
@@ -136,6 +138,8 @@ class BabelBasePhaseArray(BabelBaseTx):
         if bPrexistingFiles:
             #we can use the first entry, this is valid for all files in the list
             Skull=ReadFromH5py(self._FullSolName[0])
+            XSteering=Skull['XSteering']
+            YSteering=Skull['YSteering']
             ZSteering=Skull['ZSteering']
             if 'RotationZ' in Skull:
                 RotationZ=Skull['RotationZ']
@@ -143,6 +147,8 @@ class BabelBasePhaseArray(BabelBaseTx):
                 RotationZ=0.0
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
+                                    "XSteering=%3.2f\n" %(XSteering*1e3)+
+                                    "YSteering=%3.2f\n" %(YSteering*1e3)+
                                     "ZSteering=%3.2f\n" %(ZSteering*1e3)+
                                     "ZRotation=%3.2f\n" %(RotationZ)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
@@ -154,6 +160,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             if ret == QMessageBox.Yes:
                 bCalcFields=True
             else:
+                self.Widget.XSteeringSpinBox.setValue(XSteering*1e3)
+                self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
@@ -221,6 +229,7 @@ class BabelBasePhaseArray(BabelBaseTx):
     @Slot()
     def UpdateAcResults(self):
         self._MainApp.SetSuccesCode()
+        self.Widget.CalculateMechAdj.setEnabled(True)
         #We overwrite the base class method
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
@@ -284,8 +293,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
             
-            self._ISkull=[]
-            self._IWater=[]
+            self._ISkullCol=[]
+            self._IWaterCol=[]
             sz=self._AcResults[0]['Water']['p_amp'].shape
             AllSkull=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
             AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
@@ -299,8 +308,8 @@ class BabelBasePhaseArray(BabelBaseTx):
                 ISkull/=ISkull.max()
                 IWater/=IWater.max()
                 
-                self._ISkull.append(ISkull)
-                self._IWater.append(IWater)
+                self._ISkullCol.append(ISkull)
+                self._IWaterCol.append(IWater)
             #now we add the max projection of fields, we add it at the top
             AllSkull=AllSkull.max(axis=3)
             AllSkull[Skull['MaterialMap']!=3]=0
@@ -308,8 +317,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             AllWater=AllWater.max(axis=3)
             AllWater/=AllWater.max()
             
-            self._ISkull.insert(0,AllSkull)
-            self._IWater.insert(0,AllWater)
+            self._ISkullCol.insert(0,AllSkull)
+            self._IWaterCol.insert(0,AllWater)
             
             dz=np.diff(Skull['z_vec']).mean()
             Zvec=Skull['z_vec'].copy()
@@ -324,9 +333,6 @@ class BabelBasePhaseArray(BabelBaseTx):
 
             self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
 
-            # self._IWater = IWater/IWater.max()
-            # self._ISkull = ISkull/ISkull.max()
-            
             self._Skull = Skull
             
             self._DistanceToTarget = DistanceToTarget
@@ -347,11 +353,14 @@ class BabelBasePhaseArray(BabelBaseTx):
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
 
         if hasattr(self.Widget,'SelCombinationDropDown'):
-            IWater = self._IWater[self.Widget.SelCombinationDropDown.currentIndex()]
-            ISkull = self._ISkull[self.Widget.SelCombinationDropDown.currentIndex()]
+            IWater = self._IWaterCol[self.Widget.SelCombinationDropDown.currentIndex()]
+            ISkull = self._ISkullCol[self.Widget.SelCombinationDropDown.currentIndex()]
         else:
-            IWater = self._IWater[0]
-            ISkull = self._ISkull[0]
+            IWater = self._IWaterCol[0]
+            ISkull = self._ISkullCol[0]
+        #we need to declare these for compatibility for parent functions
+        self._IWater = IWater
+        self._ISkull = ISkull
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             sliceXZ=IWater[:,SelY,:]
