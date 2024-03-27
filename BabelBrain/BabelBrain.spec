@@ -263,9 +263,9 @@ else: #for Linux
     datas+=commonDatas
     datas+=[('SelFiles/form.ui','./SelFiles'),
             ('GPUVoxelize/helper_math.h','./GPUVoxelize'),
-            ('../ThermalProfiles/Profile_1.yaml','./ThermalProfiles'),
-            ('../ThermalProfiles/Profile_2.yaml','./ThermalProfiles'),
-            ('../ThermalProfiles/Profile_3.yaml','./ThermalProfiles'),
+            ('../Profiles/Profile_1.yaml','./Profiles'),
+            ('../Profiles/Profile_2.yaml','./Profiles'),
+            ('../Profiles/Profile_3.yaml','./Profiles'),
             ('../NeedleModel.stl','./'),
             ('../PlanningModels/Trajectory-20-60-F#1.stl','./PlanningModels'),
             ('../PlanningModels/Trajectory-30-70-F#1.stl','./PlanningModels'),
