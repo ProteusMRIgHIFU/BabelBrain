@@ -641,7 +641,6 @@ class RunThermalSim(QObject):
             else:
                 kargs['sel_p']='p_amp'
 
-
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateThermalProcess, 
