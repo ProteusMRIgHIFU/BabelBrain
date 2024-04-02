@@ -74,11 +74,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     #define out_dims_2 int_params[5]
     #define order int_params[6]
     #define cval float_params[0]
-
-    const int xind =  gid/(out_dims_1*out_dims_2);
-    const int yind =  (gid-xind*out_dims_1*out_dims_2)/out_dims_2;
-    const int zind =  gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
-    #define _i gid
+    unsigned int output_idx = (unsigned int) int_params[7]; // overall starting index in ouput array, not just output section
+    unsigned int true_gid  = gid + output_idx; // overall position in output array
+    const int xind =  true_gid/(out_dims_1*out_dims_2);
+    const int yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const int zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    unsigned int _i  = gid; // current index in output section array
 #endif
 
     float out = 0.0;
@@ -1019,7 +1020,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         m = m.astype("float32", copy=False)
         output = output.astype("float32", copy=False)
         
-        int_params=np.zeros(7,np.int32)
+        int_params=np.zeros(8,np.int32)
         float_params= np.zeros(2,np.float32)
         int_params[0] = filtered.shape[0]
         int_params[1] = filtered.shape[1]
@@ -1034,21 +1035,40 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         assert(np.isfortran(m)==False)
         assert(np.isfortran(filtered)==False)
 
-        filtered_gpu = ctx.buffer(filtered)
-        m_gpu = ctx.buffer(m) 
-        output_gpu = ctx.buffer(output)
-        int_params_gpu = ctx.buffer(int_params)
-        float_params_gpu = ctx.buffer(float_params)
+        step = 240000000
+        totalPoints = np.prod(output.shape)
+        
+        for point in range(0, totalPoints,step):
 
-        ctx.init_command_buffer()
+            # Grab indices for current output section
+            x_start = (point // (output.shape[1] * output.shape[2]))
+            x_end = min(((point + step) // (output.shape[1] * output.shape[2])),output.shape[0])
 
-        handle=knl_at(int(np.prod(output.shape)),filtered_gpu,m_gpu,output_gpu,int_params_gpu, float_params_gpu)
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((output_gpu,float_params_gpu))
-        output = np.frombuffer(output_gpu,dtype=np.float32).reshape(output.shape)
+            # Grab section of output
+            output_section = np.copy(output[x_start:x_end,:,:])
+
+            # Pass along position in output array
+            int_params[7] = x_start * output.shape[1]*output.shape[2]
+
+            # GPU call
+            filtered_gpu = ctx.buffer(filtered)
+            m_gpu = ctx.buffer(m) 
+            output_section_gpu = ctx.buffer(output_section)
+            int_params_gpu = ctx.buffer(int_params)
+            float_params_gpu = ctx.buffer(float_params)
+
+            ctx.init_command_buffer()
+
+            handle=knl_at(int(np.prod(output_section.shape)),filtered_gpu,m_gpu,output_section_gpu,int_params_gpu, float_params_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((output_section_gpu,float_params_gpu))
+            output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+            
+            # Record results in output array
+            output[x_start:x_end,:,:] = output_section[:,:,:]
 
         if integer_output:
             output = output.astype("int16")
