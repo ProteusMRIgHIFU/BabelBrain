@@ -403,17 +403,7 @@ class RUN_SIM_BASE(object):
                 AlphaCFL=0.5
                 for PPW in basePPW:
                     ppws='%iPPW_' % PPW
-                    if Frequency!=500e3:
-                        if PPW==6 and Frequency == 250e3:
-                            SensorSubSampling=10
-                        elif PPW==9 and Frequency == 250e3:
-                            SensorSubSampling=5
-                        elif PPW==6 and Frequency == 700e3:
-                            SensorSubSampling=8
-                        else:
-                            SensorSubSampling=8
-                    else:
-                        SensorSubSampling=1
+                    SensorSubSampling=0 #this will force to recalculaet
 
                     prefix=basedir+ID+os.sep
                     MASKFNAME=prefix+target+fstr+ppws+ 'BabelViscoInput.nii.gz'
@@ -519,10 +509,12 @@ def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
     OUT_FNAMES['FullElasticSolutionRefocus']=CPREFIX+'FullElasticSolutionRefocus.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus_Sub']=CPREFIX+'FullElasticSolutionRefocus_Sub.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus__']=CPREFIX+'FullElasticSolutionRefocus__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocusPhase__']=CPREFIX+'FullElasticSolutionRefocusPhase__.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus_Sub__']=CPREFIX+'FullElasticSolutionRefocus_Sub__.nii.gz'
     OUT_FNAMES['FullElasticSolution']=CPREFIX+'FullElasticSolution.nii.gz'
     OUT_FNAMES['FullElasticSolution_Sub']=CPREFIX+'FullElasticSolution_Sub.nii.gz'
     OUT_FNAMES['FullElasticSolution__']=CPREFIX+'FullElasticSolution__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionPhase__']=CPREFIX+'FullElasticSolutionPhase__.nii.gz'
     OUT_FNAMES['FullElasticSolution_Sub__']=CPREFIX+'FullElasticSolution_Sub__.nii.gz'
     OUT_FNAMES['DataForSim']=CPREFIX+'DataForSim.h5'
     return OUT_FNAMES
@@ -778,7 +770,10 @@ class BabelFTD_Simulations_BASE(object):
             FullSolutionPressure,\
             FullSolutionPressureRefocus,\
             DataForSim,\
-            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
+            MaskCalcRegions,\
+            FullSolutionPhase,\
+            FullSolutionPhaseRefocus,\
+            RayleighWaterPhase= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
         affine=self._SkullMask.affine.copy()
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
@@ -801,6 +796,8 @@ class BabelFTD_Simulations_BASE(object):
         if self._bDoRefocusing:
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus__'])
+            nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocusPhase__'])
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
             ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
@@ -808,8 +805,13 @@ class BabelFTD_Simulations_BASE(object):
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
+
+        nii=nibabel.Nifti1Image(FullSolutionPhase[::ss,::ss,::ss],affine=affine)
+        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionPhase__'])
         if bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
+            nii=nibabel.Nifti1Image(RayleighWaterPhase[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
@@ -826,13 +828,14 @@ class BabelFTD_Simulations_BASE(object):
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
         
         if subsamplingFactor>1:
-            kt = ['p_amp','MaterialMap']
+            kt = ['p_amp','p_complex','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
                 kt.append('MaterialMapCT')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
+                kt.append('p_complex_refocus')
             if bUseRayleighForWater:
-                kt.append('p_amp_water')
+                kt.append('p_amp_water','p_complex_water')
             for k in kt:
                 DataForSim[k]=DataForSim[k][::ss,::ss,::ss]
             for k in ['x_vec','y_vec','z_vec']:
@@ -843,6 +846,7 @@ class BabelFTD_Simulations_BASE(object):
         if bUseRayleighForWater:
             #We pop the water field temporarily
             p_amp_water =DataForSim.pop('p_amp_water')
+            p_complex_water =DataForSim.pop('p_complex_water')
 
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['affine']=affine
@@ -888,6 +892,7 @@ class BabelFTD_Simulations_BASE(object):
             if bUseRayleighForWater:
                 #we save now the h5 file for water
                 DataForSim['p_amp']= p_amp_water
+                DataForSim['p_complex']= p_complex_water
                 if self._bDoRefocusing:
                     DataForSim.pop('p_amp_refocus')
                 sname=FILENAMESWater['DataForSim']
@@ -1199,14 +1204,21 @@ elif self._bTightNarrowBeamDomain:
         self._DimDomain[1]=self._N2*SpatialStep
         self._DimDomain[2]=self._N3*SpatialStep
         
-        self._TimeSimulation=np.sqrt(self._DimDomain[0]**2+self._DimDomain[1]**2+self._DimDomain[2]**2)/MatArray[0,1] #time to cross one corner to another
+        self._TimeSimulation=np.sqrt((self._DimDomain[0]-self._PMLThickness*2*SpatialStep)**2+
+                                     (self._DimDomain[1]-self._PMLThickness*2*SpatialStep)**2+
+                                     (self._DimDomain[2]-self._PMLThickness*2*SpatialStep)**2)/MatArray[0,1] #time to cross one corner to another
         self._TimeSimulation=np.floor(self._TimeSimulation/self._TemporalStep)*self._TemporalStep
         
         TimeVector=np.arange(0.0,self._TimeSimulation,self._TemporalStep)
         ntSteps=(int(TimeVector.shape[0]/self._PPP)+1)*self._PPP
         self._TimeSimulation=self._TemporalStep*ntSteps
         TimeVector=np.arange(0,ntSteps)*self._TemporalStep
-        if self._PPP % self._SensorSubSampling !=0:
+        bRecalcSubSampling=False
+        if self._SensorSubSampling==0:
+            bRecalcSubSampling=True
+        elif self._PPP % self._SensorSubSampling !=0:
+            bRecalcSubSampling=True
+        if bRecalcSubSampling:
             print('overwrriting  self._SensorSubSampling')
             potential=np.arange(1,self._PPP).tolist()
             result = np.array(list(filter(lambda x: (self._PPP % x == 0), potential)))
@@ -1285,7 +1297,9 @@ elif self._bTightNarrowBeamDomain:
         self._SensorMapBackPropagation=np.zeros((self._N1,self._N2,self._N3),np.uint32)    
     
         self._SensorMapBackPropagation[self._PMLThickness:-self._PMLThickness,self._PMLThickness:-self._PMLThickness,self._PMLThickness]=1
-        self._SensorMap[self._PMLThickness:-self._PMLThickness,self._FocalSpotLocation[1],self._PMLThickness:-self._PMLThickness]=1
+        self._SensorMap[self._PMLThickness:-self._PMLThickness,
+                        self._PMLThickness:-self._PMLThickness,
+                        self._ZSourceLocation+1:-self._PMLThickness]=1
               
         if self._bDisplay:
             plt.figure()
@@ -1427,15 +1441,15 @@ elif self._bTightNarrowBeamDomain:
         
         t0=time.time()
         if bRefocused==False:
-            self._PhaseMap=np.zeros((self._N1,self._N2,self._N3))
-            self._PressMapFourier=np.zeros((self._N1,self._N2,self._N3))
-            self._PressMapPeak=np.zeros((self._N1,self._N2,self._N3))
+            self._PhaseMap=np.zeros((self._N1,self._N2,self._N3),np.float32)
+            self._PressMapFourier=np.zeros((self._N1,self._N2,self._N3),np.complex64)
+            self._PressMapPeak=np.zeros((self._N1,self._N2,self._N3),np.float32)
             if bDoRefocusing:
                 self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
         else:
-            self._PhaseMapRefocus=np.zeros((self._N1,self._N2,self._N3))
-            self._PressMapFourierRefocus=np.zeros((self._N1,self._N2,self._N3))
-            self._PressMapPeakRefocus=np.zeros((self._N1,self._N2,self._N3))
+            self._PhaseMapRefocus=np.zeros((self._N1,self._N2,self._N3),np.float32)
+            self._PressMapFourierRefocus=np.zeros((self._N1,self._N2,self._N3),np.complex64)
+            self._PressMapPeakRefocus=np.zeros((self._N1,self._N2,self._N3),np.float32)
             
    
         time_step = np.diff(self._Sensor['time']).mean() #remember the sensor time vector can be different from the input source
@@ -1453,21 +1467,21 @@ elif self._bTightNarrowBeamDomain:
         if bRefocused==False:
             self._Sensor['Pressure']=np.ascontiguousarray(self._Sensor['Pressure'])
             
-            index=self._InputParam
+            index=self._InputParam-1
             nStep=100000
             for n in range(0,self._Sensor['Pressure'].shape[0],nStep):
                 top=np.min([n+nStep,self._Sensor['Pressure'].shape[0]])
                 FSignal=fft.fft(self._Sensor['Pressure'][n:top,:],axis=1)
-                k=np.floor(index[n:top]/(self._N1*self._N2)).astype(np.int64)
+                k=index[n:top]//(self._N1*self._N2)
                 j=index[n:top]%(self._N1*self._N2)
                 i=j%self._N1
-                j=np.floor(j/self._N1).astype(np.int64)
+                j=j//self._N1
                 FSignal=FSignal[:,IndSpectrum]
                 pa= np.angle(FSignal)
                 pp=np.abs(FSignal)
 
                 self._PhaseMap[i,j,k]=pa
-                self._PressMapFourier[i,j,k]=pp
+                self._PressMapFourier[i,j,k]=FSignal
                 self._PressMapPeak[i,j,k]=self._Sensor['Pressure'][n:top,:].max(axis=1)
             self._InPeakValue=self._DictPeakValue['Pressure']
             self._PressMapFourier*=2/self._Sensor['time'].size
@@ -1475,35 +1489,35 @@ elif self._bTightNarrowBeamDomain:
             
             if bDoRefocusing:
                 self._SensorBack['Pressure']=np.ascontiguousarray(self._SensorBack['Pressure'])
-                index=self._InputParamBack
+                index=self._InputParamBack-1
                 for n in range(0,self._SensorBack['Pressure'].shape[0],nStep):
                     top=np.min([n+nStep,self._SensorBack['Pressure'].shape[0]])
                     FSignal=fft.fft(self._SensorBack['Pressure'][n:top,:],axis=1)
-                    k=np.floor(index[n:top]/(self._N1*self._N2)).astype(np.int64)
+                    k=index[n:top]//(self._N1*self._N2)
                     j=index[n:top]%(self._N1*self._N2)
                     i=j%self._N1
-                    j=np.floor(j/self._N1).astype(np.int64)
+                    j=j//self._N1
                     FSignal=FSignal[:,IndSpectrum]
                     assert(np.all(k==self._PMLThickness))
                     self._PressMapFourierBack[i,j]=FSignal
                     
         else:
             self._SensorRefocus['Pressure']=np.ascontiguousarray(self._SensorRefocus['Pressure'])
-            index=self._InputParamRefocus
+            index=self._InputParamRefocus-1
             nStep=100000
             for n in range(0,self._SensorRefocus['Pressure'].shape[0],nStep):
                 top=np.min([n+nStep,self._SensorRefocus['Pressure'].shape[0]])
                 FSignal=fft.fft(self._SensorRefocus['Pressure'][n:top,:],axis=1)
-                k=np.floor(index[n:top]/(self._N1*self._N2)).astype(np.int64)
+                k=index[n:top]//(self._N1*self._N2)
                 j=index[n:top]%(self._N1*self._N2)
                 i=j%self._N1
-                j=np.floor(j/self._N1).astype(np.int64)
+                j=j//self._N1
                 FSignal=FSignal[:,IndSpectrum]
                 pa= np.angle(FSignal)
                 pp=np.abs(FSignal)
 
                 self._PhaseMapRefocus[i,j,k]=pa
-                self._PressMapFourierRefocus[i,j,k]=pp
+                self._PressMapFourierRefocus[i,j,k]=FSignal
                 self._PressMapPeakRefocus[i,j,k]=self._SensorRefocus['Pressure'][n:top,:].max(axis=1)
             self._InPeakValueRefocus=self._DictPeakValueRefocus['Pressure']
             self._PressMapFourierRefocus*=2/self._SensorRefocus['time'].size
@@ -1630,24 +1644,31 @@ elif self._bTightNarrowBeamDomain:
         else:
             upperZR=-self._ZShrink_R
 
-        self._u2RayleighField[:,:,:self._ZSourceLocation]=0.0
+        self._u2RayleighField[:,:,:self._ZSourceLocation+1]=0.0
         
         #we return the region not including the PML and padding
-        RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
+        RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.complex64)
         RayleighWater[self._XShrink_L:upperXR,
                       self._YShrink_L:upperYR,
                       self._ZShrink_L:upperZR]=\
-                      np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
+                      self._u2RayleighField[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
-                                   self._ZLOffset:-self._ZROffset])
+                                   self._ZLOffset:-self._ZROffset]
         
         RayleighWater=np.flip(RayleighWater,axis=2)
+        RayleighWaterPhase=np.angle(RayleighWater)
+        RayleighWater=np.abs(RayleighWater)
+        
         #this one creates an overlay of skull and brain tissue that helps to show it Slicer or other visualization tools
         MaskSkull=np.flip(self._SkullMaskDataOrig.astype(np.float32),axis=2)
         MaskCalcRegions=np.zeros(MaskSkull.shape,bool)
         RayleighWaterOverlay=RayleighWater+MaskSkull*RayleighWater.max()/10
         
-        self._InPeakValue[:,:,:self._ZSourceLocation]=0.0
+        
+        self._InPeakValue[:,:,:self._ZSourceLocation+1]=0.0
+        self._PhaseMap[:,:,:self._ZSourceLocation+1]=0.0
+        self._PressMapFourier[:,:,:self._ZSourceLocation+1]=0.0
+        
         
         FullSolutionPressure=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         FullSolutionPressure[self._XShrink_L:upperXR,
@@ -1657,11 +1678,26 @@ elif self._bTightNarrowBeamDomain:
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
         FullSolutionPressure=np.flip(FullSolutionPressure,axis=2)
+
+        FullSolutionPhase=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
+        FullSolutionPhase[self._XShrink_L:upperXR,
+                      self._YShrink_L:upperYR,
+                      self._ZShrink_L:upperZR]=\
+                      self._PhaseMap[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset]
+        FullSolutionPhase=np.flip(FullSolutionPhase,axis=2)
+
+
         MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
         MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
         FullSolutionPressureRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
+        FullSolutionPhaseRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
+        
         if bDoRefocusing:
-            self._InPeakValueRefocus[:,:,:self._ZSourceLocation]=0.0
+            self._InPeakValueRefocus[:,:,:self._ZSourceLocation+1]=0.0
+            self._PhaseMapRefocus[:,:,:self._ZSourceLocation+1]=0.0
+            self._PressMapFourierRefocus[:,:,:self._ZSourceLocation+1]=0.0
             FullSolutionPressureRefocus[self._XShrink_L:upperXR,
                           self._YShrink_L:upperYR,
                           self._ZShrink_L:upperZR]=\
@@ -1669,13 +1705,27 @@ elif self._bTightNarrowBeamDomain:
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset]
             FullSolutionPressureRefocus=np.flip(FullSolutionPressureRefocus,axis=2)
+            FullSolutionPhaseRefocus[self._XShrink_L:upperXR,
+                          self._YShrink_L:upperYR,
+                          self._ZShrink_L:upperZR]=\
+                          self._PhaseMapRefocus[self._XLOffset:-self._XROffset,
+                                       self._YLOffset:-self._YROffset,
+                                       self._ZLOffset:-self._ZROffset]
+            FullSolutionPhaseRefocus=np.flip(FullSolutionPhaseRefocus,axis=2)
         
         DataForSim ={}
         DataForSim['p_amp']=self._InPeakValue[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
+        DataForSim['p_complex']=self._PressMapFourier[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset].copy()
+        
         if bDoRefocusing:
             DataForSim['p_amp_refocus']=self._InPeakValueRefocus[self._XLOffset:-self._XROffset,
+                                       self._YLOffset:-self._YROffset,
+                                       self._ZLOffset:-self._ZROffset].copy()
+            DataForSim['p_complex_refocus']=self._PressMapFourierRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
         if self._DensityCTMap is not None:
@@ -1695,9 +1745,10 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==5.0]=4.0 #we switch it back to soft tissue
         
         if bUseRayleighForWater:
-            DataForSim['p_amp_water']=np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
+            DataForSim['p_complex_water']=self._u2RayleighField[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
-                                   self._ZLOffset:-self._ZROffset])
+                                   self._ZLOffset:-self._ZROffset]
+            DataForSim['p_amp_water']=np.abs(DataForSim['p_complex_water'])
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
@@ -1715,6 +1766,9 @@ elif self._bTightNarrowBeamDomain:
                 FullSolutionPressure,\
                 FullSolutionPressureRefocus,\
                 DataForSim,\
-                MaskCalcRegions
+                MaskCalcRegions,\
+                FullSolutionPhase,\
+                FullSolutionPhaseRefocus,\
+                RayleighWaterPhase
                 
         
