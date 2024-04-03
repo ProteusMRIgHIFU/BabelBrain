@@ -1,0 +1,17 @@
+TxFoc:                    72.0e-3 #Tx focal length
+TxDiam:                   103.0e-3 # Tx aperture diameter
+
+MinimalZSteering:      -30.0e-3  # in m
+MaximalZSteering:       30.0e-3  # in m
+MinimalXSteering:      -20.0e-3  # in m
+MaximalXSteering:       20.0e-3  # in m
+MinimalYSteering:      -20.0e-3  # in m
+MaximalYSteering:       20.0e-3  # in m
+
+MinimalDistanceConeToFocus:       10.0e-3  # in m
+MaximalDistanceConeToFocus:       48.0e-3  # in m # a couple mm away of the outplane
+DefaultDistanceConeToFocus:       25.0e-3  # in m
+
+USFrequencies:
+    - 650000.0
+

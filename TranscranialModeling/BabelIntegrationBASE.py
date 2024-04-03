@@ -131,7 +131,7 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,1050e3,50e3):
+for f in np.arange(100e3,1025e3,25e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -379,6 +379,7 @@ class RUN_SIM_BASE(object):
                 bUseCT=False,
                 bWaterOnly=False,
                 bDryRun=False,
+                bUseRayleighForWater=False,
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -424,6 +425,10 @@ class RUN_SIM_BASE(object):
                         CTFNAME=None
 
                     FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
+                    FILENAMESWater=None
+                    if bUseRayleighForWater:
+                        # we store also the filenames for water only
+                        FILENAMESWater=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,True)
                     cname=FILENAMES['DataForSim']
                     print(cname)
                     OutNames.append(cname)
@@ -488,7 +493,9 @@ class RUN_SIM_BASE(object):
                     print('  Step 10')
                     with CodeTimer("Time for step 10",unit='s'):
                         TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
-                                                        bMinimalSaving=bMinimalSaving)
+                                                        bMinimalSaving=bMinimalSaving,
+                                                        bUseRayleighForWater=bUseRayleighForWater,
+                                                        FILENAMESWater=FILENAMESWater)
                     
         return OutNames
     
@@ -535,6 +542,8 @@ class BabelFTD_Simulations_BASE(object):
                  TxMechanicalAdjustmentX=0.0, #Positioning of Tx
                  TxMechanicalAdjustmentY=0.0,
                  TxMechanicalAdjustmentZ=0.0,
+                 ExtraAdjustX=[0.0], #these parameters help to enlarge the FOV for any reason (Steering, multipoint, etc.)
+                 ExtraAdjustY=[0.0],
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
@@ -570,8 +579,8 @@ class BabelFTD_Simulations_BASE(object):
         self._MappingMethod=MappingMethod
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
-        self._ExtraAdjustX = 0.0 
-        self._ExtraAdjustY = 0.0
+        self._ExtraAdjustX = ExtraAdjustX 
+        self._ExtraAdjustY = ExtraAdjustY
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -762,24 +771,25 @@ class BabelFTD_Simulations_BASE(object):
     def AddSaveDataSim(self,DataForSim):
         pass
 
-    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False):
+    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
         ss=subsamplingFactor
 
         RayleighWater,RayleighWaterOverlay,\
             FullSolutionPressure,\
             FullSolutionPressureRefocus,\
             DataForSim,\
-            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing)
+            MaskCalcRegions= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
         affine=self._SkullMask.affine.copy()
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
 
-        if bMinimalSaving==False:
+        if bMinimalSaving==False and not bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
-            
-        nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
+        
+        if not bUseRayleighForWater: 
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -798,13 +808,22 @@ class BabelFTD_Simulations_BASE(object):
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
+        if bUseRayleighForWater:
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
         ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
 
-        nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
+        if bUseRayleighForWater:
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution_Sub__'])
+            ResaveNormalized(FILENAMESWater['FullElasticSolution_Sub'],self._SkullMask)
+
+        if not bUseRayleighForWater: 
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
         
         if subsamplingFactor>1:
             kt = ['p_amp','MaterialMap']
@@ -812,13 +831,19 @@ class BabelFTD_Simulations_BASE(object):
                 kt.append('MaterialMapCT')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
+            if bUseRayleighForWater:
+                kt.append('p_amp_water')
             for k in kt:
                 DataForSim[k]=DataForSim[k][::ss,::ss,::ss]
             for k in ['x_vec','y_vec','z_vec']:
                 DataForSim[k]=DataForSim[k][::ss]
             DataForSim['SpatialStep']*=ss
             DataForSim['TargetLocation']=np.round(DataForSim['TargetLocation']/ss).astype(int)
-            
+        
+        if bUseRayleighForWater:
+            #We pop the water field temporarily
+            p_amp_water =DataForSim.pop('p_amp_water')
+
         DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['affine']=affine
 
@@ -860,6 +885,14 @@ class BabelFTD_Simulations_BASE(object):
         sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
             SaveToH5py(DataForSim,sname)
+            if bUseRayleighForWater:
+                #we save now the h5 file for water
+                DataForSim['p_amp']= p_amp_water
+                if self._bDoRefocusing:
+                    DataForSim.pop('p_amp_refocus')
+                sname=FILENAMESWater['DataForSim']
+                SaveToH5py(DataForSim,sname)
+
         gc.collect()
         
         return sname
@@ -915,8 +948,8 @@ class SimulationConditionsBASE(object):
                       ZTxCorrecton=0.0, # this compensates for flat transducers that have a dead space before reaching the skin
                       DensityCTMap=None, #use CT map
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
-                      ExtraAdjustX =0.0,
-                      ExtraAdjustY =0.0,
+                      ExtraAdjustX =[0.0],
+                      ExtraAdjustY =[0.0],
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -1048,14 +1081,9 @@ class SimulationConditionsBASE(object):
         self._XLOffset=self._PMLThickness 
         self._YLOffset=self._PMLThickness
         
-        bIsFlatTX=False
-        if self._FocalLength ==0:
-            bIsFlatTX=True
-            OffsetForFlat = -int(np.round(self._TxMechanicalAdjustmentZ/SpatialStep))
-        else:
-            OffsetForFlat=0
+
         #default offsets , this can change if the Rayleigh field does not fit
-        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray+OffsetForFlat
+        self._ZLOffset=self._PMLThickness+self._PaddingForRayleigh+self._PaddingForKArray
         self._ZLOffset+=int(np.round(self._ZTxCorrecton/self._SpatialStep))
         self._XROffset=self._PMLThickness 
         self._YROffset=self._PMLThickness
@@ -1072,6 +1100,7 @@ class SimulationConditionsBASE(object):
         self.bMapFit=False
         bCompleteForShrinking=False
         self._nCountShrink=0
+        print('self._ExtraAdjustX, self._ExtraAdjustY',self._ExtraAdjustX,self._ExtraAdjustY)
         while not self.bMapFit or not bCompleteForShrinking:
             self.bMapFit=True
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
@@ -1109,8 +1138,9 @@ class SimulationConditionsBASE(object):
             ypp,xpp=np.meshgrid(yfield,xfield)
             
             RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
-            RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-self._ExtraAdjustX)**2+(ypp-self._TxMechanicalAdjustmentY-self._ExtraAdjustY)**2)<=RadiusFace**2)
-            IndXMap,IndYMap=np.nonzero(RegionMap)
+            for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
+                IndXMap,IndYMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
             
             def fgen(var):
@@ -1146,7 +1176,7 @@ elif self._bTightNarrowBeamDomain:
             exec(fgen('Y'))
 
             if self._bTightNarrowBeamDomain:
-                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)-OffsetForFlat
+                nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
                 self._ZShrink_R+=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
@@ -1586,7 +1616,7 @@ elif self._bTightNarrowBeamDomain:
                      [0,np.max(LineInPeak)],':')
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
-    def ReturnResults(self,bDoRefocusing=True):
+    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False):
         if self._XShrink_R==0:
             upperXR=self._SkullMaskDataOrig.shape[0]
         else:
@@ -1664,6 +1694,10 @@ elif self._bTightNarrowBeamDomain:
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==5.0)).flatten()
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==5.0]=4.0 #we switch it back to soft tissue
         
+        if bUseRayleighForWater:
+            DataForSim['p_amp_water']=np.abs(self._u2RayleighField[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset])
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()

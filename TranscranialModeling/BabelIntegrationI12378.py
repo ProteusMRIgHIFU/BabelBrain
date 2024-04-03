@@ -3,12 +3,10 @@ Pipeline to execute viscoleastic simulations for LIFU experiments
 
 ABOUT:
      author        - Samuel Pichardo
-     date          - June 28, 2021
-     last update   - Nov 28, 2021
+     date          - March 21, 2024
 
 '''
-
-from .H317 import GenerateH317Tx
+from .I12378 import GenerateI12378Tx
 from . import BabelIntegrationCONCAVE_PHASEDARRAY  
 
 class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
@@ -26,8 +24,8 @@ class BabelFTD_Simulations(BabelIntegrationCONCAVE_PHASEDARRAY.BabelFTD_Simulati
     #Meta class dealing with the specificis of each test based on the string name
     
     def CreateSimConditions(self,**kargs):
-        return SimulationConditions(Aperture=160.0e-3,
-                                    FocalLength=135.0e-3,
+        return SimulationConditions(Aperture=103.0e-3,
+                                    FocalLength=72.0e-3,
                                     XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -41,12 +39,13 @@ class SimulationConditions(BabelIntegrationCONCAVE_PHASEDARRAY.SimulationConditi
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
-    def __init__(self,Aperture=160.0e-3,
-                      FocalLength=135.0e-3,
+    def __init__(self,Aperture=103.0e-3,
+                      FocalLength=72.0e-3,
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
         
     def GenTransducerGeom(self):
-        self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._Tx=GenerateI12378Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=GenerateI12378Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        
         

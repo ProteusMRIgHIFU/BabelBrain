@@ -29,6 +29,8 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+ListTxSteering=['H317','I12378','ATAC']
+
 class SelFiles(QDialog):
     def __init__(self, parent=None,Trajectory='',T1W='',
                     SimbNIBS='',CTType=0,CoregCT=1,CT='',
@@ -47,7 +49,10 @@ class SelFiles(QDialog):
         self.ui.SelSimbNIBSpushButton.clicked.connect(self.SelectSimbNIBS)
         self.ui.SelTProfilepushButton.clicked.connect(self.SelectThermalProfile)
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
-        self.ui.CTTypecomboBox.currentIndexChanged.connect(self.selCTType)
+        self.ui.CTTypecomboBox.currentIndexChanged.connect(self.SelectCTType)
+        self.ui.MultiPointTypecomboBox.currentIndexChanged.connect(self.SelectMultiPoint)
+        self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.SelectTransducer)
+        self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
 
         if len(Trajectory)>0:
@@ -217,30 +222,51 @@ class SelFiles(QDialog):
                 if type(entry[k]) is not float:
                     self.msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
                     return False
-                
-        if 'MultiPoint' in profile:
-            selTx=self.ui.TransducerTypecomboBox.currentText()
-            ListTxSteering=['H317']
-            if selTx not in ListTxSteering:
-                self.msgDetails = "MultiPoint in profile can only be specified with a phased array-type transducer"
-                return False
-            if type(profile['MultiPoint']) is not list:
-                self.msgDetails = "MultiPoint must be a list" 
-                return False
-            for n,entry in enumerate(profile['MultiPoint']):
-                if type(entry) is not dict:
-                    self.msgDetails = "entry %i in MultiPoint must be a dictionary" % (n)
-                    return False
-                for k in ['X','Y','Z']:
-                    if k not in entry:
-                        self.msgDetails = "entry %i in MultiPoint must have a key %s" % (n,k)
-                        return False
-                    if type(entry[k]) is not float:
-                        self.msgDetails = "key %s in entry %i of MultiPoint must be float" % (k,n)
-                        return False
-            # we convert to mm
             
         return True
+    
+    def ValidateMultiPointProfile(self):
+        selTx=self.ui.TransducerTypecomboBox.currentText()
+        if  selTx not in ListTxSteering:
+            return True
+        if self.ui.MultiPointTypecomboBox.currentIndex() ==0:
+            return True
+        
+        fProf = self.ui.MultiPointlineEdit.text()
+
+        if not os.path.isfile(fProf):
+            self.msgDetails = "Profile file was not specified"
+            return False
+
+        try:
+            with open(fProf,'r') as f:
+                profile=yaml.safe_load(f)
+        except:
+            self.msgDetails = "Invalid profile YAML file"
+            return False
+        if 'MultiPoint' not in profile:
+            self.msgDetails = "YAML file missing 'MultiPoint' entry"
+            return False
+        selTx=self.ui.TransducerTypecomboBox.currentText()
+        if selTx not in ListTxSteering:
+            self.msgDetails = "MultiPoint in profile can only be specified with a phased array-type transducer"
+            return False
+        if type(profile['MultiPoint']) is not list:
+            self.msgDetails = "MultiPoint must be a list" 
+            return False
+        for n,entry in enumerate(profile['MultiPoint']):
+            if type(entry) is not dict:
+                self.msgDetails = "entry %i in MultiPoint must be a dictionary" % (n)
+                return False
+            for k in ['X','Y','Z']:
+                if k not in entry:
+                    self.msgDetails = "entry %i in MultiPoint must have a key %s" % (n,k)
+                    return False
+                if type(entry[k]) is not float:
+                    self.msgDetails = "key %s in entry %i of MultiPoint must be float" % (k,n)
+                    return False
+        return True
+            # we convert to mm
     
     @Slot()
     def SelectTrajectory(self):
@@ -274,6 +300,13 @@ class SelFiles(QDialog):
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
 
     @Slot()
+    def SelectMultiPointProfile(self):
+        fMultiPointProfile=QFileDialog.getOpenFileName(self,"Select multi point profile",os.getcwd(),"yaml (*.yaml)")[0]
+        if len(fMultiPointProfile)>0:
+            print('fMultiPointProfile',fMultiPointProfile)
+            self.ui.MultiPointlineEdit.setText(fMultiPointProfile)
+
+    @Slot()
     def SelectSimbNIBS(self):
         fSimbNIBS=QFileDialog.getExistingDirectory(self,"Select SimbNIBS directory",
                     os.getcwd())
@@ -282,7 +315,7 @@ class SelFiles(QDialog):
             self.ui.SimbNIBSlineEdit.setCursorPosition(len(fSimbNIBS))
 
     @Slot()
-    def selCTType(self,value):
+    def SelectCTType(self,value):
         bv = value >0
         self.ui.CTlineEdit.setEnabled(bv)
         self.ui.SelCTpushButton.setEnabled(bv)
@@ -290,15 +323,32 @@ class SelFiles(QDialog):
         self.ui.CoregCTcomboBox.setEnabled(bv)
 
     @Slot()
+    def SelectMultiPoint(self,value):
+        bv = value >0
+        self.ui.MultiPointlineEdit.setEnabled(bv)
+        self.ui.SelMultiPointProfilepushButton.setEnabled(bv)
+
+    @Slot()
+    def SelectTransducer(self,value):
+        selTx=self.ui.TransducerTypecomboBox.currentText()
+        bv = selTx in ListTxSteering
+        if not bv:
+            self.ui.MultiPointTypecomboBox.setCurrentIndex(0)
+        self.ui.MultiPointTypecomboBox.setEnabled(bv)
+        
+        
+    @Slot()
     def Continue(self):
         self.msgDetails = ""
         if not self.ValidTrajectory() or\
            not self.ValidSimNIBS() or\
            not self.ValidThermalProfile() or\
+           not self.ValidateMultiPointProfile() or\
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
            (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())):
             msgBox = QMessageBox()
             msgBox.setText("Please indicate valid entries")
+            print(self.msgDetails)
             msgBox.setDetailedText(self.msgDetails)
             msgBox.exec()
         else:

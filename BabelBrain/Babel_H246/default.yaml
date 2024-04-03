@@ -3,3 +3,5 @@ MinimalTPODistance: 25.0e-3
 MaximalTPODistance: 95.0e-3
 USFrequencies:
     - 500000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm

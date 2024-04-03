@@ -168,14 +168,6 @@ def GetLatestSelection():
                 print('Unable to load previous selection')
                 print(e)
                 res=None
-        try:
-            if res is not None:
-                if not os.path.isdir(res['simbnibs_path']) or not os.path.isfile(res['T1W']) or not os.path.isfile(res['Mat4Trajectory'])\
-                or not os.path.isfile(res['ThermalProfile']):
-                    print('Ignoring config as files and dir may not exist anymore\n',res)
-                    res=None
-        except:
-            res = None
     return res
 
 def GetInputFromBrainsight():
@@ -342,6 +334,7 @@ class BabelBrain(QWidget):
         elif Backend=='Metal':
             ComputingBackend=3
 
+        self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
         self.Config['ComputingDevice']=ComputingDevice
         self.Config['TxSystem']=widget.ui.TransducerTypecomboBox.currentText()
@@ -382,10 +375,26 @@ class BabelBrain(QWidget):
         with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
             self.Config['version'] =f.readlines()[0]
 
+        self.Config['MultiPoint']=''
+        self.Config['EnableMultiPoint']=False
+        if widget.ui.MultiPointTypecomboBox.currentIndex()==1:
+            self.Config['EnableMultiPoint']=True    
+            self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
+
         self.SaveLatestSelection()
 
-
         self.load_ui()
+        #in case of multipoint , we prepared 
+        if len(self.Config['MultiPoint'].strip())>0 and\
+            self.Config['EnableMultiPoint']:
+            with open(self.Config['MultiPoint'],'r') as f:
+                profile=yaml.safe_load(f)
+            for n in range(len(profile['MultiPoint'])):
+                #we convert to mm
+                for k in ['X','Y','Z']:
+                    profile['MultiPoint'][n][k]=profile['MultiPoint'][n][k] * 1e-3 #in mm
+            self.AcSim.EnableMultiPoint(profile['MultiPoint'])
+            self.ThermalSim.EnableMultiPoint()
         self.InitApplication()
         self.static_canvas=None
 
@@ -403,6 +412,10 @@ class BabelBrain(QWidget):
         self.moveTimer.setInterval(500) 
 
         self.RETURN_CODE = ReturnCodes['CANCEL_OR_INCOMPLETE']
+
+        self._TrackingTime={'Calculation time domain':0.0,
+                            'Calculation time ultrasound':0.0,
+                            'Calculation time thermal':0.0}
 
     def showClockDialog(self):
         self.centerClockDialog()
@@ -470,10 +483,14 @@ class BabelBrain(QWidget):
             from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         elif self.Config['TxSystem'] =='REMODP':
             from Babel_REMODP.Babel_REMODP import REMODP as WidgetAcSim
+        elif self.Config['TxSystem'] =='I12378':
+            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
+        elif self.Config['TxSystem'] =='ATAC':
+            from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
-        from Babel_Thermal_SingleFocus.Babel_Thermal import Babel_Thermal as WidgetThermal
+        from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
 
         new_tab = WidgetAcSim(parent=self.Widget.tabWidget,MainApp=self)
         grid_tab = QGridLayout(new_tab)
@@ -515,8 +532,6 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
-        
-        
     
     @Slot()
     def handleOutput(self, text, stdout):
@@ -542,11 +557,7 @@ class BabelBrain(QWidget):
             sel=self.Widget.USMaskkHzDropDown.findText('500')
             self.Widget.USMaskkHzDropDown.setCurrentIndex(sel)
 
-        self.setWindowTitle('BabelBrain V'+self.Config['version'] +' - ' + self.Config['ID'] + ' - ' + self.Config['TxSystem'] +
-                            ' - ' + os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
-        self.Widget.IDLabel.setText(self.Config['ID'])
-        self.Widget.TXLabel.setText(self.Config['TxSystem'])
-        self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+        self.UpdateWindowTitle()
 
         #we connect callbacks
         self.Widget.CalculatePlanningMask.clicked.connect(self.GenerateMask)
@@ -563,6 +574,67 @@ class BabelBrain(QWidget):
         stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
+
+    def UpdateWindowTitle(self):
+        self.setWindowTitle('BabelBrain V'+
+                            self.Config['version'] +' - ' + 
+                            self.Config['ID'] + ' - ' + 
+                            self.Config['TxSystem'] + ' - ' + 
+                            os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+        self.Widget.IDLabel.setText(self.Config['ID'])
+        self.Widget.TXLabel.setText(self.Config['TxSystem'])
+        self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
+
+    def ValidThermalProfile(self,fProf):
+        msgDetails=None
+        result=True
+        try:
+            with open(fProf,'r') as f:
+                profile=yaml.safe_load(f)
+        except:
+            msgDetails = "Invalid profile YAML file"
+            result=False,msgDetails
+            
+        if 'BaseIsppa' not in profile:
+            msgDetails = "BaseIsppa entry must be in YAML file"
+            return False,msgDetails
+        
+        if type(profile['BaseIsppa']) is not float:
+            msgDetails = "BaseIsppa must be a single float"
+            return False,msgDetails
+        
+        if 'AllDC_PRF_Duration' not in profile:
+            msgDetails = "AllDC_PRF_Duration entry must be in YAML file"
+            return False,msgDetails
+        
+        if type(profile['AllDC_PRF_Duration']) is not list:
+            msgDetails = "AllDC_PRF_Duration must be a list"
+            return False,msgDetails
+        
+        for n,entry in enumerate(profile['AllDC_PRF_Duration']):
+            if type(entry) is not dict:
+                msgDetails = "entry %i in AllDC_PRF_Duration must be a dictionary" % (n)
+                return False,msgDetails
+            for k in ['DC','PRF','Duration','DurationOff']:
+                if k not in entry:
+                    self.msgDetails = "entry %i in AllDC_PRF_Duration must have a key %s" % (n,k)
+                    False,msgDetails
+                if type(entry[k]) is not float:
+                    self.msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
+                    False,msgDetails
+        return True,msgDetails
+    
+    def UpdateThermalProfile(self,fThermalProfile):
+        bValid,msg = self.ValidThermalProfile(fThermalProfile)
+        if not bValid:
+            msgBox = QMessageBox()
+            msgBox.setText("Please indicate valid entries in the profile")
+            msgBox.setDetailedText(msg)
+            msgBox.exec()
+        else:
+            self.Config['ThermalProfile']=fThermalProfile
+            self.UpdateWindowTitle()
+            self.SaveLatestSelection()
 
     def UpdateMaskParameters(self):
         '''
@@ -602,6 +674,9 @@ class BabelBrain(QWidget):
                 
         self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
+        self._trackingtimefile = self._prefix_path+'ExecutionTimes.yml'
+        if not os.path.isfile(self._trackingtimefile):
+            self.UpdateComputationalTime('domain',0.0) #this will initalize the trackig file
         
         print('outname',self._outnameMask)
         self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
@@ -848,7 +923,9 @@ class BabelBrain(QWidget):
             ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
-        return self.Config | ExtraConfig
+        with open(self._trackingtimefile,'r') as f:
+            self._TrackingTime=yaml.load(f,yaml.SafeLoader)
+        return self.Config | ExtraConfig | self._TrackingTime
     
     ##
     def SetSuccesCode(self):
@@ -860,9 +937,20 @@ class BabelBrain(QWidget):
     def SetErrorAcousticsCode(self):
         self.RETURN_CODE = ReturnCodes['ERROR_ACOUSTICS']
         
-    def EnableMultiPoint(self,MultiPoint):
-        # triggered by the thermal pane if the profile file includes multi point focal points
-        self.AcSim.EnableMultiPoint(MultiPoint)
+    def UpdateComputationalTime(self,step,steptime):
+        if os.path.isfile(self._trackingtimefile):
+            with open(self._trackingtimefile,'r') as f:
+                self._TrackingTime=yaml.load(f,yaml.SafeLoader)
+        if step == 'domain':
+            self._TrackingTime['Calculation time domain']=steptime
+        elif step == 'ultrasound':
+            self._TrackingTime['Calculation time ultrasound']=steptime
+        elif step == 'thermal':
+            self._TrackingTime['Calculation time thermal']=steptime
+        else:
+            raise ValueError('type of step to track time not valid -'+step)
+        with open(self._trackingtimefile,'w') as f:
+            yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
 class RunMaskGeneration(QObject):
 
@@ -966,10 +1054,12 @@ class RunMaskGeneration(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE calculating mask.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('domain',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)
@@ -1040,7 +1130,12 @@ def main():
 
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])
-
+        if 'MultiPoint' in prevConfig:
+            if prevConfig['EnableMultiPoint']:
+                selwidget.ui.MultiPointTypecomboBox.setCurrentIndex(1)
+            if len(prevConfig['MultiPoint'].strip())>0:
+                selwidget.ui.MultiPointlineEdit.setText(prevConfig['MultiPoint'])
+                
     AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
         Brainsight,header=GetInputFromBrainsight()

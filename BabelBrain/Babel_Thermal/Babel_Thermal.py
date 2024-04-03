@@ -44,7 +44,7 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'Babel_Thermal_SingleFocus'
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_Thermal'
     else:
         bundle_dir = Path(__file__).parent
 
@@ -61,9 +61,10 @@ class Babel_Thermal(QWidget):
         self._MainApp=MainApp
         self._ThermalResults=[]
         self._bMultiPoint = False
+        self.bDisableUpdate=False
         self.static_canvas=None
-        self.DefaultConfig()
         self.load_ui()
+        self.DefaultConfig()
         self._LastTMap=-1
 
     def load_ui(self):
@@ -74,15 +75,12 @@ class Babel_Thermal(QWidget):
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
 
+        self.Widget.SelectProfile.clicked.connect(self.SelectProfile)
+        self.Widget.SelectProfile.setStyleSheet("color: green")
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateThermal.setStyleSheet("color: red")
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
         self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
-
-        while self.Widget.SelCombinationDropDown.count()>0:
-            self.Widget.SelCombinationDropDown.removeItem(0)
-
-        for c in self.Config['AllDC_PRF_Duration']:
-            self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
@@ -150,23 +148,32 @@ class Babel_Thermal(QWidget):
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
-
         with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
-        print("Thermal configuration:")
-        print(config)
-        
-        #we check if multi point is present
-        if  'MultiPoint' in config:
-            for n in range(len(config['MultiPoint'])):
-                #we convert to mm
-                for k in ['X','Y','Z']:
-                    config['MultiPoint'][n][k]=config['MultiPoint'][n][k] * 1e-3
-            self._MainApp.EnableMultiPoint(config['MultiPoint'])
-            self._bMultiPoint=True
+            print("Thermal configuration:")
+            print(config)
+            self.Config=config
+            self.bDisableUpdate=True
 
-        self.Config=config
+            while self.Widget.SelCombinationDropDown.count()>0:
+                self.Widget.SelCombinationDropDown.removeItem(0)
 
+            for c in self.Config['AllDC_PRF_Duration']:
+                self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
+            self.bDisableUpdate=False
+
+    def EnableMultiPoint(self):
+        self._bMultiPoint=True
+
+    @Slot()
+    def SelectProfile(self):
+        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
+        if len(fThermalProfile)>0:
+            self._MainApp.UpdateThermalProfile(fThermalProfile)
+            self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
+            self.DefaultConfig()  
+            self.RunSimulation()
+                
 
     @Slot()
     def RunSimulation(self):
@@ -231,8 +238,9 @@ class Babel_Thermal(QWidget):
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
+        if self.bDisableUpdate:
+            return
         self._MainApp.Widget.tabWidget.setEnabled(True)
-        self._MainApp.ThermalSim.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.ExportThermalMap.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
@@ -509,9 +517,14 @@ class Babel_Thermal(QWidget):
             DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
                 self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
-                for k,index in zip(['Isppa target',
-                            'Isppa water',
-                            'Mechanical index',
+                collection = ['Isppa target']
+                source = [0,1]
+                if self._bMultiPoint:
+                    collection+=['Isppa water (avg)','Isppa water (std)']
+                    source+=[1]
+                else:
+                    collection+=['Isppa water']
+                collection+=['Mechanical index',
                             'Ispta',
                             'Ispta target',
                             'Max. temp. target',
@@ -521,9 +534,9 @@ class Babel_Thermal(QWidget):
                             'CEM target',
                             'CEM brain',
                             'CEM skin',
-                            'CEM skull'],
-                            [0,1,9,2,3,5,6,7,8,5,6,7,8]
-                            ):
+                            'CEM skull']
+                source+=[9,2,3,5,6,7,8,5,6,7,8]
+                for k,index in zip(collection,source):
                     if k not in DataToExport:
                         DataToExport[k]=[]
                    
@@ -532,6 +545,10 @@ class Babel_Thermal(QWidget):
                         data=data[0]
                     elif 'CEM' in k:
                         data=data[1]
+                    elif k in ['Isppa water (avg)','Isppa water']:
+                        data=np.mean(data)
+                    elif k == 'Isppa water (std)':
+                        data=np.std(data)
                     DataToExport[k].append(data)
                 
             pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)
@@ -572,6 +589,8 @@ class Babel_Thermal(QWidget):
         msgBox = DialogShowText(txt,"Saved thermal map")
         msgBox.exec()
 
+
+
 class DialogShowText(QDialog):
     def __init__(self, text,title,parent=None):
         super().__init__(parent)
@@ -591,6 +610,7 @@ class DialogShowText(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+    
 
 class RunThermalSim(QObject):
 
@@ -621,7 +641,6 @@ class RunThermalSim(QObject):
             else:
                 kargs['sel_p']='p_amp'
 
-
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateThermalProcess, 
@@ -646,10 +665,12 @@ class RunThermalSim(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE thermal simulation.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('thermal',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

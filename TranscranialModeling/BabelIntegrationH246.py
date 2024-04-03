@@ -296,6 +296,10 @@ class SimulationConditions(SimulationConditionsBASE):
         StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
         print('StartSkin',StartSkin)
 
+        if self._TxMechanicalAdjustmentZ <0:
+            zCorrec= self._TxMechanicalAdjustmentZ
+        else:
+            zCorrec=0.0
         
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','RingVertDisplay','elemcenter']:
@@ -303,11 +307,11 @@ class SimulationConditions(SimulationConditionsBASE):
                     for n in range(len(Tx[k])):
                         Tx[k][n][:,0]+=self._TxMechanicalAdjustmentX
                         Tx[k][n][:,1]+=self._TxMechanicalAdjustmentY
-                        Tx[k][n][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3
+                        Tx[k][n][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3+zCorrec
                 else:
                     Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                     Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                    Tx[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3
+                    Tx[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3+zCorrec
         
         print("self._TxRC['center'].max()",self._TxRC['center'][:,2].max(),self._ZDim[self._ZSourceLocation])
          #we apply an homogeneous pressure 
@@ -324,10 +328,10 @@ class SimulationConditions(SimulationConditionsBASE):
         #to avoid adding an erroneous steering to the calculations, we need to discount the mechanical motion 
         center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
         center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
-        center[0,2]=self._ZSteering+self._TxRC['center'][:,2].max()
+        center[0,2]=self._ZDim[self._ZSourceLocation]+self._ZSteering+zCorrec
 
         print('center',center,self._TxRC['center'][:,2].max(),self._ZDim[self._ZSourceLocation],self._TxRC['center'][:,2].max()-center[0,2])
-       
+        print('self._ZSourceLocation',self._ZSourceLocation)
         u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
         nBase=0
         for n in range(self._TxRC['NumberElems']):

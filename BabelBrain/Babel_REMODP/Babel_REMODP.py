@@ -24,26 +24,37 @@ from matplotlib.backends.backend_qtagg import (
 #import cv2 as cv
 import os
 import sys
-import shutil
+import platform
 from datetime import datetime
 import time
 import yaml
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from .CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import CalculateFieldProcess
 
-from _BabelBaseTx import BabelBaseTx
+from _BabelBasePhasedArray import BabelBasePhaseArray
 
-from Babel_H317.Babel_H317 import H317
+_IS_MAC = platform.system() == 'Darwin'
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
 
-class REMODP(H317): #we reuse H317 Tx class
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_REMODP'
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
+
+class REMODP(BabelBasePhaseArray): 
     def __init__(self,parent=None,MainApp=None):
-        super(REMODP, self).__init__(parent=parent,MainApp=MainApp)
+        super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
 
-    def load_ui(self):
+    def load_ui(self,formfile):
         loader = QUiLoader()
-        path = os.fspath(Path(__file__).resolve().parent / "form.ui")
+        path = os.fspath(formfile)
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
@@ -65,18 +76,20 @@ class REMODP(H317): #we reuse H317 Tx class
         print('self.Widget.ZMechanicSpinBox.setValue',self.Widget.ZMechanicSpinBox.value())
 
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
+        self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
         
     @Slot()
     def UpdateDistanceFromSkin(self):
         self._bIgnoreUpdate=True
         ZMec=self.Widget.ZMechanicSpinBox.value()
-        CurDistance=-ZMec
-        self.Widget.DistanceSkinLabel.setText('%3.1f' %(CurDistance))
-        if CurDistance<0:
+        DistanceSkin=self.Widget.DistanceSkinLabel.property('UserData')
+        self.Widget.DistanceSkinLabel.setText('%3.1f' %(DistanceSkin-ZMec))
+        if ZMec>0:
             self.Widget.DistanceSkinLabel.setStyleSheet("color: red")
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
@@ -100,7 +113,7 @@ class REMODP(H317): #we reuse H317 Tx class
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
         DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
-
+        
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
@@ -244,6 +257,9 @@ class RunAcousticSim(QObject):
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
 
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        ZIntoSkin =0.0
+        if TxMechanicalAdjustmentZ > 0:
+            ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)
         T0=time.time()
 
         kargs={}
@@ -265,8 +281,10 @@ class RunAcousticSim(QObject):
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         kargs['bDryRun'] = self._bDryRun
+        kargs['ZIntoSkin'] = ZIntoSkin
             
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
@@ -278,7 +296,7 @@ class RunAcousticSim(QObject):
             #in real run, we run this in background
             # Start mask generation as separate process.
             fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                        args=(queue,Target),
+                                        args=(queue,Target,self._mainApp.Config['TxSystem']),
                                         kwargs=kargs)
             fieldWorkerProcess.start()      
                 
@@ -309,10 +327,12 @@ class RunAcousticSim(QObject):
                     OutFiles=cMsg
             if bNoError:
                 TEnd=time.time()
-                print('Total time',TEnd-T0)
+                TotalTime = TEnd-T0
+                print('Total time',TotalTime)
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
+                self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
                 self.finished.emit(OutFiles)
             else:
                 print("*"*40)
@@ -321,7 +341,7 @@ class RunAcousticSim(QObject):
                 self.endError.emit()
         else:
             #in dry run, we just recover the filenames
-            return CalculateFieldProcess(queue,Target,**kargs)
+            return CalculateFieldProcess(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
 
 
 if __name__ == "__main__":
