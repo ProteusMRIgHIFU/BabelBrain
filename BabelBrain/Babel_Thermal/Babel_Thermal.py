@@ -169,10 +169,10 @@ class Babel_Thermal(QWidget):
     def SelectProfile(self):
         fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
-            self._MainApp.UpdateThermalProfile(fThermalProfile)
-            self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
-            self.DefaultConfig()  
-            self.RunSimulation()
+            if self._MainApp.UpdateThermalProfile(fThermalProfile):
+                self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
+                self.DefaultConfig()  
+                self.RunSimulation()
                 
 
     @Slot()
