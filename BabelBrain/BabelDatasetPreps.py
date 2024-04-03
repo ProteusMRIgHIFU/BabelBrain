@@ -24,6 +24,7 @@ import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
+import pycork
 import pyvista as pv
 import SimpleITK as sitk
 import time
@@ -238,14 +239,32 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     return subjectcoordinates
 
 def DoIntersect(Mesh1,Mesh2):
-    #We took now some extra steps for broken meshes
-    Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
-    try:
-        dummy = Mesh1_intersect.triangles #if empty, this trigger an error
-    except:
-        print('mesh is invalid... trying to fix')
-        Mesh1_intersect=FixMesh(Mesh1)
-        Mesh1_intersect =trimesh.boolean.intersection((Mesh1_intersect,Mesh2),engine='blender')
+    # Fix broken meshes
+    if Mesh1.body_count != 1:
+        print('Mesh 1 is invalid... trying to fix')
+        Mesh1 = FixMesh(Mesh1)
+
+    if Mesh2.body_count != 1:
+        print('Mesh 2 is invalid... trying to fix')
+        Mesh2 = FixMesh(Mesh2)
+    
+    # Perform intersection
+    verts_1 = Mesh1.vertices
+    verts_2 = Mesh2.vertices
+    tris_1 = Mesh1.faces
+    tris_2 = Mesh2.faces
+
+    pycork.isSolid(verts_1,tris_1)
+    pycork.isSolid(verts_2,tris_2)
+
+    verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
+
+    Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
+
+    # Check intersection is valid
+    if Mesh1_intersect.is_empty:
+        raise ValueError("Trajectory is outside headspace")    
+    
     return Mesh1_intersect
 
 def FixMesh(inmesh):
