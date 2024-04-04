@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from .CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from .Babel_SingleTx import SingleTx,RunAcousticSim
@@ -64,10 +64,12 @@ class BSonix(SingleTx):
         ui_file.close()
 
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
+        self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
         
         
@@ -125,13 +127,15 @@ class BSonix(SingleTx):
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
             bCalcFields = True
         self._bRecalculated = True
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread,
+            self.worker = RunAcousticSim(self._MainApp,
                                         extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)

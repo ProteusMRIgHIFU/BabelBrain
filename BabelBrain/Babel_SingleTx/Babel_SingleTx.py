@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from .CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from _BabelBaseTx import BabelBaseTx
@@ -70,11 +70,13 @@ class SingleTx(BabelBaseTx):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
+        self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
 
     def DefaultConfig(self,cfile='default.yaml'):
@@ -175,13 +177,15 @@ class SingleTx(BabelBaseTx):
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
             bCalcFields = True
         self._bRecalculated = True
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread,
+            self.worker = RunAcousticSim(self._MainApp,
                             extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
@@ -202,7 +206,7 @@ class SingleTx(BabelBaseTx):
 
    
     def GetExport(self):
-        Export={}
+        Export=super(SingleTx,self).GetExport()
         for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
@@ -212,10 +216,9 @@ class RunAcousticSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread,extrasuffix,Aperture,FocalLength):
+    def __init__(self,mainApp,extrasuffix,Aperture,FocalLength):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
         self._extrasuffix=extrasuffix
         self._Aperture=Aperture
         self._FocalLength=FocalLength
@@ -260,6 +263,7 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
@@ -270,7 +274,7 @@ class RunAcousticSim(QObject):
         queue=Queue()
         T0=time.time()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                    args=(queue,Target),
+                                    args=(queue,Target,self._mainApp.Config['TxSystem']),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
         # progress.
@@ -289,10 +293,12 @@ class RunAcousticSim(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

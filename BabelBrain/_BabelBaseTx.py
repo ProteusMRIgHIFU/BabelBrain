@@ -16,6 +16,58 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
+from skimage.measure import label, regionprops, regionprops_table
+#auxiliary functions to measure metrics in acoustic fields
+
+def ellipsoid_axis_lengths(central_moments):
+    """Compute ellipsoid major, intermediate and minor axis length.
+
+    Parameters
+    ----------
+    central_moments : ndarray
+        Array of central moments as given by ``moments_central`` with order 2.
+
+    Returns
+    -------
+    axis_lengths: tuple of float
+        The ellipsoid axis lengths in descending order.
+    """
+    m0 = central_moments[0, 0, 0]
+    sxx = central_moments[2, 0, 0] / m0
+    syy = central_moments[0, 2, 0] / m0
+    szz = central_moments[0, 0, 2] / m0
+    sxy = central_moments[1, 1, 0] / m0
+    sxz = central_moments[1, 0, 1] / m0
+    syz = central_moments[0, 1, 1] / m0
+    S = np.asarray([[sxx, sxy, sxz], [sxy, syy, syz], [sxz, syz, szz]])
+    # determine eigenvalues in descending order
+    eigvals = np.sort(np.linalg.eigvalsh(S))[::-1]
+    return tuple([np.sqrt(20.0 * e) for e in eigvals]) 
+
+def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.25):
+        '''
+        Threshold=0.25 
+        '''
+        label_img=label(Data>=Threshold)
+        props = regionprops(label_img)#, properties=('centroid',   'area', 'moments_central','axis_major_length','axis_minor_length'))
+        Res={}
+        if len(props)>1:
+            Volumes=[]
+            for p in props:
+                Volumes.append(p['area'])  
+            p=props[np.argmax(Volumes)]
+        else:
+            p=props[0]
+        Res['centroid']=p['centroid']*voxelsize
+        Res['volume']=p['area']*np.prod(voxelsize)
+        Axes=ellipsoid_axis_lengths(p['moments_central'])
+        Res['long_axis']=Axes[0]*voxelsize[0]
+        Res['minor_axis_1']=Axes[1]*voxelsize[1]
+        Res['minor_axis_2']=Axes[2]*voxelsize[2]
+        # print(Res)
+        return Res
+
+#Main Tx base class
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
@@ -70,6 +122,7 @@ class BabelBaseTx(QWidget):
         This is a common function for most Tx to show results
         '''
         self._MainApp.SetSuccesCode()
+        self.Widget.CalculateMechAdj.setEnabled(True)
         if self._bRecalculated:
             self._MainApp.hideClockDialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
@@ -228,3 +281,35 @@ class BabelBaseTx(QWidget):
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
  
+    def GetExport(self):
+        Export={}
+        Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
+        return Export
+    
+    def EnableMultiPoint(self,MultiPoint):
+        #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
+        pass #to be defined by those Tx capable of multi-point
+    
+    @Slot()
+    def CalculateMechAdj(self):
+        #this calculates the required mechanical correction to center acoustic beam
+        #to the target
+        dx=  np.mean(np.diff(self._Skull['x_vec']))
+        voxelsize=np.array([dx,dx,dx])
+        stats=CalcVolumetricMetrics(self._ISkull,voxelsize)
+        x_o=np.unique(self._XX)
+        y_o=np.unique(self._YY)
+        z_o=np.unique(self._ZZX)
+        #we get the centroid in the displayed axes convention
+        centroid=stats['centroid']+np.array([x_o.min(),y_o.min(),z_o.min()])
+        X_correction = np.round(centroid[0]-x_o[self._Skull['TargetLocation'][0]],1)
+        Y_correction = np.round(centroid[1]-y_o[self._Skull['TargetLocation'][1]],1)
+        ret = QMessageBox.question(self,'', "The focal spot's center of mass (-6dB) "+
+                                   'is [%3.1f,%3.1f]' % (X_correction,Y_correction) + " mm-off in [X,Y] relative to the target.\n"+
+                                    "Do you want to apply a mechanical correction?",
+                QMessageBox.Yes | QMessageBox.No)
+        if ret == QMessageBox.Yes:
+            curX=self.Widget.XMechanicSpinBox.value()
+            curY=self.Widget.YMechanicSpinBox.value()
+            self.Widget.XMechanicSpinBox.setValue(curX-X_correction)
+            self.Widget.YMechanicSpinBox.setValue(curY-Y_correction)

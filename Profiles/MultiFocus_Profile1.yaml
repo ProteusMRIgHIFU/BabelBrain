@@ -1,0 +1,15 @@
+
+#In MultiPointTrajectory you need to specify at least one entry. 
+# Units are in mm
+# Please specify 0 as 0.0, 1 and 1.0, etc.
+# In this example we create a 3-point steering list that makes a 3 point star with a radius from the origin of 2 mm
+MultiPoint:
+    -   X: 2.0
+        Y: 0.0
+        Z: 0.0
+    -   X: -1.0
+        Y: 1.73205081
+        Z: 0.0
+    -   X: -1.0
+        Y: -1.73205081
+        Z: 0.0

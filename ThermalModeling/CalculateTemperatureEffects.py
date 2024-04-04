@@ -18,8 +18,79 @@ from platform import platform
 from os.path import isfile
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF):
-    return InputPData.split('.h5')[0]+'-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    suffix = '-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    if '__Steer_X' in InputPData:
+        #we check if this a case for multifocal delivery
+        return InputPData.split('__Steer_X')[0]+'_DataForSim'+suffix
+    else:
+        return InputPData.split('.h5')[0]+suffix
 
+def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf):
+    pAmpBrain=pAmp.copy()
+    if 'MaterialMapCT' in Input:
+        pAmpBrain[MaterialMap!=2]=0.0
+    else:
+        pAmpBrain[MaterialMap<4]=0.0
+
+    cz=LocIJK[2]
+    
+    PlanAtMaximum=pAmpBrain[:,:,cz]
+    AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
+    print('Acoustic Energy at maximum plane',AcousticEnergy)
+    
+    
+    MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+    xfr=Input['x_vec']
+    yfr=Input['y_vec']
+    zfr=Input['z_vec']
+    
+    
+    PlanAtMaximumWater=pAmpWater[:,:,2] 
+    AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy entering',AcousticEnergyWater)
+    if 'MaterialMapCT' in Input:
+        pAmpWater[MaterialMap!=2]=0.0
+    else:
+        pAmpWater[MaterialMap!=4]=0.0
+    cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
+    cxw=cxw[0]
+    cyw=cyw[0]
+    czw=czw[0]
+    print('Location Max Pessure Water',cxw,cyw,czw,'\n',
+            xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
+    
+    pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
+    if 'MaterialMapCT' in Input:
+        pAmpTissue[MaterialMap!=2]=0.0
+    else:
+        pAmpTissue[MaterialMap!=4]=0.0
+
+    cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
+    cxr=cxr[0]
+    cyr=cyr[0]
+    czr=czr[0]
+    print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
+            xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
+    
+
+    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
+    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    
+    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
+    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane tissue max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    
+    PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
+    AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
+    print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
+    
+    RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
+    print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
+        
+    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
+    PressureRatio=PressureAdjust/pAmpTissue.max()
+    return PressureRatio,RatioLosses
 
 def CalculateTemperatureEffects(InputPData,
                                 DutyCycle=0.3,
@@ -31,10 +102,14 @@ def CalculateTemperatureEffects(InputPData,
                                 DurationOff=40,
                                 bForceRecalc=False,
                                 OutTemperature=37,
+                                bGlobalDCMultipoint=True,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
-    
-    outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF)
+
+    if type(InputPData) is str:    
+        outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF)
+    else:
+        outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF)
 
     print(outfname)
 
@@ -44,7 +119,51 @@ def CalculateTemperatureEffects(InputPData,
             print('skipping', outfname)
             return outfname
     dt=0.01
-    Input=ReadFromH5py(InputPData)
+    
+    if type(InputPData) is str:   
+        Input=ReadFromH5py(InputPData)
+        WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
+        print('Load water',WaterInputPData)
+        InputWater=ReadFromH5py(WaterInputPData)
+        
+        pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
+        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+        
+    else:
+        ALL_ACFIELDSKULL=[]
+        Input=ReadFromH5py(InputPData[0])
+        
+        AllInputs=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
+                            Input[sel_p].shape[2]),Input[sel_p].dtype)
+        AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
+                            Input[sel_p].shape[2]),Input[sel_p].dtype)
+        for n in range(len(InputPData)):
+            ALL_ACFIELDSKULL.append(ReadFromH5py(InputPData[n]))
+            AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
+            fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
+            AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+        
+        if DurationUS>len(InputPData)*2: 
+        #ad-hoc rule, if sonication last at least 2x seconds the number of focal spots, we  approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
+        
+            DurationCalculations=1.0 
+        else:
+            DurationCalculations=0.1 # for short sonications, we approximate in chunks of 0.1 seconds
+        if bGlobalDCMultipoint:
+            NCyclesOn=int(DutyCycle*DurationCalculations/dt/len(InputPData))
+            NCyclesOff=int(DurationCalculations/dt/len(InputPData))-NCyclesOn
+        else:
+            NCyclesOn=int(DutyCycle*DurationCalculations/dt)
+            NCyclesOff=int(DurationCalculations/dt)-NCyclesOn
+        assert(NCyclesOn>0)
+        assert(NCyclesOff>0 )
+        
+        nStepsOnOffList=np.zeros((len(InputPData),2),np.int32)
+        #all points have the same duration
+        nStepsOnOffList[:,0]=NCyclesOn
+        nStepsOnOffList[:,1]=NCyclesOff
+        
+    
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
@@ -97,10 +216,8 @@ def CalculateTemperatureEffects(InputPData,
     xf=Input['x_vec']
     yf=Input['y_vec']
     zf=Input['z_vec']
-    
-    pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
-    print('pAmp.shape',pAmp.shape)
-    
+
+        
     if 'MaterialMapCT' in Input:
         MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
     else:
@@ -116,90 +233,24 @@ def CalculateTemperatureEffects(InputPData,
         BrainID=4
         LimSoft=4
 
-    pAmpBrain=pAmp.copy()
-    if 'MaterialMapCT' in Input:
-        pAmpBrain[MaterialMap!=2]=0.0
-    else:
-        pAmpBrain[MaterialMap<4]=0.0
-
-    # PressureTarget=pAmpBrain.max()
-    # cx,cy,cz=np.where(pAmpBrain==PressureTarget)
-    # cx=cx[0]
-    # cy=cy[0]
-    # cz=cz[0]
     cx=LocIJK[0]
     cy=LocIJK[1]
     cz=LocIJK[2]
-    PressureTarget=pAmpBrain[cx,cy,cz]
-    zl=cz
     
-    print(' Max Pessure',cx,cy,cz,'\n',
-          xf[cx],yf[cy],zf[cz],
-          xf.shape,yf.shape,zf.shape,pAmp.shape,'\n',
-          PressureTarget/1e6)
-
-    
-    
-    PlanAtMaximum=pAmpBrain[:,:,cz]
-    AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
-    print('Acoustic Energy at maximum plane',AcousticEnergy)
-    
-    assert(type(InputPData) is str) # we only do this for single focus
-    WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
-    print('Load water',WaterInputPData)
-    InputWater=ReadFromH5py(WaterInputPData)
-
-    MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
-    xfr=Input['x_vec']
-    yfr=Input['y_vec']
-    zfr=Input['z_vec']
-    
-    pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
-    PlanAtMaximumWater=pAmpWater[:,:,2] 
-    AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-    print('Water Acoustic Energy entering',AcousticEnergyWater)
-    if 'MaterialMapCT' in Input:
-        pAmpWater[MaterialMap!=2]=0.0
+    if type(InputPData) is str:   
+        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf)
     else:
-        pAmpWater[MaterialMap!=4]=0.0
-    cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
-    cxw=cxw[0]
-    cyw=cyw[0]
-    czw=czw[0]
-    print('Location Max Pessure Water',cxw,cyw,czw,'\n',
-            xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
-    
-    pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
-    if 'MaterialMapCT' in Input:
-        pAmpTissue[MaterialMap!=2]=0.0
-    else:
-        pAmpTissue[MaterialMap!=4]=0.0
-
-    cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
-    cxr=cxr[0]
-    cyr=cyr[0]
-    czr=czr[0]
-    print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
-            xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
-    
-
-    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
-    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
-    
-    PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
-    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-    print('Water Acoustic Energy at maximum plane tissue max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
-    
-    PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
-    AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
-    print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
-    
-    RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
-    print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
-        
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
-    PressureRatio=PressureAdjust/pAmpTissue.max()
+        PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
+        RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
+        for n in range(len(InputPData)):
+            pAmp=AllInputs[n,:,:,:]
+            pAmpWater=AllInputsWater[n,:,:,:]
+            print('*'*40)
+            print('Calculating losses for spot ',n)
+            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf)
+            print('*'*40)
+        print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
+            
 
 
     if 'MaterialMapCT' in Input:
@@ -214,19 +265,32 @@ def CalculateTemperatureEffects(InputPData,
         SelSkull =(MaterialMap>1) &\
             (MaterialMap<4)
 
-    ##We calculate first for 1s, to find the hottest locations in each region
-    TotalDurationSteps1s=int(1.0/dt)
-    nStepsOn1s=TotalDurationSteps1s
-    ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
+    
+    if type(InputPData) is str:
+        ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                        TotalDurationSteps,
+                                                        nStepsOn,
+                                                        cy,
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        DutyCycle=DutyCycle,
+                                                        Backend=Backend)
+    else:
+        InputsBHTE=AllInputs.copy()
+        for n in range(len(InputPData)):
+            InputsBHTE[n,:,:,:]*=PressureRatio[n]
+        ResTemp,ResDose,MonitorSlice,Qarr=BHTEMultiplePressureFields(InputsBHTE,
                                                       MaterialMap,
                                                       MaterialList,
                                                       (Input['x_vec'][1]-Input['x_vec'][0]),
                                                       TotalDurationSteps,
-                                                      nStepsOn,
+                                                      nStepsOnOffList,
                                                       cy,
                                                       nFactorMonitoring=nFactorMonitoring,
                                                       dt=dt,
-                                                      DutyCycle=DutyCycle,
                                                       Backend=Backend)
 
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
@@ -243,20 +307,34 @@ def CalculateTemperatureEffects(InputPData,
     if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
         MonitoringPointsMap[cx,cy,cz]=4
    
-
-    ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
-                                                      MaterialMap,
-                                                      MaterialList,
-                                                      (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                      TotalDurationSteps,
-                                                      nStepsOn,
-                                                      cy,
-                                                      nFactorMonitoring=nFactorMonitoring,
-                                                      dt=dt,
-                                                      DutyCycle=DutyCycle,
-                                                      Backend=Backend,
-                                                      MonitoringPointsMap=MonitoringPointsMap)
-
+    if type(InputPData) is str:
+        ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                        TotalDurationSteps,
+                                                        nStepsOn,
+                                                        cy,
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        DutyCycle=DutyCycle,
+                                                        Backend=Backend,
+                                                        MonitoringPointsMap=MonitoringPointsMap)
+    else:
+        ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(InputsBHTE,
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                        TotalDurationSteps,
+                                                        nStepsOnOffList,
+                                                        cy,
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        Backend=Backend,
+                                                        MonitoringPointsMap=MonitoringPointsMap)
+        
+     
+    #for cooling off, we do not need to do steering, just running with no energy
     FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
                                                       MaterialMap,
                                                       MaterialList,
@@ -270,7 +348,8 @@ def CalculateTemperatureEffects(InputPData,
                                                       Backend=Backend,
                                                       initT0=ResTemp,
                                                       initDose=ResDose,
-                                                      MonitoringPointsMap=MonitoringPointsMap)
+                                                      MonitoringPointsMap=MonitoringPointsMap) 
+    
     
     TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
 
@@ -279,8 +358,12 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
     SaveDict['mSkull']=np.array([mxSkull,mySkull,mzSkull]).astype(int)
     SaveDict['dt']=dt
-    SaveDict['p_map']=pAmp*PressureRatio
-    SaveDict['p_map_central']=pAmp[:,cy,:]*PressureRatio
+    if type(InputPData) is str:
+        SaveDict['p_map']=pAmp*PressureRatio
+        SaveDict['p_map_central']=pAmp[:,cy,:]*PressureRatio
+    else:
+        SaveDict['p_map']=InputsBHTE.max(axis=0)
+        SaveDict['p_map_central']=InputsBHTE.max(axis=0)[:,cy,:]
     SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
     SaveDict['MaterialMap']=MaterialMap
 
@@ -339,14 +422,27 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['FinalTemp']=FinalTemp
     SaveDict['FinalDose']=FinalDose
     #we carry over these params to simplify analysis later
-    if 'ZSteering' in Input:
-        SaveDict['ZSteering']=Input['ZSteering']
+    if type(InputPData) is str: 
+        for k in ['XSteering','YSteering','ZSteering']:
+            if k in Input:
+                SaveDict[k]=Input[k]
+    else:
+        for k in ['XSteering','YSteering','ZSteering']:
+            if k in Input:
+                steering =np.ones(len(ALL_ACFIELDSKULL))
+                for n,entry in enumerate(ALL_ACFIELDSKULL):
+                    steering[n]=entry[k]
+                SaveDict[k]=steering
     SaveDict['AdjustmentInRAS']=Input['AdjustmentInRAS']
     SaveDict['DistanceFromSkin']=Input['DistanceFromSkin']
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
     SaveDict['TargetLocation']=Input['TargetLocation']
     SaveDict['ZIntoSkinPixels']=Input['ZIntoSkinPixels']
     SaveDict['RatioLosses']=RatioLosses
+    SaveDict['DurationUS']=DurationUS
+    SaveDict['DurationOff']=DurationOff
+    SaveDict['DutyCycle']=DutyCycle
+    SaveDict['PRF']=PRF
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)

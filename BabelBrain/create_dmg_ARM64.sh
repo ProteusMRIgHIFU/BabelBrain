@@ -2,9 +2,9 @@
 [[ -f BabelBrain_ARM64.dmg ]] && rm BabelBrain_ARM64.dmg
 rm -rf final
 mkdir final
-mkdir final/ThermalProfiles
+mkdir final/Profiles
 mkdir final/PlanningModels
-cp -r ../ThermalProfiles/* final/ThermalProfiles
+cp -r ../Profiles/* final/Profiles
 cp -r ../PlanningModels/* final/PlanningModels
 cp -r ../LICENSE final/
 cp BabelBrain_ARM64.pkg final/

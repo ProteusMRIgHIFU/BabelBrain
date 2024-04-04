@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from .CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from _BabelBaseTx import BabelBaseTx
@@ -73,9 +73,11 @@ class CTX500(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
-        self.Widget.CalculatePlanningMask.clicked.connect(self.RunSimulation)
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
+        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
+        self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
 
     def DefaultConfig(self):
@@ -151,13 +153,15 @@ class CTX500(BabelBaseTx):
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
                 self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                if 'zLengthBeyonFocalPoint' in Skull:
+                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
             bCalcFields = True
         self._bRecalculated = True
         if bCalcFields:
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp,self.thread)
+            self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateAcResults)
@@ -175,7 +179,7 @@ class CTX500(BabelBaseTx):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export={}
+        Export=super(CTX500,self).GetExport()
         for k in ['TPODistance','XMechanic','YMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
@@ -185,10 +189,9 @@ class RunAcousticSim(QObject):
     finished = Signal()
     endError = Signal()
 
-    def __init__(self,mainApp,thread):
+    def __init__(self,mainApp):
         super(RunAcousticSim, self).__init__()
         self._mainApp=mainApp
-        self._thread=thread
 
     def run(self):
 
@@ -237,6 +240,7 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
@@ -245,7 +249,7 @@ class RunAcousticSim(QObject):
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 
-                                    args=(queue,Target),
+                                    args=(queue,Target,self._mainApp.Config['TxSystem']),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
         # progress.
@@ -266,10 +270,12 @@ class RunAcousticSim(QObject):
                 bNoError=False
         if bNoError:
             TEnd=time.time()
-            print('Total time',TEnd-T0)
+            TotalTime = TEnd-T0
+            print('Total time',TotalTime)
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
+            self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

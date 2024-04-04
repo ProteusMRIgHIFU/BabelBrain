@@ -42,11 +42,11 @@ __kernel void affine_transform(__global const float * x,
     unsigned int out_dims_1 = get_global_size(1);
     unsigned int out_dims_2 = get_global_size(2);
 
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
+    const size_t xind =  get_global_id(0);
+    const size_t yind =  get_global_id(1);
+    const size_t zind =  get_global_id(2);
 
-    const int _i = xind*out_dims_1*out_dims_2 + yind*out_dims_2 + zind;
+    const ptrdiff_t _i = xind*out_dims_1*out_dims_2 + yind*out_dims_2 + zind;
 #endif
 
 #ifdef _METAL
@@ -74,23 +74,36 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     #define out_dims_2 int_params[5]
     #define order int_params[6]
     #define cval float_params[0]
-
-    const int xind =  gid/(out_dims_1*out_dims_2);
-    const int yind =  (gid-xind*out_dims_1*out_dims_2)/out_dims_2;
-    const int zind =  gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
-    #define _i gid
+    unsigned int output_idx = (unsigned int) int_params[7]; // overall starting index in ouput array, not just output section
+    unsigned int true_gid  = gid + output_idx; // overall position in output array
+    const int xind =  true_gid/(out_dims_1*out_dims_2);
+    const int yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const int zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    unsigned int _i  = gid; // current index in output section array
 #endif
 
     float out = 0.0;
+    #ifdef _METAL
     const int xsize_0 = in_dims_0;
     const int xsize_1 = in_dims_1;
     const int xsize_2 = in_dims_2;
     const unsigned int sx_2 = 1;
     const unsigned int sx_1 = sx_2 * xsize_2;
     const unsigned int sx_0 = sx_1 * xsize_1;
-    
-    int in_coord[3] = {xind,yind,zind};
 
+    int in_coord[3] = {xind,yind,zind};
+    #endif
+    #ifdef _OPENCL
+    const ptrdiff_t xsize_0 = in_dims_0;
+    const ptrdiff_t xsize_1 = in_dims_1;
+    const ptrdiff_t xsize_2 = in_dims_2;
+    const size_t sx_2 = 1;
+    const size_t sx_1 = sx_2 * xsize_2;
+    const size_t sx_0 = sx_1 * xsize_1;
+
+    size_t in_coord[3] = {xind,yind,zind};
+    #endif
+    
     float c_0 = (float)0.0;
     c_0 += mat[0] * (float)in_coord[0];
     c_0 += mat[1] * (float)in_coord[1];
@@ -117,18 +130,33 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     {
         if (order == 0)
         {
+            #ifdef _OPENCL
+            ptrdiff_t cf_0 = (ptrdiff_t)floor((float)c_0 + 0.5);
+            ptrdiff_t ic_0 = cf_0 * sx_0;
+            ptrdiff_t cf_1 = (ptrdiff_t)floor((float)c_1 + 0.5);
+            ptrdiff_t ic_1 = cf_1 * sx_1;
+            ptrdiff_t cf_2 = (ptrdiff_t)floor((float)c_2 + 0.5);
+            ptrdiff_t ic_2 = cf_2 * sx_2;
+            #endif
+            #ifdef _METAL
             int cf_0 = (int)floor((float)c_0 + 0.5);
             int ic_0 = cf_0 * sx_0;
             int cf_1 = (int)floor((float)c_1 + 0.5);
             int ic_1 = cf_1 * sx_1;
             int cf_2 = (int)floor((float)c_2 + 0.5);
             int ic_2 = cf_2 * sx_2;
+            #endif
             out = (float)x[ic_0 + ic_1 + ic_2];
         }
         else
         {
             float wx, wy;
+            #ifdef _OPENCL
+            ptrdiff_t start;
+            #endif
+            #ifdef _METAL
             int start;
+            #endif
             float weights_0[4];
             wx = c_0 - floor(3 & 1 ? c_0 : c_0 + 0.5);
             wy = 1.0 - wx;
@@ -136,8 +164,14 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
             weights_0[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
             weights_0[0] = wy * wy * wy / 6.0;
             weights_0[3] = 1.0 - weights_0[0] - weights_0[1] - weights_0[2];
+            #ifdef _METAL
             start = (int)floor((float)c_0) - 1;
             int ci_0[4];
+            #endif
+            #ifdef _OPENCL
+            start = (ptrdiff_t)floor((float)c_0) - 1;
+            ptrdiff_t ci_0[4];
+            #endif
             ci_0[0] = start + 0;
             if (xsize_0 == 1) 
             {
@@ -195,7 +229,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 ci_0[3] = min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
             }
             float w_0;
+            #ifdef _OPENCL
+            ptrdiff_t ic_0;
+            #endif
+            #ifdef _METAL
             int ic_0;
+            #endif
             for (int k_0 = 0; k_0 <= 3; k_0++)
             {
                 w_0 = weights_0[k_0];
@@ -207,8 +246,14 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 weights_1[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
                 weights_1[0] = wy * wy * wy / 6.0;
                 weights_1[3] = 1.0 - weights_1[0] - weights_1[1] - weights_1[2];
+                #ifdef _OPENCL
+                start = (ptrdiff_t)floor((float)c_1) - 1;
+                ptrdiff_t ci_1[4];
+                #endif
+                #ifdef _METAL
                 start = (int)floor((float)c_1) - 1;
                 int ci_1[4];
+                #endif
                 ci_1[0] = start + 0;
                 if (xsize_1 == 1) 
                 {
@@ -266,7 +311,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_1[3] = min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
                 }
                 float w_1;
+                #ifdef _OPENCL
+                ptrdiff_t ic_1;
+                #endif
+                #ifdef _METAL
                 int ic_1;
+                #endif
                 for (int k_1 = 0; k_1 <= 3; k_1++)
                 {
                     w_1 = weights_1[k_1];
@@ -278,8 +328,14 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     weights_2[2] = (wy * wy * (wy - 2.0) * 3.0 + 4.0) / 6.0;
                     weights_2[0] = wy * wy * wy / 6.0;
                     weights_2[3] = 1.0 - weights_2[0] - weights_2[1] - weights_2[2];
+                    #ifdef _METAL
                     start = (int)floor((float)c_2) - 1;
                     int ci_2[4];
+                    #endif
+                    #ifdef _OPENCL
+                    start = (ptrdiff_t)floor((float)c_2) - 1;
+                    ptrdiff_t ci_2[4];
+                    #endif
                     ci_2[0] = start + 0;
                     if (xsize_2 == 1) 
                     {
@@ -337,7 +393,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_2[3] = min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
                     }
                     float w_2;
+                    #ifdef _OPENCL
+                    ptrdiff_t ic_2;
+                    #endif
+                    #ifdef _METAL
                     int ic_2;
+                    #endif
                     for (int k_2 = 0; k_2 <= 3; k_2++)
                     {
                         w_2 = weights_2[k_2];
@@ -358,7 +419,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     }
     if(order == 0)
     {
-        y[_i] = (short)rint((float)out);
+        y[_i] = (float)rint((float)out);
     }
     else
     {
@@ -898,9 +959,12 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
             image_gpu = cupy.asarray(from_img.dataobj)
             rzs_gpu=cupy.asarray(rzs)
 
-            data_gpu = cndimage.affine_transform(
-            image_gpu, rzs_gpu, trans, to_shape, order=order, mode=mode, cval=cval
-            )
+            try:
+                data_gpu = cndimage.affine_transform(
+                image_gpu, rzs_gpu, trans, to_shape, order=order, mode=mode, cval=cval
+                )
+            except cupy.cuda.memory.OutOfMemoryError as e:
+                raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
 
             data = cupy.asnumpy(data_gpu)
         return out_class(data, to_affine, from_img.header)
@@ -922,18 +986,21 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         assert(np.isfortran(m)==False)
         assert(np.isfortran(filtered)==False)
 
-        # Deploy affiner transform kernel
-        knl_at(queue, output.shape,
-            None,
-            filtered_gpu,
-            m_gpu,
-            output_gpu,
-            np.float32(cval),
-            np.int32(order),
-            np.int32(filtered.shape[0]),
-            np.int32(filtered.shape[1]),
-            np.int32(filtered.shape[2]),
-        )
+        # Deploy affine transform kernel
+        try:
+            knl_at(queue, output.shape,
+                None,
+                filtered_gpu,
+                m_gpu,
+                output_gpu,
+                np.float32(cval),
+                np.int32(order),
+                np.int32(filtered.shape[0]),
+                np.int32(filtered.shape[1]),
+                np.int32(filtered.shape[2]),
+            )
+        except clp.MemoryError as e:
+            raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
 
         # Move kernel output data back to host memory
         clp.enqueue_copy(queue, output, output_gpu)
@@ -944,13 +1011,16 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         return out_class(output, to_affine, from_img.header)
     else: # Metal
 
+        if np.prod(to_shape) > 1 << 32: # i.e. bigger than what uint32 can represent
+            raise ValueError("Error running resample step, suggest lowering PPW")
+        
         filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval,GPUBackend=GPUBackend)
         
         filtered = filtered.astype("float32", copy=False)
         m = m.astype("float32", copy=False)
         output = output.astype("float32", copy=False)
         
-        int_params=np.zeros(7,np.int32)
+        int_params=np.zeros(8,np.int32)
         float_params= np.zeros(2,np.float32)
         int_params[0] = filtered.shape[0]
         int_params[1] = filtered.shape[1]
@@ -965,21 +1035,40 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
         assert(np.isfortran(m)==False)
         assert(np.isfortran(filtered)==False)
 
-        filtered_gpu = ctx.buffer(filtered)
-        m_gpu = ctx.buffer(m) 
-        output_gpu = ctx.buffer(output)
-        int_params_gpu = ctx.buffer(int_params)
-        float_params_gpu = ctx.buffer(float_params)
+        step = 240000000
+        totalPoints = np.prod(output.shape)
+        
+        for point in range(0, totalPoints,step):
 
-        ctx.init_command_buffer()
+            # Grab indices for current output section
+            x_start = (point // (output.shape[1] * output.shape[2]))
+            x_end = min(((point + step) // (output.shape[1] * output.shape[2])),output.shape[0])
 
-        handle=knl_at(int(np.prod(output.shape)),filtered_gpu,m_gpu,output_gpu,int_params_gpu, float_params_gpu)
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((output_gpu,float_params_gpu))
-        output = np.frombuffer(output_gpu,dtype=np.float32).reshape(output.shape)
+            # Grab section of output
+            output_section = np.copy(output[x_start:x_end,:,:])
+
+            # Pass along position in output array
+            int_params[7] = x_start * output.shape[1]*output.shape[2]
+
+            # GPU call
+            filtered_gpu = ctx.buffer(filtered)
+            m_gpu = ctx.buffer(m) 
+            output_section_gpu = ctx.buffer(output_section)
+            int_params_gpu = ctx.buffer(int_params)
+            float_params_gpu = ctx.buffer(float_params)
+
+            ctx.init_command_buffer()
+
+            handle=knl_at(int(np.prod(output_section.shape)),filtered_gpu,m_gpu,output_section_gpu,int_params_gpu, float_params_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((output_section_gpu,float_params_gpu))
+            output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+            
+            # Record results in output array
+            output[x_start:x_end,:,:] = output_section[:,:,:]
 
         if integer_output:
             output = output.astype("int16")

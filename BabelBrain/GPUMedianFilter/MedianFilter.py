@@ -28,7 +28,13 @@ using namespace metal;
 kernel void median_reflect_w7_7_7(
                                     const device PixelType * input [[ buffer(0) ]],
                                     device PixelType * output [[ buffer(1) ]],
+                                    const device int * int_params [[ buffer(2)]], 
                                     uint gid[[thread_position_in_grid]]) {
+    
+    const int dims_0 = int_params[0];
+    const int dims_1 = int_params[1];
+    const int dims_2 = int_params[2];
+
     const int x = gid/(dims_1*dims_2);
     const int y = (gid-x*dims_1*dims_2)/dims_2;
     const int z = gid -x*dims_1*dims_2 - y * dims_2;
@@ -188,19 +194,54 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
     else:
         assert(GPUBackend=='Metal')
         Preamble ='#define _METAL\ntypedef unsigned char PixelType;\n'
-        Preamble+='#define dims_0 %i \n' %(data.shape[0])
-        Preamble+='#define dims_1 %i \n' %(data.shape[1])
-        Preamble+='#define dims_2 %i \n' %(data.shape[2])
         prgcl = ctx.kernel(Preamble+_code)
         knl_1px=prgcl.function('median_reflect_w7_7_7')
-        data_pr = ctx.buffer(data) 
-        data_out_pr = ctx.buffer(data.nbytes)
-        ctx.init_command_buffer()
-        handle=knl_1px(int(np.prod(data.shape)),data_pr,data_out_pr)
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((data_out_pr,data_pr))
-        data_out=np.frombuffer(data_out_pr,dtype=np.uint8).reshape(data.shape)
+
+        data_out = np.zeros_like(data)
+        step = 240000000
+        totalPoints = np.prod(data_out.shape)
+        int_params=np.zeros(3,np.int32)
+        int_params[0] = data_out.shape[0]
+        int_params[1] = data_out.shape[1]
+
+        for point in range(0,totalPoints,step):
+            # Grab z indexes
+            z_idx_1 = (point // (data_out.shape[0] * data_out.shape[1]))
+            z_idx_2 = ((point + step) // (data_out.shape[0] * data_out.shape[1]))
+
+            # Determine start and end indices for data section
+            # Need slightly larger array to account for median filter size
+            z_start = max(0, z_idx_1 - 2)
+            z_end = min(data_out.shape[2], z_idx_2 + 4)
+
+            # Grab section of data
+            data_section = np.copy(data[:,:,z_start:z_end])
+
+            # GPU call
+            int_params[2] = data_section.shape[2]
+
+            data_section_pr = ctx.buffer(data_section)
+            data_section_out = np.zeros_like(data_section)
+            data_section_out_pr = ctx.buffer(data_section_out)
+            int_params_pr = ctx.buffer(int_params)
+            
+            ctx.init_command_buffer()
+            handle=knl_1px(int(np.prod(data_section_out.shape)),data_section_pr,data_section_out_pr,int_params_pr)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((data_section_pr,data_section_out_pr))
+            data_section_out=np.frombuffer(data_section_out_pr,dtype=np.uint8).reshape(data_section_out.shape)
+
+            # Record results in data_out array
+            if z_start == 0 and z_end == data_out.shape[2]:                         # Data wasn't sectioned up
+                data_out[:,:,:] = data_section_out[:,:,:]
+            elif z_start == 0 and z_end < data_out.shape[2]:                        # First section
+                data_out[:,:,:(z_idx_2+1)] = data_section_out[:,:,:-3]
+            elif z_start != 0 and z_end == data_out.shape[2]:                       # Last section
+                data_out[:,:,(z_idx_1+1):] = data_section_out[:,:,3:]
+            else:                                                                   # Middle sections
+                data_out[:,:,(z_idx_1+1):(z_idx_2+1)] = data_section_out[:,:,3:-3]
+
     return data_out

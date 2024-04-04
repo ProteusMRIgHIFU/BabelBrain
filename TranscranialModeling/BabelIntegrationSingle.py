@@ -19,7 +19,7 @@ import scipy
 from trimesh import creation 
 import trimesh
 import matplotlib.pyplot as plt
-from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, InitCuda,InitOpenCL,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, SpeedofSoundWater
 
 ###########################################
 def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
@@ -247,8 +247,6 @@ class SimulationConditions(SimulationConditionsBASE):
         return TxRC
     
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
-        if platform != "darwin":
-            InitCuda()
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         self._TxRC=self.GenTx()

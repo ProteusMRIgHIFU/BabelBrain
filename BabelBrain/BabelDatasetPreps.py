@@ -24,6 +24,7 @@ import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
+import pycork
 import pyvista as pv
 import SimpleITK as sitk
 import time
@@ -238,14 +239,32 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     return subjectcoordinates
 
 def DoIntersect(Mesh1,Mesh2):
-    #We took now some extra steps for broken meshes
-    Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
-    try:
-        dummy = Mesh1_intersect.triangles #if empty, this trigger an error
-    except:
-        print('mesh is invalid... trying to fix')
-        Mesh1_intersect=FixMesh(Mesh1)
-        Mesh1_intersect =trimesh.boolean.intersection((Mesh1_intersect,Mesh2),engine='blender')
+    # Fix broken meshes
+    if Mesh1.body_count != 1:
+        print('Mesh 1 is invalid... trying to fix')
+        Mesh1 = FixMesh(Mesh1)
+
+    if Mesh2.body_count != 1:
+        print('Mesh 2 is invalid... trying to fix')
+        Mesh2 = FixMesh(Mesh2)
+    
+    # Perform intersection
+    verts_1 = Mesh1.vertices
+    verts_2 = Mesh2.vertices
+    tris_1 = Mesh1.faces
+    tris_2 = Mesh2.faces
+
+    pycork.isSolid(verts_1,tris_1)
+    pycork.isSolid(verts_2,tris_2)
+
+    verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
+
+    Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
+
+    # Check intersection is valid
+    if Mesh1_intersect.is_empty:
+        raise ValueError("Trajectory is outside headspace")    
+    
     return Mesh1_intersect
 
 def FixMesh(inmesh):
@@ -888,7 +907,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
         with CodeTimer("median filter CT mask extrapol",unit='s'):
-            nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+            if ResampleFilter is None:
+                nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
+            else:
+                nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
 
         ##We will create an smooth surface
@@ -941,7 +963,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         with CodeTimer("CT extrapol",unit='s'):
             print('rCTdata range',rCTdata.min(),rCTdata.max())
             rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
-            nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+            if ResampleFilter is None:
+                nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
+            else:
+                nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
@@ -1034,7 +1059,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     mask_nifti2.to_filename(outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
-        T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+        if ResampleFilter is None:
+            T1Conformal=processing.resample_from_to(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
+        else:
+            T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
         T1Conformal.to_filename(T1W_resampled_fname)
     
