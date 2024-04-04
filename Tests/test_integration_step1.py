@@ -11,7 +11,7 @@ import re
 from unittest.mock import patch
 import warnings
 
-from config import test_data_path
+from .config import test_data_path
 from .Dataset import Dataset
 from BabelBrain.BabelBrain import BabelBrain
 from BabelBrain.SelFiles.SelFiles import SelFiles
