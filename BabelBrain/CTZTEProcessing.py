@@ -195,30 +195,33 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
         #coreg
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
-            # Set up for Resample call
             in_img=nibabel.load(T1fnameBiasCorrec)
 
-            voxel_sizes = nibabel.load(InputCT).header.get_zooms()
-            cval=in_img.get_fdata().min()
+            if ResampleFunc is None:
+                fixed_image=processing.resample_to_output(in_img,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=in_img.get_fdata().min())
+            else:
+                # Set up for Resample call
+                voxel_sizes = nibabel.load(InputCT).header.get_zooms()
+                cval=in_img.get_fdata().min()
 
-            in_shape = in_img.shape
-            n_dim = len(in_shape)
-            if voxel_sizes is not None:
-                voxel_sizes = np.asarray(voxel_sizes)
-                if voxel_sizes.ndim == 0:  # Scalar
-                    voxel_sizes = np.repeat(voxel_sizes, n_dim)
-            # Allow 2D images by promoting to 3D.  We might want to see what a slice
-            # looks like when resampled into world coordinates
-            if n_dim < 3:  # Expand image to 3D, make voxel sizes match
-                new_shape = in_shape + (1,) * (3 - n_dim)
-                data = np.asanyarray(in_img.dataobj).reshape(new_shape)  # 2D data should be small
-                in_img = nibabel.Nifti1Image(data, in_img.affine, in_img.header)
-                if voxel_sizes is not None and len(voxel_sizes) == n_dim:
-                    # Need to pad out voxel sizes to match new image dimensions
-                    voxel_sizes = tuple(voxel_sizes) + (1,) * (3 - n_dim)
-            out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
-            
-            fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
+                in_shape = in_img.shape
+                n_dim = len(in_shape)
+                if voxel_sizes is not None:
+                    voxel_sizes = np.asarray(voxel_sizes)
+                    if voxel_sizes.ndim == 0:  # Scalar
+                        voxel_sizes = np.repeat(voxel_sizes, n_dim)
+                # Allow 2D images by promoting to 3D.  We might want to see what a slice
+                # looks like when resampled into world coordinates
+                if n_dim < 3:  # Expand image to 3D, make voxel sizes match
+                    new_shape = in_shape + (1,) * (3 - n_dim)
+                    data = np.asanyarray(in_img.dataobj).reshape(new_shape)  # 2D data should be small
+                    in_img = nibabel.Nifti1Image(data, in_img.affine, in_img.header)
+                    if voxel_sizes is not None and len(voxel_sizes) == n_dim:
+                        # Need to pad out voxel sizes to match new image dimensions
+                        voxel_sizes = tuple(voxel_sizes) + (1,) * (3 - n_dim)
+                out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
+                
+                fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
 
 
             T1fname_CTRes=outputfnames['T1fname_CTRes']

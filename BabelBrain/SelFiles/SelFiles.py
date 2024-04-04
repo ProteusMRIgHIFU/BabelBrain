@@ -115,7 +115,7 @@ class SelFiles(QDialog):
 
         if len(self._GPUs)==0: #only CPU
             msgBox = QMessageBox()
-            msgBox.setText("No GPUs were detected!\BabelBrain can't run without a GPU\nfor simulations")
+            msgBox.setText("No GPUs were detected!\nBabelBrain can't run without a GPU\nfor simulations")
             msgBox.exec()
             sys.exit(0)
 
