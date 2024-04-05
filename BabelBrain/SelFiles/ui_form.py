@@ -213,7 +213,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"H317", None))
         self.TransducerTypecomboBox.setItemText(3, QCoreApplication.translate("Dialog", u"H246", None))
         self.TransducerTypecomboBox.setItemText(4, QCoreApplication.translate("Dialog", u"BSonix", None))
-        self.TransducerTypecomboBox.setItemText(5, QCoreApplication.translate("Dialog", u"REMODP", None))
+        self.TransducerTypecomboBox.setItemText(5, QCoreApplication.translate("Dialog", u"REMOPD", None))
         self.TransducerTypecomboBox.setItemText(6, QCoreApplication.translate("Dialog", u"I12378", None))
         self.TransducerTypecomboBox.setItemText(7, QCoreApplication.translate("Dialog", u"ATAC", None))
 

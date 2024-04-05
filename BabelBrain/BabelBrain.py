@@ -484,8 +484,8 @@ class BabelBrain(QWidget):
             from Babel_H246.Babel_H246 import H246 as WidgetAcSim
         elif self.Config['TxSystem'] =='BSonix':
             from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
-        elif self.Config['TxSystem'] =='REMODP':
-            from Babel_REMODP.Babel_REMODP import REMODP as WidgetAcSim
+        elif self.Config['TxSystem'] =='REMOPD':
+            from Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
         elif self.Config['TxSystem'] =='I12378':
             from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
         elif self.Config['TxSystem'] =='ATAC':

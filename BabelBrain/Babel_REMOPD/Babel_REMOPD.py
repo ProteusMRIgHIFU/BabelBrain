@@ -42,13 +42,13 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'Babel_REMODP'
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_REMOPD'
     else:
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
 
-class REMODP(BabelBasePhaseArray): 
+class REMOPD(BabelBasePhaseArray): 
     def __init__(self,parent=None,MainApp=None):
         super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
 
@@ -98,11 +98,11 @@ class REMODP(BabelBasePhaseArray):
 
 
     def DefaultConfig(self):
-        #Specific parameters for the REMODP - to be configured later via a yaml
+        #Specific parameters for the REMOPD - to be configured later via a yaml
 
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("REMODP configuration:")
+        print("REMOPD configuration:")
         print(config)
 
         self.Config=config
@@ -197,7 +197,7 @@ class REMODP(BabelBasePhaseArray):
             self.UpdateAcResults()
 
     def GetExport(self):
-        Export=super(REMODP,self).GetExport()
+        Export=super(REMOPD,self).GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         def dict_to_string(d, separator=', ', equals_sign='='):
             return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
@@ -346,6 +346,6 @@ class RunAcousticSim(QObject):
 
 if __name__ == "__main__":
     app = QApplication([])
-    widget = REMODP()
+    widget = REMOPD()
     widget.show()
     sys.exit(app.exec_())
