@@ -34,9 +34,11 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
 
 # Manual Installation for Development 
-If you prefer to run the code in a Python environment, the requirements are roughly a clean Python 3.9-3.10 environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
+## Recommended settings
+* All OS: create a conda environment using the appropriate yaml file for macOS Intel, macOS ARM64, Windows or Linux. 
 
-*  Python 3.9-3.10. Anaconda/miniconda is recommended. - if running in Apple new ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for further details. You can use the provided one of the conda `yml` environment files according to your architecture and OS.
+Besides the recommended conda environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux will be required. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
+
 *  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment and install the library with:
    ```
    git clone https://github.com/drlukeparry/pycork.git
@@ -47,8 +49,6 @@ If you prefer to run the code in a Python environment, the requirements are roug
    ```
 
 
-## Recommended settings
-* All OS: create a conda environment using the appropriate yaml file. 
 
 ## Running
 If running from the GitHub source code, just change to the BabelBrain directory and execute
@@ -70,7 +70,7 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
-- 0.3.6 - Apr XX, 2024
+- 0.3.4 - Apr XX, 2024
   - Improvement: Significantly faster calculations in Step 2. Improvements to the modeling of acoustic sources in r0.3.2 allowed the elimination of the two-step calculations used in previous versions. Computational cost savings should range between 48% to 40%. A large numerical study was executed to ensure the precision of calculations was not affected.
   -  Improvement. No more need for Blender. We finally found a native Python CSG library that is robust enough to perform the geometry tasks we have been using with Blender until now. This has only a minor implication for those users running BabelBrain in their own Python environment (see details above about installing the `pycork` library). For those using the stand-alone applications, there is no impact other than Blender can be safely uninstalled if there is no more need for it.
   - New: Support to new transducers. We added three new phased array devices: Two concave arrays and one flat 2D array.  The I12378 transducer is a 128-element device operating at 650 kHz with a focal length of 72 mm and a diameter of 103 mm. The ATAC transducer is a 128-element device operating at 1 MHz with a focal length 53.2 mm and a diameter of 58 mm.  The REMOPD transducer is a 256-element flat 2D array operating at 300 kHz with a diameter of 58 mm. We thank the team at Vanderbilt University for sharing the transducer definitions of their concave arrays (I12378 and ATAC transducers). We thank the team at Toronto Western Hospital and Fraunhofer IBMT for sharing the transducer definition of their REMOPD transducer.
