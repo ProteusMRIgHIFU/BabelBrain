@@ -70,7 +70,7 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
-- 0.3.4 - Apr XX, 2024
+- 0.3.4 - Apr 5th, 2024
   - Improvement: Significantly faster calculations in Step 2. Improvements to the modeling of acoustic sources in r0.3.2 allowed the elimination of the two-step calculations used in previous versions. Computational cost savings should range between 48% to 40%. A large numerical study was executed to ensure the precision of calculations was not affected.
   -  Improvement. No more need for Blender. We finally found a native Python CSG library that is robust enough to perform the geometry tasks we have been using with Blender until now. This has only a minor implication for those users running BabelBrain in their own Python environment (see details above about installing the `pycork` library). For those using the stand-alone applications, there is no impact other than Blender can be safely uninstalled if there is no more need for it.
   - New: Support to new transducers. We added three new phased array devices: Two concave arrays and one flat 2D array.  The I12378 transducer is a 128-element device operating at 650 kHz with a focal length of 72 mm and a diameter of 103 mm. The ATAC transducer is a 128-element device operating at 1 MHz with a focal length 53.2 mm and a diameter of 58 mm.  The REMOPD transducer is a 256-element flat 2D array operating at 300 kHz with a diameter of 58 mm. We thank the team at Vanderbilt University for sharing the transducer definitions of their concave arrays (I12378 and ATAC transducers). We thank the team at Toronto Western Hospital and Fraunhofer IBMT for sharing the transducer definition of their REMOPD transducer.
