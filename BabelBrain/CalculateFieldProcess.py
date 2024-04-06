@@ -41,8 +41,8 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         from TranscranialModeling.BabelIntegrationH317 import RUN_SIM
     elif TxSystem =='H246':
         from TranscranialModeling.BabelIntegrationH246 import RUN_SIM 
-    elif TxSystem =='REMODP':
-        from TranscranialModeling.BabelIntegrationREMODP import RUN_SIM
+    elif TxSystem =='REMOPD':
+        from TranscranialModeling.BabelIntegrationREMOPD import RUN_SIM
     elif TxSystem =='I12378':
         from TranscranialModeling.BabelIntegrationI12378 import RUN_SIM
     elif TxSystem =='ATAC':
@@ -50,7 +50,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
     else:
         raise ValueError("TX system " + TxSystem + " is not yet supported")
 
-    if TxSystem in ['H317','REMODP','I12378','ATAC']:
+    if TxSystem in ['H317','REMOPD','I12378','ATAC']:
         if kargs['bDryRun']==False:
             stdout = InOutputWrapper(queue,True)
     else:
@@ -67,7 +67,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         if 'bDryRun' in kargs:
             bDryRun=kargs['bDryRun']
         if kargs['bUseRayleighForWater']==False or bDryRun:
-            if TxSystem in ['H317','REMODP','I12378','ATAC']:
+            if TxSystem in ['H317','REMOPD','I12378','ATAC']:
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
@@ -112,7 +112,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             finalName=fnames[0].split('__Steer_X')[0]+send
                             combinedNifti.to_filename(finalName)
 
-        if TxSystem in ['H317','REMODP','I12378','ATAC']:
+        if TxSystem in ['H317','REMOPD','I12378','ATAC']:
             kargs['bDryRun'] = True
             FilesWater=R.RunCases(targets=Target, 
                             bTightNarrowBeamDomain=True,

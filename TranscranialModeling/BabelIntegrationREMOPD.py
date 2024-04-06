@@ -34,7 +34,7 @@ DimensionElem = PITCH-KERF
 ZDistance=-1.2e-3 #distance from Tx elements to outplane
 
 
-def computeREMODPGeometry():
+def computeREMOPDGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
@@ -92,7 +92,7 @@ def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0):
     TxElem=GenerateSingleElem()
 
 
-    transLoc = computeREMODPGeometry()
+    transLoc = computeREMOPDGeometry()
 
     rotateMatrixZ = np.array([[-np.cos(RotationZ),np.sin(RotationZ),0],
                               [-np.sin(RotationZ),-np.cos(RotationZ),0],[0,0,1]])
