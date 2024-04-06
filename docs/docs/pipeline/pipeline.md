@@ -6,11 +6,14 @@ BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajec
 
 Currently, five types of transducers are supported:
 
-* **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 700 kHz.
-* **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250 kHz and 700 kHz.
+* **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 1 MHz.
+* **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250, 700 and 825 kHz.
 * **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
 * **H246**. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
 * **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
+* * **I12378**. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.
+* **ATAC**. This is a 128-element device operating at 1 MHz with a focal length 53.2 mm and F#=0.9.
+* **REMOPD**.This is a 256-element flat 2D array operating at 300 kHz with a diameter of 58 mm.
 
 The specific capabilities of each transducer are considered during the simulations. 
 
@@ -201,12 +204,30 @@ An input dialog will prompt the different input files required for the simulatio
              DurationOff: 50.0
      ```
 
-    When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated. 
+    When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated.
+     
 
+7. Select the type of transducer to be used in simulations.
 
-6. Select the type of transducer to be used in simulations.
+6. Optional. Select a multi-point profile file for simulations. BabelBrain offers the possibility to execute electronic steering over a list of points if a concave array is selected. If any of the three concave arrays is selected (H317, I12378 and ATAC), the user can select a profile definition specific to multi-point steering. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
+   
+     ```
+     MultiPoint:
+     -   X: 2.0
+         Y: 0.0
+         Z: 0.0
+     -   X: -1.0
+         Y: 1.73205081
+         Z: 0.0
+     -   X: -1.0
+         Y: -1.73205081
+         Z: 0.0
+     ```
+
+    In this example, we create a 3-point steering list that makes a 3-point star with a radius from the origin of 2 mm.
 
 7. Once all inputs are set, then click on "CONTINUE"
+   
 ## 3.b - Domain generation
 The diagram below shows flowchart describing the process for the domain generation.
 
@@ -240,24 +261,31 @@ The second tab in the GUI of BabelBrain shows the ultrasound simulation step.  T
 
 <img src="nsclc2-V2.svg" height=600px>
 
-The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected intensity at the target. Common to all transducers, the distance of the maximal depth beyond the target location is set to a user-configurable distance of 40 mm.
+The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected intensity at the target. 
+
+Common to all transducers, the distance of the maximal depth beyond the target location is set to a user-configurable distance of 40 mm.
+
+Also, all transducers show an action to perform automatic mechanical corrections in the direction perpendicular to the ultrasound propagation. See below the details in the explanations for the CTX 500 device regarding mechanical corrections.
 
 ### 3.c.i - CTX_500
-For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+<img src="Simulation-7.png" height=350px>
 
-<img src="Simulation-5.png" height=350px>
+For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
 
 The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
 
 It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Simulation should take a couple of minutes in a M1 Max system.
 
-<img src="Simulation-6.png" height=450px> 
+The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main goal is to ensure a correct spatial focusing on the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). 
 
-The results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main goal is to ensure a correct spatial focusing on the target. In the example, a shift of 5 mm of the focal spot towards the transducer can be observed. This shift can be corrected by adding 5 mm in the TPO Distance input (in the example, we adjust to 52.5 mm). Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations, there will be a report in which direction in the T1W space this adjustment translates. 
+Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). 
+ 
+After running a first pass of simulations in Step 2, a button action is available to calculate the distance from the target to the center of mass of the focal spot at -6dB and suggest applying the required mechanical corrections in X and Y directions. This action should help to minimize the number of iterations in simulations looking to ensure the focal spot is aligned in the X and Y directions to the intended target.
 
-After doing the adjustments, the simulation can be repeated.
+Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations, there will be a report in which direction in the T1W space this adjustment translates. 
 
-<img src="Simulation-7.png" height=450px> 
+After making the adjustments, the simulation can be repeated.
+
 
 ### 3.c.ii - H246
 The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.
@@ -265,20 +293,25 @@ The H246 transducer has a similar operation as the CTX_500. The steps presented 
 <img src="Simulation-9.png" height=450px>
 
 
-### 3.c.iii - H317
-The H317 is a large transducer that uses a coupling cone that is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because this transducer has 128 elements, the user interface shows also the option to perform electronic refocusing.
+### 3.c.iii - H317, I12378 and ATAC
+These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.
  
 <img src="Simulation-10.png" height=450px>
 
 ### 3.c.iv - Single
-The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which can make that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point the out plane of the transducer reaches the skin.
+The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which means that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point of the out plane of the transducer reaches the skin.
  
 <img src="Simulation-11.png" height=450px>
 
-### 3.c.iv - BSonix
-These are commercial transducers with fixed focal lengths as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781). The user can select focal length of 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
+### 3.c.v - BSonix
+These are commercial transducers with fixed focal lengths as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781). The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
  
 <img src="Simulation-13.png" height=450px>
+
+### 3.c.vi - REMOPD
+This transducer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.
+
+<img src="Simulation-14.png" height=450px>
 
 ## 3.d - Thermal simulation
 The third tab in the GUI of BabelBrain shows the thermal simulation step.  The diagram below shows a flowchart of this step.
@@ -290,6 +323,8 @@ The thermal simulation solves the Bio-heat thermal equation (BHTE) for all the c
 <img src="Simulation-12.png" height=450px>
 
 The selection of spatial-peak pulse-average intensity ($I_{\text{SPPA}}$) indicates the desired intensity at the target. The spatial-peak time-average intensity ($I_{\text{SPTA}}$) is calculated based on the selected timing conditions.  Based on the selections of timing and desired $I_{\text{SPPA}}$ in tissue, the $I_{\text{SPPA}}$ in water conditions is calculated after taking into account all the losses. Thermal safety parameters (maximal temperature and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. The `MTB`, `MTS` and `MTC` push buttons in the lower region of the interface select the slice corresponding to the the maximal temperature in brain, skin and skull, respectively.
+
+The `Update Profile and Calculate` action can be used to load an updated version of the thermal profile file. This will force the recalculation of thermal results.
 
 The `Export summary (CSV)` action exports the input data paths and user selections used for the simulations. It also includes a table of $I_{\text{SPPA}}$ in water conditions and safety metrics in function of the desired $I_{\text{SPPA}}$ in tissue. Below there is an example of the exported data.
 
@@ -303,3 +338,4 @@ The `Export summary (CSV)` action exports the input data paths and user selectio
 | 3     | 14.31      | 0.43 | 0.9   | 0.20 | 0.09 | 0.11 | 0.000382002 | 0.000351024 | 0.000356431 |
 | ...    | ...     | ...  | ...    | ...  | ...  | ...  |...  | ...  | ...  |
 
+The `Export Current Thermal map (.nii.gz)` action exports the current thermal simulation on display in Nifti format for inspection in neuronavigation and visualization software
