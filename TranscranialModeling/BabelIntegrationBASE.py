@@ -53,6 +53,14 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+import shutil
+import pigz_python
+command = 'pigz'
+B_PIGZ_AVAILABLE = shutil.which(command) is not None
+
+print('pigz compressor available:',B_PIGZ_AVAILABLE)
+
+
 ## Global definitions
 
 DbToNeper=1/(20*np.log10(np.exp(1)))
@@ -316,20 +324,34 @@ def DensityToSSoSPichardo(density):
     
 
 def SaveNiftiEnforcedISO(nii,fn):
-    nii.to_filename(fn)
-    newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
+    filename, file_extension = os.path.splitext(fn)
+    if '.gz' == file_extension:
+        tempfn=filename
+    else:
+        tempfn=fn
+        
+    #we save first to uncompressed and use pigz to compress
+    nii.to_filename(tempfn)
+    newfn=tempfn.split('__.nii')[0]+'.nii'
     res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
     try:
-        pre=sitk.ReadImage(fn)
+        pre=sitk.ReadImage(tempfn)
         pre.SetSpacing([res,res,res])
         sitk.WriteImage(pre, newfn)
-        os.remove(fn)
+        os.remove(tempfn)
     except:
         res = '%6.5f' % (res)
-        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
+        cmd='flirt -in "'+fn + '" -ref "'+ tempfn + '" -applyisoxfm ' +res + ' -nosearch -out "' +newfn+'"'
         print(cmd)
         assert(os.system(cmd)==0)
-        os.remove(fn)
+        os.remove(tempfn)
+    if B_PIGZ_AVAILABLE:
+        cmd = "pigz -f -1 '" + newfn+"'"
+        if os.system(cmd) != 0:
+            raise RuntimeError("compression of file failed:" + newfn)
+    else:
+        pigz_python.compress_file(newfn,compresslevel=1)
+        os.remove(newfn)
 
 def ResaveNormalized(RPath,Mask):
     assert('_Sub.nii.gz' in RPath)
@@ -351,7 +373,17 @@ def ResaveNormalized(RPath,Mask):
     ResultsData[SubMask<4]=0
     ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
-    NormalizedNifti.to_filename(NRPath)
+    filename, file_extension = os.path.splitext(NRPath)
+    assert('.gz'==file_extension)
+    #we save first to uncompressed and use pigz to compress
+    NormalizedNifti.to_filename(filename)
+    if B_PIGZ_AVAILABLE:
+        cmd = "pigz -f -1 '" + filename +"'"
+        if os.system(cmd) != 0:
+            raise RuntimeError("compression of file failed:" + filename)
+    else:
+        pigz_python.compress_file(filename,compresslevel=1)
+        os.remove(filename)
     
 ####
 bGPU_INITIALIZED = False
@@ -888,15 +920,16 @@ class BabelFTD_Simulations_BASE(object):
             
         sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
-            SaveToH5py(DataForSim,sname)
-            if bUseRayleighForWater:
-                #we save now the h5 file for water
-                DataForSim['p_amp']= p_amp_water
-                DataForSim['p_complex']= p_complex_water
-                if self._bDoRefocusing:
-                    DataForSim.pop('p_amp_refocus')
-                sname=FILENAMESWater['DataForSim']
+            with CodeTimer("Time to save HDF5 files",unit='s'):
                 SaveToH5py(DataForSim,sname)
+                if bUseRayleighForWater:
+                    #we save now the h5 file for water
+                    DataForSim['p_amp']= p_amp_water
+                    DataForSim['p_complex']= p_complex_water
+                    if self._bDoRefocusing:
+                        DataForSim.pop('p_amp_refocus')
+                    sname=FILENAMESWater['DataForSim']
+                    SaveToH5py(DataForSim,sname)
 
         gc.collect()
         
