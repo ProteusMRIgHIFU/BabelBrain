@@ -42,8 +42,8 @@ Besides the recommended conda environment, a healthy XCode installation in macOS
 *  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment and install the library with:
    ```
    git clone https://github.com/drlukeparry/pycork.git
-   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
    cd pycork
+   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
    git submodule update --init --recursive
    pip install .
    ```
