@@ -82,7 +82,7 @@ class Babel_Thermal(QWidget):
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
         self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
 
-        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateThermalResults)
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
         self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateThermalResults)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarkChange)
@@ -169,10 +169,10 @@ class Babel_Thermal(QWidget):
     def SelectProfile(self):
         fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
-            self._MainApp.UpdateThermalProfile(fThermalProfile)
-            self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
-            self.DefaultConfig()  
-            self.RunSimulation()
+            if self._MainApp.UpdateThermalProfile(fThermalProfile):
+                self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
+                self.DefaultConfig()  
+                self.RunSimulation()
                 
 
     @Slot()
@@ -234,6 +234,10 @@ class Babel_Thermal(QWidget):
 
     @Slot()
     def HideMarkChange(self,val):
+        self.UpdateThermalResults()
+
+    @Slot()
+    def UpdateSelCombination(self):
         self.UpdateThermalResults()
 
     @Slot()

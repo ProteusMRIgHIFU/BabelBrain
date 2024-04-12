@@ -1,4 +1,4 @@
-BabelBrain v0.3.2
+BabelBrain v0.3.4
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -14,7 +14,7 @@ www.neurofus.ca
 
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
-BabelBrain is a frontend application specially designed to work in tandem with neuronavigation software to perform focused ultrasound research. BabelBrain uses [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) extensively for calculations. BabelViscoFDTD is optimized for multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelViscoFDTD is focused on MacOS systems based on Apple ARM64 processors. However, BabelViscoFDTD can run on any system (Mac, Linux, Windows) that has a decent GPU from NVidia or AMD. 
+BabelBrain is a frontend application specially designed to work in tandem with neuronavigation and visualization software to perform transcranial focused ultrasound research. BabelBrain uses [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) extensively for calculations. BabelViscoFDTD is optimized for multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelViscoFDTD was focused on MacOS systems based on Apple ARM64 processors. However, BabelViscoFDTD can run on any system (Mac, Linux, Windows) that has a decent GPU from NVidia or AMD. 
 
 # Disclaimer
 This software is provided "as is" and it is intended exclusively for research purposes.
@@ -34,13 +34,21 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
 
 # Manual Installation for Development 
-If you prefer to run the code in a Python environment, the requirements are roughly a clean Python 3.9-3.10 environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
-
-*  Python 3.9-3.10. Anaconda/miniconda is recommended. - if running in Apple new ARM64 processors (M1, M1 Max, etc.), be sure to use a native ARM64 version. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for further details.
-* [Blender](www.blender.org) installed
-
 ## Recommended settings
-* All OS: create a conda environment using the appropriate yaml file. 
+* All OS: create a conda environment using the appropriate yaml file for macOS Intel, macOS ARM64, Windows or Linux. 
+
+Besides the recommended conda environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux will be required. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
+
+*  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment and install the library with:
+   ```
+   git clone https://github.com/drlukeparry/pycork.git
+   cd pycork
+   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
+   git submodule update --init --recursive
+   pip install .
+   ```
+
+
 
 ## Running
 If running from the GitHub source code, just change to the BabelBrain directory and execute
@@ -62,6 +70,16 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.4 - Apr 5th, 2024
+  - Improvement: Significantly faster calculations in Step 2. Improvements to the modeling of acoustic sources in r0.3.2 allowed the elimination of the two-step calculations used in previous versions. Computational cost savings should range between 48% to 40%. A large numerical study was executed to ensure the precision of calculations was not affected.
+  -  Improvement. No more need for Blender. We finally found a native Python CSG library that is robust enough to perform the geometry tasks we have been using with Blender until now. This has only a minor implication for those users running BabelBrain in their own Python environment (see details above about installing the `pycork` library). For those using the stand-alone applications, there is no impact other than Blender can be safely uninstalled if there is no more need for it.
+  - New: Support to new transducers. We added three new phased array devices: Two concave arrays and one flat 2D array.  The I12378 transducer is a 128-element device operating at 650 kHz with a focal length of 72 mm and a diameter of 103 mm. The ATAC transducer is a 128-element device operating at 1 MHz with a focal length 53.2 mm and a diameter of 58 mm.  The REMOPD transducer is a 256-element flat 2D array operating at 300 kHz with a diameter of 58 mm. We thank the team at Vanderbilt University for sharing the transducer definitions of their concave arrays (I12378 and ATAC transducers). We thank the team at Toronto Western Hospital and Fraunhofer IBMT for sharing the transducer definition of their REMOPD transducer.
+  - New: Automatic calculation for mechanical corrections in X and Y directions. After running a first pass of simulation in Step 2, a new button action is now available to calculate the distance from the target to the center of mass of the focal spot at -6dB and suggest applying the required mechanical corrections in X and Y directions. This action should help to minimize the number of iterations in simulations looking to ensure the focal spot is aligned in the X and Y directions to the intended target.
+  - New: Possibility to update thermal profile in Step 3. The initial design of BabelBrain assumed that the parameters of the timing of LIFU exposures would vary little in a study. That is why it is asked as initial input when initiating BabelBrain. However, some users have expressed their need to have more flexibility to explore variated settings without having to restart BabelBrain. For this purpose, we added in Step 3 a new action button that can be used to load an updated version of the thermal profile file. 
+  - New: Multi-point LIFU exposures. BabelBrain now offers the possibility to execute electronic steering over a list of points if a concave array is selected. In the first dialog, if any of the three concave arrays is selected (H317, I12378 and ATAC), the user can select a new profile definition specific to multi-point steering. You can consult an example in the [Profiles](https://github.com/ProteusMRIgHIFU/BabelBrain/blob/main/Profiles/MultiFocus_Profile1.yaml) subdirectory in BabelBrain. Coordinates in the profile are relative to the user-specified steering in Step 2. Be aware that the selected duty cycle for the thermal simulations is split among all multi-point entries. It is assumed that a single burst is applied per steering location, before steering to the next location. For example, if simulating three-point steering with a duty cycle of 30%, this implies that each point will represent 10% of the duty cycle.
+  - New: Examples for offline batch processing. We added a couple of Jupyter notebooks in the [OfflineBatchExamples](https://github.com/ProteusMRIgHIFU/BabelBrain/tree/main/OfflineBatchExamples) directory in the BabelBrain repository, along with a README file indicating steps to create an environment ready to run these examples. These notebooks can be very useful when running very large parametric studies. For example, the [CompareRayleightWithFDTD](https://github.com/ProteusMRIgHIFU/BabelBrain/tree/main/OfflineBatchExamples/CompareRayleightWithFDTD) case is the one we used to study the acoustic simulations in water-only conditions that facilitate reducing the computational costs in Step 2.
+  - Fix: Occasional mask generation issues with high-resolution conditions. In some cases, Step 1 would produce incomplete tissue masks when using high PPW values (9 and higher) or with high frequency ( 1 MHz) when using Metal-based devices. The GPU filtering functions were rewritten to cover better these cases or at least provide a more meaningful error message to notify the users. 
+  - Fix: Enforce float type in profile files. Entries in thermal profiles such as duty cycle must be float values. Entries such as "1" should be "1.0". An error will be shown when loading profiles that do not adhere to this convention. This should imply minor changes to old profile files.
 - 0.3.2 - March 3rd, 2024
   - New: Full integration with Brainsight (Rogue Research) version 2.5.3 is now operational. In Brainsight, you need to start a new Simbnibs project and during the planning stage, a new "FUS" button in the Brainsight GUI can be used to invoke BabelBrain. Once simulations are completed, the results of the normalized transcranial simulation (normalized between 0 and 1 in the brain region) will be loaded automatically in Brainsight. 
   - New: Export of thermal maps into Nifti format. In Step 3, the current thermal simulation on display can now be exported in Nifti for inspection in neuronavigation and visualization software.

@@ -17,6 +17,7 @@ import yaml
 
 _IS_MAC = platform.system() == 'Darwin'
 
+
 def resource_path():  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
     if not _IS_MAC:
@@ -30,6 +31,44 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 ListTxSteering=['H317','I12378','ATAC']
+
+def ValidThermalProfile(fProf):
+    msgDetails=None
+    try:
+        with open(fProf,'r') as f:
+            profile=yaml.safe_load(f)
+    except:
+        msgDetails = "Invalid profile YAML file"
+        return False,msgDetails
+        
+    if 'BaseIsppa' not in profile:
+        msgDetails = "BaseIsppa entry must be in YAML file"
+        return False,msgDetails
+    
+    if type(profile['BaseIsppa']) is not float:
+        msgDetails = "BaseIsppa must be a single float"
+        return False,msgDetails
+    
+    if 'AllDC_PRF_Duration' not in profile:
+        msgDetails = "AllDC_PRF_Duration entry must be in YAML file"
+        return False,msgDetails
+    
+    if type(profile['AllDC_PRF_Duration']) is not list:
+        msgDetails = "AllDC_PRF_Duration must be a list"
+        return False,msgDetails
+    
+    for n,entry in enumerate(profile['AllDC_PRF_Duration']):
+        if type(entry) is not dict:
+            msgDetails = "entry %i in AllDC_PRF_Duration must be a dictionary" % (n)
+            return False,msgDetails
+        for k in ['DC','PRF','Duration','DurationOff']:
+            if k not in entry:
+                msgDetails = "entry %i in AllDC_PRF_Duration must have a key %s" % (n,k)
+                return False,msgDetails
+            if type(entry[k]) is not float:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
+                return False,msgDetails
+    return True,msgDetails
 
 class SelFiles(QDialog):
     def __init__(self, parent=None,Trajectory='',T1W='',
@@ -183,47 +222,8 @@ class SelFiles(QDialog):
             
     def ValidThermalProfile(self):
         fProf = self.ui.ThermalProfilelineEdit.text()
-
-        if not os.path.isfile(fProf):
-            self.msgDetails = "Profile file was not specified"
-            return False
-
-        try:
-            with open(fProf,'r') as f:
-                profile=yaml.safe_load(f)
-        except:
-            self.msgDetails = "Invalid profile YAML file"
-            return False
-            
-        if 'BaseIsppa' not in profile:
-            self.msgDetails = "BaseIsppa entry must be in YAML file"
-            return False
-        
-        if type(profile['BaseIsppa']) is not float:
-            self.msgDetails = "BaseIsppa must be a single float"
-            return False
-        
-        if 'AllDC_PRF_Duration' not in profile:
-            self.msgDetails = "AllDC_PRF_Duration entry must be in YAML file"
-            return False
-        
-        if type(profile['AllDC_PRF_Duration']) is not list:
-            self.msgDetails = "AllDC_PRF_Duration must be a list"
-            return False
-        
-        for n,entry in enumerate(profile['AllDC_PRF_Duration']):
-            if type(entry) is not dict:
-                self.msgDetails = "entry %i in AllDC_PRF_Duration must be a dictionary" % (n)
-                return False
-            for k in ['DC','PRF','Duration','DurationOff']:
-                if k not in entry:
-                    self.msgDetails = "entry %i in AllDC_PRF_Duration must have a key %s" % (n,k)
-                    return False
-                if type(entry[k]) is not float:
-                    self.msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
-                    return False
-            
-        return True
+        retValue, self.msgDetails = ValidThermalProfile(fProf)
+        return retValue
     
     def ValidateMultiPointProfile(self):
         selTx=self.ui.TransducerTypecomboBox.currentText()
