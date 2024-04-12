@@ -48,6 +48,27 @@ try:
     from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
 except:
     from .ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    
+import shutil
+import pigz_python
+from io import BytesIO
+command = 'pigz'
+B_PIGZ_AVAILABLE = shutil.which(command) is not None
+
+def SaveNiftiPigz(nifti,fname):
+    filename, file_extension = os.path.splitext(fname)
+    assert('.gz'==file_extension)
+    if B_PIGZ_AVAILABLE:
+        nifti.to_filename(filename)
+        cmd = "pigz -f -1 '" + filename +"'"
+        if os.system(cmd) != 0:
+            raise RuntimeError("compression of file failed:" + filename)
+    else:
+        bio=BytesIO()
+        nifti.to_stream(bio)
+        bio.seek(0)
+        pigz_python.compress_file(bio,compresslevel=1,blocksize=16000,output_filename=fname)
+        bio.close()
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -1056,7 +1077,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
-    mask_nifti2.to_filename(outname)
+    with CodeTimer("saving BabelViscoInput Nifti ",unit='s'):
+        SaveNiftiPigz(mask_nifti2,outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
         if ResampleFilter is None:
@@ -1064,7 +1086,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         else:
             T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
-        T1Conformal.to_filename(T1W_resampled_fname)
+        with CodeTimer("saving T1Conformal Nifti",unit='s'):
+            SaveNiftiPigz(T1Conformal,T1W_resampled_fname)
     
     if bPlot:
         plt.figure()

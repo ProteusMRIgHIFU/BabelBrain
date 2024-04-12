@@ -28,6 +28,7 @@ import os
 import pandas as pd
 import h5py
 from linetimer import CodeTimer
+from io import BytesIO
 
 try:
     import mkl_fft as fft
@@ -57,8 +58,6 @@ import shutil
 import pigz_python
 command = 'pigz'
 B_PIGZ_AVAILABLE = shutil.which(command) is not None
-
-print('pigz compressor available:',B_PIGZ_AVAILABLE)
 
 
 ## Global definitions
@@ -350,7 +349,7 @@ def SaveNiftiEnforcedISO(nii,fn):
         if os.system(cmd) != 0:
             raise RuntimeError("compression of file failed:" + newfn)
     else:
-        pigz_python.compress_file(newfn,compresslevel=1)
+        pigz_python.compress_file(newfn,blocksize=16000,compresslevel=1)
         os.remove(newfn)
 
 def ResaveNormalized(RPath,Mask):
@@ -376,14 +375,17 @@ def ResaveNormalized(RPath,Mask):
     filename, file_extension = os.path.splitext(NRPath)
     assert('.gz'==file_extension)
     #we save first to uncompressed and use pigz to compress
-    NormalizedNifti.to_filename(filename)
     if B_PIGZ_AVAILABLE:
+        NormalizedNifti.to_filename(filename)
         cmd = "pigz -f -1 '" + filename +"'"
         if os.system(cmd) != 0:
             raise RuntimeError("compression of file failed:" + filename)
     else:
-        pigz_python.compress_file(filename,compresslevel=1)
-        os.remove(filename)
+        bio=BytesIO()
+        NormalizedNifti.to_stream(bio)
+        bio.seek(0)
+        pigz_python.compress_file(bio,compresslevel=1,blocksize=16000,output_filename=NRPath)
+        bio.close()
     
 ####
 bGPU_INITIALIZED = False
