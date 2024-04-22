@@ -208,7 +208,8 @@ class SingleTx(BabelBaseTx):
     def GetExport(self):
         Export=super(SingleTx,self).GetExport()
         for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
-            Export[k]=getattr(self.Widget,k+'SpinBox').value()
+            if hasattr(self.Widget,k+'SpinBox'):
+                Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
 
 class RunAcousticSim(QObject):

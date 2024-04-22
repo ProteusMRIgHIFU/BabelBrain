@@ -98,6 +98,11 @@ class BSonix(SingleTx):
         #By default, it returns empty string, useful when dealing with user-specified geometry
         model=self.GetTxModel()
         return model+'_'
+    
+    def GetExport(self):
+        Export=super(BSonix,self).GetExport()
+        Export['TxModel']=self.GetTxModel()
+        return Export
 
 
     @Slot()
