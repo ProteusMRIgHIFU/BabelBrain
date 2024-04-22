@@ -19,6 +19,7 @@ import nibabel
 import matplotlib
 matplotlib.use('Agg')  # Use the 'Agg' backend, which is noninteractive
 import matplotlib.pyplot as plt
+from skimage.metrics import structural_similarity, mean_squared_error
 
 from BabelBrain.BabelBrain import BabelBrain
 from BabelBrain.SelFiles.SelFiles import SelFiles
@@ -81,6 +82,11 @@ computing_backends = [
     {'type': 'CUDA','supported_os': ['Windows','Linux']},
     {'type': 'Metal','supported_os': ['Mac']}
 ]
+spatial_step = {
+    'low_res': 0.919, # 6 PPW, 200 kHz
+    'medium_res': 0.163, # 9 PPW, 750 kHz
+    'high_res': 0.092, # 12 PPW, 1000 kHz
+}
 
 # PYTEST FIXTURES
 @pytest.fixture()
@@ -159,19 +165,9 @@ def get_rmse():
 
 @pytest.fixture()
 def compare_data(get_rmse):
-    
-    def stl_area(output_stl,truth_stl):
-        
-        # Check STL area
-        percent_error_area = abs((output_stl.area - truth_stl.area)/truth_stl.area)
-        if percent_error_area > 0:
-            logging.warning(f"STL area had a percent error of {percent_error_area*100}%")
-        else:
-            logging.info(f"STL area is identical ({output_stl.area})")
-        
-        return percent_error_area
 
     def array_data(output_array,truth_array):
+        logging.info('Calculating root mean square error')
 
         array_rmse = array_range = array_norm_rmse = None
 
@@ -188,28 +184,86 @@ def compare_data(get_rmse):
             array_length_same = False
         
         return array_length_same, array_norm_rmse
+    
+    def dice_coefficient(output_array,truth_array):
+        logging.info('Calculating dice coefficient')
+
+        if output_array.size != truth_array.size:
+            pytest.fail(f"Array sizes don't match: {output_array.size} vs {truth_array.size}")
+
+        if output_array.size == 0:
+            pytest.fail("Arrays are empty")
+        
+        matches = abs(output_array - truth_array) < 1e-6
+        matches_count = len(matches[matches==True])
+
+        dice_coeff = 2 * matches_count / (output_array.size + truth_array.size)
+        return dice_coeff
+    
+    def mse(output_array,truth_array):
+        logging.info('Calculating mean square error')
+
+        if output_array.size != truth_array.size:
+            pytest.fail(f"Array sizes don't match: {output_array.size} vs {truth_array.size}")
+
+        if output_array.size == 0:
+            pytest.fail("Arrays are empty")
+        
+        mean_square_error = mean_squared_error(output_array, truth_array)
+        return mean_square_error
+    
+    def ssim(output_array,truth_array,win_size=7,data_range=None):
+        logging.info('Calculating structural similarity')
+
+        if output_array.size != truth_array.size:
+            pytest.fail(f"Array sizes don't match: {output_array.size} vs {truth_array.size}")
+
+        if output_array.size == 0:
+            pytest.fail("Arrays are empty")
+
+        score = structural_similarity(output_array, truth_array, win_size=win_size,data_range=data_range)
+        return score
+    
+    def stl_area(output_stl,truth_stl):
+        logging.info('Calculating percent error of stl area')
+        
+        # Check STL area
+        percent_error_area = abs((output_stl.area - truth_stl.area)/truth_stl.area)
+        if percent_error_area > 0:
+            logging.warning(f"STL area had a percent error of {percent_error_area*100}%")
+        else:
+            logging.info(f"STL area is identical ({output_stl.area})")
+        
+        return percent_error_area
 
     # Return the fixture object with the specified attribute
-    return {'stl_area': stl_area,'array_data': array_data}
+    return {'array_data': array_data,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
 
 @pytest.fixture()
 def get_mpl_plot():
-    def _get_mpl_plot(data_1, data_2):
-        # Determine midpoints
-        # midpoint1_x = data_1.shape[0]//2
-        # midpoint1_y = data_1.shape[1]//2
-        midpoint1_z = data_1.shape[2]//2
-        # midpoint2_x = data_2.shape[0]//2
-        # midpoint2_y = data_2.shape[1]//2
-        midpoint2_z = data_2.shape[2]//2
+    def _get_mpl_plot(datas,axes_num=1,titles=None, color_map='viridis'):
 
-        # Create pyvista plot
+        data_num = len(datas)
         plt.figure()
-        plt.subplot(1,2,1)
-        plt.imshow(data_1[:,:,midpoint1_z])
-        plt.subplot(1,2,2)
-        plt.imshow(data_2[:,:,midpoint2_z])
-    
+
+        # Create plots
+        for num in range(data_num):
+            for axis in range(axes_num):
+                plot_idx = axis * 3 + num + 1
+                midpoint = datas[num].shape[axis]//2
+                plt.subplot(axes_num,data_num,plot_idx)
+
+                if axis == 0:
+                    plt.imshow(datas[num][midpoint,:,:], cmap=color_map)
+                elif axis == 1:
+                    plt.imshow(datas[num][:,midpoint,:], cmap=color_map)
+                else:
+                    plt.imshow(datas[num][:,:,midpoint], cmap=color_map)
+
+                if titles is not None and axis == 0:
+                    plt.title(titles[num])
+        plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.5, hspace=0.5)
+
         # Save the plot to a BytesIO object
         buffer = BytesIO()
         plt.savefig(buffer, format='png')
@@ -242,8 +296,46 @@ def get_pyvista_plot():
         
         return base64_plot
     
+    def mesh_plot(mesh,title=''):
+
+        # Create pyvista plot
+        plotter = pv.Plotter(window_size=(500, 500),off_screen=True)
+        plotter.background_color = 'white'
+        plotter.add_mesh(pv.wrap(mesh),opacity=0.5)
+        plotter.add_title(title, font_size=12)
+        
+        # Save the plot to a BytesIO object
+        buffer = BytesIO()
+        plotter.show(screenshot=buffer)
+
+        # Encode the image data as base64 string
+        base64_plot = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        return base64_plot
+    
+    def voxel_plot(mesh,Points,title=''):
+        # Create points mesh
+        step = Points.shape[0]//1000000 # Plot 1000000 points
+        points_mesh =  pv.PolyData(Points[::step,:])
+
+        # Create pyvista plot
+        plotter = pv.Plotter(window_size=(500, 500),off_screen=True)
+        plotter.background_color = 'white'
+        plotter.add_mesh(pv.wrap(mesh),opacity=0.5)
+        plotter.add_mesh(points_mesh,color='blue',opacity=0.1)
+        plotter.add_title(title,font_size=12)
+        
+        # Save the plot to a BytesIO object
+        buffer = BytesIO()
+        plotter.show(screenshot=buffer)
+
+        # Encode the image data as base64 string
+        base64_plot = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        return base64_plot
+    
     # Return the fixture object with the specified attribute
-    return {'intersection_plot': intersection_plot}
+    return {'intersection_plot': intersection_plot,'mesh_plot': mesh_plot,'voxel_plot': voxel_plot}
 
 @pytest.fixture()
 def selfiles_widget(qtbot):
@@ -386,6 +478,9 @@ def pytest_generate_tests(metafunc):
 
     if 'computing_backend' in metafunc.fixturenames:
         metafunc.parametrize('computing_backend',tuple(computing_backends),ids=tuple(cb['type'] for cb in computing_backends))
+
+    if 'spatial_step' in metafunc.fixturenames:
+        metafunc.parametrize('spatial_step',tuple(spatial_step.values()),ids=tuple(spatial_step.keys()))
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item,call):

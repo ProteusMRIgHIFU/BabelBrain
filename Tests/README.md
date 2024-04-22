@@ -13,13 +13,13 @@ The following packages are also required for BabelBrain pytests:
 - pytest-html (Generating html test reports)
 - pytest-metadata 
 - pytest-qt (Handling QT applications)
-- pytest-xdist (Parallelization of tests to speed up test run time)
 
 ```bash
 pip install pytest-html, pytest-metadata, pytest-qt, pytest-xdist
 ```
 
 These optional packages may also be installed:
+- pytest-xdist (Parallelization of tests to speed up test run time, avoid using for GPU tests)
 - pytest-benchmark (Evaluate code performance)
 - pytest-profiling (Useful for determing code bottlenecks)
 - pytest-sugar (Improve readability of pytest output)
@@ -91,7 +91,7 @@ Alternatively, tests can be run from the integrated terminal similar to previous
 
 
 ### Additional Setup for BabelBrain testing
-BabelBrain tests require a file path be specified for the test data. To do this, create a `config.ini` file in Tests folder (i.e. same level as pytest.ini)
+BabelBrain tests require a file path be specified for the test data, certain tests also require the GPU device name. To do this, create a `config.ini` file in Tests folder (i.e. same level as pytest.ini)
 <pre>
 BabelBrain/
 ├── Tests/
@@ -103,9 +103,9 @@ BabelBrain/
 │     │     ├── unit_test_1.py
 │     │     ├── unit_test_2.py
 │     │     └── ...
-│     ├── config.ini
+│     ├── <b>config.ini</b>
 │     ├── conftest.py
-│     ├── <b>pytest.ini</b>
+│     ├── pytest.ini
 │     └── ...
 └── ...
 </pre>
