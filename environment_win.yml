@@ -66,7 +66,7 @@ dependencies:
       - llvmlite==0.39.1
       - matplotlib==3.7.1
       - networkx==3.0
-      - nibabel==5.1.0
+      - nibabel==5.2.1
       - numba==0.56.4
       - numpy==1.23.5
       - numpy-stl==3.0.1
@@ -78,6 +78,7 @@ dependencies:
       - pydicom==2.3.1
       - pymeshfix==0.16.2
       - pygments==2.14.0
+      - pigz_python @ git+https://github.com/ProteusMRIgHIFU/pigz-python
       - pyopencl==2022.3.1
       - pyparsing==3.0.9
       - pyside6==6.4.3
