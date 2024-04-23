@@ -884,7 +884,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 if MedianFilter is None:
                     fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
                 else:
-                    fct=MedianFilter(rCTdata>HUThreshold,sf,GPUBackend=MedianCOMPUTING_BACKEND)
+                    fct=MedianFilter(np.ascontiguousarray(rCTdata>HUThreshold).astype(np.uint8),sf,GPUBackend=MedianCOMPUTING_BACKEND)
 
             with CodeTimer("binary closing CT",unit='s'):
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
