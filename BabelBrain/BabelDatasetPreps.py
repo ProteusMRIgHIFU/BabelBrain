@@ -902,15 +902,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
             with CodeTimer("median filter CT",unit='s'):
                 print('Theshold for bone',HUThreshold)
-                if sys.platform in ['linux','win32']:
-                    gfct=cupy.asarray((rCTdata>HUThreshold))
-                    gfct=cndimage.median_filter(gfct,sf)
-                else:
+                if MedianFilter is None:
                     fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
+                else:
+                    fct=MedianFilter(np.ascontiguousarray(rCTdata>HUThreshold).astype(np.uint8),sf,GPUBackend=MedianCOMPUTING_BACKEND)
 
             with CodeTimer("binary closing CT",unit='s'):
-                if sys.platform in ['linux','win32']:
-                    fct=gfct.get()
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
 
@@ -965,15 +962,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
 
         with CodeTimer("CT median filter",unit='s'):
-            if sys.platform in ['linux','win32']:
-                gnfct=cupy.asarray(nfct.astype(np.uint8))
-                gnfct=cndimage.median_filter(gnfct,7)
-                nfct=gnfct.get()
+            if MedianFilter is None:
+                nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
             else:
-                if MedianFilter is None:
-                    nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
-                else:
-                    nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+                nfct=MedianFilter(nfct.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
             nfct=nfct!=0
 
         del XYZ
@@ -1053,15 +1045,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
-        if sys.platform in ['linux','win32']:
-            gFinalMask=cupy.asarray(FinalMask.astype(np.uint8))
-            gFinalMask=cndimage.median_filter(gFinalMask,7)
-            FinalMask=gFinalMask.get()
+        if MedianFilter is None:
+            FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
-            if MedianFilter is None:
-                FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
-            else:
-                FinalMask=MedianFilter(FinalMask.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+            FinalMask=MedianFilter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
     
     #we extract back the bone part
     BinMaskConformalSkullRot=FinalMask==2
