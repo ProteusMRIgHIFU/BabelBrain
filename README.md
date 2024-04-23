@@ -1,4 +1,4 @@
-BabelBrain v0.3.4
+BabelBrain v0.3.4-1
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -39,11 +39,17 @@ Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/
 
 Besides the recommended conda environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux will be required. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
 
-*  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment and install the library with:
+*  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment. 
+   
+   In macOS, install the GMP library; for example with `homebrew`
+   ```
+   brew install gmp
+   ```
+   Install the `pycork` library with:
    ```
    git clone https://github.com/drlukeparry/pycork.git
-   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
    cd pycork
+   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
    git submodule update --init --recursive
    pip install .
    ```
@@ -70,6 +76,8 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.4-1 - Apr 19th, 2024
+  - Fix: Export CSV for BSonix transducers had a bug preventing the export.
 - 0.3.4 - Apr 5th, 2024
   - Improvement: Significantly faster calculations in Step 2. Improvements to the modeling of acoustic sources in r0.3.2 allowed the elimination of the two-step calculations used in previous versions. Computational cost savings should range between 48% to 40%. A large numerical study was executed to ensure the precision of calculations was not affected.
   -  Improvement. No more need for Blender. We finally found a native Python CSG library that is robust enough to perform the geometry tasks we have been using with Blender until now. This has only a minor implication for those users running BabelBrain in their own Python environment (see details above about installing the `pycork` library). For those using the stand-alone applications, there is no impact other than Blender can be safely uninstalled if there is no more need for it.
