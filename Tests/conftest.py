@@ -132,7 +132,8 @@ def load_files(check_files_exist):
 def check_os(computing_backend):
     sys_os = None
     sys_platform = platform.platform(aliased=True)
-    if 'Mac' in sys_platform:
+    
+    if 'macOS' in sys_platform:
         sys_os = 'Mac'
     elif 'Windows' in sys_platform:
         sys_os = 'Windows'
