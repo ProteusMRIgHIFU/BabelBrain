@@ -259,6 +259,19 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
 
+def DoIntersectBlender(Mesh1,Mesh2):
+    # Fix broken meshes
+    if Mesh1.body_count != 1:
+        print('Mesh 1 is invalid... trying to fix')
+        Mesh1 = FixMesh(Mesh1)
+
+    if Mesh2.body_count != 1:
+        print('Mesh 2 is invalid... trying to fix')
+        Mesh2 = FixMesh(Mesh2)
+
+    Mesh1_intersect = trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+    return Mesh1_intersect
+
 def DoIntersect(Mesh1,Mesh2):
     # Fix broken meshes
     if Mesh1.body_count != 1:

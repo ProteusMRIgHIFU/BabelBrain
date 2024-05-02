@@ -134,3 +134,8 @@ docs/site/**
 *.pkg
 *.dmg
 BabelBrain/final
+.vscode/launch.json
+.vscode/settings.json
+report.html
+Tests/config.ini
+assets/style.css

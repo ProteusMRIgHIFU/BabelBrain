@@ -16,6 +16,9 @@ import time
 from multiprocessing import Process, Queue
 from pathlib import Path
 
+sys.path.append(os.path.abspath('../'))
+sys.path.append(os.path.abspath('./'))
+
 import SimpleITK as sitk
 import nibabel
 import numpy as np
@@ -69,8 +72,6 @@ if sys.platform =='linux':
 
 
 
-sys.path.append(os.path.abspath('../'))
-sys.path.append(os.path.abspath('./'))
 
 
 
