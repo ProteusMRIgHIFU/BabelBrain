@@ -126,10 +126,10 @@ def RunElastix(reference,moving,finalname):
                         moving,
                         tmpdirname], capture_output=True, text=True
                 )
-            print("stdout:", result.stdout)
-            print("stderr:", result.stderr)
-            if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+                print("stdout:", result.stdout)
+                print("stderr:", result.stderr)
+                if result.returncode == 0:
+                    shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
             if result.returncode != 0:
                 raise SystemError("Error when trying to run elastix")
     else:
