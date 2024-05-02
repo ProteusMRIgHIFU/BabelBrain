@@ -48,6 +48,27 @@ try:
     from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
 except:
     from .ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    
+import shutil
+import pigz_python
+from io import BytesIO
+command = 'pigz'
+B_PIGZ_AVAILABLE = shutil.which(command) is not None
+
+def SaveNiftiPigz(nifti,fname):
+    filename, file_extension = os.path.splitext(fname)
+    assert('.gz'==file_extension)
+    if B_PIGZ_AVAILABLE:
+        nifti.to_filename(filename)
+        cmd = "pigz -f -1 '" + filename +"'"
+        if os.system(cmd) != 0:
+            raise RuntimeError("compression of file failed:" + filename)
+    else:
+        bio=BytesIO()
+        nifti.to_stream(bio)
+        bio.seek(0)
+        pigz_python.compress_file(bio,compresslevel=1,blocksize=16000,output_filename=fname)
+        bio.close()
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -894,15 +915,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
             with CodeTimer("median filter CT",unit='s'):
                 print('Theshold for bone',HUThreshold)
-                if sys.platform in ['linux','win32']:
-                    gfct=cupy.asarray((rCTdata>HUThreshold))
-                    gfct=cndimage.median_filter(gfct,sf)
-                else:
+                if MedianFilter is None:
                     fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
+                else:
+                    fct=MedianFilter(np.ascontiguousarray(rCTdata>HUThreshold).astype(np.uint8),sf,GPUBackend=MedianCOMPUTING_BACKEND)
 
             with CodeTimer("binary closing CT",unit='s'):
-                if sys.platform in ['linux','win32']:
-                    fct=gfct.get()
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
 
@@ -957,15 +975,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
 
         with CodeTimer("CT median filter",unit='s'):
-            if sys.platform in ['linux','win32']:
-                gnfct=cupy.asarray(nfct.astype(np.uint8))
-                gnfct=cndimage.median_filter(gnfct,7)
-                nfct=gnfct.get()
+            if MedianFilter is None:
+                nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
             else:
-                if MedianFilter is None:
-                    nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
-                else:
-                    nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+                nfct=MedianFilter(nfct.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
             nfct=nfct!=0
 
         del XYZ
@@ -1045,15 +1058,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
-        if sys.platform in ['linux','win32']:
-            gFinalMask=cupy.asarray(FinalMask.astype(np.uint8))
-            gFinalMask=cndimage.median_filter(gFinalMask,7)
-            FinalMask=gFinalMask.get()
+        if MedianFilter is None:
+            FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
-            if MedianFilter is None:
-                FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
-            else:
-                FinalMask=MedianFilter(FinalMask.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
+            FinalMask=MedianFilter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
     
     #we extract back the bone part
     BinMaskConformalSkullRot=FinalMask==2
@@ -1069,7 +1077,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
-    mask_nifti2.to_filename(outname)
+    with CodeTimer("saving BabelViscoInput Nifti ",unit='s'):
+        SaveNiftiPigz(mask_nifti2,outname)
 
     with CodeTimer("resampling T1 to mask",unit='s'):
         if ResampleFilter is None:
@@ -1077,7 +1086,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         else:
             T1Conformal=ResampleFilter(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
-        T1Conformal.to_filename(T1W_resampled_fname)
+        with CodeTimer("saving T1Conformal Nifti",unit='s'):
+            SaveNiftiPigz(T1Conformal,T1W_resampled_fname)
     
     if bPlot:
         plt.figure()

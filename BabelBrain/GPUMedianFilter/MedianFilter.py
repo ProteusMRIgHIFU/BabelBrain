@@ -2,17 +2,25 @@ import numpy as np
 import platform
 
 import os
+import sys
 
+if sys.platform in ['linux','win32']:
+    import cupy 
+    import cupyx 
+    from cupyx.scipy import ndimage as cndimage
 
 ##probably not the most optimal of filters.. .but still WAY faster than CPU based
 _code='''
 #ifdef _OPENCL
-__kernel void median_reflect_w7_7_7(
-                                    __global const  PixelType * input,
-                                    __global PixelType * output, 
-                                    const int dims_0,
-                                    const int dims_1,
-                                    const int dims_2) {
+__kernel void median_reflect(
+                             __global const  PixelType * input,
+                             __global PixelType * output,
+                             const int dims_0,
+                             const int dims_1,
+                             const int dims_2,
+                             const int filter_size_0,
+                             const int filter_size_1,
+                             const int filter_size_2) {
       
     const int x = get_global_id(0);
     const int y = get_global_id(1);
@@ -25,15 +33,18 @@ using namespace metal;
 //dims_0 //To be defined when compiling kernel
 //dims_1  //To be defined when compiling kernel
 //dims_2  //To be defined when compiling kernel
-kernel void median_reflect_w7_7_7(
-                                    const device PixelType * input [[ buffer(0) ]],
-                                    device PixelType * output [[ buffer(1) ]],
-                                    const device int * int_params [[ buffer(2)]], 
-                                    uint gid[[thread_position_in_grid]]) {
+kernel void median_reflect(
+                           const device PixelType * input [[ buffer(0) ]],
+                           device PixelType * output [[ buffer(1) ]],
+                           const device int * int_params [[ buffer(2)]], 
+                           uint gid[[thread_position_in_grid]]) {
     
     const int dims_0 = int_params[0];
     const int dims_1 = int_params[1];
     const int dims_2 = int_params[2];
+    const int filter_size_0 = int_params[3];
+    const int filter_size_1 = int_params[4];
+    const int filter_size_2 = int_params[5];
 
     const int x = gid/(dims_1*dims_2);
     const int y = (gid-x*dims_1*dims_2)/dims_2;
@@ -42,14 +53,15 @@ kernel void median_reflect_w7_7_7(
 #endif
     
     
-    int ind_2 = z - 3;
-    int ind_1 = y - 3;
-    int ind_0 = x - 3;
+    int ind_2 = z - (filter_size_2/2);
+    int ind_1 = y - (filter_size_1/2);
+    int ind_0 = x - (filter_size_0/2);
     
     int iv = 0;
-    PixelType values[343];
+    int filter_size = filter_size_0*filter_size_1*filter_size_2;
+    PixelType values[343]; // We allocate for max scenario (7x7x7) and adjust size from there
     
-    for (int iw_0 = 0; iw_0 < 7; iw_0++)
+    for (int iw_0 = 0; iw_0 < filter_size_0; iw_0++)
     {
         int ix_0 = ind_0 + iw_0;
 
@@ -58,7 +70,7 @@ kernel void median_reflect_w7_7_7(
         else
             ix_0 = min(ix_0, 2 * dims_0 - 1 - ix_0);
 
-        for (int iw_1 = 0; iw_1 < 7; iw_1++)
+        for (int iw_1 = 0; iw_1 < filter_size_1; iw_1++)
         {
             int ix_1 = ind_1 + iw_1;
 
@@ -67,7 +79,7 @@ kernel void median_reflect_w7_7_7(
             else
                 ix_1 = min(ix_1, 2 * dims_1 - 1 - ix_1);
                 
-            for (int iw_2 = 0; iw_2 < 7; iw_2++)
+            for (int iw_2 = 0; iw_2 < filter_size_2; iw_2++)
                 {
                     int ix_2 = ind_2 + iw_2;
 
@@ -85,8 +97,13 @@ kernel void median_reflect_w7_7_7(
     }
      
     //sorting
-    const int size = 343;
-    int gap = 364;
+    const int size = filter_size;
+    const int midpoint = size/2;
+    int gap = 1;
+    while (gap < filter_size){
+        gap = 3*gap+1;
+    }
+
     while (gap > 1) {
         gap /= 3;
         for (int i = gap; i < size; ++i) {
@@ -100,7 +117,7 @@ kernel void median_reflect_w7_7_7(
         }
     }
     
-    output[_i]=values[171];
+    output[_i]=values[midpoint];
 
     }
 
@@ -112,6 +129,33 @@ ctx = None
 knl_1px = None
 mf = None
 clp = None
+
+def InitCUDA(DeviceName='A6000'):
+    import cupy as cp
+    global Platforms
+    global queue 
+    global prgcl 
+    global ctx
+    global clp
+
+    devCount = cp.cuda.runtime.getDeviceCount()
+    print("Number of CUDA devices found:", devCount)
+    if devCount == 0:
+        raise SystemError("There are no CUDA devices.")
+        
+    selDevice = None
+
+    for deviceID in range(0, devCount):
+        d=cp.cuda.runtime.getDeviceProperties(deviceID)
+        if DeviceName in d['name'].decode('UTF-8'):
+            selDevice=cp.cuda.Device(deviceID)
+            break
+
+    if selDevice is None:
+        raise SystemError("There are no devices supporting CUDA or that matches selected device.")
+      
+    ctx=selDevice
+    clp=cp
 
 def InitOpenCL(DeviceName='AMD'):
     import pyopencl as cl
@@ -140,7 +184,7 @@ def InitOpenCL(DeviceName='AMD'):
     queue = cl.CommandQueue(ctx)
     Preamble ='#define _OPENCL\ntypedef unsigned char PixelType;\n'
     prgcl = cl.Program(ctx, Preamble+_code).build()
-    knl_1px=prgcl.median_reflect_w7_7_7
+    knl_1px=prgcl.median_reflect
     mf = cl.mem_flags
     
 def InitMetal(DeviceName='AMD'):
@@ -164,7 +208,7 @@ def InitMetal(DeviceName='AMD'):
         ctx.set_external_gpu(1) 
     
     
-def MedianFilterSize7(data,GPUBackend='OpenCL'):
+def MedianFilter(data,size,GPUBackend='OpenCL'):
     global Platforms
     global queue 
     global prgcl 
@@ -175,7 +219,28 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
     assert(data.dtype==np.uint8)
     assert(np.isfortran(data)==False) 
 
-    if GPUBackend=='OpenCL':
+    if GPUBackend!='CUDA':
+        if isinstance(size,int):
+            footprint = np.ones((size,size,size),dtype=bool)
+        else:
+            footprint = np.ones(size,dtype=bool)
+
+        if footprint.shape[0] > 7 or footprint.shape[1] > 7 or footprint.shape[2] > 7:
+            raise ValueError(f"GPU Median filter can only handles sizes up to 7x7x7, current size is {footprint.shape}")
+    
+    if GPUBackend=='CUDA':
+        with ctx:
+            data_gpu = cupy.asarray(data)
+
+            try:
+                data_out_gpu = cndimage.median_filter(data_gpu,size)
+            except cupy.cuda.memory.OutOfMemoryError as e:
+                raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
+
+            data_out = cupy.asnumpy(data_out_gpu)
+        return data_out
+    
+    elif GPUBackend=='OpenCL':
         
         data_pr = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=data)
         data_out = np.zeros_like(data)
@@ -188,6 +253,9 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
                 np.int32(data.shape[0]),
                 np.int32(data.shape[1]),
                 np.int32(data.shape[2]),
+                np.int32(footprint.shape[0]),
+                np.int32(footprint.shape[1]),
+                np.int32(footprint.shape[2]),
                 g_times_l=False)
 
         clp.enqueue_copy(queue, data_out,data_out_pr)
@@ -195,14 +263,18 @@ def MedianFilterSize7(data,GPUBackend='OpenCL'):
         assert(GPUBackend=='Metal')
         Preamble ='#define _METAL\ntypedef unsigned char PixelType;\n'
         prgcl = ctx.kernel(Preamble+_code)
-        knl_1px=prgcl.function('median_reflect_w7_7_7')
+        knl_1px=prgcl.function('median_reflect')
 
         data_out = np.zeros_like(data)
         step = 240000000
         totalPoints = np.prod(data_out.shape)
-        int_params=np.zeros(3,np.int32)
+        int_params=np.zeros(6,np.int32)
         int_params[0] = data_out.shape[0]
         int_params[1] = data_out.shape[1]
+        int_params[3] = footprint.shape[0]
+        int_params[4] = footprint.shape[1]
+        int_params[5] = footprint.shape[2]
+
 
         for point in range(0,totalPoints,step):
             # Grab z indexes
