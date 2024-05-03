@@ -101,7 +101,7 @@ dependencies:
     - scooby==0.7.0
     - setuptools==59.8.0
     - shiboken6==6.4.0.1
-    - simpleitk==2.2.1
+    - simpleitk==2.3.1
     - statsmodels==0.13.5
     - superqt==0.4.0
     - tenacity==8.1.0

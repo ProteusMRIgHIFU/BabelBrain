@@ -96,7 +96,7 @@ dependencies:
       - scipy==1.10.1
       - scooby==0.7.1
       - shiboken6==6.4.3
-      - simpleitk==2.2.1
+      - simpleitk==2.3.1
       - six==1.16.0
       - superqt==0.4.1
       - tifffile==2023.3.21
