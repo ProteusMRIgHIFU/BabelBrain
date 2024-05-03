@@ -70,6 +70,7 @@ dependencies:
       - pydicom==2.3.1
       - pygments==2.14.0
       - pigz_python @ git+https://github.com/ProteusMRIgHIFU/pigz-python
+      - pymeshfix==0.16.2
       - pyopencl==2022.3.1
       - pyparsing==3.0.9
       - pyside6==6.4.3
@@ -88,7 +89,7 @@ dependencies:
       - scipy==1.10.1
       - scooby==0.7.1
       - shiboken6==6.4.3
-      - simpleitk==2.2.1
+      - simpleitk==2.3.1
       - six==1.16.0
       - superqt==0.4.1
       - tifffile==2023.3.21
