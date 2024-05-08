@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUResample')
+sys.path.append('BabelBrain/GPUFunctions/GPUResample')
 import logging
 
 import pytest
@@ -9,7 +9,7 @@ import numpy as np
 
 import Resample
 
-def test_resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_mpl_plot,compare_data,request):
+def test_Resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_mpl_plot,compare_data,request):
         
         # Parameters
         input_folder = dataset['folder_path']

@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import platform
 import yaml
-from _BabelBasePhasedArray import BabelBasePhaseArray
+from GUI._BabelBasePhasedArray import BabelBasePhaseArray
 
 
 _IS_MAC = platform.system() == 'Darwin'

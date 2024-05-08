@@ -35,11 +35,11 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     try:
 
         import BabelDatasetPreps as DataPreps
-        from GPUVoxelize import Voxelize
-        from GPUMapping import MappingFilter
-        from GPUResample import Resample
-        from GPUBinaryClosing import BinaryClosing
-        from GPULabel import LabelImage
+        from GPUFunctions.GPUVoxelize import Voxelize
+        from GPUFunctions.GPUMapping import MappingFilter
+        from GPUFunctions.GPUResample import Resample
+        from GPUFunctions.GPUBinaryClosing import BinaryClosing
+        from GPUFunctions.GPULabel import LabelImage
         print('sys.platform',sys.platform)
         if sys.platform not in ['linux','win32']: 
             assert(COMPUTING_BACKEND in [2,3])  

@@ -29,9 +29,9 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from CalculateFieldProcess import CalculateFieldProcess
-from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from _BabelBaseTx import BabelBaseTx
+from GUI._BabelBaseTx import BabelBaseTx
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -42,17 +42,18 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'Babel_H246'
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_CTX500'
     else:
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
 
-class H246(BabelBaseTx):
+class CTX500(BabelBaseTx):
     def __init__(self,parent=None,MainApp=None):
-        super(H246, self).__init__(parent)
+        super(CTX500, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
+        self._ZMaxSkin = 0.0 # maximum
         self.DefaultConfig()
         self.load_ui()
 
@@ -72,41 +73,19 @@ class H246(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
-        self.Widget.ZMechanicSpinBox.setMaximum(self.Config['MaxNegativeDistance'])
-        self.Widget.ZMechanicSpinBox.setMinimum(-self.Config['MaxDistanceToSkin'])  
-        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
+        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
-        
-        
-    @Slot()
-    def UpdateDistanceFromSkin(self):
-        self._bIgnoreUpdate=True
-        ZMec=self.Widget.ZMechanicSpinBox.value()
-        DistanceSkin=self.Widget.DistanceSkinLabel.property('UserData')
-        self.Widget.DistanceSkinLabel.setText('%3.1f' %(DistanceSkin-ZMec))
-        if ZMec>0:
-            self.Widget.DistanceSkinLabel.setStyleSheet("color: red")
-            self.Widget.LabelTissueRemoved.setVisible(True)
-        else:
-            self.Widget.DistanceSkinLabel.setStyleSheet("color: blue")
-            self.Widget.LabelTissueRemoved.setVisible(False) 
-
-    @Slot()
-    def TPODistanceUpdate(self,value):
-        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3
 
     def DefaultConfig(self):
-        #Specific parameters for the H246 - to be configured later via a yaml
+        #Specific parameters for the CTX500 - to be configured later via a yaml
 
         #with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("H246 configuration:")
-        print(config)
 
         self.Config=config
 
@@ -120,9 +99,32 @@ class H246(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin,1))
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
-
+        self._ZMaxSkin = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
+        self._ZMaxSkin = np.round(self._ZMaxSkin,1)
+        
+        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
+        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])  
+        self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
+        self._UnmodifiedZMechanic = self._ZMaxSkin
         self.TPODistanceUpdate(0)
-    
+
+    @Slot()
+    def TPODistanceUpdate(self,value):
+        self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
+
+    @Slot()
+    def UpdateDistanceFromSkin(self):
+        self._bIgnoreUpdate=True
+        ZMec=self.Widget.ZMechanicSpinBox.value()
+        CurDistance=self._ZMaxSkin-ZMec
+        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        if CurDistance<0:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: red")
+            self.Widget.LabelTissueRemoved.setVisible(True)
+        else:
+            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
+            self.Widget.LabelTissueRemoved.setVisible(False)
+
 
     @Slot()
     def RunSimulation(self):
@@ -134,12 +136,13 @@ class H246(BabelBaseTx):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            TPO=Skull['ZSteering']
+            TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "TPO distance=%3.2f\n" %(TPO*1e3)+
+                                    "ZSteering=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
+                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -149,6 +152,7 @@ class H246(BabelBaseTx):
                 self.Widget.TPODistanceSpinBox.setValue(TPO*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
+                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
@@ -174,9 +178,8 @@ class H246(BabelBaseTx):
         else:
             self.UpdateAcResults()
 
-   
     def GetExport(self):
-        Export=super(H246,self).GetExport()
+        Export=super(CTX500,self).GetExport()
         for k in ['TPODistance','XMechanic','YMechanic']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
@@ -205,6 +208,11 @@ class RunAcousticSim(QObject):
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
         TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
 
+        ZIntoSkin =0.0
+        CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
+        if CurDistance < 0:
+            ZIntoSkin = np.abs(CurDistance)
+
         ###############
         TPODistance=self._mainApp.AcSim.Widget.TPODistanceSpinBox.value()/1e3  #Add here the final adjustment)
         ##############
@@ -212,14 +220,11 @@ class RunAcousticSim(QObject):
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
 
 
-        ZSteering=TPODistance
+        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']
         print('ZSteering',ZSteering*1e3)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
         basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
-        ZIntoSkin =0.0
-        if TxMechanicalAdjustmentZ > 0:
-            ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)
         T0=time.time()
         kargs={}
         kargs['ID']=ID
@@ -230,16 +235,17 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentZ']=TxMechanicalAdjustmentZ
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
+        kargs['ZIntoSkin']=ZIntoSkin
         kargs['ZSteering']=ZSteering
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
-        kargs['ZIntoSkin'] = ZIntoSkin
         if kargs['bUseCT']:
             if self._mainApp.Config['CTType']==3:
                 kargs['bPETRA']=True
+
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 
@@ -278,10 +284,8 @@ class RunAcousticSim(QObject):
             self.endError.emit()
 
 
-
-
 if __name__ == "__main__":
     app = QApplication([])
-    widget = H246()
+    widget = CTX500()
     widget.show()
     sys.exit(app.exec_())
