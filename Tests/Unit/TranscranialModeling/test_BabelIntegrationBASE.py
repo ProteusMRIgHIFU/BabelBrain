@@ -4,11 +4,10 @@ import logging
 
 import pytest
 import nibabel
-import numpy as np
 
 from TranscranialModeling import BabelIntegrationBASE as BIBase
 
-def test_SaveNiftiEnforcedISO(dataset,load_files,compare_data,tmp_path):
+def test_SaveNiftiEnforcedISO(dataset,load_files,check_data,tmp_path):
 
     # Load inputs
     input_files = {'T1W': dataset['folder_path'] + 'T1W.nii.gz'}
@@ -29,8 +28,6 @@ def test_SaveNiftiEnforcedISO(dataset,load_files,compare_data,tmp_path):
     enforced_iso_nifti = nibabel.load(output_fname_final)
 
     # Check that data is isometric
-    zooms = enforced_iso_nifti.header.get_zooms()
-    diffs = np.abs(np.subtract.outer(zooms, zooms))
-    isometric = np.all(diffs <= 1e-6)
+    isometric = check_data['isometric'](enforced_iso_nifti)
 
     assert isometric, "Data is not isometric"

@@ -16,6 +16,7 @@ import base64
 from io import BytesIO
 import numpy as np
 import nibabel
+import SimpleITK as sitk
 import matplotlib
 matplotlib.use('Agg')  # Use the 'Agg' backend, which is noninteractive
 import matplotlib.pyplot as plt
@@ -165,6 +166,20 @@ def get_rmse():
     return _get_rmse
 
 @pytest.fixture()
+def check_data():
+    def isometric_check(nifti):
+        logging.info('Running isometric check')
+        zooms = nifti.header.get_zooms()
+        logging.info(f"Zooms: {zooms}")
+        diffs = np.abs(np.subtract.outer(zooms, zooms))
+        isometric = np.all(diffs <= 1e-6)
+
+        return isometric
+
+    # Return the fixture object with the specified attribute
+    return {'isometric': isometric_check}
+
+@pytest.fixture()
 def compare_data(get_rmse):
 
     def array_data(output_array,truth_array):
@@ -186,7 +201,32 @@ def compare_data(get_rmse):
         
         return array_length_same, array_norm_rmse
     
-    def dice_coefficient(output_array,truth_array):
+    def bhattacharyya_distance(arr1,arr2,num_bins):
+
+        min_val = int(np.floor(min(arr1.min(),arr2.min())))
+        max_val = int(np.ceil(max(arr1.max(),arr2.max())))
+        hist1,_ = np.histogram(arr1,bins=num_bins,range=(min_val,max_val))
+        hist2,_ = np.histogram(arr2,bins=num_bins,range=(min_val,max_val))
+        norm_hist1 = hist1 / np.sum(hist1)
+        norm_hist2 = hist2 / np.sum(hist2)
+
+        logging.info('Calculating Bhattacharyya Distance')
+        s1 = np.sum(norm_hist1)
+        s2 = np.sum(norm_hist2)
+        s1 *= s2
+        result = np.sum(np.sqrt(norm_hist1*norm_hist2))
+
+        if abs(s1) > np.finfo(np.float32).tiny:
+            s1 = 1/np.sqrt(s1)
+        else:
+            s1 = 1
+
+        bhatt_distance = np.sqrt(np.max(1-(s1*result),0))
+        logging.info(f"Bhattacharyya distance : {bhatt_distance}")
+
+        return bhatt_distance
+
+    def dice_coefficient(output_array,truth_array,tolerance=1e-6):
         logging.info('Calculating dice coefficient')
 
         if output_array.size != truth_array.size:
@@ -195,10 +235,11 @@ def compare_data(get_rmse):
         if output_array.size == 0:
             pytest.fail("Arrays are empty")
         
-        matches = abs(output_array - truth_array) < 1e-6
+        matches = abs(output_array - truth_array) < tolerance
         matches_count = len(matches[matches==True])
 
         dice_coeff = 2 * matches_count / (output_array.size + truth_array.size)
+        logging.info(f"DICE Coefficient: {dice_coeff}")
         return dice_coeff
     
     def mse(output_array,truth_array):
@@ -238,7 +279,7 @@ def compare_data(get_rmse):
         return percent_error_area
 
     # Return the fixture object with the specified attribute
-    return {'array_data': array_data,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
+    return {'array_data': array_data,'bhatt_distance': bhattacharyya_distance,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
 
 @pytest.fixture()
 def get_mpl_plot():
@@ -248,9 +289,9 @@ def get_mpl_plot():
         plt.figure()
 
         # Create plots
-        for num in range(data_num):
-            for axis in range(axes_num):
-                plot_idx = axis * 3 + num + 1
+        for axis in range(axes_num):
+            for num in range(data_num):
+                plot_idx = axis * data_num + num + 1
                 midpoint = datas[num].shape[axis]//2
                 plt.subplot(axes_num,data_num,plot_idx)
 
@@ -498,4 +539,4 @@ def pytest_runtest_makereport(item,call):
                 img_tags += "<td><img src='data:image/png;base64,{}'></td>".format(screenshot)
             extras.append(pytest_html.extras.html(f"<tr>{img_tags}</tr>"))
             
-        report.extra = extras
+        report.extras = extras

@@ -278,7 +278,26 @@ def EndWithError(msg):
         msgBox.setText(msg)
         msgBox.exec()
         raise SystemError(msg)
-    
+
+def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
+    preT1=sitk.ReadImage(T1W_fname)
+    getMin=sitk.MinimumMaximumImageFilter()
+    getMin.Execute(preT1)
+    minval=getMin.GetMinimum()
+    original_spacing = preT1.GetSpacing()
+    original_size = preT1.GetSize()
+    new_size = [int(round(osz*ospc/nspc)) for osz,ospc,nspc in zip(original_size, original_spacing, new_spacing)]
+    preT1=sitk.Resample(preT1, 
+                    new_size, 
+                    sitk.Transform(),
+                    sitk.sitkNearestNeighbor,
+                    preT1.GetOrigin(),
+                    new_spacing,
+                    preT1.GetDirection(), 
+                    minval,
+                    preT1.GetPixelID())
+    sitk.WriteImage(preT1, T1WIso_fname)
+ 
 ########################
 class ClockDialog(QDialog):
     def __init__(self, parent=None):
@@ -955,24 +974,7 @@ class RunMaskGeneration(QObject):
         print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
-        new_spacing = [1.0, 1.0, 1.0]
-        preT1=sitk.ReadImage(T1W)
-        getMin=sitk.MinimumMaximumImageFilter()
-        getMin.Execute(preT1)
-        minval=getMin.GetMinimum()
-        original_spacing = preT1.GetSpacing()
-        original_size = preT1.GetSize()
-        new_size = [int(round(osz*ospc/nspc)) for osz,ospc,nspc in zip(original_size, original_spacing, new_spacing)]
-        preT1=sitk.Resample(preT1, 
-                        new_size, 
-                        sitk.Transform(),
-                        sitk.sitkLinear,
-                        preT1.GetOrigin(), 
-                        new_spacing,
-                        preT1.GetDirection(), 
-                        minval,
-                        preT1.GetPixelID())
-        sitk.WriteImage(preT1, T1WIso)
+        save_T1W_iso(T1W,T1WIso)
 
         kargs={}
         kargs['SimbNIBSDir']=self._mainApp.Config['simbnibs_path']
