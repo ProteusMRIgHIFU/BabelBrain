@@ -29,7 +29,7 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from CalculateFieldProcess import CalculateFieldProcess
-from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from .Babel_SingleTx import SingleTx,RunAcousticSim
 

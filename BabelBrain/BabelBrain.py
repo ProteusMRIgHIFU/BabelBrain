@@ -278,7 +278,26 @@ def EndWithError(msg):
         msgBox.setText(msg)
         msgBox.exec()
         raise SystemError(msg)
-    
+
+def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
+    preT1=sitk.ReadImage(T1W_fname)
+    getMin=sitk.MinimumMaximumImageFilter()
+    getMin.Execute(preT1)
+    minval=getMin.GetMinimum()
+    original_spacing = preT1.GetSpacing()
+    original_size = preT1.GetSize()
+    new_size = [int(round(osz*ospc/nspc)) for osz,ospc,nspc in zip(original_size, original_spacing, new_spacing)]
+    preT1=sitk.Resample(preT1, 
+                    new_size, 
+                    sitk.Transform(),
+                    sitk.sitkNearestNeighbor,
+                    preT1.GetOrigin(),
+                    new_spacing,
+                    preT1.GetDirection(), 
+                    minval,
+                    preT1.GetPixelID())
+    sitk.WriteImage(preT1, T1WIso_fname)
+ 
 ########################
 class ClockDialog(QDialog):
     def __init__(self, parent=None):
@@ -476,25 +495,25 @@ class BabelBrain(QWidget):
 
         from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
         if self.Config['TxSystem'] =='Single':
-            from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
+            from GUI.Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_500':
-            from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+            from GUI.Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
-            from Babel_H317.Babel_H317 import H317 as WidgetAcSim
+            from GUI.Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':
-            from Babel_H246.Babel_H246 import H246 as WidgetAcSim
+            from GUI.Babel_H246.Babel_H246 import H246 as WidgetAcSim
         elif self.Config['TxSystem'] =='BSonix':
-            from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
+            from GUI.Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         elif self.Config['TxSystem'] =='REMOPD':
-            from Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
+            from GUI.Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
         elif self.Config['TxSystem'] =='I12378':
-            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
+            from GUI.Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
         elif self.Config['TxSystem'] =='ATAC':
-            from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
+            from GUI.Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
-        from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
+        from GUI.Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
 
         new_tab = WidgetAcSim(parent=self.Widget.tabWidget,MainApp=self)
         grid_tab = QGridLayout(new_tab)
@@ -955,24 +974,7 @@ class RunMaskGeneration(QObject):
         print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
-        new_spacing = [1.0, 1.0, 1.0]
-        preT1=sitk.ReadImage(T1W)
-        getMin=sitk.MinimumMaximumImageFilter()
-        getMin.Execute(preT1)
-        minval=getMin.GetMinimum()
-        original_spacing = preT1.GetSpacing()
-        original_size = preT1.GetSize()
-        new_size = [int(round(osz*ospc/nspc)) for osz,ospc,nspc in zip(original_size, original_spacing, new_spacing)]
-        preT1=sitk.Resample(preT1, 
-                        new_size, 
-                        sitk.Transform(),
-                        sitk.sitkLinear,
-                        preT1.GetOrigin(), 
-                        new_spacing,
-                        preT1.GetDirection(), 
-                        minval,
-                        preT1.GetPixelID())
-        sitk.WriteImage(preT1, T1WIso)
+        save_T1W_iso(T1W,T1WIso)
 
         kargs={}
         kargs['SimbNIBSDir']=self._mainApp.Config['simbnibs_path']

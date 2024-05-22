@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUVoxelize')
+sys.path.append('BabelBrain/GPUFunctions/GPUVoxelize')
 import logging
 
 import pytest
@@ -10,7 +10,7 @@ from nibabel import affines
 import Voxelize
 from BabelDatasetPreps import FixMesh
 
-def test_voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_pyvista_plot,compare_data,request):
+def test_Voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_pyvista_plot,compare_data,request):
         
      # Parameters
      input_folder = dataset['folder_path']

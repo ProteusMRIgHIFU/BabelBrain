@@ -29,11 +29,11 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
-from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from CalculateFieldProcess import CalculateFieldProcess
 
-from _BabelBasePhasedArray import BabelBasePhaseArray
+from GUI._BabelBasePhasedArray import BabelBasePhaseArray
 
 _IS_MAC = platform.system() == 'Darwin'
 def resource_path():  # needed for bundling

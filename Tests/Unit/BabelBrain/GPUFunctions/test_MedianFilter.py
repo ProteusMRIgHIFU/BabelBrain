@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUMedianFilter')
+sys.path.append('BabelBrain/GPUFunctions/GPUMedianFilter')
 import logging
 
 import pytest
@@ -9,7 +9,7 @@ from scipy import ndimage
 
 import MedianFilter
 
-def test_median_filter(computing_backend,dataset,check_os,get_gpu_device,load_files,get_mpl_plot,compare_data,request):
+def test_MedianFilter(computing_backend,dataset,check_os,get_gpu_device,load_files,get_mpl_plot,compare_data,request):
         
      # Parameters
      input_folder = dataset['folder_path']
