@@ -102,7 +102,7 @@ def CalculateTemperatureEffects(InputPData,
                                 DurationOff=40,
                                 bForceRecalc=False,
                                 OutTemperature=37,
-                                bGlobalDCMultipoint=True,
+                                bGlobalDCMultipoint=False,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
 
@@ -143,17 +143,24 @@ def CalculateTemperatureEffects(InputPData,
             fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
             AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
         
-        if DurationUS>len(InputPData)*2: 
+        if DurationUS>len(InputPData)*2 and bGlobalDCMultipoint: 
         #ad-hoc rule, if sonication last at least 2x seconds the number of focal spots, we  approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
-        
             DurationCalculations=1.0 
         else:
             DurationCalculations=0.1 # for short sonications, we approximate in chunks of 0.1 seconds
         if bGlobalDCMultipoint:
-            NCyclesOn=int(DutyCycle*DurationCalculations/dt/len(InputPData))
+            while(True): #we need to add a fix for low duty cycle
+                NCyclesOn=int(DutyCycle*DurationCalculations/dt/len(InputPData))
+                if NCyclesOn>0:
+                    break
+                DurationCalculations+=0.1
             NCyclesOff=int(DurationCalculations/dt/len(InputPData))-NCyclesOn
         else:
-            NCyclesOn=int(DutyCycle*DurationCalculations/dt)
+            while(True): #we need to add a fix for low duty cycle
+                NCyclesOn=int(DutyCycle*DurationCalculations/dt)
+                if NCyclesOn>0:
+                    break
+                DurationCalculations+=0.1
             NCyclesOff=int(DurationCalculations/dt)-NCyclesOn
         assert(NCyclesOn>0)
         assert(NCyclesOff>0 )
