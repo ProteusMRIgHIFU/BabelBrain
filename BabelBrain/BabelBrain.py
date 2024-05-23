@@ -376,7 +376,7 @@ class BabelBrain(QWidget):
 
         
         self.Config['T1WIso']= self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-isotropic.nii.gz')
-        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
+        with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             self.Config['version'] =f.readlines()[0]
 
         self.Config['MultiPoint']=''
