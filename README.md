@@ -78,7 +78,7 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 # Version log
 - 0.3.4-2 - May 22nd, 2024
   - Fix: Correct handling of cases with a large number of sonication points in Step 3 when using low duty cycle.
-  - Fix: Address hanging in Step 2 with Metal backend with a large list of sonication points.
+  - Fix: Address hanging in Step 2 when running inside Brainsight with a large list of sonication points.
 - 0.3.4-1 - Apr 19th, 2024
   - Fix: Export CSV for BSonix transducers had a bug preventing the export.
 - 0.3.4 - Apr 5th, 2024
