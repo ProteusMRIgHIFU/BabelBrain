@@ -67,7 +67,7 @@ if sys.platform =='linux':
         pass
 
 
-
+bINUSE_INSIDE_BRAINSIGHT = False
 
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
@@ -137,7 +137,8 @@ class OutputWrapper(QObject):
         self._stdout = stdout
 
     def write(self, text):
-        self._stream.write(text)
+        if bINUSE_INSIDE_BRAINSIGHT == False:
+            self._stream.write(text)
         self.outputWritten.emit(text, self._stdout)
 
     def __getattr__(self, name):
@@ -1034,6 +1035,7 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             self.endError.emit()
 def main():
+    global bINUSE_INSIDE_BRAINSIGHT
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR']='/usr/local/fsl'
         os.environ['FSLOUTPUTTYPE']='NIFTI_GZ'
@@ -1105,6 +1107,7 @@ def main():
                 
     AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
+        bINUSE_INSIDE_BRAINSIGHT = True
         Brainsight,header=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])

@@ -68,12 +68,6 @@ class RUN_SIM(RUN_SIM_BASE):
                                     RotationZ=self._RotationZ,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
                                      **kargs)
-    
-    def RunCaseMultiPoint(self,queue,ExtraAdjustX,ExtraAdjustY,**kargs):
-        res=super().RunCases(ExtraAdjustX=ExtraAdjustX,
-                                     ExtraAdjustY=ExtraAdjustY,
-                                     **kargs)
-        queue.put(res)
         
     def RunCases(self,
                     XSteering=0.0,
@@ -91,14 +85,9 @@ class RUN_SIM(RUN_SIM_BASE):
             self._ZSteering=ZSteering
             ExtraAdjustX = [XSteering]
             ExtraAdjustY = [YSteering]
-            #we use another sub process as when dealing with too many subsequents simulations often it gets stuck in Metal
-            queue=Queue()
-            fieldWorkerProcess = Process(target=self.RunCaseMultiPoint, 
-                                        args=(queue,ExtraAdjustX,ExtraAdjustY),
-                                        kwargs=kargs)
-            fieldWorkerProcess.start()
-            fieldWorkerProcess.join() 
-            return queue.get()
+            return super().RunCases(ExtraAdjustX=ExtraAdjustX,
+                                     ExtraAdjustY=ExtraAdjustY,
+                                     **kargs)
         else:
             #we need to expand accordingly to all points
             ExtraAdjustX=[]
