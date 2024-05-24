@@ -301,7 +301,7 @@ inline bool checkVoxelInd(const size_t index, device const unsigned int * vtable
 
 #ifdef _OPENCL
 __kernel void ExtractPoints(__global const unsigned int* voxel_table,
-                             __global ulong * globalcount,
+                             __global uint * globalcount,
                              __global float * Points,
                             const unsigned int total,
                             const ulong base,
@@ -628,7 +628,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                     inparams[1]=nt
                     inparams[3]=prevPInd
 
-                    # Since we can't send numbers larger than 32 bits in Metal due to buffer size restrictions, 
+                    # Since we run into issues sending numbers larger than 32 bits due to buffer size restrictions, 
                     # we check the size here, send info to kernel, and create number there as workaround
                     nt64 = nt // (1 << 32)
                     if nt64 >= 1:

@@ -40,11 +40,11 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         from GPUResample import Resample
         from GPUBinaryClosing import BinaryClosing
         from GPULabel import LabelImage
+        from GPUMedianFilter import MedianFilter
         print('sys.platform',sys.platform)
         if sys.platform not in ['linux','win32']: 
             assert(COMPUTING_BACKEND in [2,3])  
             #in Linux, we can cuse cupy
-            from GPUMedianFilter import  MedianFilter
 
             if COMPUTING_BACKEND==2:
                 MedianFilter.InitOpenCL(DeviceName= devicename)
@@ -71,19 +71,21 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
             assert(COMPUTING_BACKEND in [1,2])
 
             if COMPUTING_BACKEND==1:
+                MedianFilter.InitCUDA(DeviceName= devicename)
                 Voxelize.InitCUDA(DeviceName= devicename)
                 MappingFilter.InitCUDA(DeviceName= devicename)
                 Resample.InitCUDA(DeviceName= devicename)
                 BinaryClosing.InitCUDA(DeviceName= devicename)
                 LabelImage.InitCUDA(DeviceName= devicename)
             elif COMPUTING_BACKEND==2:
+                MedianFilter.InitOpenCL(DeviceName= devicename)
                 Voxelize.InitOpenCL(DeviceName= devicename)
                 MappingFilter.InitOpenCL(DeviceName= devicename)
                 Resample.InitOpenCL(DeviceName= devicename)
                 BinaryClosing.InitOpenCL(DeviceName= devicename)
                 LabelImage.InitOpenCL(DeviceName= devicename)
            
-                
+            DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
             DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
             DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
             DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)

@@ -17,11 +17,11 @@ from scipy.ndimage import _nd_image
 from numpy.core.multiarray import normalize_axis_index
 from collections.abc import Iterable
 
-if sys.platform in ['linux','win32']:
-    import cupy 
-    import cupyx 
-    from cupyx.scipy import ndimage as cndimage
-    from cupyx.scipy.ndimage import _interp_kernels
+# if sys.platform in ['linux','win32']:
+#     import cupy 
+#     import cupyx 
+#     from cupyx.scipy import ndimage as cndimage
+#     from cupyx.scipy.ndimage import _interp_kernels
 
 _code = '''
 #ifdef _OPENCL

@@ -17,11 +17,13 @@ from scipy.ndimage import _nd_image
 from numpy.core.multiarray import normalize_axis_index
 from collections.abc import Iterable
 
-if sys.platform in ['linux','win32']:
-    import cupy 
-    import cupyx 
-    from cupyx.scipy import ndimage as cndimage
-    from cupyx.scipy.ndimage import _interp_kernels
+from GPUUtils import get_step_size
+
+# if sys.platform in ['linux','win32']:
+#     import cupy 
+#     import cupyx 
+#     from cupyx.scipy import ndimage as cndimage
+#     from cupyx.scipy.ndimage import _interp_kernels
 
 # _prod = cupy._core.internal.prod
 _prod_numpy =np.prod
@@ -33,32 +35,42 @@ __kernel void affine_transform(__global const float * x,
                       __global float * y,
                       const float cval,
                       const int order,
-                      const int in_dims_0,
-                      const int in_dims_1,
-                      const int in_dims_2) 
+                      const unsigned int in_dims_0,
+                      const unsigned int in_dims_1,
+                      const unsigned int in_dims_2,
+                      const unsigned int out_dims_0,
+                      const unsigned int out_dims_1,
+                      const unsigned int out_dims_2,
+                      unsigned int output_idx_tmp,
+                      unsigned int base_32) 
 
 {
+    size_t out_dims_0_tmp = get_global_size(0);
+    size_t out_dims_1_tmp = get_global_size(1);
+    size_t out_dims_2_tmp = get_global_size(2);
 
-    unsigned int out_dims_1 = get_global_size(1);
-    unsigned int out_dims_2 = get_global_size(2);
+    const size_t xind_tmp =  get_global_id(0);
+    const size_t yind_tmp =  get_global_id(1);
+    const size_t zind_tmp =  get_global_id(2);
 
-    const size_t xind =  get_global_id(0);
-    const size_t yind =  get_global_id(1);
-    const size_t zind =  get_global_id(2);
+    size_t gid = xind_tmp*out_dims_1_tmp*out_dims_2_tmp + yind_tmp*out_dims_2_tmp + zind_tmp;
+    size_t output_idx = output_idx_tmp;
+    if (base_32 > 0){
+        output_idx += base_32 * (size_t)pow(2.0,32.0);
+    }
 
-    const ptrdiff_t _i = xind*out_dims_1*out_dims_2 + yind*out_dims_2 + zind;
+    size_t true_gid = gid + output_idx; // overall position in output array
+
+    const ptrdiff_t xind =  true_gid/(out_dims_1*out_dims_2);
+    const ptrdiff_t yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const ptrdiff_t zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    size_t _i  = gid; // current index in output section array
+
 #endif
 
 #ifdef _METAL
 #include <metal_stdlib>
 using namespace metal;
-
-// To be defined when compiling
-// in_dims_0, in_dims_1, in_dims_2
-// out_dims_0, out_dims_1, out_dims_2  
-// cval 
-// order  
-
 kernel void affine_transform(const device float * x [[ buffer(0) ]], 
                              const device float * mat [[ buffer(1) ]],
                              device float * y [[ buffer(2) ]],
@@ -74,8 +86,10 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     #define out_dims_2 int_params[5]
     #define order int_params[6]
     #define cval float_params[0]
+
     unsigned int output_idx = (unsigned int) int_params[7]; // overall starting index in ouput array, not just output section
     unsigned int true_gid  = gid + output_idx; // overall position in output array
+    
     const int xind =  true_gid/(out_dims_1*out_dims_2);
     const int yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
     const int zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
@@ -568,7 +582,8 @@ def InitOpenCL(DeviceName='AMD'):
     import pyopencl as cl
     global Platforms
     global queue 
-    global prgcl 
+    global prgcl
+    global sel_device
     global ctx
     global knl_at
     global knl_sf
@@ -592,6 +607,9 @@ def InitOpenCL(DeviceName='AMD'):
     else:
         print('Selecting device: ', SelDevice.name)
 
+    # Keep track of selected device
+    sel_device = SelDevice
+
     # Create context for selected device
     ctx = cl.Context([SelDevice])
     
@@ -599,7 +617,7 @@ def InitOpenCL(DeviceName='AMD'):
     prgcl = cl.Program(ctx,"#define _OPENCL\n"+_transform_code+_spline_code).build()
 
 
-    # SCreate kernels from program function
+    # Create kernels from program function
     knl_at=prgcl.affine_transform
     knl_sf=prgcl.spline_filter_3d
 
@@ -928,6 +946,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
     global knl
     global mf
     global clp
+    print(f"Starting Resample")
 
     # This check requires `shape` attribute of image
     if not spatial_axes_first(from_img):
@@ -968,107 +987,113 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
 
             data = cupy.asnumpy(data_gpu)
         return out_class(data, to_affine, from_img.header)
-    
-    elif GPUBackend=='OpenCL':
-
+    else:
         filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval, GPUBackend=GPUBackend)
         
         filtered = filtered.astype(np.float32, copy=False)
         m = m.astype(np.float32, copy=False)
         output = output.astype(np.float32, copy=False)
-        
-        # Move input data from host to device memory
-        filtered_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=filtered)
-        m_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=m)
-        output_gpu = clp.Buffer(ctx, mf.WRITE_ONLY, output.nbytes)
 
         assert(np.isfortran(output)==False)
         assert(np.isfortran(m)==False)
         assert(np.isfortran(filtered)==False)
 
-        # Deploy affine transform kernel
-        try:
-            knl_at(queue, output.shape,
-                None,
-                filtered_gpu,
-                m_gpu,
-                output_gpu,
-                np.float32(cval),
-                np.int32(order),
-                np.int32(filtered.shape[0]),
-                np.int32(filtered.shape[1]),
-                np.int32(filtered.shape[2]),
-            )
-        except clp.MemoryError as e:
-            raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
-
-        # Move kernel output data back to host memory
-        clp.enqueue_copy(queue, output, output_gpu)
-
-        if integer_output:
-            output = output.astype("int16")
-
-        return out_class(output, to_affine, from_img.header)
-    else: # Metal
-
-        if np.prod(to_shape) > 1 << 32: # i.e. bigger than what uint32 can represent
-            raise ValueError("Error running resample step, suggest lowering PPW")
-        
-        filtered, m, output, mode, cval, order, integer_output= affine_transform_prep(from_img.dataobj, rzs, trans, to_shape, order=order, mode=mode, cval=cval,GPUBackend=GPUBackend)
-        
-        filtered = filtered.astype("float32", copy=False)
-        m = m.astype("float32", copy=False)
-        output = output.astype("float32", copy=False)
-        
-        int_params=np.zeros(8,np.int32)
-        float_params= np.zeros(2,np.float32)
-        int_params[0] = filtered.shape[0]
-        int_params[1] = filtered.shape[1]
-        int_params[2] = filtered.shape[2]
-        int_params[3] = output.shape[0]
-        int_params[4] = output.shape[1]
-        int_params[5] = output.shape[2]
-        int_params[6] = order
-        float_params[0] = cval
-
-        assert(np.isfortran(output)==False)
-        assert(np.isfortran(m)==False)
-        assert(np.isfortran(filtered)==False)
-
-        step = 240000000
-        totalPoints = np.prod(output.shape)
-        
-        for point in range(0, totalPoints,step):
+        totalPoints = output.size
+        step = get_step_size(sel_device,num_buffers=1,data=output,GPUBackend=GPUBackend)
+        print(f"Total points: {totalPoints}")
+        for point in range(0,totalPoints,step):
 
             # Grab indices for current output section
             x_start = (point // (output.shape[1] * output.shape[2]))
             x_end = min(((point + step) // (output.shape[1] * output.shape[2])),output.shape[0])
 
+            print(f"Working on slices {x_start} to {x_end} out of {output.shape[0]}")
             # Grab section of output
             output_section = np.copy(output[x_start:x_end,:,:])
-
-            # Pass along position in output array
-            int_params[7] = x_start * output.shape[1]*output.shape[2]
-
-            # GPU call
-            filtered_gpu = ctx.buffer(filtered)
-            m_gpu = ctx.buffer(m) 
-            output_section_gpu = ctx.buffer(output_section)
-            int_params_gpu = ctx.buffer(int_params)
-            float_params_gpu = ctx.buffer(float_params)
-
-            ctx.init_command_buffer()
-
-            handle=knl_at(int(np.prod(output_section.shape)),filtered_gpu,m_gpu,output_section_gpu,int_params_gpu, float_params_gpu)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            if 'arm64' not in platform.platform():
-                ctx.sync_buffers((output_section_gpu,float_params_gpu))
-            output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+            output_section_out = np.zeros_like(output_section)
             
+            # Keep track of overall position in output array
+            output_start = x_start * output.shape[1] * output.shape[2]
+            
+            # Since we run into issues sending numbers larger than 32 bits due to buffer size restrictions, 
+            # we check the size here, send info to kernel, and create number there as workaround
+            base_32 = output_start // (2**32)
+            output_start = output_start - (base_32 * (2**32))
+
+            if GPUBackend == 'OpenCL':
+
+                # Move input data from host to device memory
+                filtered_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=filtered)
+                m_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=m)
+                output_section_out_gpu = clp.Buffer(ctx, mf.WRITE_ONLY, output_section_out.nbytes)
+
+                # Deploy affine transform kernel
+                try:
+                    knl_at(queue, output_section_out.shape,
+                        None,
+                        filtered_gpu,
+                        m_gpu,
+                        output_section_out_gpu,
+                        np.float32(cval),
+                        np.int32(order),
+                        np.uint32(filtered.shape[0]),
+                        np.uint32(filtered.shape[1]),
+                        np.uint32(filtered.shape[2]),
+                        np.uint32(output.shape[0]),
+                        np.uint32(output.shape[1]),
+                        np.uint32(output.shape[2]),
+                        np.uint32(output_start),
+                        np.uint32(base_32),
+                    )
+                except clp.MemoryError as e:
+                    raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
+                queue.finish()
+
+                # Move kernel output data back to host memory
+                clp.enqueue_copy(queue, output_section_out, output_section_out_gpu)
+                queue.finish()
+
+                filtered_gpu.release()
+                m_gpu.release()
+                output_section_out_gpu.release()
+                queue.finish()
+
+            elif GPUBackend == 'Metal':
+
+                int_params=np.zeros(8,np.int32)
+                float_params= np.zeros(2,np.float32)
+                int_params[0] = filtered.shape[0]
+                int_params[1] = filtered.shape[1]
+                int_params[2] = filtered.shape[2]
+                int_params[3] = output.shape[0]
+                int_params[4] = output.shape[1]
+                int_params[5] = output.shape[2]
+                int_params[6] = order
+                int_params[7] = output_start
+                float_params[0] = cval
+
+                # GPU call
+                filtered_gpu = ctx.buffer(filtered)
+                m_gpu = ctx.buffer(m) 
+                output_section_gpu = ctx.buffer(output_section)
+                int_params_gpu = ctx.buffer(int_params)
+                float_params_gpu = ctx.buffer(float_params)
+
+                ctx.init_command_buffer()
+
+                handle=knl_at(int(output_section.shape),filtered_gpu,m_gpu,output_section_gpu,int_params_gpu, float_params_gpu)
+                ctx.commit_command_buffer()
+                ctx.wait_command_buffer()
+
+                del handle
+
+                if 'arm64' not in platform.platform():
+                    ctx.sync_buffers((output_section_gpu,float_params_gpu))
+
+                output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+                
             # Record results in output array
-            output[x_start:x_end,:,:] = output_section[:,:,:]
+            output[x_start:x_end,:,:] = output_section_out[:,:,:]
 
         if integer_output:
             output = output.astype("int16")

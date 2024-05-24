@@ -118,11 +118,11 @@ def MaskToStl(binmask,affine):
 
 
 
-if sys.platform in ['linux','win32']:
-    print('importing cupy')
-    import cupy 
-    import cupyx 
-    from cupyx.scipy import ndimage as cndimage
+# if sys.platform in ['linux','win32']:
+#     print('importing cupy')
+#     import cupy 
+#     import cupyx 
+#     from cupyx.scipy import ndimage as cndimage
 
 MedianFilter=None
 MedianCOMPUTING_BACKEND=''

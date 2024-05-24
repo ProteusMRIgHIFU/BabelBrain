@@ -4,10 +4,12 @@ import platform
 import os
 import sys
 
-if sys.platform in ['linux','win32']:
-    import cupy 
-    import cupyx 
-    from cupyx.scipy import ndimage as cndimage
+from GPUUtils import get_step_size
+
+# if sys.platform in ['linux','win32']:
+#     import cupy 
+#     import cupyx 
+#     from cupyx.scipy import ndimage as cndimage
 
 ##probably not the most optimal of filters.. .but still WAY faster than CPU based
 _code='''
@@ -30,9 +32,6 @@ __kernel void median_reflect(
 #ifdef _METAL
 #include <metal_stdlib>
 using namespace metal;
-//dims_0 //To be defined when compiling kernel
-//dims_1  //To be defined when compiling kernel
-//dims_2  //To be defined when compiling kernel
 kernel void median_reflect(
                            const device PixelType * input [[ buffer(0) ]],
                            device PixelType * output [[ buffer(1) ]],
@@ -125,6 +124,7 @@ kernel void median_reflect(
 Platforms=None
 queue = None
 prgcl = None
+sel_device = None
 ctx = None
 knl_1px = None
 mf = None
@@ -162,6 +162,7 @@ def InitOpenCL(DeviceName='AMD'):
     global Platforms
     global queue 
     global prgcl 
+    global sel_device
     global ctx
     global knl_1px
     global mf
@@ -180,6 +181,7 @@ def InitOpenCL(DeviceName='AMD'):
         raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
     else:
         print('Selecting device: ', SelDevice.name)
+    sel_device = SelDevice
     ctx = cl.Context([SelDevice])
     queue = cl.CommandQueue(ctx)
     Preamble ='#define _OPENCL\ntypedef unsigned char PixelType;\n'
@@ -211,11 +213,14 @@ def InitMetal(DeviceName='AMD'):
 def MedianFilter(data,size,GPUBackend='OpenCL'):
     global Platforms
     global queue 
-    global prgcl 
+    global prgcl
+    global sel_device
     global ctx
     global knl_1px
     global mf
     global clp
+    print(f"Starting Median Filter")
+
     assert(data.dtype==np.uint8)
     assert(np.isfortran(data)==False) 
 
@@ -228,72 +233,75 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
         if footprint.shape[0] > 7 or footprint.shape[1] > 7 or footprint.shape[2] > 7:
             raise ValueError(f"GPU Median filter can only handles sizes up to 7x7x7, current size is {footprint.shape}")
     
-    if GPUBackend=='CUDA':
-        with ctx:
-            data_gpu = cupy.asarray(data)
+    data_out = np.zeros_like(data)
+    totalPoints = data_out.size
+    step = get_step_size(sel_device,num_buffers=2,data=data,GPUBackend=GPUBackend)
+    print(f"Total points: {totalPoints}")
+    for point in range(0,totalPoints,step):
+        # Grab z indexes
+        z_idx_1 = (point // (data_out.shape[0] * data_out.shape[1]))
+        z_idx_2 = ((point + step) // (data_out.shape[0] * data_out.shape[1]))
 
-            try:
-                data_out_gpu = cndimage.median_filter(data_gpu,size)
-            except cupy.cuda.memory.OutOfMemoryError as e:
-                raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
+        # Determine start and end indices for data section
+        # Need slightly larger array to account for median filter size
+        z_start = max(0, z_idx_1 - 2)
+        z_end = min(data_out.shape[2], z_idx_2 + 4)
 
-            data_out = cupy.asnumpy(data_out_gpu)
-        return data_out
-    
-    elif GPUBackend=='OpenCL':
-        
-        data_pr = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=data)
-        data_out = np.zeros_like(data)
-        data_out_pr = clp.Buffer(ctx, mf.WRITE_ONLY, data_out.nbytes)
+        print(f"Working on slices {z_start } to {z_end} out of {data_out.shape[2]}")
 
-        knl_1px(queue, data.shape, 
+        # Grab section of data
+        data_section = np.copy(data[:,:,z_start:z_end])
+        data_section_out = np.zeros_like(data_section)
+
+        if GPUBackend == 'CUDA':
+            with ctx:
+                data_section_gpu = clp.asarray(data_section)
+
+                try:
+                    data_section_out_gpu = cndimage.median_filter(data_section_gpu,size)
+                except clp.cuda.memory.OutOfMemoryError as e:
+                    raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
+
+                data_section_out = clp.asnumpy(data_section_out_gpu)
+        elif GPUBackend == 'OpenCL':
+            # GPU call
+            data_section_pr = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=data_section)
+            data_section_out_pr = clp.Buffer(ctx, mf.WRITE_ONLY, data_section_out.nbytes)
+            
+            knl_1px(queue, data_section_out.shape, 
                 None,
-                data_pr,
-                data_out_pr,
-                np.int32(data.shape[0]),
-                np.int32(data.shape[1]),
-                np.int32(data.shape[2]),
+                data_section_pr,
+                data_section_out_pr,
+                np.int32(data_section.shape[0]),
+                np.int32(data_section.shape[1]),
+                np.int32(data_section.shape[2]),
                 np.int32(footprint.shape[0]),
                 np.int32(footprint.shape[1]),
                 np.int32(footprint.shape[2]),
                 g_times_l=False)
+            queue.finish()
+            
+            clp.enqueue_copy(queue,data_section_out,data_section_out_pr)
+            queue.finish()
+            data_section_pr.release()
+            data_section_out_pr.release()
+            queue.finish()
 
-        clp.enqueue_copy(queue, data_out,data_out_pr)
-    else:
-        assert(GPUBackend=='Metal')
-        Preamble ='#define _METAL\ntypedef unsigned char PixelType;\n'
-        prgcl = ctx.kernel(Preamble+_code)
-        knl_1px=prgcl.function('median_reflect')
+        elif GPUBackend == 'Metal':
+            Preamble ='#define _METAL\ntypedef unsigned char PixelType;\n'
+            prgcl = ctx.kernel(Preamble+_code)
+            knl_1px=prgcl.function('median_reflect')
 
-        data_out = np.zeros_like(data)
-        step = 240000000
-        totalPoints = np.prod(data_out.shape)
-        int_params=np.zeros(6,np.int32)
-        int_params[0] = data_out.shape[0]
-        int_params[1] = data_out.shape[1]
-        int_params[3] = footprint.shape[0]
-        int_params[4] = footprint.shape[1]
-        int_params[5] = footprint.shape[2]
-
-
-        for point in range(0,totalPoints,step):
-            # Grab z indexes
-            z_idx_1 = (point // (data_out.shape[0] * data_out.shape[1]))
-            z_idx_2 = ((point + step) // (data_out.shape[0] * data_out.shape[1]))
-
-            # Determine start and end indices for data section
-            # Need slightly larger array to account for median filter size
-            z_start = max(0, z_idx_1 - 2)
-            z_end = min(data_out.shape[2], z_idx_2 + 4)
-
-            # Grab section of data
-            data_section = np.copy(data[:,:,z_start:z_end])
-
-            # GPU call
+            int_params=np.zeros(6,np.int32)
+            int_params[0] = data_section_out.shape[0]
+            int_params[1] = data_section_out.shape[1]
             int_params[2] = data_section.shape[2]
+            int_params[3] = footprint.shape[0]
+            int_params[4] = footprint.shape[1]
+            int_params[5] = footprint.shape[2]
+
 
             data_section_pr = ctx.buffer(data_section)
-            data_section_out = np.zeros_like(data_section)
             data_section_out_pr = ctx.buffer(data_section_out)
             int_params_pr = ctx.buffer(int_params)
             
@@ -304,16 +312,17 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
             del handle
             if 'arm64' not in platform.platform():
                 ctx.sync_buffers((data_section_pr,data_section_out_pr))
-            data_section_out=np.frombuffer(data_section_out_pr,dtype=np.uint8).reshape(data_section_out.shape)
+            
+            data_section_out = np.frombuffer(data_section_out_pr,dtype=np.uint8).reshape(data_section_out.shape)
 
-            # Record results in data_out array
-            if z_start == 0 and z_end == data_out.shape[2]:                         # Data wasn't sectioned up
-                data_out[:,:,:] = data_section_out[:,:,:]
-            elif z_start == 0 and z_end < data_out.shape[2]:                        # First section
-                data_out[:,:,:(z_idx_2+1)] = data_section_out[:,:,:-3]
-            elif z_start != 0 and z_end == data_out.shape[2]:                       # Last section
-                data_out[:,:,(z_idx_1+1):] = data_section_out[:,:,3:]
-            else:                                                                   # Middle sections
-                data_out[:,:,(z_idx_1+1):(z_idx_2+1)] = data_section_out[:,:,3:-3]
+        # Record results in data_out array
+        if z_start == 0 and z_end == data_out.shape[2]:                         # Data wasn't sectioned up
+            data_out[:,:,:] = data_section_out[:,:,:]
+        elif z_start == 0 and z_end < data_out.shape[2]:                        # First section
+            data_out[:,:,:(z_idx_2+1)] = data_section_out[:,:,:-3]
+        elif z_start != 0 and z_end == data_out.shape[2]:                       # Last section
+            data_out[:,:,(z_idx_1+1):] = data_section_out[:,:,3:]
+        else:                                                                   # Middle sections
+            data_out[:,:,(z_idx_1+1):(z_idx_2+1)] = data_section_out[:,:,3:-3]
 
     return data_out
