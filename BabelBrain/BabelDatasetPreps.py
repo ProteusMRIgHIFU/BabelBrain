@@ -689,9 +689,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
           
     ## This is the box that covers the minimal volume
     DimsBox=(np.max(AffIJK,axis=0)[:3]-np.min(AffIJK,axis=0)[:3]+1)*SpatialStep
+    DimsBox[2]+=200.0
     TransformationBox=np.eye(4)
-    TransformationBox[2,3]=-DimsBox[2]/2
-    TransformationBox[2,3]+=FocFOV-Foc
+    # TransformationBox[2,3]=-DimsBox[2]/2
+    # TransformationBox[2,3]+=FocFOV-Foc
     
     BoxFOV=creation.box(DimsBox,
                         transform=TransformationBox)
