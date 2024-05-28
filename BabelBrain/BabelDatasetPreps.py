@@ -556,6 +556,15 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
                 csf_mesh=MaskToStl(CSFRegion,charm.affine)
                 skull_mesh=MaskToStl(BoneRegion,charm.affine)
+                if skin_mesh.body_count != 1:
+                    print('skin_mesh is invalid... trying to fix')
+                    skin_mesh = FixMesh(skin_mesh)
+                if csf_mesh.body_count != 1:
+                    print('csf_mesh is invalid... trying to fix')
+                    csf_mesh = FixMesh(csf_mesh)
+                if skull_mesh.body_count != 1:
+                    print('skull_mesh is invalid... trying to fix')
+                    skull_mesh = FixMesh(skull_mesh)   
                 skin_mesh.export(skin_stl)
                 csf_mesh.export(csf_stl)
                 skull_mesh.export(skull_stl)
@@ -1051,6 +1060,19 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
+    
+    #we save the manual subvolume if selected
+    outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'ManualSubVolume.yml'
+    if bApplyBOXFOV:
+        subvol={'FOVDiameter':FOVDiameter,'FOVLength':FOVLength}
+        with open(outname,'w') as f:
+            yaml.dump(subvol,f,yaml.SafeDumper)
+    else:
+        #otherwise we check if we need to delete an old one
+        if os.path.isfile(outname):
+            os.remove(outname)
+        
+    
 
     with CodeTimer("resampling T1 to mask",unit='s'):
         if ResampleFilter is None:
