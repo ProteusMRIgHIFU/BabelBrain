@@ -1,4 +1,4 @@
-BabelBrain v0.3.4-2
+BabelBrain v0.3.5
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -59,9 +59,7 @@ Besides the recommended conda environment, a healthy XCode installation in macOS
 ## Running
 If running from the GitHub source code, just change to the BabelBrain directory and execute
 
-`python BabelBrain.py`
-
-## Building an standalone application
+`python BabelBrain.py`Building a standalone application
 A Pyinstaller specification file is ready for use. To build either the macOS or Windows application, just change to the BabelBrain directory and run
 
 `pyinstaller BabelBrain.spec --noconfirm`
@@ -76,6 +74,9 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.5 - May 28th, 2024
+  - New: Add the capability of specifying subvolume region in Step 1. This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (EEG location P7 in one subject) in the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.
+  - Improvement: Do a watertight fix of STL masks before saving.  Before, a watertight fix for the charm-derived STL masks was being applied all the time, while this could have done only once when creating the STL files the first time. This will save computing time when recalculating trajectories.
 - 0.3.4-2 - May 22nd, 2024
   - Fix: Correct handling of cases with a large number of sonication points in Step 3 when using low duty cycle.
   - Fix: Address hanging in Step 2 when running inside Brainsight with a large list of sonication points.
