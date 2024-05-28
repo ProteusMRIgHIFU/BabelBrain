@@ -489,19 +489,16 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 Mat4Trajectory=None, 
                                 TrajectoryType='brainsight',                               
                                 Foc=135.0, #Tx focal length
-                                FocFOV=165.0, #Tx focal length used for FOV subvolume
                                 TxDiam=157.0, # Tx aperture diameter used for FOV subvolume
                                 Location=[27.5, -42, 42],#RAS location of target ,
                                 TrabecularProportion=0.8, #proportion of trabecular bone
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
-                                bDoNotAlign=False, #Use this to just move the Tx to match the coordinate with Tx facing S-->I, otherwise it will simulate the alignment of the Tx to be normal to the skull surface
-                                nIterationsAlign=10, # number of iterations to align the tx, 10 is often way more than enough for shallow targets
-                                InitialAligment='HF',
                                 bPlot=True,
-                                bAlignToSkin=False,
                                 factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
+                                FOVDiameter=60.0, # diameter for  manual FOV
+                                FOVLength=300.0, # lenght FOV
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -600,14 +597,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
 
     TransformationCone[2,3]=Location[2]
-    CumulativeTransform=TransformationCone.copy() 
-    
+   
     TransformationCone=np.eye(4)
     TransformationCone[0,3]=-Location[0]
     TransformationCone[1,3]=-Location[1]
     TransformationCone[2,3]=-Location[2]
-
-    CumulativeTransform=TransformationCone@CumulativeTransform
 
     Cone.apply_transform(TransformationCone)
     
@@ -623,7 +617,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     Cone.apply_transform(TransformationCone)
 
-    CumulativeTransform=TransformationCone@CumulativeTransform
+    CumulativeTransform=TransformationCone.copy()
 
     print('Final RMAT')
     print(RMat)
@@ -688,12 +682,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     LocFocalPoint=AffIJK[-1,:3] #we recover the location in pixels of the intended target
           
     ## This is the box that covers the minimal volume
-    DimsBox=(np.max(AffIJK,axis=0)[:3]-np.min(AffIJK,axis=0)[:3]+1)*SpatialStep
-    DimsBox[2]+=200.0
+    DimsBox=np.zeros((3))
+    DimsBox[0:2]=FOVDiameter
+    DimsBox[2]+=FOVLength
     TransformationBox=np.eye(4)
-    # TransformationBox[2,3]=-DimsBox[2]/2
-    # TransformationBox[2,3]+=FocFOV-Foc
-    
+
     BoxFOV=creation.box(DimsBox,
                         transform=TransformationBox)
     BoxFOV.apply_transform(CumulativeTransform)

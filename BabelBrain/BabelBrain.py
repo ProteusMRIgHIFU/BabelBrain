@@ -536,6 +536,11 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
+        
+        self.Widget.ManualFOVcheckBox.setChecked(False)
+        self.Widget.grpManualFOV.setVisible(False)
+        self.Widget.ManualFOVcheckBox.stateChanged.connect(self.ShowManualFOV)
+        
     
     @Slot()
     def handleOutput(self, text, stdout):
@@ -804,60 +809,62 @@ class BabelBrain(QWidget):
             CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
 
         if hasattr(self,'_figMasks'):
-            for im,imTW,imCT,CMap,T1WMap,CTMap,extent in zip(self._imMasks,
-                                    self._imT1W,
-                                    self._imCtMasks,
-                                    [CMapXZ,CMapYZ,CMapXY],
-                                    [T1WXZ,T1WYZ,T1WXY],
-                                    CTMaps,
-                                    [extentXZ,extentYZ,extentXY]):
-                imTW.set_data(T1WMap)
-                im.set_data(CMap)
-                if CTMap is not None:
-                    Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
-                    imCT.set_data(Zm)
-                im.set_extent(extent)
-            self._figMasks.canvas.draw_idle()
-        else:
+            while ((child := self._layout.takeAt(0)) != None):
+                child.widget().deleteLater()
+        #     for im,imTW,imCT,CMap,T1WMap,CTMap,extent in zip(self._imMasks,
+        #                             self._imT1W,
+        #                             self._imCtMasks,
+        #                             [CMapXZ,CMapYZ,CMapXY],
+        #                             [T1WXZ,T1WYZ,T1WXY],
+        #                             CTMaps,
+        #                             [extentXZ,extentYZ,extentXY]):
+        #         imTW.set_data(T1WMap)
+        #         im.set_data(CMap)
+        #         if CTMap is not None:
+        #             Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
+        #             imCT.set_data(Zm)
+        #         im.set_extent(extent)
+        #     self._figMasks.canvas.draw_idle()
+        # else:
             
-            self._imMasks=[]
-            self._imT1W=[]
-            self._imCtMasks=[]
-            self._markers=[]
+        self._imMasks=[]
+        self._imT1W=[]
+        self._imCtMasks=[]
+        self._markers=[]
 
-            self._figMasks = Figure(figsize=(18, 6))
-
+        self._figMasks = Figure(figsize=(18, 6))
+        if not hasattr(self,'_layout'):
             self._layout = QVBoxLayout(self.Widget.USMask)
 
-            self.static_canvas = FigureCanvas(self._figMasks)
-            
-            toolbar=NavigationToolbar2QT(self.static_canvas,self)
-            self._layout.addWidget(toolbar)
-            self._layout.addWidget(self.static_canvas)
+        self.static_canvas = FigureCanvas(self._figMasks)
+        
+        toolbar=NavigationToolbar2QT(self.static_canvas,self)
+        self._layout.addWidget(toolbar)
+        self._layout.addWidget(self.static_canvas)
 
-            axes=self.static_canvas.figure.subplots(1,3)
-            self._axes=axes
+        axes=self.static_canvas.figure.subplots(1,3)
+        self._axes=axes
 
-            for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
-                                    [T1WXZ,T1WYZ,T1WXY],
-                                    CTMaps,
-                                    [extentXZ,extentYZ,extentXY],
-                                    axes,
-                                    [x_vec,y_vec,x_vec],
-                                    [z_vec,z_vec,y_vec],
-                                    [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
-                                    [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
+        for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+                                [T1WXZ,T1WYZ,T1WXY],
+                                CTMaps,
+                                [extentXZ,extentYZ,extentXY],
+                                axes,
+                                [x_vec,y_vec,x_vec],
+                                [z_vec,z_vec,y_vec],
+                                [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
+                                [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
 
-                self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,extent=extent,aspect='equal'))
-                if CTMap is not None:
-                    Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
-                    self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
-                else:
-                    self._imCtMasks.append(None)
-                self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
-                self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
-            self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,extent=extent,aspect='equal'))
+            if CTMap is not None:
+                Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
+                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
+            else:
+                self._imCtMasks.append(None)
+            self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
+            self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
+        self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
 
@@ -883,7 +890,10 @@ class BabelBrain(QWidget):
             im.set_data(T1WMap)
         self._figMasks.canvas.draw_idle()
             
-
+    @Slot()
+    def ShowManualFOV(self,v):
+        self.Widget.grpManualFOV.setVisible(self.Widget.ManualFOVcheckBox.isChecked())
+            
     def GetExport(self):
         ExtraConfig ={}
         ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
@@ -982,19 +992,21 @@ class RunMaskGeneration(QObject):
         kargs['Mat4Trajectory']=self._mainApp.Config['Mat4Trajectory'] #Path to trajectory file
         kargs['T1Source_nii']=T1W
         kargs['T1Conformal_nii']=T1WIso
-        kargs['nIterationsAlign']=10
         kargs['SpatialStep']=SpatialStep
-        kargs['InitialAligment']='HF'
         kargs['Location']=[0,0,0] #This coordinate will be ignored
         kargs['prefix']=prefix
         kargs['bPlot']=False
-        kargs['bAlignToSkin']=True
         if self._mainApp.Config['bUseCT']:
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
             kargs['CTType']=self._mainApp.Config['CTType']
             if kargs['CTType'] in [2,3]:
-                kargs['ZTERange']=self._mainApp.Widget.ZTERangeSlider.value()
-            kargs['HUThreshold']=self._mainApp.Widget.HUTreshold.value()
+                kargs['ZTERange']=Widget.ZTERangeSlider.value()
+            kargs['HUThreshold']=Widget.HUTreshold.value()
+            
+        if Widget.ManualFOVcheckBox.isChecked(): #We use manual FOV 
+            kargs['bApplyBOXFOV']=True
+            kargs['FOVDiameter']=Widget.FOVDiameterSpinBox.value()
+            kargs['FOVLength']=Widget.FOVLengthSpinBox.value()
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 

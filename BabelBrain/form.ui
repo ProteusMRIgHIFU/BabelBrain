@@ -59,8 +59,8 @@
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
-     <x>7</x>
-     <y>62</y>
+     <x>16</x>
+     <y>63</y>
      <width>1284</width>
      <height>521</height>
     </rect>
@@ -76,7 +76,7 @@
      <property name="geometry">
       <rect>
        <x>150</x>
-       <y>55</y>
+       <y>30</y>
        <width>103</width>
        <height>32</height>
       </rect>
@@ -94,7 +94,7 @@
      <property name="geometry">
       <rect>
        <x>27</x>
-       <y>60</y>
+       <y>35</y>
        <width>120</width>
        <height>20</height>
       </rect>
@@ -107,7 +107,7 @@
      <property name="geometry">
       <rect>
        <x>27</x>
-       <y>95</y>
+       <y>70</y>
        <width>120</width>
        <height>20</height>
       </rect>
@@ -120,7 +120,7 @@
      <property name="geometry">
       <rect>
        <x>150</x>
-       <y>92</y>
+       <y>67</y>
        <width>90</width>
        <height>22</height>
       </rect>
@@ -157,8 +157,8 @@
     <widget class="QPushButton" name="CalculatePlanningMask">
      <property name="geometry">
       <rect>
-       <x>71</x>
-       <y>352</y>
+       <x>75</x>
+       <y>371</y>
        <width>131</width>
        <height>81</height>
       </rect>
@@ -177,8 +177,8 @@ mask</string>
     <widget class="QTabWidget" name="CTZTETabs">
      <property name="geometry">
       <rect>
-       <x>22</x>
-       <y>173</y>
+       <x>28</x>
+       <y>215</y>
        <width>219</width>
        <height>145</height>
       </rect>
@@ -312,6 +312,114 @@ mask</string>
      <property name="text">
       <string>Hide marks</string>
      </property>
+    </widget>
+    <widget class="QCheckBox" name="ManualFOVcheckBox">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>103</y>
+       <width>150</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Manual Subvolume</string>
+     </property>
+    </widget>
+    <widget class="QGroupBox" name="grpManualFOV">
+     <property name="geometry">
+      <rect>
+       <x>32</x>
+       <y>127</y>
+       <width>206</width>
+       <height>72</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string/>
+     </property>
+     <widget class="QDoubleSpinBox" name="FOVDiameterSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>105</x>
+        <y>7</y>
+        <width>90</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+      <property name="decimals">
+       <number>1</number>
+      </property>
+      <property name="minimum">
+       <double>10.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>400.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
+      </property>
+      <property name="value">
+       <double>200.000000000000000</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="DiameterLabel">
+      <property name="geometry">
+       <rect>
+        <x>9</x>
+        <y>40</y>
+        <width>82</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Length (mm)</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="FOVLengthSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>105</x>
+        <y>40</y>
+        <width>90</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+      <property name="decimals">
+       <number>1</number>
+      </property>
+      <property name="minimum">
+       <double>200.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>600.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
+      </property>
+      <property name="value">
+       <double>400.000000000000000</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="FocalLengthLabel">
+      <property name="geometry">
+       <rect>
+        <x>9</x>
+        <y>7</y>
+        <width>94</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Diameter (mm)</string>
+      </property>
+     </widget>
     </widget>
    </widget>
   </widget>
