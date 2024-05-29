@@ -914,37 +914,48 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
             else:
                 nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
-        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
-
-        ##We will create an smooth surface
-        with CodeTimer("skull surface CT",unit='s'):
-            if LabelImage is None:
-                label_img=label(nfct)
-            else:
-                label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
-            regions= regionprops(label_img)
-            regions=sorted(regions,key=lambda d: d.area)
-            nfct=label_img==regions[-1].label
-            smct=MaskToStl(nfct,baseaffineRot)
-                
-        with CodeTimer("CT skull voxelization",unit='s'):
-            if VoxelizeFilter is None:
-                ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-            else:
-                ct_grid=VoxelizeFilter(smct,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
         
-        XYZ=ct_grid
-        XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=ct_grid.dtype))).T
-        AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
+        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
+        
+        if bApplyBOXFOV==False:
+            #SP: May 29, 2024. We may need evaluate not using this approach for non sub volume approach
+            ##We will create an smooth surface
+            with CodeTimer("skull surface CT",unit='s'):
+                if LabelImage is None:
+                    label_img=label(nfct)
+                else:
+                    label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                regions= regionprops(label_img)
+                regions=sorted(regions,key=lambda d: d.area)
+                nfct=label_img==regions[-1].label
+                smct=MaskToStl(nfct,baseaffineRot)
+        
+            with CodeTimer("CT skull voxelization",unit='s'):
+                if VoxelizeFilter is None:
+                    ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
+                else:
+                    ct_grid=VoxelizeFilter(smct,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            
+            XYZ=ct_grid
+            XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=ct_grid.dtype))).T
+            AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
 
-        nfct=np.zeros_like(FinalMask)
+            nfct=np.zeros_like(FinalMask)
 
-        inds=(AffIJK[:,0]<nfct.shape[0])&\
-            (AffIJK[:,1]<nfct.shape[1])&\
-            (AffIJK[:,2]<nfct.shape[2])
-        AffIJK=AffIJK[inds,:]
+            inds=(AffIJK[:,0]<nfct.shape[0])&\
+                (AffIJK[:,1]<nfct.shape[1])&\
+                (AffIJK[:,2]<nfct.shape[2])
+            AffIJK=AffIJK[inds,:]
 
-        nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
+            nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
+
+            smct.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl')
+            
+            del XYZ
+            del ct_grid
+        else:
+            nfct=nfct.astype(FinalMask.dtype)
+            nfct[nfct!=0]=1
 
         with CodeTimer("CT median filter",unit='s'):
             if sys.platform in ['linux','win32']:
@@ -957,10 +968,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 else:
                     nfct=MedianFilter(nfct.astype(np.uint8),GPUBackend=MedianCOMPUTING_BACKEND)
             nfct=nfct!=0
-
-        del XYZ
-        del ct_grid
-
 
         ############
         with CodeTimer("CT extrapol",unit='s'):
@@ -1026,7 +1033,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
-            smct.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl')
             nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
 
             if CTType in [2,3]:
