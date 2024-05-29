@@ -690,10 +690,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     LocFocalPoint=AffIJK[-1,:3] #we recover the location in pixels of the intended target
           
-    ## This is the cylinder that covers the minimal volume
+    ## This is the box that covers the minimal volume
+    DimsBox=np.zeros((3))
+    DimsBox[0:2]=FOVDiameter
+    DimsBox[2]+=FOVLength
     TransformationBox=np.eye(4)
 
-    BoxFOV=creation.cylinder(FOVDiameter/2,FOVLength,
+    BoxFOV=creation.box(DimsBox,
                         transform=TransformationBox)
     BoxFOV.apply_transform(CumulativeTransform)
     BoxFOV.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'_box_FOV.stl')
