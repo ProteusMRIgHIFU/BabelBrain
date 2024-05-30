@@ -19,7 +19,7 @@ __kernel void mapfilter(
     const unsigned int y = get_global_id(1);
     const unsigned int z = get_global_id(2);
 
-    if (x > dims_0 || y > dims_1 || z > dims_2)
+    if (x >= dims_0 || y >= dims_1 || z >= dims_2)
         return;
     const unsigned int ind = x*dims_1*dims_2 + y*dims_2 + z;
 #endif
@@ -37,7 +37,7 @@ extern "C" __global__ void mapfilter(  const float * HUMap,
     const size_t y =  (size_t)(blockIdx.y*blockDim.y + threadIdx.y);
     const size_t z =  (size_t)(blockIdx.z*blockDim.z + threadIdx.z);
 
-    if (x > ((size_t)dims_0) || y > ((size_t)dims_1) || z > ((size_t)dims_2))
+    if (x >= ((size_t)dims_0) || y >= ((size_t)dims_1) || z >= ((size_t)dims_2))
         return;
     const  size_t ind = x*((size_t)dims_1)*((size_t)dims_2) + y*((size_t)dims_2) + z;
 #endif
