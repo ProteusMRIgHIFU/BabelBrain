@@ -238,7 +238,7 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
 
-def DoIntersect(Mesh1,Mesh2):
+def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     # Fix broken meshes
     if Mesh1.body_count != 1:
         print('Mesh 1 is invalid... trying to fix')
@@ -257,9 +257,17 @@ def DoIntersect(Mesh1,Mesh2):
     pycork.isSolid(verts_1,tris_1)
     pycork.isSolid(verts_2,tris_2)
 
-    verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
+    if not bForceUseBlender:
+        try:
+            verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
+            Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
+        except:
+            #we use blender as backup if it  fails (but pycork does not trigger an easy to catch exception)
+            Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+    else:
+        Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
 
-    Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
+
 
     # Check intersection is valid
     if Mesh1_intersect.is_empty:
@@ -495,6 +503,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
                                 bPlot=True,
+                                bForceUseBlender=False, # we use pycork by default, but we let open to use blender as backup
                                 factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
                                 FOVDiameter=60.0, # diameter for  manual FOV
@@ -633,7 +642,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     skin_mesh = trimesh.load_mesh(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
-    skin_mesh =DoIntersect(skin_mesh,Cone)
+    skin_mesh =DoIntersect(skin_mesh,Cone,bForceUseBlender=bForceUseBlender)
 
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
     with CodeTimer("voxelization ",unit='s'):
@@ -713,9 +722,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     skin_mesh = trimesh.load_mesh(skin_stl)
 
     if bApplyBOXFOV:
-        skull_mesh=DoIntersect(skull_mesh,BoxFOV)
-        csf_mesh  =DoIntersect(csf_mesh,  BoxFOV)
-        skin_mesh =DoIntersect(skin_mesh, BoxFOV)
+        skull_mesh=DoIntersect(skull_mesh,BoxFOV,bForceUseBlender=bForceUseBlender)
+        csf_mesh  =DoIntersect(csf_mesh,  BoxFOV,bForceUseBlender=bForceUseBlender)
+        skin_mesh =DoIntersect(skin_mesh, BoxFOV,bForceUseBlender=bForceUseBlender)
     
     #we first subtract to find the pure bone region
     if VoxelizeFilter is None:
