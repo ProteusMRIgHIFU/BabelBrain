@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
 from .H317 import GenerateH317Tx
 import nibabel
+from multiprocessing import Process,Queue
     
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -57,7 +58,7 @@ def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
 #    plt.gca().set_aspect('equal')
 #    plt.title('Trajectory of points')
     return ListPoints
-    
+
 
 class RUN_SIM(RUN_SIM_BASE):
     def CreateSimObject(self,**kargs):
@@ -67,6 +68,7 @@ class RUN_SIM(RUN_SIM_BASE):
                                     RotationZ=self._RotationZ,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
                                      **kargs)
+        
     def RunCases(self,
                     XSteering=0.0,
                     YSteering=0.0,
@@ -84,8 +86,8 @@ class RUN_SIM(RUN_SIM_BASE):
             ExtraAdjustX = [XSteering]
             ExtraAdjustY = [YSteering]
             return super().RunCases(ExtraAdjustX=ExtraAdjustX,
-                                    ExtraAdjustY=ExtraAdjustY,
-                                    **kargs)
+                                     ExtraAdjustY=ExtraAdjustY,
+                                     **kargs)
         else:
             #we need to expand accordingly to all points
             ExtraAdjustX=[]

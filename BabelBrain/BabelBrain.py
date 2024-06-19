@@ -70,7 +70,7 @@ if sys.platform =='linux':
         pass
 
 
-
+bINUSE_INSIDE_BRAINSIGHT = False
 
 
 
@@ -138,7 +138,8 @@ class OutputWrapper(QObject):
         self._stdout = stdout
 
     def write(self, text):
-        self._stream.write(text)
+        if bINUSE_INSIDE_BRAINSIGHT == False:
+            self._stream.write(text)
         self.outputWritten.emit(text, self._stdout)
 
     def __getattr__(self, name):
@@ -376,7 +377,7 @@ class BabelBrain(QWidget):
 
         
         self.Config['T1WIso']= self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-isotropic.nii.gz')
-        with open(os.path.join(resource_path(),'version.txt'), 'r') as f:
+        with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             self.Config['version'] =f.readlines()[0]
 
         self.Config['MultiPoint']=''
@@ -1035,6 +1036,7 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             self.endError.emit()
 def main():
+    global bINUSE_INSIDE_BRAINSIGHT
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR']='/usr/local/fsl'
         os.environ['FSLOUTPUTTYPE']='NIFTI_GZ'
@@ -1106,6 +1108,7 @@ def main():
                 
     AltOutputFilesPath=None
     if args.bInUseWithBrainsight:
+        bINUSE_INSIDE_BRAINSIGHT = True
         Brainsight,header=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
