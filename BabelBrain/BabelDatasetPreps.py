@@ -503,11 +503,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
                                 bPlot=True,
+                                bForceFullRecalculation=False,
                                 bForceUseBlender=False, # we use pycork by default, but we let open to use blender as backup
                                 factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
                                 FOVDiameter=60.0, # diameter for  manual FOV
                                 FOVLength=300.0, # lenght FOV
+                                ElastixOptimizer='AdaptiveStochasticGradientDescent',
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -538,15 +540,18 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     csf_stl=outputfilenames['CSF_STL']
     skin_stl=outputfilenames['Skin_STL']
     
-    with CodeTimer("Checking if previously generated files can be reused", unit="s"):
-        if CT_or_ZTE_input is None:
-            bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames)
-        else:
-            if CTType in [2,3]:
-                bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold, currentZTER=ZTERange)
+    if bForceFullRecalculation==False:
+        with CodeTimer("Checking if previously generated files can be reused", unit="s"):
+            if CT_or_ZTE_input is None:
+                bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames)
             else:
-                bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold)
-        print(f"bReuseFiles: {bReuseFiles}")
+                if CTType in [2,3]:
+                    bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold, currentZTER=ZTERange)
+                else:
+                    bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold)
+    else:
+        bReuseFiles=False
+    print(f"bReuseFiles: {bReuseFiles}")
 
     if SimbNIBSType=='charm':
         if bReuseFiles:
@@ -877,13 +882,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 print('Processing ZTE/PETRA to pCT')
                 bIsPetra = CTType==3
                 with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
-                    rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames)
+                    rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames,ElastixOptimizer)
                 with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
                     rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),outputfilenames,
                         ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
             else:
                 with CodeTimer("Coregistration CT to T1",unit='s'):
-                    rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input, outputfilenames, CoregCT_MRI, bReuseFiles,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
+                    rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input, outputfilenames,ElastixOptimizer, CoregCT_MRI, bReuseFiles,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
             rCTdata=rCT.get_fdata()
             hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
             print('*'*40)

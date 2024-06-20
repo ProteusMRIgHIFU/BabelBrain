@@ -58,6 +58,8 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
+from Options.Options import AdvanceOptions
+
 
 multiprocessing.freeze_support()
 if sys.platform =='linux':
@@ -384,7 +386,30 @@ class BabelBrain(QWidget):
         if widget.ui.MultiPointTypecomboBox.currentIndex()==1:
             self.Config['EnableMultiPoint']=True    
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
-
+            
+        #default values for advanced features 
+        
+        self.DefaultAdvanced={}
+        
+        self.DefaultAdvanced['bApplyBOXFOV']=False
+        self.DefaultAdvanced['FOVDiameter']=200.0
+        self.DefaultAdvanced['FOVLength']=400.0
+        self.DefaultAdvanced['bForceUseBlender']=False
+        self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
+                
+        for k in self.DefaultAdvanced:
+            self.Config[k]=self.DefaultAdvanced[k]
+            
+        self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-AdvancedParams.yaml')
+        
+        if os.path.isfile(self.Config['AdvancedParamsFile']):
+            with open(self.Config['AdvancedParamsFile'],'r') as f:
+                PrevParams=yaml.load(f,yaml.SafeLoader)
+            for k in self.DefaultAdvanced:
+                if k in PrevParams:
+                    self.Config[k]=PrevParams[k]
+        
+            
         self.SaveLatestSelection()
 
         self.load_ui()
@@ -536,11 +561,7 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
-        
-        self.Widget.ManualFOVcheckBox.setChecked(False)
-        self.Widget.grpManualFOV.setVisible(False)
-        self.Widget.ManualFOVcheckBox.stateChanged.connect(self.ShowManualFOV)
-        
+       
     
     @Slot()
     def handleOutput(self, text, stdout):
@@ -573,6 +594,8 @@ class BabelBrain(QWidget):
 
         self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateParamsMaskFloat)
         self.Widget.USPPWSpinBox.valueChanged.connect(self.UpdateParamsMaskFloat)
+        
+        self.Widget.AdvancedOptions.clicked.connect(self.ShowAdvancedOptions)
 
 
 
@@ -618,7 +641,23 @@ class BabelBrain(QWidget):
         for obj in [self.Widget.USPPWSpinBox]:
             obj.setProperty('UserData',obj.value())
 
-
+    @Slot()
+    def ShowAdvancedOptions(self):
+        
+        options = AdvanceOptions(
+             ElastixOptimizer=self.Config['ElastixOptimizer'],
+             bForceUseBlender=self.Config['bForceUseBlender'],
+             bApplyBOXFOV=self.Config['bApplyBOXFOV'],
+             FOVDiameter=self.Config['FOVDiameter'],
+             FOVLength=self.Config['FOVLength'])
+        ret=options.exec()
+        if ret !=-1:
+            self.Config['bApplyBOXFOV']=options.ui.ManualFOVcheckBox.isChecked()
+            self.Config['FOVDiameter']=options.ui.FOVDiameterSpinBox.value()
+            self.Config['FOVLength']=options.ui.FOVLengthSpinBox.value()
+            self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
+            self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
+  
 
     @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
@@ -883,10 +922,7 @@ class BabelBrain(QWidget):
             im.set_data(T1WMap)
         self._figMasks.canvas.draw_idle()
             
-    @Slot()
-    def ShowManualFOV(self,v):
-        self.Widget.grpManualFOV.setVisible(self.Widget.ManualFOVcheckBox.isChecked())
-            
+          
     def GetExport(self):
         ExtraConfig ={}
         ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
@@ -996,10 +1032,42 @@ class RunMaskGeneration(QObject):
                 kargs['ZTERange']=Widget.ZTERangeSlider.value()
             kargs['HUThreshold']=Widget.HUTreshold.value()
             
-        if Widget.ManualFOVcheckBox.isChecked(): #We use manual FOV 
-            kargs['bApplyBOXFOV']=True
-            kargs['FOVDiameter']=Widget.FOVDiameterSpinBox.value()
-            kargs['FOVLength']=Widget.FOVLengthSpinBox.value()
+       
+        #advanced parameters
+        for k in self._mainApp.DefaultAdvanced:
+            kargs[k]=self._mainApp.Config[k] 
+        
+        bForceFullRecalculation = False
+        if os.path.isfile(self._mainApp.Config['AdvancedParamsFile']):
+            with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
+                PrevParams=yaml.load(f,yaml.SafeLoader)
+            bForceFullRecalculation=False
+            for k in self._mainApp.DefaultAdvanced:
+                if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
+                    bForceFullRecalculation=True
+                    break
+            if not bForceFullRecalculation:
+                for k in PrevParams:
+                    if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                        bForceFullRecalculation=True
+                        break
+        else:
+            #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
+            for k in self._mainApp.DefaultAdvanced:
+                if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
+                    bForceFullRecalculation=True
+                    break
+        kargs['bForceFullRecalculation']=bForceFullRecalculation
+            
+        # now we save the parameters for future comparison
+        NewParams={}
+        for k in self._mainApp.DefaultAdvanced:
+            NewParams[k]=kargs[k]
+            
+        with open(self._mainApp.Config['AdvancedParamsFile'],'w') as f:
+            yaml.safe_dump(NewParams,f)
+
+        
         # Start mask generation as separate process.
         queue=Queue()
         maskWorkerProcess = Process(target=CalculateMaskProcess, 
