@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QTableView,QVBoxLayout
+from PySide6.QtCore import Slot, Qt,QAbstractTableModel
 
 # Important:
 # You need to run the following command to generate the ui_form.py file
@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import yaml
+import pandas as pd
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -31,6 +32,35 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 ListTxSteering=['H317','I12378','ATAC']
+
+class TableModel(QAbstractTableModel):
+    def __init__(self, data):
+        super(TableModel, self).__init__()
+        self._data = data
+
+    def data(self, index, role):
+        if role == Qt.DisplayRole:
+            value = self._data.iloc[index.row(), index.column()]
+            return str(value)
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            return   Qt.AlignmentFlag.AlignCenter
+
+    def rowCount(self, index):
+        return self._data.shape[0]
+
+    def columnCount(self, index):
+        return self._data.shape[1]
+
+    def headerData(self, section, orientation, role):
+        # section is the index of the column/row.
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return str(self._data.columns[section])
+
+            if orientation == Qt.Vertical:
+                return str(self._data.index[section])
+            
+ORIGINAL_BABELBRAIN_SELECTION={'real CT':19,'ZTE':19,'PETRA':7}
 
 def ValidThermalProfile(fProf):
     msgDetails=None
@@ -75,7 +105,8 @@ class SelFiles(QDialog):
                     SimbNIBS='',CTType=0,CoregCT=1,CT='',
                     SimbNIBSType=0,TrajectoryType=0,
                     GPU='CPU',
-                    Backend='Metal'):
+                    Backend='Metal',
+                    defaultCTMap=ORIGINAL_BABELBRAIN_SELECTION['real CT']):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -110,6 +141,8 @@ class SelFiles(QDialog):
         self.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSType)
         self.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryType)
         self.ui.CoregCTcomboBox.setCurrentIndex(CoregCT)
+        self.ui.ResetCTMapOriginalpushButton.clicked.connect(self.ResetOriginalCTCombo)
+
 
         self._GPUs=self.GetAvailableGPUs()
 
@@ -125,6 +158,16 @@ class SelFiles(QDialog):
             if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
                 break
+
+        lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+        dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+        df = pd.read_csv(os.path.join(resource_path(),'..','TranscranialModeling','WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+        # df = df.drop(columns=['Slope','Intercept'])
+        for index, row in df.iterrows():
+            self.ui.CTMappingcomboBox.addItem(', '.join(index))
+        self._dfCTParams=df
+        self.ui.CTMappingcomboBox.setCurrentIndex(defaultCTMap)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
@@ -320,8 +363,13 @@ class SelFiles(QDialog):
         self.ui.CTlineEdit.setEnabled(bv)
         self.ui.SelCTpushButton.setEnabled(bv)
         self.ui.CoregCTlabel.setEnabled(bv)
+        self.ui.CoregCTlabel_2.setEnabled(bv)
+        self.ui.CoregCTlabel_3.setEnabled(bv)
         self.ui.CoregCTcomboBox.setEnabled(bv)
-
+        self.ui.CTMappingcomboBox.setEnabled(bv)
+        self.ui.ResetCTMapOriginalpushButton.setEnabled(bv)
+        self.ResetOriginalCTCombo()
+    
     @Slot()
     def SelectMultiPoint(self,value):
         bv = value >0
@@ -335,6 +383,10 @@ class SelFiles(QDialog):
         if not bv:
             self.ui.MultiPointTypecomboBox.setCurrentIndex(0)
         self.ui.MultiPointTypecomboBox.setEnabled(bv)
+
+    @Slot()
+    def ResetOriginalCTCombo(self):
+        self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
         
         
     @Slot()

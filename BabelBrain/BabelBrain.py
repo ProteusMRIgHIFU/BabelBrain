@@ -318,6 +318,7 @@ class BabelBrain(QWidget):
         CT_or_ZTE_input=widget.ui.CTlineEdit.text()
         bUseCT=widget.ui.CTTypecomboBox.currentIndex()>0
         CTType=widget.ui.CTTypecomboBox.currentIndex()
+        CTMapCombo = widget._dfCTParams.iloc[widget.ui.CTMappingcomboBox.currentIndex()].name
         Mat4Trajectory=widget.ui.TrajectorylineEdit.text()
         ThermalProfile=widget.ui.ThermalProfilelineEdit.text()
         if widget.ui.SimbNIBSTypecomboBox.currentIndex()==0:
@@ -352,9 +353,10 @@ class BabelBrain(QWidget):
         self.Config['ThermalProfile']=ThermalProfile
         self.Config['T1W']=T1W
         self.Config['bUseCT']=bUseCT
-        self.Config['CTType']=widget.ui.CTTypecomboBox.currentIndex()
+        self.Config['CTType']=CTType
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
+        self.Config['CTMapCombo']=CTMapCombo
         self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
 
         #filenames when saving results for Brainsight
@@ -1139,6 +1141,8 @@ def main():
         if 'CT_or_ZTE_input' in prevConfig:
             selwidget.ui.CTlineEdit.setText(prevConfig['CT_or_ZTE_input'])
             selwidget.ui.CTTypecomboBox.setCurrentIndex(prevConfig['CTType'])
+        if 'CTMapCombo' in prevConfig:
+            selwidget.ui.CTMappingcomboBox.setCurrentIndex(selwidget._dfCTParams.index.get_loc(tuple(prevConfig['CTMapCombo'])))
         if 'SimbNIBSType' in prevConfig:
             SimbNIBSType=prevConfig['SimbNIBSType']
             if SimbNIBSType =='charm':

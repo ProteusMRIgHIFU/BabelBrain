@@ -549,6 +549,7 @@ class BabelFTD_Simulations_BASE(object):
                  bWaterOnly=False,
                  QCorrection=3,
                  MappingMethod='Webb-Marsac',
+                 CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
@@ -577,6 +578,7 @@ class BabelFTD_Simulations_BASE(object):
         self._CTFNAME=CTFNAME
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
+        self._CTMapCombo=CTMapCombo
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
@@ -608,15 +610,12 @@ class BabelFTD_Simulations_BASE(object):
                 if self._bPETRA:
                     print('Using PETRA to low energy 70 Kvp CT settings')
                     DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
-                    ParamsWebbSOS=['GE','80','B','','0.5, 0.6'] # Params at 80 Kvp
-                    ParamsWebbAtt=['GE','80','B','','0.49, 0.63'] # Params at 80 Kvp
                 else:
                     print('Using 120 Kvp CT settings')
                     DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                    ParamsWebbSOS=['GE','120','B','','0.5, 0.6']  # Params at 120 Kvp
-                    ParamsWebbAtt=['GE','120','B','','0.49, 0.63'] # Params at 80 Kvp
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=ParamsWebbSOS)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=ParamsWebbAtt)
+                print('Using CT combination', self._CTMapCombo)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
                 DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)
