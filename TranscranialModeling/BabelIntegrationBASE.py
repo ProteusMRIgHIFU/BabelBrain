@@ -283,16 +283,20 @@ def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
 
     return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
 
+def SpeedofSoundWebbDataset():
+    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+    dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    return df
+
 
 def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
-    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
-    dict_dtypes = {x : 'str'  for x in lst_str_cols}
-
-    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    df=SpeedofSoundWebbDataset()
     
     sel=df.loc[[Params]]
 

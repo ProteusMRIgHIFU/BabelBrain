@@ -14,7 +14,14 @@ import os
 from pathlib import Path
 import re
 import yaml
-import pandas as pd
+import sys
+
+sys.path.append(os.path.abspath('../'))
+                
+sys.path.append(os.path.abspath('../../'))
+
+from TranscranialModeling.BabelIntegrationBASE import SpeedofSoundWebbDataset
+    
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -159,11 +166,7 @@ class SelFiles(QDialog):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
                 break
 
-        lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
-        dict_dtypes = {x : 'str'  for x in lst_str_cols}
-
-        df = pd.read_csv(os.path.join(resource_path(),'..','TranscranialModeling','WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
-        # df = df.drop(columns=['Slope','Intercept'])
+        df = SpeedofSoundWebbDataset()
         for index, row in df.iterrows():
             self.ui.CTMappingcomboBox.addItem(', '.join(index))
         self._dfCTParams=df
