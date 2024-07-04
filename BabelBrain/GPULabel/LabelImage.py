@@ -1,332 +1,21 @@
-import numpy as np
-import numpy.linalg as npl
-import sys
+import logging
+logger = logging.getLogger()
 import os
-import warnings
-import functools
-import operator
 import platform
 
-import nibabel
-from nibabel import processing
-from nibabel.affines import AffineError, append_diag, to_matvec, from_matvec
-from nibabel.imageclasses import spatial_axes_first
-from nibabel.nifti1 import Nifti1Image
-from scipy import ndimage
+import numpy as np
+from scipy.ndimage._morphology import generate_binary_structure
+from skimage.measure import label
 
-from numpy.core.multiarray import normalize_axis_index
-from collections.abc import Iterable
+try:
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal
+except:
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal
 
-# if sys.platform in ['linux','win32']:
-#     import cupy 
-#     import cupyx 
-#     from cupyx.scipy import ndimage as cndimage
-#     from cupyx.scipy.ndimage import _interp_kernels
-
-_code = '''
-#ifdef _OPENCL
-__kernel void label_init(__global const bool * x, 
-                         __global int * y
-                         ) 
-{
-    const int ysize_0 = get_global_size(0);
-    const int ysize_1 = get_global_size(1);
-    const int ysize_2 = get_global_size(2);
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
-
-    int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
-#endif
-#ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
-
-kernel void label_init(const device bool * x [[ buffer(0) ]],
-                       device int * y [[ buffer(2) ]],
-                       uint gid[[thread_position_in_grid]]) 
-{
-    #define _i gid
-#endif
-
-    if (x[_i] == 0)
-    { 
-        y[_i] = -1; 
-    } 
-    else 
-    { 
-        y[_i] = _i; 
-    }
-    
-}
-
-
-#ifdef _OPENCL
-__kernel void label_connect(__global const int * shape,
-                            __global const int * dirs,
-                            const int ndirs,
-                            const int ndim, 
-                            __global int * y
-                            )
-{
-
-    const int ysize_0 = get_global_size(0);
-    const int ysize_1 = get_global_size(1);
-    const int ysize_2 = get_global_size(2);
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
-
-    int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
-
-#endif
-#ifdef _METAL
-kernel void label_connect(const device int * shape [[ buffer(0) ]],
-                          const device int * dirs [[ buffer(1) ]],
-                          const device int * int_params [[ buffer(2) ]],
-                          device int * y [[ buffer(3) ]],
-                          uint gid[[thread_position_in_grid]])
-{
-    #define ndirs int_params[0]
-    #define ndim int_params[1]
-    #define _i gid
-#endif
-    
-    if (y[_i] < 0) return;
-    for (int dr = 0; dr < ndirs; dr++) 
-    {
-        int j = _i;
-        int rest = j;
-        int stride = 1;
-        int k = 0;
-        for (int dm = ndim-1; dm >= 0; dm--) 
-        {
-            int pos = rest % shape[dm] + dirs[dm + dr * ndim];
-            if (pos < 0 || pos >= shape[dm]) 
-            {
-                k = -1;
-                break;
-            }
-            k += pos * stride;
-            rest /= shape[dm];
-            stride *= shape[dm];
-        }
-        if (k < 0) continue;
-        if (y[k] < 0) continue;
-        while (1) 
-        {
-            while (j != y[j]) 
-            {  
-                j = y[j]; 
-            }
-            while (k != y[k]) 
-            { 
-                k = y[k]; 
-            }
-            if (j == k) break;
-            if (j < k) 
-            {
-                #ifdef _OPENCL
-                int old = atomic_cmpxchg(&y[k], k, j);
-                #endif
-                #ifdef _METAL
-                int old = atomic_cmpxchg(&y[k], k, j);
-                #endif
-                if (old == k) break;
-                k = old;
-            }
-            else 
-            {
-                #ifdef _OPENCL
-                int old = atomic_cmpxchg( &y[j], j, k );
-                #endif
-                #ifdef _METALL
-                int old = atomic_cmpxchg( &y[j], j, k );
-                #endif
-                if (old == j) break;
-                j = old;
-            }
-        }
-    }
-      
-}
-
-#ifdef _OPENCL
-__kernel void label_count(__global int * y, 
-                          __global int * count) 
-{
-    const int ysize_0 = get_global_size(0);
-    const int ysize_1 = get_global_size(1);
-    const int ysize_2 = get_global_size(2);
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
-
-    int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
-#endif
-#ifdef _METAL
-kernel void label_count(device int * y [[ buffer(0) ]], 
-                        device int * count [[ buffer(1) ]],
-                        uint gid[[thread_position_in_grid]]) 
-{
-    #define _i gid
-#endif
-
-    if (y[_i] < 0)
-    {
-        return;
-    }
-    int j = _i;
-    while (j != y[j]) 
-    { 
-        j = y[j]; 
-    }
-    if (j != _i)
-    {
-        y[_i] = j;
-    }
-    else
-    {
-        #ifdef _OPENCL
-        atomic_add(&count[0], 1);
-        #endif
-        #ifdef _METAL
-        atomic_add(&count[0], 1);
-        #endif
-    }
-}
-
-#ifdef _OPENCL
-__kernel void label_labels(__global int * y,
-                           __global int * count, 
-                           __global int * labels) 
-{
-    const int ysize_0 = get_global_size(0);
-    const int ysize_1 = get_global_size(1);
-    const int ysize_2 = get_global_size(2);
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
-
-    int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
-#endif
-#ifdef _METAL
-kernel void label_labels(device int * y [[ buffer(0) ]],
-                         device int * count [[ buffer(1) ]], 
-                         device int * labels [[ buffer (2) ]],
-                         uint gid[[thread_position_in_grid]]) 
-{
-    #define _i gid
-#endif
-
-    if (y[_i] != _i)
-    {
-        return;
-    }
-    
-    #ifdef _OPENCL
-    int j = atomic_add(&count[1], 1);
-    #endif
-    #ifdef _METAL
-    int j = atomic_add(&count[1], 1);
-    #endif
-
-    labels[j] = _i;
-}
-
-#ifdef _OPENCL
-
-__kernel void label_finalize(const int maxlabel,
-                            __global int * labels, 
-                            __global int * y) 
-{
-
-    const int ysize_0 = get_global_size(0);
-    const int ysize_1 = get_global_size(1);
-    const int ysize_2 = get_global_size(2);
-    const int xind =  get_global_id(0);
-    const int yind =  get_global_id(1);
-    const int zind =  get_global_id(2);
-
-    int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
-
-#endif
-#ifdef _METAL
-kernel void label_finalize(const device int * int_params [[ buffer(0)]] ,
-                           device int * labels [[ buffer(1) ]], 
-                           device int * y [[ buffer(2) ]],
-                           uint gid[[thread_position_in_grid]]) 
-{
-    #define maxlabel int_params[2]
-    #define _i gid
-#endif
-
-    if (y[_i] < 0) 
-    {
-        y[_i] = 0;
-        return;
-    }
-    int yi = y[_i];
-    int j_min = 0;
-    int j_max = maxlabel - 1;
-    int j = (j_min + j_max) / 2;
-    while (j_min < j_max) 
-    {
-        if (yi == labels[j]) break;
-        if (yi < labels[j]) 
-            j_max = j - 1;
-        else 
-            j_min = j + 1;
-        j = (j_min + j_max) / 2;
-    }
-    y[_i] = j + 1;
-}
-'''
-
-Platforms=None
-queue = None
-prgcl = None
-ctx = None
-knl_label_init = None
-knl_label_connect = None
-knl_label_count = None
-knl_label_labels = None
-knl_label_finalize = None
-mf = None
-clp = None
-
-def InitCUDA(DeviceName='A6000'):
-    import cupy as cp
-    global Platforms
-    global queue 
-    global prgcl 
-    global ctx
-    global clp
-
-    devCount = cp.cuda.runtime.getDeviceCount()
-    print("Number of CUDA devices found:", devCount)
-    if devCount == 0:
-        raise SystemError("There are no CUDA devices.")
-        
-    selDevice = None
-
-    for deviceID in range(0, devCount):
-        d=cp.cuda.runtime.getDeviceProperties(deviceID)
-        if DeviceName in d['name'].decode('UTF-8'):
-            selDevice=cp.cuda.Device(deviceID)
-            break
-
-    if selDevice is None:
-        raise SystemError("There are no devices supporting CUDA or that matches selected device.")
-      
-    ctx=selDevice
-    clp=cp
-
-def InitOpenCL(DeviceName='AMD'):
-    import pyopencl as cl
-    global Platforms
-    global queue 
-    global prgcl 
+def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
+    global queue
+    global prgcl
+    global sel_device
     global ctx
     global knl_label_init
     global knl_label_connect
@@ -335,89 +24,51 @@ def InitOpenCL(DeviceName='AMD'):
     global knl_label_finalize
     global mf
     global clp
-    clp=cl
-    
-    # Obtain list of openCL platforms
-    Platforms=cl.get_platforms()
-    if len(Platforms)==0:
-        raise SystemError("No OpenCL platforms")
-    
-    # btain list of available devices and select one 
-    SelDevice=None
-    for device in Platforms[0].get_devices():
-        print(device.name)
-        if DeviceName in device.name:
-            SelDevice=device
-    if SelDevice is None:
-        raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
-    else:
-        print('Selecting device: ', SelDevice.name)
+    global cndimage
 
-    # Create context for selected device
-    ctx = cl.Context([SelDevice])
-    
-    # Build program from source code
-    prgcl = cl.Program(ctx,"#define _OPENCL\n"+_code).build()
+    base_path = os.path.abspath('.')
+    kernel_files = [
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPULabel' + os.sep + 'label.cpp',
+    ]
 
-    # Create kernels from program functions
-    knl_label_init = prgcl.label_init
-    knl_label_connect = prgcl.label_connect
-    knl_label_count = prgcl.label_count
-    knl_label_labels = prgcl.label_labels
-    knl_label_finalize = prgcl.label_finalize
+    if GPUBackend == 'CUDA':
+        import cupy as cp
+        from cupyx.scipy import ndimage
+        clp = cp
+        cndimage = ndimage
 
-    # Create command queue for selected device
-    queue = cl.CommandQueue(ctx)
+        ctx,_,sel_device = InitCUDA(DeviceName=DeviceName)
 
-    # Allocate device memory
-    mf = cl.mem_flags
-    
-def InitMetal(DeviceName='AMD'):
-    global ctx
-    global knl_label_init
-    global knl_label_connect
-    global knl_label_count
-    global knl_label_labels
-    global knl_label_finalize
-    
-    import metalcomputebabel as mc
+    elif GPUBackend == 'OpenCL':
+        import pyopencl as pocl
+        clp = pocl
 
-    devices = mc.get_devices()
-    SelDevice=None
-    for n,dev in enumerate(devices):
-        if DeviceName in dev.deviceName:
-            SelDevice=dev
-            break
-    if SelDevice is None:
-        raise SystemError("No Metal device containing name [%s]" %(DeviceName))
-    else:
-        print('Selecting device: ', dev.deviceName)
-    
-    ctx = mc.Device(n)
-    if 'arm64' not in platform.platform():
-        ctx.set_external_gpu(1) 
+        preamble = '#define _OPENCL'
+        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        
+        # Create kernels from program function
+        knl_label_init = prgcl.label_init
+        knl_label_connect = prgcl.label_connect
+        knl_label_count = prgcl.label_count
+        knl_label_labels = prgcl.label_labels
+        knl_label_finalize = prgcl.label_finalize
 
-    prgcl = ctx.kernel('#define _METAL\n'+_code)
+    elif GPUBackend == 'Metal':
+        import metalcomputebabel as mc
 
-    knl_label_init = prgcl.function('label_init')
-    knl_label_connect = prgcl.function('label_connect')
-    knl_label_count = prgcl.function('label_count')
-    knl_label_labels = prgcl.function('label_labels')
-    knl_label_finalize = prgcl.function('label_finalize')
+        clp = mc
+        preamble = '#define _METAL' 
+        prgcl, sel_device, ctx = InitMetal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+       
+        # Create kernel from program function
+        knl_label_init = prgcl.function('label_init')
+        knl_label_connect = prgcl.function('label_connect')
+        knl_label_count = prgcl.function('label_count')
+        knl_label_labels = prgcl.function('label_labels')
+        knl_label_finalize = prgcl.function('label_finalize')
+
 
 def _label_modified(x, structure, y, GPUBackend='OpenCL'):
-
-    global Platforms
-    global queue 
-    global prgcl 
-    global ctx
-    global knl_label_init
-    global knl_label_connect
-    global knl_label_count
-    global knl_label_labels
-    global knl_label_finalize
-    global mf
-    global clp
 
     elems = np.where(structure != 0)
     vecs = [elems[dm] - 1 for dm in range(x.ndim)]
@@ -594,23 +245,24 @@ def _label_modified(x, structure, y, GPUBackend='OpenCL'):
 
     return y, maxlabel
 
-def _generate_binary_structure(rank, connectivity):
-    if connectivity < 1:
-        connectivity = 1
-    if rank < 1:
-        return np.array(True, dtype=bool)
-    output = np.fabs(np.indices([3] * rank) - 1)
-    output = np.add.reduce(output, 0)
-    return output <= connectivity
-
 def label_modified(input, structure=None, output=None, GPUBackend='OpenCL'):
     """Labels features in an array."""
+
+    ''' Changed to numpy '''
+    # if not isinstance(input, cupy.ndarray):
+    #     raise TypeError('input must be cupy.ndarray')
     if not isinstance(input, np.ndarray):
         raise TypeError('input must be np.ndarray')
+    
     if input.dtype.char in 'FD':
         raise TypeError('Complex type not supported')
     if structure is None:
-        structure = _generate_binary_structure(input.ndim, 1)
+        ''' Call scipy's version of generate_binary_structure instead of cupy's'''
+        # structure = _generate_binary_structure(input.ndim, 1)
+        structure = generate_binary_structure(input.ndim, 1)
+    ''' Removed since it won't be a cupy array '''
+    # elif isinstance(structure, cupy.ndarray):
+    #     structure = cupy.asnumpy(structure)
 
     structure = np.array(structure, dtype=bool)
     if structure.ndim != input.ndim:
@@ -619,6 +271,8 @@ def label_modified(input, structure=None, output=None, GPUBackend='OpenCL'):
         if i != 3:
             raise ValueError('structure dimensions must be equal to 3')
 
+    ''' Changed to numpy '''
+    # if isinstance(output, cupy.ndarray):
     if isinstance(output, np.ndarray):
         if output.shape != input.shape:
             raise ValueError("output shape not correct")
@@ -626,8 +280,12 @@ def label_modified(input, structure=None, output=None, GPUBackend='OpenCL'):
     else:
         caller_provided_output = False
         if output is None:
+            ''' Changed to numpy '''
+            # output = cupy.empty(input.shape, numpy.int32)
             output = np.empty(input.shape, np.int32)
         else:
+            ''' Changed to numpy '''
+            # output = cupy.empty(input.shape, output)
             output = np.empty(input.shape, output)
 
     if input.size == 0:
@@ -639,58 +297,47 @@ def label_modified(input, structure=None, output=None, GPUBackend='OpenCL'):
         output.fill(maxlabel)
     else:
         if output.dtype != np.int32:
+            ''' Changed to numpy '''
+            # y = cupy.empty(input.shape, numpy.int32)
             y = np.empty(input.shape, np.int32)
         else:
             y = output
+
+        ''' Replace with custom kernel call'''
+        # maxlabel = _label(input, structure, y)
         output, maxlabel = _label_modified(input, structure, y,GPUBackend=GPUBackend)
+
+        ''' Removed since it ensure it dtype in _label_modified'''
+        # if output.dtype != np.int32:
+        #     _core.elementwise_copy(y, output)
 
     if caller_provided_output:
         return maxlabel
     else:
         return output, maxlabel
 
-def _resolve_neighborhood_modified(footprint, connectivity, ndim,
-                          enforce_adjacency=True):
-    """Validate or create a footprint (structuring element)."""
-    if footprint is None:
-        if connectivity is None:
-            connectivity = ndim
-        footprint = ndimage.generate_binary_structure(ndim, connectivity)
-    else:
-        # Validate custom structured element
-        footprint = np.asarray(footprint, dtype=bool)
-        # Must specify neighbors for all dimensions
-        if footprint.ndim != ndim:
-            raise ValueError(
-                "number of dimensions in image and footprint do not"
-                "match"
-            )
-        # Must only specify direct neighbors
-        if enforce_adjacency and any(s != 3 for s in footprint.shape):
-            raise ValueError("dimension size in footprint is not 3")
-        elif any((s % 2 != 1) for s in footprint.shape):
-            raise ValueError("footprint size must be odd along all dimensions")
-
-    return footprint
 
 def LabelImage(image, background=None, return_num=False, connectivity=None, GPUBackend='OpenCL'): # return_num=False, 
     """
     Modified from Skimage's label function to work using GPU (Cupy, OpenCL, and Metal)
 
-    see Skimage.measure.label for reference
+    see Skimage.measure._label.label for reference
     """
+    logger.info("\nStarting Label")
 
-    global Platforms
-    global queue 
-    global prgcl 
-    global ctx
-    global knl
-    global mf
-    global clp
-    
+    ''' Changed since we're only doing boolean case '''
+    # if label_image.dtype == bool:
+    #     return _label_bool(label_image, background=background,
+    #                        return_num=return_num, connectivity=connectivity)
+    # else:
+    #     return clabel(label_image, background, return_num, connectivity)
     if image.dtype != bool:
         msg = f"Image datatype must be boolean. For other datatypes, use Skimage.measure.label function"
         raise RuntimeError(msg)
+
+    ''' Changed import call '''
+    # from ..morphology._util import _resolve_neighborhood
+    from skimage.morphology._util import _resolve_neighborhood
 
     if background == 1:
         image = ~image
@@ -704,21 +351,39 @@ def LabelImage(image, background=None, return_num=False, connectivity=None, GPUB
             f'be in [1, ..., {image.ndim}]. Got {connectivity}.'
         )
 
-    footprint = _resolve_neighborhood_modified(None, connectivity, image.ndim)
+    footprint = _resolve_neighborhood(None, connectivity, image.ndim)
 
-    # If CUDA selected, use existing cupy function
+    ''' We do custom kernel call instead '''
+    # result = ndimage.label(image, structure=footprint)
+
+    # We try to run label step through GPU but switch to CPU method if
+    # GPU memory is not sufficient for array size.
     if GPUBackend=='CUDA':
-        with ctx:
-            image_gpu = cupy.asarray(image)
-            # footprint_gpu=cupy.asarray(footprint)
+        # If CUDA selected, use existing cupy function
+        try:
+            with ctx:
+                image_gpu = clp.asarray(image)
+                # footprint_gpu=cupy.asarray(footprint)
 
-            result_gpu = cndimage.label(image_gpu,structure=footprint)
-            result = result_gpu[0].get()
-        return result
-    else: # Use modified cupy functions
-        result =  label_modified(image,structure=footprint, GPUBackend=GPUBackend)
-
-        if return_num:
+                result_gpu = cndimage.label(image_gpu,structure=footprint)
+                result = result_gpu[0].get()
             return result
-        else:
-            return result[0]
+        except clp.cuda.memory.OutOfMemoryError as e:
+            print(f"{e}\nNot enough memory to complete label step in one go. Switching to CPU method")
+            result = label(image)
+            return result
+    elif GPUBackend=='OpenCL':
+        try:
+            '''Modified from cupyz.scipy.ndimage._measurements.label function '''
+            result =  label_modified(image,structure=footprint, GPUBackend=GPUBackend)
+
+            if return_num:
+                return result
+            else:
+                return result[0]
+        except clp.MemoryError as e:
+            print(f"{e}\nNot enough memory to complete label step in one go. Switching to CPU method")
+            result = label(image)
+            return result
+    else: # Metal
+        raise ValueError('Metal version has not been implemented')

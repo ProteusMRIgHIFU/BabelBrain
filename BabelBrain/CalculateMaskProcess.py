@@ -1,5 +1,4 @@
 import sys
-import platform
 import traceback
 
 def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
@@ -42,54 +41,31 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         from GPULabel import LabelImage
         from GPUMedianFilter import MedianFilter
         print('sys.platform',sys.platform)
-        if sys.platform not in ['linux','win32']: 
-            assert(COMPUTING_BACKEND in [2,3])  
-            #in Linux, we can cuse cupy
 
-            if COMPUTING_BACKEND==2:
-                MedianFilter.InitOpenCL(DeviceName= devicename)
-                Voxelize.InitOpenCL(DeviceName= devicename)
-                MappingFilter.InitOpenCL(DeviceName= devicename)
-                Resample.InitOpenCL(DeviceName= devicename)
-                BinaryClosing.InitOpenCL(DeviceName= devicename)
-                LabelImage.InitOpenCL(DeviceName= devicename)
-                DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage, COMPUTING_BACKEND)
-            else:
-                MedianFilter.InitMetal(DeviceName= devicename)
-                Voxelize.InitMetal(DeviceName= devicename)
-                MappingFilter.InitMetal(DeviceName= devicename)
-                Resample.InitMetal(DeviceName= devicename)
-                BinaryClosing.InitMetal(DeviceName= devicename)
-                # LabelImage.InitMetal(DeviceName= devicename) # Metal version not ready
-            
-            DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
-            DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
-            DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
-            DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo, COMPUTING_BACKEND)
-            DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose, COMPUTING_BACKEND)
+        if COMPUTING_BACKEND == 1:
+            gpu_backend = 'CUDA'
+        elif COMPUTING_BACKEND == 2:
+            gpu_backend = 'OpenCL'
+        elif COMPUTING_BACKEND == 3:
+            gpu_backend = 'Metal'
         else:
-            assert(COMPUTING_BACKEND in [1,2])
+            raise ValueError('Non valid computing backend was given')
 
-            if COMPUTING_BACKEND==1:
-                MedianFilter.InitCUDA(DeviceName= devicename)
-                Voxelize.InitCUDA(DeviceName= devicename)
-                MappingFilter.InitCUDA(DeviceName= devicename)
-                Resample.InitCUDA(DeviceName= devicename)
-                BinaryClosing.InitCUDA(DeviceName= devicename)
-                LabelImage.InitCUDA(DeviceName= devicename)
-            elif COMPUTING_BACKEND==2:
-                MedianFilter.InitOpenCL(DeviceName= devicename)
-                Voxelize.InitOpenCL(DeviceName= devicename)
-                MappingFilter.InitOpenCL(DeviceName= devicename)
-                Resample.InitOpenCL(DeviceName= devicename)
-                BinaryClosing.InitOpenCL(DeviceName= devicename)
-                LabelImage.InitOpenCL(DeviceName= devicename)
-           
-            DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
-            DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
-            DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
-            DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
-            DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
+        MedianFilter.InitMedianFilter(DeviceName=devicename,GPUBackend=gpu_backend)
+        Voxelize.InitVoxelize(DeviceName=devicename,GPUBackend=gpu_backend)
+        MappingFilter.InitMapFilter(DeviceName=devicename,GPUBackend=gpu_backend)
+        Resample.InitResample(DeviceName=devicename,GPUBackend=gpu_backend)
+        BinaryClosing.InitBinaryClosing(DeviceName=devicename,GPUBackend=gpu_backend)
+        
+        DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
+        DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
+        DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
+        DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
+        DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
+
+        # Metal version not ready
+        if gpu_backend != 'Metal':
+            LabelImage.InitLabel(DeviceName=devicename,GPUBackend=gpu_backend)
             DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
                     
         DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
