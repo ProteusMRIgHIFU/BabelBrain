@@ -1,5 +1,5 @@
 '''
-Pipeline to execute viscoleastic simulations for LIFU experiments
+Pipeline to execute viscoleastic simulations for TUS experiments
 
 ABOUT:
      author        - Samuel Pichardo

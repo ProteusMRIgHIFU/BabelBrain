@@ -1,5 +1,5 @@
 '''
-Tools to generate files for acoustic/viscoleastic simulations for LIFU experiments
+Tools to generate files for acoustic/viscoleastic simulations for TUS experiments
 
 ABOUT:
      author        - Samuel Pichardo
