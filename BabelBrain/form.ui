@@ -361,7 +361,7 @@ mask</string>
     </font>
    </property>
    <property name="text">
-    <string>LIFU System</string>
+    <string>TUS System</string>
    </property>
   </widget>
   <widget class="QLabel" name="TXLabel">
