@@ -200,14 +200,15 @@ to target (mm) :</string>
      <x>32</x>
      <y>272</y>
      <width>143</width>
-     <height>20</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
+    <string>Distance Tx outplane
+to skin (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
      <x>229</x>
@@ -291,7 +292,7 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="ZRotationSpinBox">
    <property name="geometry">
     <rect>
-     <x>232</x>
+     <x>231</x>
      <y>134</y>
      <width>90</width>
      <height>22</height>
@@ -320,7 +321,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>332</y>
+     <y>335</y>
      <width>153</width>
      <height>30</height>
     </rect>
@@ -337,7 +338,7 @@ target (mm)</string>
    <property name="geometry">
     <rect>
      <x>229</x>
-     <y>340</y>
+     <y>343</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -408,7 +409,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>28</x>
-     <y>300</y>
+     <y>305</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -427,7 +428,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>225</x>
-     <y>297</y>
+     <y>305</y>
      <width>102</width>
      <height>30</height>
     </rect>
@@ -601,7 +602,7 @@ will be removed!</string>
   <tabstop>ZRotationSpinBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
-  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
   <tabstop>SelTxSetDropDown</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>RefocusingcheckBox</tabstop>
