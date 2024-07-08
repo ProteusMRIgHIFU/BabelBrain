@@ -65,7 +65,7 @@ class BSonix(SingleTx):
 
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
@@ -78,7 +78,7 @@ class BSonix(SingleTx):
 
     def NotifyGeneratedMask(self):
         super(BSonix, self).NotifyGeneratedMask()
-        self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
+        self.Widget.SkinDistanceSpinBox.setValue(self._ZMaxSkin)
 
     def GetTxModel(self):
         return "BSonix"+self.Widget.TransducerModelcomboBox.currentText()
@@ -90,8 +90,8 @@ class BSonix(SingleTx):
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
-        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
-        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
+        self.Widget.SkinDistanceSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
         self.UpdateDistanceLabels()
 
     def GetExtraSuffixAcFields(self):
@@ -131,7 +131,7 @@ class BSonix(SingleTx):
             else:
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                self.Widget.SkinDistanceSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:

@@ -153,7 +153,7 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
      <x>202</x>
@@ -441,7 +441,7 @@ water only</string>
   <tabstop>TransducerModelcomboBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
-  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
