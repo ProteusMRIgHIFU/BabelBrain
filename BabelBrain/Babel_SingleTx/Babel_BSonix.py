@@ -78,7 +78,7 @@ class BSonix(SingleTx):
 
     def NotifyGeneratedMask(self):
         super(BSonix, self).NotifyGeneratedMask()
-        self.Widget.SkinDistanceSpinBox.setValue(self._ZMaxSkin)
+        self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
     def GetTxModel(self):
         return "BSonix"+self.Widget.TransducerModelcomboBox.currentText()
@@ -90,8 +90,8 @@ class BSonix(SingleTx):
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
-        self.Widget.SkinDistanceSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
-        self.Widget.SkinDistanceSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
         self.UpdateDistanceLabels()
 
     def GetExtraSuffixAcFields(self):
@@ -118,11 +118,13 @@ class BSonix(SingleTx):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
+            
+            DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
+                                     "DistanceSkin=%3.2f\n" %(DistanceSkin)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -131,7 +133,7 @@ class BSonix(SingleTx):
             else:
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.SkinDistanceSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:

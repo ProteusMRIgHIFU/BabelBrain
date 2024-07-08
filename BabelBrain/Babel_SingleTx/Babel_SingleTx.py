@@ -126,6 +126,7 @@ class SingleTx(BabelBaseTx):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
+        self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
