@@ -389,7 +389,8 @@ class SelFiles(QDialog):
 
     @Slot()
     def ResetOriginalCTCombo(self):
-        self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
+        if self.ui.CTTypecomboBox.currentText() != 'NO':
+            self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
         
         
     @Slot()

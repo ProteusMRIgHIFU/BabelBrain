@@ -46,6 +46,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib.pyplot import cm
+import matplotlib.patches as mpatches
 from nibabel import processing
 from superqt import QLabeledDoubleRangeSlider
 
@@ -708,7 +709,6 @@ class BabelBrain(QWidget):
         self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
         self._trackingtimefile = self._prefix_path+'ExecutionTimes.yml'
-        self._ManualSubVolumefile = self._prefix_path+'ManualSubVolume.yml'
         if not os.path.isfile(self._trackingtimefile):
             self.UpdateComputationalTime('domain',0.0) #this will initalize the trackig file
         
@@ -720,14 +720,6 @@ class BabelBrain(QWidget):
 
             if ret == QMessageBox.Yes:
                 bCalcMask=True
-            else:
-                #we check if there is some previous subvolume request
-                if os.path.isfile(self._ManualSubVolumefile):
-                    self.Widget.ManualFOVcheckBox.setChecked(True)
-                    with open(self._ManualSubVolumefile,'r') as f:
-                        ManualFOV=yaml.load(f,yaml.SafeLoader)
-                    self.Widget.FOVDiameterSpinBox.setValue(ManualFOV['FOVDiameter'])
-                    self.Widget.FOVLengthSpinBox.setValue(ManualFOV['FOVLength'])
         else:
             bCalcMask = True
 
@@ -909,7 +901,7 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
 
-            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,extent=extent,aspect='equal'))
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=5,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                 self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
@@ -917,6 +909,20 @@ class BabelBrain(QWidget):
                 self._imCtMasks.append(None)
             self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
+        im = self._imMasks[-1]
+        if self.Config['bUseCT']:
+            values =[1,4]
+            legends  = ['scalp','brain']
+            #we use manual color asignation 
+            colors =[(0.0, 0.3, 1.0, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+        else:
+            values =[1,2,3,4]
+            legends  = ['scalp','cort.','trab.','brain']
+            #we use manual color asignation 
+            colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+        patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
+        axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+
         self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
