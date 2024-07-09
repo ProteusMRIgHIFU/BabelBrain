@@ -70,14 +70,13 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.ZSteeringSpinBox.setMaximum(self.Config['MaximalZSteering']*1e3)
         self.Widget.ZSteeringSpinBox.setValue(self.Config['DefaultZSteering']*1e3)
         
-        self.Widget.ZMechanicSpinBox.setMaximum(self.Config['MaxNegativeDistance'])
-        self.Widget.ZMechanicSpinBox.setMinimum(-self.Config['MaxDistanceToSkin'])  
-        self.Widget.ZMechanicSpinBox.setValue(0.0)
-        print('self.Widget.ZMechanicSpinBox.setValue',self.Widget.ZMechanicSpinBox.value())
+        self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
+        self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
@@ -86,16 +85,11 @@ class REMOPD(BabelBasePhaseArray):
     @Slot()
     def UpdateDistanceFromSkin(self):
         self._bIgnoreUpdate=True
-        ZMec=self.Widget.ZMechanicSpinBox.value()
-        DistanceSkin=self.Widget.DistanceSkinLabel.property('UserData')
-        self.Widget.DistanceSkinLabel.setText('%3.1f' %(DistanceSkin-ZMec))
-        if ZMec>0:
-            self.Widget.DistanceSkinLabel.setStyleSheet("color: red")
+        CurDistance=self.Widget.SkinDistanceSpinBox.value()
+        if CurDistance<0:
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
-            self.Widget.DistanceSkinLabel.setStyleSheet("color: blue")
-            self.Widget.LabelTissueRemoved.setVisible(False) 
-
+            self.Widget.LabelTissueRemoved.setVisible(False)
 
     def DefaultConfig(self):
         #Specific parameters for the REMOPD - to be configured later via a yaml
@@ -144,6 +138,8 @@ class REMOPD(BabelBasePhaseArray):
                 RotationZ=Skull['RotationZ']
             else:
                 RotationZ=0.0
+                
+            DistanceSkin =  -Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "XSteering=%3.2f\n" %(XSteering*1e3)+
@@ -152,7 +148,7 @@ class REMOPD(BabelBasePhaseArray):
                                     "ZRotation=%3.2f\n" %(RotationZ)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
+                                    "DistanceSkin=%3.2f\n" %(DistanceSkin)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -173,7 +169,7 @@ class REMOPD(BabelBasePhaseArray):
                     self.Widget.SelTxSetDropDown.setCurrentIndex(index)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
         else:
             bCalcFields = True
         self._bRecalculated = True
@@ -240,7 +236,7 @@ class RunAcousticSim(QObject):
         if not bRefocus:
             TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
             TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-            TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
+            TxMechanicalAdjustmentZ= -self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value()/1e3  #in m
 
         else:
             TxMechanicalAdjustmentX=0
@@ -281,6 +277,7 @@ class RunAcousticSim(QObject):
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         kargs['bDryRun'] = self._bDryRun

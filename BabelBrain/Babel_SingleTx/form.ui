@@ -172,7 +172,7 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
      <x>202</x>
@@ -206,11 +206,12 @@ to target (mm) :</string>
      <x>34</x>
      <y>242</y>
      <width>143</width>
-     <height>20</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
+    <string>Distance Tx outplane
+to skin (mm)</string>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="FocalLengthSpinBox">
@@ -340,51 +341,6 @@ outplane to focus</string>
     <number>0</number>
    </property>
   </widget>
-  <widget class="QLabel" name="DistanceTxToSkinLabel">
-   <property name="geometry">
-    <rect>
-     <x>210</x>
-     <y>278</y>
-     <width>76</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>0.0</string>
-   </property>
-   <property name="textInteractionFlags">
-    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_27">
-   <property name="geometry">
-    <rect>
-     <x>35</x>
-     <y>279</y>
-     <width>150</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Distance Tx outplane 
-to skin (mm) :</string>
-   </property>
-   <property name="indent">
-    <number>0</number>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_28">
    <property name="geometry">
     <rect>
@@ -433,7 +389,7 @@ target (mm)</string>
   <widget class="QLabel" name="LabelTissueRemoved">
    <property name="geometry">
     <rect>
-     <x>250</x>
+     <x>226</x>
      <y>279</y>
      <width>104</width>
      <height>30</height>
@@ -523,7 +479,7 @@ water only</string>
   <tabstop>DiameterSpinBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
-  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>CalculateAcField</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>

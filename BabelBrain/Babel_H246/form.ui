@@ -235,7 +235,7 @@ to target (mm) :</string>
     </rect>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
      <x>201</x>
@@ -269,11 +269,12 @@ to target (mm) :</string>
      <x>33</x>
      <y>208</y>
      <width>143</width>
-     <height>20</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
+    <string>Distance Tx outplane
+to skin (mm)</string>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
@@ -432,7 +433,7 @@ will be removed!</string>
   <tabstop>TPODistanceSpinBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
-  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
