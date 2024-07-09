@@ -28,7 +28,7 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
 
     base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPULabel' + os.sep + 'label.cpp',
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPULabel' + os.sep + 'label.cpp',
     ]
 
     if GPUBackend == 'CUDA':

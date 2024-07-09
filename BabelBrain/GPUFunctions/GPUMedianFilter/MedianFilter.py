@@ -22,7 +22,7 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
 
     base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUMedianFilter' + os.sep + 'median_filter.cpp',
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUMedianFilter' + os.sep + 'median_filter.cpp',
     ]
 
     if GPUBackend == 'CUDA':

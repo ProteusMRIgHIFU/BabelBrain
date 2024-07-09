@@ -31,8 +31,8 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
 
     base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUResample' + os.sep + 'affine_transform.cpp',
-        # base_path + os.sep + 'BabelBrain' + os.sep + 'GPUResample' + os.sep + 'spline_filter.cpp'
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'affine_transform.cpp',
+        # base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'spline_filter.cpp'
     ]
 
     if GPUBackend == 'CUDA':

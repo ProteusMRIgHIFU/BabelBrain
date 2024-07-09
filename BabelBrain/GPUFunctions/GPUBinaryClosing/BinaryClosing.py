@@ -25,7 +25,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
 
     base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUBinaryClosing' + os.sep + 'binary_closing.cpp',
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUBinaryClosing' + os.sep + 'binary_closing.cpp',
     ]
 
     if GPUBackend == 'CUDA':

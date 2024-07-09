@@ -21,7 +21,7 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
 
     base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUMapping' + os.sep + 'map_filter.cpp',
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUMapping' + os.sep + 'map_filter.cpp',
     ]
 
     if GPUBackend == 'CUDA':

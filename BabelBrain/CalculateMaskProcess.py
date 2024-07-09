@@ -32,14 +32,22 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     
     stdout = InOutputWrapper(queue,True)
     try:
-
-        import BabelDatasetPreps as DataPreps
-        from GPUVoxelize import Voxelize
-        from GPUMapping import MappingFilter
-        from GPUResample import Resample
-        from GPUBinaryClosing import BinaryClosing
-        from GPULabel import LabelImage
-        from GPUMedianFilter import MedianFilter
+        try:
+            import BabelDatasetPreps as DataPreps
+            from GPUFunctions.GPUVoxelize import Voxelize
+            from GPUFunctions.GPUMapping import MappingFilter
+            from GPUFunctions.GPUResample import Resample
+            from GPUFunctions.GPUBinaryClosing import BinaryClosing
+            from GPUFunctions.GPULabel import LabelImage
+            from GPUFunctions.GPUMedianFilter import MedianFilter
+        except:
+            from . import BabelDatasetPreps as DataPreps
+            from .GPUFunctions.GPUVoxelize import Voxelize
+            from .GPUFunctions.GPUMapping import MappingFilter
+            from .GPUFunctions.GPUResample import Resample
+            from .GPUFunctions.GPUBinaryClosing import BinaryClosing
+            from .GPUFunctions.GPULabel import LabelImage
+            from .GPUFunctions.GPUMedianFilter import MedianFilter
         print('sys.platform',sys.platform)
 
         if COMPUTING_BACKEND == 1:
