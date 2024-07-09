@@ -1,242 +1,169 @@
-import numpy as np
+import logging
+logger = logging.getLogger()
 import os
 import platform
 
-##probably not the most optimal of filters.. .but still WAY faster than CPU based
-_code='''
-#ifdef _OPENCL
-__kernel void mapfilter(
-                                    __global const  float * HUMap,
-                                    __global const unsigned char * IsBone,
-                                    __global const float * UniqueHU,
-                                    __global unsigned int * CtMap,
-                                    const unsigned int dimUnique,
-                                    const unsigned int dims_0,
-                                    const unsigned int dims_1,
-                                    const unsigned int dims_2) {
-      
-    const unsigned int x = get_global_id(0);
-    const unsigned int y = get_global_id(1);
-    const unsigned int z = get_global_id(2);
+import numpy as np
 
-    if (x >= dims_0 || y >= dims_1 || z >= dims_2)
-        return;
-    const unsigned int ind = x*dims_1*dims_2 + y*dims_2 + z;
-#endif
-#ifdef _CUDA
-extern "C" __global__ void mapfilter(  const float * HUMap,
-                                      const unsigned char * IsBone,
-                                     const float * UniqueHU,
-                                     unsigned int * CtMap,
-                                    const unsigned int dimUnique,
-                                    const unsigned int dims_0,
-                                    const unsigned int dims_1,
-                                    const unsigned int dims_2) {
-      
-    const size_t x =  (size_t)(blockIdx.x*blockDim.x + threadIdx.x);
-    const size_t y =  (size_t)(blockIdx.y*blockDim.y + threadIdx.y);
-    const size_t z =  (size_t)(blockIdx.z*blockDim.z + threadIdx.z);
+try:
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+except:
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
 
-    if (x >= ((size_t)dims_0) || y >= ((size_t)dims_1) || z >= ((size_t)dims_2))
-        return;
-    const  size_t ind = x*((size_t)dims_1)*((size_t)dims_2) + y*((size_t)dims_2) + z;
-#endif
-
-#ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
-kernel void mapfilter(
-                                    const device  float * HUMap [[ buffer(0) ]],
-                                    const device unsigned char * IsBone [[ buffer(1) ]],
-                                    const device float * UniqueHU [[ buffer(2) ]],
-                                    unsigned device int * CtMap [[ buffer(3) ]],
-                                    uint ind[[thread_position_in_grid]]) {
-      
- 
-#endif
-    if (IsBone[ind] ==0)
-        return; 
-    const float selV = HUMap[ind];
-
-    for (unsigned int iw_0 = 0; iw_0 < dimUnique; iw_0++)
-    {
-        if (selV == UniqueHU[iw_0])
-        {
-           
-            CtMap[ind] =  iw_0;
-            break;
-            
-        }
-    }
-
-}
-
-'''
-Platforms=None
-queue = None
-prgcl = None
-ctx = None
-knl = None
-clp= None
-ocl=None
-
-def InitCUDA(DeviceName='A6000'):
-    import cupy as cp
-    global Platforms
+def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
-    global prgcl 
-    global ctx
-    global clp
-    global knl
-
-    devCount = cp.cuda.runtime.getDeviceCount()
-    print("Number of CUDA devices found:", devCount)
-    if devCount == 0:
-        raise SystemError("There are no CUDA devices.")
-        
-    selDevice = None
-
-    for deviceID in range(0, devCount):
-        d=cp.cuda.runtime.getDeviceProperties(deviceID)
-        if DeviceName in d['name'].decode('UTF-8'):
-            selDevice=cp.cuda.Device(deviceID)
-            break
-
-    if selDevice is None:
-        raise SystemError("There are no devices supporting CUDA or that matches selected device.")
-      
-    ctx=selDevice
-    clp=cp
-
-
-def InitOpenCL(DeviceName='AMD'):
-    import pyopencl as cl
-    global Platforms
-    global queue 
-    global prgcl 
-    global ctx
-    global knl
-    global ocl
-    
-    ocl = cl
-
-    Platforms=cl.get_platforms()
-    if len(Platforms)==0:
-        raise SystemError("No OpenCL platforms")
-    SelDevice=None
-    for device in Platforms[0].get_devices():
-        print(device.name)
-        if DeviceName in device.name:
-            SelDevice=device
-    if SelDevice is None:
-        raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
-    else:
-        print('Selecting device: ', SelDevice.name)
-    ctx = cl.Context([SelDevice])
-    queue = cl.CommandQueue(ctx)
-    prgcl = cl.Program(ctx, "#define _OPENCL\n"+_code).build()
-    knl=prgcl.mapfilter
-
-def InitMetal(DeviceName='AMD'):
-    global ctx
     global prgcl
+    global sel_device
+    global ctx
     global knl
-    import metalcomputebabel as mc
+    global mf
+    global clp
 
-    devices = mc.get_devices()
-    SelDevice=None
-    for n,dev in enumerate(devices):
-        if DeviceName in dev.deviceName:
-            SelDevice=dev
-            break
-    if SelDevice is None:
-        raise SystemError("No Metal device containing name [%s]" %(DeviceName))
-    else:
-        print('Selecting device: ', dev.deviceName)
-    
-    ctx = mc.Device(n)
-    if 'arm64' not in platform.platform():
-        ctx.set_external_gpu(1) 
+    base_path = os.path.abspath('.')
+    kernel_files = [
+        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUMapping' + os.sep + 'map_filter.cpp',
+    ]
+
+    if GPUBackend == 'CUDA':
+        import cupy as cp
+        clp = cp
+
+        preamble = '#define _CUDA'
+        ctx,prgcl,sel_device = InitCUDA(preamble,kernel_files,DeviceName)
+
+        # Create kernels from program function
+        knl = prgcl.get_function('mapfilter')
+
+    elif GPUBackend == 'OpenCL':
+        import pyopencl as pocl
+        clp = pocl
+
+        preamble = '#define _OPENCL'
+        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files,DeviceName)
+        
+        # Create kernels from program function
+        knl = prgcl.mapfilter
+
+    elif GPUBackend == 'Metal':
+        import metalcomputebabel as mc
+        clp = mc
+
+        preamble = '#define _METAL'
+        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
+
+        # Create kernels from program function
+        knl=prgcl.function('mapfilter')
+
     
 def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
-    global Platforms
-    global queue 
-    global prgcl 
-    global ctx
-    global knl
-    global clp
-    global ocl
-    # global knl_2px
+
+    logger.info(f"\nStarting Map Filter")
     
     assert(HUMap.dtype==np.float32)
     assert(UniqueHU.dtype==np.float32)
     assert(SelBone.dtype==np.uint8)
     assert(np.all(np.array(HUMap.shape)==np.array(SelBone.shape)))
     assert(np.isfortran(HUMap)==False) 
-    CtMap=np.zeros(HUMap.shape,np.uint32)
+    output=np.zeros(HUMap.shape,np.uint32)
+    int_params = np.zeros(5,dtype=np.uint32)
+    int_params[0] = len(UniqueHU)
+    int_params[1] = HUMap.shape[0]
+    int_params[2] = HUMap.shape[1]
+    int_params[3] = HUMap.shape[2]
  
-    if GPUBackend=='CUDA':
-        with ctx:
-            prgcl  = clp.RawModule(code= "#define _CUDA\n"+_code)
-            knl=prgcl.get_function("mapfilter")
+    totalPoints = output.size
+    step = get_step_size(sel_device,num_large_buffers=3,data_type=output.dtype,GPUBackend=GPUBackend)
+    logger.info(f"Total points: {totalPoints}")
+    
+    for point in range(0,totalPoints,step):
 
-            HUMap_pr=clp.asarray(HUMap)
-            UniqueHU_pr=clp.asarray(UniqueHU)
-            SelBone_pr=clp.asarray(SelBone)
-            CtMap_pr=clp.zeros(CtMap.shape,CtMap.dtype)
-            Block=(4,4,4)
-            Grid=(HUMap.shape[0]//Block[0]+1,HUMap.shape[1]//Block[1]+1,HUMap.shape[2]//Block[2]+1)
-            knl(Grid,Block,(HUMap_pr,
-                    SelBone_pr,
-                    UniqueHU_pr,
-                    CtMap_pr,
-                    len(UniqueHU),
-                    HUMap.shape[0],
-                    HUMap.shape[1],
-                    HUMap.shape[2]))
-            
-            CtMap=CtMap_pr.get()
-    elif GPUBackend=='OpenCL':
+        # Grab indices for current output section
+        slice_start = (point // (output.shape[1] * output.shape[2]))
+        slice_end = min(((point + step) // (output.shape[1] * output.shape[2])),output.shape[0])
+        logger.info(f"Working on slices {slice_start} to {slice_end} out of {output.shape[0]}")
         
-        mf = ocl.mem_flags
+        # Grab sections of data
+        HUMap_section = np.copy(HUMap[slice_start:slice_end,:,:])
+        SelBone_section = np.copy(SelBone[slice_start:slice_end,:,:])
+        output_section = np.copy(output[slice_start:slice_end,:,:])
 
-        HUMap_pr = ocl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=HUMap)
-        UniqueHU_pr = ocl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=UniqueHU)
-        SelBone_pr = ocl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=SelBone)
-        CtMap_pr = ocl.Buffer(ctx, mf.WRITE_ONLY, CtMap.nbytes)
+        int_params[4] = output_section.size
 
-        knl(queue, HUMap.shape, 
-                None,
-                HUMap_pr,
-                SelBone_pr,
-                UniqueHU_pr,
-                CtMap_pr,
-                np.uint32(len(UniqueHU)),
-                np.uint32(HUMap.shape[0]),
-                np.uint32(HUMap.shape[1]),
-                np.uint32(HUMap.shape[2]))
+        if GPUBackend=='CUDA':
+            with ctx:
 
-        ocl.enqueue_copy(queue, CtMap,CtMap_pr)
-    else:
-        prgcl = ctx.kernel("#define _METAL\n#define dimUnique %i\n" %(len(UniqueHU))+_code)
-        knl=prgcl.function('mapfilter')
-        HUMap_pr = ctx.buffer(HUMap) 
-        UniqueHU_pr = ctx.buffer(UniqueHU)
-        SelBone_pr =  ctx.buffer(SelBone)
-        CtMap_pr=  ctx.buffer(CtMap.nbytes)
-        ctx.init_command_buffer()
-        handle=knl(int(np.prod(HUMap.shape)),HUMap_pr,SelBone_pr,UniqueHU_pr,CtMap_pr )
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((CtMap_pr,UniqueHU_pr))
-        CtMap=np.frombuffer(CtMap_pr,dtype=CtMap.dtype).reshape(CtMap.shape)
+                HUMap_section_gpu = clp.asarray(HUMap_section)
+                UniqueHU_gpu = clp.asarray(UniqueHU)
+                SelBone_section_gpu = clp.asarray(SelBone_section)
+                output_section_gpu = clp.asarray(output_section)
+                int_params_gpu = clp.asarray(int_params)
+                
+                # Deploy kernel
+                Block = (4,4,4)
+                Grid = (HUMap_section.shape[0]//Block[0]+1,HUMap_section.shape[1]//Block[1]+1,HUMap_section.shape[2]//Block[2]+1)
+                knl(Grid,Block,(HUMap_section_gpu,
+                        SelBone_section_gpu,
+                        UniqueHU_gpu,
+                        output_section_gpu,
+                        int_params_gpu))
+
+                output_section=output_section_gpu.get()
+        elif GPUBackend=='OpenCL':
+            
+            # Move input data from host to device memory
+            HUMap_section_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=HUMap_section)
+            UniqueHU_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=UniqueHU)
+            SelBone_section_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=SelBone_section)
+            output_section_gpu = clp.Buffer(ctx, mf.WRITE_ONLY, output_section.nbytes)
+            int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
+
+            # Deploy map filter kernel
+            try:
+                knl(queue, output_section.shape, 
+                        None,
+                        HUMap_section_gpu,
+                        SelBone_section_gpu,
+                        UniqueHU_gpu,
+                        output_section_gpu,
+                        int_params_gpu)
+            except clp.MemoryError as e:
+                raise MemoryError(f"{e}\nRan out of GPU memory, suggest lowering PPW")
+            queue.finish()
+
+            # Move kernel output data back to host memory
+            clp.enqueue_copy(queue,output_section,output_section_gpu)
+            queue.finish()
+
+            # Release GPU memory
+            HUMap_section_gpu.release()
+            UniqueHU_gpu.release()
+            SelBone_section_gpu.release()
+            output_section_gpu.release()
+            queue.finish()
+
+        else:
+            # prgcl = ctx.kernel("#define _METAL\n#define dimUnique %i\n" %(len(UniqueHU))+_code)
+            # knl=prgcl.function('mapfilter')
+            HUMap_pr = ctx.buffer(HUMap) 
+            UniqueHU_pr = ctx.buffer(UniqueHU)
+            SelBone_pr =  ctx.buffer(SelBone)
+            CtMap_pr=  ctx.buffer(CtMap.nbytes)
+            ctx.init_command_buffer()
+            handle=knl(int(np.prod(HUMap.shape)),HUMap_pr,SelBone_pr,UniqueHU_pr,CtMap_pr )
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((CtMap_pr,UniqueHU_pr))
+            CtMap=np.frombuffer(CtMap_pr,dtype=CtMap.dtype).reshape(CtMap.shape)
   
-    return CtMap
+        # Record results in output array
+        output[slice_start:slice_end,:,:] = output_section[:,:,:]
 
-if __name__ == "__main__":
-    from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-    t=ReadFromH5py('test.h5')
-    InitCUDA('A6000')
-    MapFilter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')
+    return output
+
+# if __name__ == "__main__":
+#     from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+#     t=ReadFromH5py('test.h5')
+#     InitCUDA('A6000')
+#     MapFilter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')

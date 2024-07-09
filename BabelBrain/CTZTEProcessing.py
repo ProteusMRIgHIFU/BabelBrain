@@ -223,7 +223,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
                         voxel_sizes = tuple(voxel_sizes) + (1,) * (3 - n_dim)
                 out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
                 
-                fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
+                fixed_image = ResampleFunc(in_img,out_vox_map,cval=cval, GPUBackend=ResampleBackend)
 
 
             T1fname_CTRes=outputfnames['T1fname_CTRes']

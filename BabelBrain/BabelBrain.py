@@ -8,6 +8,8 @@ ABOUT:
 '''
 import argparse
 import multiprocessing
+import logging
+# logging.basicConfig(level=logging.INFO)
 import os
 import platform
 import shutil
