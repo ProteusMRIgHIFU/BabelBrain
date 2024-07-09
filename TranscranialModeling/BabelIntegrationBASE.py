@@ -1,5 +1,5 @@
 '''
-Pipeline to execute viscoleastic simulations for LIFU experiments
+Pipeline to execute viscoleastic simulations for TUS experiments
 
 ABOUT:
      author        - Samuel Pichardo
@@ -290,16 +290,20 @@ def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
 
     return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
 
+def SpeedofSoundWebbDataset():
+    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+    dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    return df
+
 
 def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
-    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
-    dict_dtypes = {x : 'str'  for x in lst_str_cols}
-
-    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    df=SpeedofSoundWebbDataset()
     
     sel=df.loc[[Params]]
 
@@ -575,6 +579,7 @@ class BabelFTD_Simulations_BASE(object):
                  bWaterOnly=False,
                  QCorrection=3,
                  MappingMethod='Webb-Marsac',
+                 CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
@@ -603,6 +608,7 @@ class BabelFTD_Simulations_BASE(object):
         self._CTFNAME=CTFNAME
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
+        self._CTMapCombo=CTMapCombo
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
@@ -634,15 +640,12 @@ class BabelFTD_Simulations_BASE(object):
                 if self._bPETRA:
                     print('Using PETRA to low energy 70 Kvp CT settings')
                     DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
-                    ParamsWebbSOS=['GE','80','B','','0.5, 0.6'] # Params at 80 Kvp
-                    ParamsWebbAtt=['GE','80','B','','0.49, 0.63'] # Params at 80 Kvp
                 else:
                     print('Using 120 Kvp CT settings')
                     DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                    ParamsWebbSOS=['GE','120','B','','0.5, 0.6']  # Params at 120 Kvp
-                    ParamsWebbAtt=['GE','120','B','','0.49, 0.63'] # Params at 80 Kvp
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=ParamsWebbSOS)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=ParamsWebbAtt)
+                print('Using CT combination', self._CTMapCombo)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
                 DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)

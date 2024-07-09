@@ -510,6 +510,7 @@ class RunAcousticSim(QObject):
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo'] 
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint

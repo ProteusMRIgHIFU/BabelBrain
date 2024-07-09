@@ -225,14 +225,15 @@ to target (mm) :</string>
      <x>32</x>
      <y>206</y>
      <width>143</width>
-     <height>20</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mechanical adj. Z (mm)</string>
+    <string>Distance Tx outplane
+to skin (mm)</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="ZMechanicSpinBox">
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
      <x>200</x>
@@ -332,55 +333,10 @@ target (mm)</string>
 water only</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_27">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>245</y>
-     <width>150</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Distance Tx outplane 
-to skin (mm) :</string>
-   </property>
-   <property name="indent">
-    <number>0</number>
-   </property>
-  </widget>
-  <widget class="QLabel" name="DistanceTxToSkinLabel">
-   <property name="geometry">
-    <rect>
-     <x>205</x>
-     <y>244</y>
-     <width>76</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>12</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>0.0</string>
-   </property>
-   <property name="textInteractionFlags">
-    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
-   </property>
-  </widget>
   <widget class="QLabel" name="LabelTissueRemoved">
    <property name="geometry">
     <rect>
-     <x>246</x>
+     <x>226</x>
      <y>244</y>
      <width>104</width>
      <height>30</height>
@@ -471,7 +427,7 @@ will be removed!</string>
   <tabstop>TPODistanceSpinBox</tabstop>
   <tabstop>XMechanicSpinBox</tabstop>
   <tabstop>YMechanicSpinBox</tabstop>
-  <tabstop>ZMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>

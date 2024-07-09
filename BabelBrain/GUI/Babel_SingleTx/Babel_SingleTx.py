@@ -71,7 +71,7 @@ class SingleTx(BabelBaseTx):
         ui_file.close()
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
         self.Widget.LabelTissueRemoved.setVisible(False)
@@ -97,11 +97,11 @@ class SingleTx(BabelBaseTx):
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
         self.UpdateLimits()
-  
-        if self._ZMaxSkin>=0:
-            self.Widget.ZMechanicSpinBox.setValue(0.0) # Tx aligned at the target
+
+        if self._ZMaxSkin >0:
+            self.Widget.SkinDistanceSpinBox.setValue(self._ZMaxSkin) # Tx aligned at the target
         else:
-            self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin) #if negative, we push back the Tx as it can't go below this
+            self.Widget.SkinDistanceSpinBox.setValue(0.0) # Tx aligned at the skin
         self._UnmodifiedZMechanic = 0.0
         
     
@@ -110,26 +110,15 @@ class SingleTx(BabelBaseTx):
         if self._bIgnoreUpdate:
             return
         self._bIgnoreUpdate=True
-        ZMec=self.Widget.ZMechanicSpinBox.value()
         self.UpdateLimits()
-        if ZMec > self.Widget.ZMechanicSpinBox.maximum():
-            self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.maximum())
-            ZMec=self.Widget.ZMechanicSpinBox.maximum()
-        if ZMec < self.Widget.ZMechanicSpinBox.minimum():
-            self.Widget.ZMechanicSpinBox.setValue(self.Widget.ZMechanicSpinBox.minimum())
-            ZMec=self.Widget.ZMechanicSpinBox.minimum()
         self.UpdateDistanceLabels()
         self._bIgnoreUpdate=False 
 
     def UpdateDistanceLabels(self):
-        ZMec=self.Widget.ZMechanicSpinBox.value()
-        CurDistance=self._ZMaxSkin-ZMec
-        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        CurDistance=self.Widget.SkinDistanceSpinBox.value()
         if CurDistance<0:
-            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: red")
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
-            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
             self.Widget.LabelTissueRemoved.setVisible(False)
 
 
@@ -137,10 +126,11 @@ class SingleTx(BabelBaseTx):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
+        self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
-        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
-        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
         self.UpdateDistanceLabels()
 
     def GetExtraSuffixAcFields(self):
@@ -161,13 +151,15 @@ class SingleTx(BabelBaseTx):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
+            
+            DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "FocalLength=%3.2f\n" %(Skull['FocalLength']*1e3)+
                                     "Diameter=%3.2f\n" %(Skull['Aperture']*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
+                                    "DistanceSkin=%3.2f\n" %(DistanceSkin)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -176,7 +168,7 @@ class SingleTx(BabelBaseTx):
             else:
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
@@ -239,7 +231,7 @@ class RunAcousticSim(QObject):
         
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= (self._mainApp.AcSim._ZMaxSkin - self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value())/1e3  #in m
         ZIntoSkin =0.0
         CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
         if CurDistance < 0:
@@ -264,6 +256,7 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
