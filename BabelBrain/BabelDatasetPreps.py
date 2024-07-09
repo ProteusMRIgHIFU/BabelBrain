@@ -1069,11 +1069,20 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     BinMaskConformalSkullRot=FinalMask==2
     LineViewBone=BinMaskConformalSkullRot[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]:]
     #we erode to establish the section of bone associated with trabecular
-    DegreeErosion=int((LineViewBone.sum()*(1-TrabecularProportion)))
+    DegreeErosion=int(np.round(LineViewBone.sum()*(1-TrabecularProportion)))
     print('DegreeErosion',DegreeErosion)
-    Trabecula=ndimage.binary_erosion(BinMaskConformalSkullRot,iterations=DegreeErosion)
-
-    FinalMask[Trabecula]=3 #trabecula
+    if DegreeErosion !=0:
+        Trabecula=ndimage.binary_erosion(BinMaskConformalSkullRot,iterations=DegreeErosion)
+        FinalMask[Trabecula]=3 #trabecula
+    else:
+        print('*************'*4)
+        print('WARNING '*4)
+        print('Conditions indicate that the whole bone region is considered trabecular.')
+        print('Consider reducing fraction of trabecular bone in Advanced options.')
+        print('*************'*4)
+        
+        #in case it is 0, it means all layer is trabeclar
+        FinalMask[BinMaskConformalSkullRot]=3 #trabecula
     
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)

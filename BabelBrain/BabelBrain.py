@@ -398,6 +398,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['FOVLength']=400.0
         self.DefaultAdvanced['bForceUseBlender']=False
         self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
+        self.DefaultAdvanced['TrabecularProportion']=0.8
                 
         for k in self.DefaultAdvanced:
             self.Config[k]=self.DefaultAdvanced[k]
@@ -646,12 +647,9 @@ class BabelBrain(QWidget):
     @Slot()
     def ShowAdvancedOptions(self):
         
-        options = AdvanceOptions(
-             ElastixOptimizer=self.Config['ElastixOptimizer'],
-             bForceUseBlender=self.Config['bForceUseBlender'],
-             bApplyBOXFOV=self.Config['bApplyBOXFOV'],
-             FOVDiameter=self.Config['FOVDiameter'],
-             FOVLength=self.Config['FOVLength'])
+        options = AdvanceOptions(self.Config,
+                                 self.DefaultAdvanced,
+                                 parent=self)
         ret=options.exec()
         if ret !=-1:
             self.Config['bApplyBOXFOV']=options.ui.ManualFOVcheckBox.isChecked()
@@ -659,6 +657,7 @@ class BabelBrain(QWidget):
             self.Config['FOVLength']=options.ui.FOVLengthSpinBox.value()
             self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
             self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
+            self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
   
 
     @Slot(float)

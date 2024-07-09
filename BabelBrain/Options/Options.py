@@ -30,23 +30,42 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+
 class AdvanceOptions(QDialog):
-    def __init__(self, parent=None,
+    def __init__(self,
+                 currentConfig,
+                 defaultValues,
+                parent=None):
+        super().__init__(parent)
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+        self.setWindowTitle("Advanced Options")
+        self.ui.ContinuepushButton.clicked.connect(self.Continue)
+        self.ui.CancelpushButton.clicked.connect(self.Cancel)
+        self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
+
+        self.defaultValues = defaultValues
+        kargs={}
+        for k in self.defaultValues:
+            kargs[k]=currentConfig[k]
+
+        self.SetValues(**kargs)
+
+        self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
+        # disable (but not hide) close button
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)   
+        
+    def SetValues(self,
                  ElastixOptimizer='AdaptiveStochasticGradientDescent',
                  bForceUseBlender=False,
                  bApplyBOXFOV=False,
                  FOVDiameter=200.0,
-                 FOVLength=400.0):
-        super().__init__(parent)
-        self.ui = Ui_Dialog()
-        self.ui.setupUi(self)
-        self.setWindowTitle("Advance Options")
-        self.ui.ContinuepushButton.clicked.connect(self.Continue)
-        self.ui.CancelpushButton.clicked.connect(self.Cancel)
+                 FOVLength=400.0,
+                 TrabecularProportion=0.8):
         
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
         if sel==-1:
-            raise ValueError('The elastix optmizer is not available in the GUI -'+ElastixOptimizer )
+            raise ValueError('The elastix optimizer is not available in the GUI -'+ElastixOptimizer )
         
         self.ui.ManualFOVcheckBox.toggled.connect(self.EnableManualFOV)
         
@@ -55,11 +74,12 @@ class AdvanceOptions(QDialog):
         self.ui.ManualFOVcheckBox.setChecked(bApplyBOXFOV)
         self.ui.FOVDiameterSpinBox.setValue(FOVDiameter)
         self.ui.FOVLengthSpinBox.setValue(FOVLength)
+        self.ui.TrabecularProportionSpinBox.setValue(TrabecularProportion)
 
-        self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
-        # disable (but not hide) close button
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)   
-        
+    @Slot()
+    def ResetToDefaults(self):
+        self.SetValues(**self.defaultValues)
+
     @Slot()
     def EnableManualFOV(self,value):
         self.ui.grpManualFOV.setEnabled(value)
