@@ -1004,7 +1004,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         #brain
         with CodeTimer("FinalMask[nfct]=2",unit='s'):
             FinalMask[nfct]=2  #bone
-        #we do a cleanup of islands 
+        #we do a cleanup of islands of skin that are isolated between the skull region and brain region, we assume all except the largest one are brain tissue
         with CodeTimer("Labeling",unit='s'):
             if LabelImage is None:
                 label_img = label(FinalMask==1)
@@ -1018,7 +1018,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         regions=sorted(regions,key=lambda d: d.area)
         AllLabels=[]
         for l in regions[:-1]:
-            AllLabels.append(l.label)
+            if bApplyBOXFOV is  False:
+                AllLabels.append(l.label)
+            else:
+                if l.area < 0.1*regions[-1].area: #in subvolumes, often the far field region is bigger than the near field
+                    AllLabels.append(l.label)
 
         FinalMask[np.isin(label_img,np.array(AllLabels))]=4
             
@@ -1090,19 +1094,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     mask_nifti2.to_filename(outname)
     
-    #we save the manual subvolume if selected
-    outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'ManualSubVolume.yml'
-    if bApplyBOXFOV:
-        subvol={'FOVDiameter':FOVDiameter,'FOVLength':FOVLength}
-        with open(outname,'w') as f:
-            yaml.dump(subvol,f,yaml.SafeDumper)
-    else:
-        #otherwise we check if we need to delete an old one
-        if os.path.isfile(outname):
-            os.remove(outname)
-        
-    
-
     with CodeTimer("resampling T1 to mask",unit='s'):
         if ResampleFilter is None:
             T1Conformal=processing.resample_from_to(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
