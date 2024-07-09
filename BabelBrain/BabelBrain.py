@@ -689,7 +689,6 @@ class BabelBrain(QWidget):
         self._prefix_path=basedir+os.sep+self._prefix
         self._outnameMask=self._prefix_path+'BabelViscoInput.nii.gz'
         self._trackingtimefile = self._prefix_path+'ExecutionTimes.yml'
-        self._ManualSubVolumefile = self._prefix_path+'ManualSubVolume.yml'
         if not os.path.isfile(self._trackingtimefile):
             self.UpdateComputationalTime('domain',0.0) #this will initalize the trackig file
         
@@ -701,14 +700,6 @@ class BabelBrain(QWidget):
 
             if ret == QMessageBox.Yes:
                 bCalcMask=True
-            else:
-                #we check if there is some previous subvolume request
-                if os.path.isfile(self._ManualSubVolumefile):
-                    self.Widget.ManualFOVcheckBox.setChecked(True)
-                    with open(self._ManualSubVolumefile,'r') as f:
-                        ManualFOV=yaml.load(f,yaml.SafeLoader)
-                    self.Widget.FOVDiameterSpinBox.setValue(ManualFOV['FOVDiameter'])
-                    self.Widget.FOVLengthSpinBox.setValue(ManualFOV['FOVLength'])
         else:
             bCalcMask = True
 
