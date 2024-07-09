@@ -890,7 +890,7 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
 
-            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,extent=extent,interpolation='none',aspect='equal'))
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=5,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                 self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
@@ -902,13 +902,15 @@ class BabelBrain(QWidget):
         if self.Config['bUseCT']:
             values =[1,4]
             legends  = ['scalp','brain']
+            #we use manual color asignation 
+            colors =[(0.0, 0.3, 1.0, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
         else:
             values =[1,2,3,4]
-            legends  = ['scalp','cortical','trabecular','brain']
-        colors = [ im.cmap(im.norm(value)) for value in values]
+            legends  = ['scalp','cort.','trab.','brain']
+            #we use manual color asignation 
+            colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
         axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
-        print('adding labels',patches)
 
         self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
         self.UpdateAcousticTab()
