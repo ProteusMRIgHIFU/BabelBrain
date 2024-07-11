@@ -61,7 +61,8 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
         return step
 
     elif GPUBackend == 'Metal':
-        pass
+        ''' Need a way to determine max buffer size using metalcompute, default to 240000000 for now'''
+        return step
     
     # Determine largest safe buffer size
     max_buffer_size = int(max_buffer_size * 0.8)  # Use 80% to be safe

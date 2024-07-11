@@ -142,20 +142,24 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
             queue.finish()
 
         else:
-            # prgcl = ctx.kernel("#define _METAL\n#define dimUnique %i\n" %(len(UniqueHU))+_code)
-            # knl=prgcl.function('mapfilter')
-            HUMap_pr = ctx.buffer(HUMap) 
-            UniqueHU_pr = ctx.buffer(UniqueHU)
-            SelBone_pr =  ctx.buffer(SelBone)
-            CtMap_pr=  ctx.buffer(CtMap.nbytes)
+            # Move input data from host to device memory
+            HUMap_section_gpu = ctx.buffer(HUMap_section) 
+            UniqueHU_gpu = ctx.buffer(UniqueHU)
+            SelBone_section_gpu = ctx.buffer(SelBone_section)
+            output_section_gpu = ctx.buffer(output_section.nbytes)
+            int_params_gpu = ctx.buffer(int_params)
+
+            # Deploy map filter kernel
             ctx.init_command_buffer()
-            handle=knl(int(np.prod(HUMap.shape)),HUMap_pr,SelBone_pr,UniqueHU_pr,CtMap_pr )
+            handle=knl(HUMap_section.size,HUMap_section_gpu,SelBone_section_gpu,UniqueHU_gpu,output_section_gpu,int_params_gpu)
             ctx.commit_command_buffer()
             ctx.wait_command_buffer()
             del handle
             if 'arm64' not in platform.platform():
-                ctx.sync_buffers((CtMap_pr,UniqueHU_pr))
-            CtMap=np.frombuffer(CtMap_pr,dtype=CtMap.dtype).reshape(CtMap.shape)
+                ctx.sync_buffers((output_section_gpu,UniqueHU_gpu))
+
+            # Move kernel output data back to host memory
+            output_section = np.frombuffer(output_section_gpu,dtype=output.dtype).reshape(output_section.shape)
   
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

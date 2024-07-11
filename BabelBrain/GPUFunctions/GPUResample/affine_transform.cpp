@@ -5,6 +5,20 @@ typedef float W;
 typedef float X;
 typedef short Y;
 
+#ifdef _METAL
+ptrdiff_t ptrdiff_t_min(ptrdiff_t a, ptrdiff_t b)
+{
+    if (a < b)
+    {
+        return a;
+    }
+    else
+    {
+        return b;
+    }
+}
+#endif
+
 #ifdef _CUDA
 extern "C" __global__ void affine_transform(const float * x, 
                                             const float * mat,
@@ -89,26 +103,28 @@ using namespace metal;
 kernel void affine_transform(const device float * x [[ buffer(0) ]], 
                              const device float * mat [[ buffer(1) ]],
                              device float * y [[ buffer(2) ]],
-                             constant int * int_params [[ buffer(3) ]],
-                             constant float * float_params [[ buffer(4) ]],
+                             const device float * float_params [[ buffer(3) ]],
+                             device unsigned int * int_params [[ buffer(4) ]],
                              uint gid[[thread_position_in_grid]]) 
 {
-    #define in_dims_0 int_params[0]
-    #define in_dims_1 int_params[1]
-    #define in_dims_2 int_params[2]
-    #define out_dims_0 int_params[3]
-    #define out_dims_1 int_params[4]
-    #define out_dims_2 int_params[5]
-    #define order int_params[6]
-    #define cval float_params[0]
+    const float cval = float_params[0];
+    const unsigned int order = int_params[0];
+    const unsigned int in_dims_0 = int_params[1];
+    const unsigned int in_dims_1 = int_params[2];
+    const unsigned int in_dims_2 = int_params[3];
+    const unsigned int out_dims_0 = int_params[4];
+    const unsigned int out_dims_1 = int_params[5];
+    const unsigned int out_dims_2 = int_params[6];
+    unsigned int output_idx_tmp = int_params[7];
+    unsigned int base_32 = int_params[8];
 
-    unsigned int output_idx = (unsigned int) int_params[7]; // overall starting index in ouput array, not just output section
-    unsigned int true_gid  = gid + output_idx; // overall position in output array
+    size_t output_idx = output_idx_tmp + (base_32 * UNSIGNED_INT32_LIM);
+    size_t true_gid = gid + output_idx; // overall position in output array
     
-    const int xind =  true_gid/(out_dims_1*out_dims_2);
-    const int yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
-    const int zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
-    unsigned int _i  = gid; // current index in output section array
+    const ptrdiff_t xind =  true_gid/(out_dims_1*out_dims_2);
+    const ptrdiff_t yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
+    const ptrdiff_t zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
+    size_t _i  = gid; // current index in output section array
 #endif
 
     W out = 0.0;
@@ -129,7 +145,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     const size_t sx_1 = sx_2 * xsize_2;
     const size_t sx_0 = sx_1 * xsize_1;
 
-    size_t in_coord[3] = {xind,yind,zind};
+    ptrdiff_t in_coord[3] = {xind,yind,zind};
     
     W c_0 = (W)0.0;
     c_0 += mat[0] * (W)in_coord[0];
@@ -204,7 +220,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[0] = -ci_0[0];
                 }
                 ci_0[0] = 1 + (ci_0[0] - 1) % ((xsize_0 - 1) * 2);
+                #ifdef _METAL
+                ci_0[0] = ptrdiff_t_min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
+                #else
                 ci_0[0] = min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
+                #endif
             }
             ci_0[1] = start + 1;
             if (xsize_0 == 1) 
@@ -218,7 +238,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[1] = -ci_0[1];
                 }
                 ci_0[1] = 1 + (ci_0[1] - 1) % ((xsize_0 - 1) * 2);
+                #ifdef _METAL
+                ci_0[1] = ptrdiff_t_min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
+                #else
                 ci_0[1] = min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
+                #endif
             }
             ci_0[2] = start + 2;
             if (xsize_0 == 1) 
@@ -232,7 +256,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[2] = -ci_0[2];
                 }
                 ci_0[2] = 1 + (ci_0[2] - 1) % ((xsize_0 - 1) * 2);
+                #ifdef _METAL
+                ci_0[2] = ptrdiff_t_min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
+                #else
                 ci_0[2] = min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
+                #endif
             }
             ci_0[3] = start + 3;
             if (xsize_0 == 1) 
@@ -246,7 +274,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[3] = -ci_0[3];
                 }
                 ci_0[3] = 1 + (ci_0[3] - 1) % ((xsize_0 - 1) * 2);
+                #ifdef _METAL
+                ci_0[3] = ptrdiff_t_min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
+                #else
                 ci_0[3] = min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
+                #endif
             }
             W w_0;
             
@@ -282,7 +314,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[0] = -ci_1[0];
                     }
                     ci_1[0] = 1 + (ci_1[0] - 1) % ((xsize_1 - 1) * 2);
+                    #ifdef _METAL
+                    ci_1[0] = ptrdiff_t_min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
+                    #else
                     ci_1[0] = min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
+                    #endif
                 }
                 ci_1[1] = start + 1;
                 if (xsize_1 == 1) 
@@ -296,7 +332,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[1] = -ci_1[1];
                     }
                     ci_1[1] = 1 + (ci_1[1] - 1) % ((xsize_1 - 1) * 2);
+                    #ifdef _METAL
+                    ci_1[1] = ptrdiff_t_min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
+                    #else
                     ci_1[1] = min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
+                    #endif
                 }
                 ci_1[2] = start + 2;
                 if (xsize_1 == 1) 
@@ -310,7 +350,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[2] = -ci_1[2];
                     }
                     ci_1[2] = 1 + (ci_1[2] - 1) % ((xsize_1 - 1) * 2);
+                    #ifdef _METAL
+                    ci_1[2] = ptrdiff_t_min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
+                    #else
                     ci_1[2] = min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
+                    #endif
                 }
                 ci_1[3] = start + 3;
                 if (xsize_1 == 1) 
@@ -324,7 +368,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[3] = -ci_1[3];
                     }
                     ci_1[3] = 1 + (ci_1[3] - 1) % ((xsize_1 - 1) * 2);
+                    #ifdef _METAL
+                    ci_1[3] = ptrdiff_t_min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
+                    #else
                     ci_1[3] = min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
+                    #endif
                 }
                 
                 W w_1;
@@ -360,7 +408,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[0] = -ci_2[0];
                         }
                         ci_2[0] = 1 + (ci_2[0] - 1) % ((xsize_2 - 1) * 2);
+                        #ifdef _METAL
+                        ci_2[0] = ptrdiff_t_min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
+                        #else
                         ci_2[0] = min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
+                        #endif
                     }
                     ci_2[1] = start + 1;
                     if (xsize_2 == 1) 
@@ -374,7 +426,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[1] = -ci_2[1];
                         }
                         ci_2[1] = 1 + (ci_2[1] - 1) % ((xsize_2 - 1) * 2);
+                        #ifdef _METAL
+                        ci_2[1] = ptrdiff_t_min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
+                        #else
                         ci_2[1] = min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
+                        #endif
                     }
                     ci_2[2] = start + 2;
                     if (xsize_2 == 1) 
@@ -388,7 +444,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[2] = -ci_2[2];
                         }
                         ci_2[2] = 1 + (ci_2[2] - 1) % ((xsize_2 - 1) * 2);
+                        #ifdef _METAL
+                        ci_2[2] = ptrdiff_t_min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
+                        #else
                         ci_2[2] = min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
+                        #endif
                     }
                     ci_2[3] = start + 3;
                     if (xsize_2 == 1) 
@@ -402,7 +462,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[3] = -ci_2[3];
                         }
                         ci_2[3] = 1 + (ci_2[3] - 1) % ((xsize_2 - 1) * 2);
+                        #ifdef _METAL
+                        ci_2[3] = ptrdiff_t_min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
+                        #else
                         ci_2[3] = min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
+                        #endif
                     }
                     W w_2;
 

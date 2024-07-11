@@ -51,6 +51,7 @@ kernel void mapfilter(const device  float * HUMap [[ buffer(0) ]],
                       const unsigned device int * int_params [[ buffer(4) ]],
                       uint section_gid[[thread_position_in_grid]]) {
  
+    const unsigned int dimUnique = int_params[0];
 #endif
 
     // Skip if not bone

@@ -67,7 +67,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     ptrdiff_t output_size_2 = int_params[2];
     ptrdiff_t output_size = output_size_2 * output_size_1 * output_size_0;
 
-    ptrdiff_t section_gid = (ptrdiff_t) gid
+    ptrdiff_t section_gid = (ptrdiff_t) gid;
     
 #endif
 
@@ -117,9 +117,9 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     #ifdef _OPENCL
     __global const unsigned char* data = (__global const unsigned char*)&x[0];
     #endif
-    // #ifdef _METAL
-    // device const unsigned char* data = (const device unsigned char*)&x[0];
-    // #endif
+    #ifdef _METAL
+    device const unsigned char* data = (const device unsigned char*)&x[0];
+    #endif
 
     unsigned char _in = (unsigned char)x[section_gid];
     if (center_is_true && _in == (unsigned char)false_val)

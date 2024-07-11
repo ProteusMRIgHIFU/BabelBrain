@@ -63,7 +63,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mc
         
         preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(DeviceName=DeviceName,kernel_files=kernel_files)
+        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
        
         # Create kernels from program function
         knl_at=prgcl.function('affine_transform')
@@ -399,36 +399,23 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
 
         elif GPUBackend == 'Metal':
 
-            int_params=np.zeros(8,np.int32)
-            float_params= np.zeros(2,np.float32)
-            int_params[0] = filtered.shape[0]
-            int_params[1] = filtered.shape[1]
-            int_params[2] = filtered.shape[2]
-            int_params[3] = output.shape[0]
-            int_params[4] = output.shape[1]
-            int_params[5] = output.shape[2]
-            int_params[6] = order
-            int_params[7] = output_start
-            float_params[0] = cval
-
-            # GPU call
+            # Move input data from host to device memory
             filtered_gpu = ctx.buffer(filtered)
             m_gpu = ctx.buffer(m) 
             output_section_gpu = ctx.buffer(output_section)
-            int_params_gpu = ctx.buffer(int_params)
             float_params_gpu = ctx.buffer(float_params)
+            int_params_gpu = ctx.buffer(int_params)
 
+            # Deploy affine transform kernel
             ctx.init_command_buffer()
-
-            handle=knl_at(int(output_section.shape),filtered_gpu,m_gpu,output_section_gpu,int_params_gpu, float_params_gpu)
+            handle=knl_at(output_section.size,filtered_gpu,m_gpu,output_section_gpu,float_params_gpu,int_params_gpu)
             ctx.commit_command_buffer()
             ctx.wait_command_buffer()
-
             del handle
-
             if 'arm64' not in platform.platform():
                 ctx.sync_buffers((output_section_gpu,float_params_gpu))
 
+            # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
             
         # Record results in output array
