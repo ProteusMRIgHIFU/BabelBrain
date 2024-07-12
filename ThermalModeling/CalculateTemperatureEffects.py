@@ -1,5 +1,5 @@
 '''
-Tools to calculate thermal simulations for LIFU experiments
+Tools to calculate thermal simulations for TUS experiments
 
 ABOUT:
      author        - Samuel Pichardo

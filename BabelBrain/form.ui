@@ -59,8 +59,8 @@
   <widget class="QTabWidget" name="tabWidget">
    <property name="geometry">
     <rect>
-     <x>7</x>
-     <y>62</y>
+     <x>16</x>
+     <y>63</y>
      <width>1284</width>
      <height>521</height>
     </rect>
@@ -76,7 +76,7 @@
      <property name="geometry">
       <rect>
        <x>150</x>
-       <y>55</y>
+       <y>30</y>
        <width>103</width>
        <height>32</height>
       </rect>
@@ -94,7 +94,7 @@
      <property name="geometry">
       <rect>
        <x>27</x>
-       <y>60</y>
+       <y>35</y>
        <width>120</width>
        <height>20</height>
       </rect>
@@ -107,7 +107,7 @@
      <property name="geometry">
       <rect>
        <x>27</x>
-       <y>95</y>
+       <y>70</y>
        <width>120</width>
        <height>20</height>
       </rect>
@@ -120,7 +120,7 @@
      <property name="geometry">
       <rect>
        <x>150</x>
-       <y>92</y>
+       <y>67</y>
        <width>90</width>
        <height>22</height>
       </rect>
@@ -157,8 +157,8 @@
     <widget class="QPushButton" name="CalculatePlanningMask">
      <property name="geometry">
       <rect>
-       <x>71</x>
-       <y>352</y>
+       <x>75</x>
+       <y>371</y>
        <width>131</width>
        <height>81</height>
       </rect>
@@ -177,8 +177,8 @@ mask</string>
     <widget class="QTabWidget" name="CTZTETabs">
      <property name="geometry">
       <rect>
-       <x>22</x>
-       <y>173</y>
+       <x>28</x>
+       <y>159</y>
        <width>219</width>
        <height>145</height>
       </rect>
@@ -361,7 +361,7 @@ mask</string>
     </font>
    </property>
    <property name="text">
-    <string>LIFU System</string>
+    <string>TUS System</string>
    </property>
   </widget>
   <widget class="QLabel" name="TXLabel">
@@ -424,6 +424,25 @@ mask</string>
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="AdvancedOptions">
+   <property name="geometry">
+    <rect>
+     <x>1179</x>
+     <y>16</y>
+     <width>123</width>
+     <height>33</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Advanced Options</string>
    </property>
   </widget>
  </widget>

@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>665</width>
+    <height>284</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>6</x>
+     <y>3</y>
+     <width>651</width>
+     <height>231</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="title">
+    <string>Domain Generation Parameters</string>
+   </property>
+   <widget class="QComboBox" name="ElastixOptimizercomboBox">
+    <property name="geometry">
+     <rect>
+      <x>326</x>
+      <y>31</y>
+      <width>281</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <item>
+     <property name="text">
+      <string>AdaptiveStochasticGradientDescent</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>FiniteDifferenceGradientDescent</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>QuasiNewtonLBFGS</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>134</x>
+      <y>37</y>
+      <width>201</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Elastix co-registration Optimizer</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="grpManualFOV">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>231</x>
+      <y>143</y>
+      <width>206</width>
+      <height>72</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string/>
+    </property>
+    <widget class="QDoubleSpinBox" name="FOVDiameterSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>105</x>
+       <y>7</y>
+       <width>90</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>400.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="value">
+      <double>200.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="DiameterLabel">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>40</y>
+       <width>82</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Length (mm)</string>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="FOVLengthSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>105</x>
+       <y>40</y>
+       <width>90</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>200.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>600.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="value">
+      <double>400.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>7</y>
+       <width>94</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Diameter (mm)</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QCheckBox" name="ManualFOVcheckBox">
+    <property name="geometry">
+     <rect>
+      <x>201</x>
+      <y>119</y>
+      <width>150</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::RightToLeft</enum>
+    </property>
+    <property name="text">
+     <string>Manual Subvolume  </string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="ForceBlendercheckBox">
+    <property name="geometry">
+     <rect>
+      <x>1</x>
+      <y>91</y>
+      <width>349</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::RightToLeft</enum>
+    </property>
+    <property name="text">
+     <string>Force using Blender for Constructive Solid Geometry   </string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="TrabecularProportionSpinBox">
+    <property name="geometry">
+     <rect>
+      <x>332</x>
+      <y>63</y>
+      <width>61</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+    <property name="decimals">
+     <number>1</number>
+    </property>
+    <property name="minimum">
+     <double>0.000000000000000</double>
+    </property>
+    <property name="maximum">
+     <double>1.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.100000000000000</double>
+    </property>
+    <property name="value">
+     <double>1.000000000000000</double>
+    </property>
+   </widget>
+   <widget class="QLabel" name="FocalLengthLabel_2">
+    <property name="geometry">
+     <rect>
+      <x>149</x>
+      <y>63</y>
+      <width>181</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Proportion of trabecular bone</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="FocalLengthLabel_3">
+    <property name="geometry">
+     <rect>
+      <x>399</x>
+      <y>64</y>
+      <width>251</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string> (applicable using only MRI input)</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="CancelpushButton">
+   <property name="geometry">
+    <rect>
+     <x>584</x>
+     <y>250</y>
+     <width>74</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cancel</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ContinuepushButton">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>252</y>
+     <width>136</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Ok</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ResetpushButton">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>250</y>
+     <width>136</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Reset to defaults</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

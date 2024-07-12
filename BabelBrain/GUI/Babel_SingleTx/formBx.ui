@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Widget</class>
+ <widget class="QWidget" name="Widget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1251</width>
+    <height>473</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Widget</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <widget class="QLabel" name="label_20">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>176</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Mechanical adj. X (mm)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="DistanceSkinLabel">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>145</y>
+     <width>76</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>0.0</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_21">
+   <property name="geometry">
+    <rect>
+     <x>32</x>
+     <y>135</y>
+     <width>150</width>
+     <height>38</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Distance skin
+to target (mm) :</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>201</x>
+     <y>174</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-5.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_23">
+   <property name="geometry">
+    <rect>
+     <x>34</x>
+     <y>206</y>
+     <width>143</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Mechanical adj. Y (mm)</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="YMechanicSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>202</x>
+     <y>204</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-5.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QWidget" name="AcField_plot1" native="true">
+   <property name="geometry">
+    <rect>
+     <x>343</x>
+     <y>30</y>
+     <width>868</width>
+     <height>381</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>202</x>
+     <y>236</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>-25.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>5.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>0.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>34</x>
+     <y>234</y>
+     <width>143</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Distance Tx outplane
+to skin (mm)</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_28">
+   <property name="geometry">
+    <rect>
+     <x>36</x>
+     <y>334</y>
+     <width>153</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Max. depth beyond
+target (mm)</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>204</x>
+     <y>342</y>
+     <width>90</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>1</number>
+   </property>
+   <property name="minimum">
+    <double>20.000000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>100.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>1.000000000000000</double>
+   </property>
+   <property name="value">
+    <double>40.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>33</x>
+     <y>81</y>
+     <width>113</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Transducer model</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="TransducerModelcomboBox">
+   <property name="geometry">
+    <rect>
+     <x>179</x>
+     <y>77</y>
+     <width>116</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <item>
+    <property name="text">
+     <string>35mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>55mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>65mm</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>80mm</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="LabelTissueRemoved">
+   <property name="geometry">
+    <rect>
+     <x>226</x>
+     <y>279</y>
+     <width>104</width>
+     <height>33</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: red</string>
+   </property>
+   <property name="text">
+    <string>Tissue layers
+will be removed!</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="IsppaScrollBars" native="true">
+   <property name="geometry">
+    <rect>
+     <x>405</x>
+     <y>410</y>
+     <width>720</width>
+     <height>61</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="ShowWaterResultscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>1139</x>
+     <y>416</y>
+     <width>104</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Show
+water only</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="HideMarkscheckBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>275</x>
+     <y>427</y>
+     <width>90</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Hide marks</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="CalculateAcField">
+   <property name="geometry">
+    <rect>
+     <x>38</x>
+     <y>371</y>
+     <width>226</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Fields</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="CalculateMechAdj">
+   <property name="geometry">
+    <rect>
+     <x>38</x>
+     <y>418</y>
+     <width>227</width>
+     <height>48</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Calculate Mechanical Adjustments</string>
+   </property>
+  </widget>
+ </widget>
+ <tabstops>
+  <tabstop>TransducerModelcomboBox</tabstop>
+  <tabstop>XMechanicSpinBox</tabstop>
+  <tabstop>YMechanicSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
+  <tabstop>MaxDepthSpinBox</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>ShowWaterResultscheckBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
