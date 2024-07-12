@@ -132,10 +132,6 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
             queue.finish()
 
         elif GPUBackend == 'Metal':
-            # Preamble ='#define _METAL\ntypedef unsigned char PixelType;\n'
-            # prgcl = ctx.kernel(Preamble+_code)
-            # knl=prgcl.function('median_reflect')
-
             int_params=np.zeros(6,np.int32)
             int_params[0] = output_section.shape[0]
             int_params[1] = output_section.shape[1]
@@ -149,7 +145,7 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
             int_params_pr = ctx.buffer(int_params)
             
             ctx.init_command_buffer()
-            handle=knl(int(np.prod(output_section.shape)),data_section_pr,output_section_pr,int_params_pr)
+            handle=knl(output_section.size,data_section_pr,output_section_pr,int_params_pr)
             ctx.commit_command_buffer()
             ctx.wait_command_buffer()
             del handle

@@ -5,6 +5,7 @@ import os
 os.environ['PYOPENCL_NO_CACHE']='1'
 
 import numpy as np
+import platform
 from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
@@ -110,20 +111,20 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
         # Need slightly larger array to account for binary closing structure size
         actual_start = max(0,slice_start-padding)
         actual_end = min(output.shape[0],slice_end+padding)
-        logger.info(f"Actual start: {actual_start}, Actual end {actual_end}")
+        logger.debug(f"Actual start: {actual_start}, Actual end {actual_end}")
 
         # Grab sections of data
         input_section = np.copy(input[actual_start:actual_end,:,:])
         output_section = np.copy(output[actual_start:actual_end,:,:])
-        logger.info(f"section shape: {input_section.shape}")
+        logger.debug(f"section shape: {input_section.shape}")
 
         current_position = actual_start * output.shape[1] * output.shape[2]
         base_32 = current_position // (2**31)
         if base_32 > 0:
-            logger.info(f"Curren position initially: {current_position}")
+            logger.debug(f"Curren position initially: {current_position}")
         current_position = current_position - (base_32 * (2**31))
-        logger.info(f"Current position: {current_position}")
-        logger.info(f"base32: {base_32}")
+        logger.debug(f"Current position: {current_position}")
+        logger.debug(f"base32: {base_32}")
     
         int_params[16] = current_position
         int_params[17] = base_32
@@ -183,7 +184,24 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
             output_section_gpu.release()
             queue.finish()
         elif GPUBackend=='Metal':
-            pass
+            
+            # Move input data from host to device memory
+            input_section_gpu = ctx.buffer(input_section)
+            structure_gpu = ctx.buffer(structure)
+            int_params_gpu = ctx.buffer(int_params)
+            output_section_gpu = ctx.buffer(output_section)
+            
+            # Deploy kernel
+            ctx.init_command_buffer()
+            handle=knl(output_section.size,input_section_gpu,structure_gpu,int_params_gpu,output_section_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((int_params_gpu,output_section_gpu))
+
+            # Move kernel output data back to host memory
+            output_section = np.frombuffer(output_section_gpu,dtype=np.uint8).reshape(output_section.shape)
         else:
             raise ValueError("Unknown gpu backend was selected")
         

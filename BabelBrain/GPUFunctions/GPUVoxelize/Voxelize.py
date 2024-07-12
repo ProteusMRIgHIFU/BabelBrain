@@ -257,10 +257,12 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                 globalcount=globalcount_gpu.get()
 
         elif GPUBackend=='OpenCL':
+            # Move input data from host to device memory
             points_section_gpu=clp.Buffer(ctx, mf.WRITE_ONLY, points_section.nbytes)
             globalcount_gpu=clp.Buffer(ctx, mf.READ_WRITE| mf.COPY_HOST_PTR, hostbuf=globalcount )
             int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
         
+            # Deploy kernel
             prg.ExtractPoints(queue,[ntotal],None,vtable_gpu,
                                                 globalcount_gpu,
                                                 points_section_gpu,
@@ -269,15 +271,20 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                                                 np.uint32(gy),
                                                 np.uint32(gz))
             queue.finish()
+
+            # Move kernel output data back to host memory
             clp.enqueue_copy(queue, points_section,points_section_gpu)
             queue.finish()
             clp.enqueue_copy(queue, globalcount,globalcount_gpu)
             queue.finish()
+
         elif GPUBackend=='Metal' :
-            points_gpu=ctx.buffer(points_section.nbytes)
+            # Move input data from host to device memory
+            points_section_gpu=ctx.buffer(points_section.nbytes)
             globalcount_gpu=ctx.buffer(globalcount)
             int_params_gpu = ctx.buffer(int_params)
 
+            # Deploy kernel
             ctx.init_command_buffer()
             handle = prg.function('ExtractPoints')(ntotal,vtable_gpu,globalcount_gpu,int_params_gpu,points_section_gpu)
             ctx.commit_command_buffer()
@@ -285,10 +292,11 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             del handle
             if 'arm64' not in platform.platform():
                 ctx.sync_buffers((points_section_gpu,globalcount_gpu))
+
+            # Move kernel output data back to host memory
             points_section=np.frombuffer(points_section_gpu,dtype=np.float32).reshape(points_section.shape)
             globalcount=np.frombuffer(globalcount_gpu,dtype=np.uint32)
             logger.info(f"globalcount: {globalcount}")
-        
 
         try:
             Points[prev_start_ind:int(globalcount[0]),:]=points_section[:int(globalcount[0])-prev_start_ind,:]
