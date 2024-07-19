@@ -198,12 +198,15 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
         if CoregCT_MRI==1:
             #we first upsample the T1W to the same resolution as CT
             in_img=nibabel.load(T1fnameBiasCorrec)
-
+            
+            voxel_sizes=np.zeros(3)
+            voxel_sizes[:2]=np.min(nibabel.load(InputCT).header.get_zooms())
+            voxel_sizes[2] = in_img.header.get_zooms()[2]
+            
             if ResampleFunc is None:
-                fixed_image=processing.resample_to_output(in_img,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=in_img.get_fdata().min())
+                fixed_image=processing.resample_to_output(in_img,voxel_sizes=voxel_sizes,cval=in_img.get_fdata().min())
             else:
                 # Set up for Resample call
-                voxel_sizes = nibabel.load(InputCT).header.get_zooms()
                 cval=in_img.get_fdata().min()
 
                 in_shape = in_img.shape

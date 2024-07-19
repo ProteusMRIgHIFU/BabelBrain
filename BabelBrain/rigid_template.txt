@@ -93,7 +93,7 @@
 // Maximum number of iterations in each resolution level:
 // 200-500 works usually fine for rigid registration.
 // For more robustness, you may increase this to 1000-2000.
-(MaximumNumberOfIterations 250)
+(MaximumNumberOfIterations 4000)
 
 // The step size of the optimizer, in mm. By default the voxel size is used.
 // which usually works well. In case of unusual high-resolution images
@@ -144,3 +144,8 @@
 // The pixel type and format of the resulting deformed moving image
 (ResultImagePixelType "short")
 (ResultImageFormat "nii.gz")
+
+(MaximumNumberOfSamplingAttempts 10)
+
+(RequiredRatioOfValidSamples 0.05)
+
