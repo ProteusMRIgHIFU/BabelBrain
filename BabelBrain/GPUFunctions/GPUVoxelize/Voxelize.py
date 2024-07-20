@@ -54,10 +54,7 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global mf
     global clp
 
-    base_path = os.path.abspath('.')
-    kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUVoxelize' + os.sep + 'voxelize.cpp',
-    ]
+    kernel_files = [os.path.join(resource_path(),'voxelize.cpp')]
 
     if GPUBackend == 'CUDA':
         import cupy as cp

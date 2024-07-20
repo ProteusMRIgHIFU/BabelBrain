@@ -1,7 +1,9 @@
 import logging
 logger = logging.getLogger()
 import os
+from pathlib import Path
 import platform
+import sys
 
 import numpy as np
 from scipy.ndimage._morphology import generate_binary_structure
@@ -11,6 +13,20 @@ try:
     from GPUUtils import InitCUDA,InitOpenCL,InitMetal
 except:
     from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
 
 def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue
@@ -26,9 +42,8 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPULabel' + os.sep + 'label.cpp',
+        os.path.join(resource_path(), 'label.cpp'),
     ]
 
     if GPUBackend == 'CUDA':
