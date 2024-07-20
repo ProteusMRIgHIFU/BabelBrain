@@ -100,53 +100,55 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
         print("Hash data not saved, invalid output file type specified")
 
 
-def RunElastix(reference,moving,finalname):
-    if sys.platform == 'linux' or _IS_MAC:
-        if sys.platform == 'linux':
-            shell='bash'
-            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
-        elif _IS_MAC:
-            shell='zsh'
-            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
-        if _IS_MAC:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '"'
+def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGradientDescent'):
+    
+    template =os.path.join(resource_path(),'rigid_template.txt')
+    with open(template,'r') as g:
+        Params=g.readlines()
+    #we specify the optimizer to use
+    Params.append('\n(Optimizer "'+ElastixOptimizer+'")\n')
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        elastix_param = os.path.join(tmpdirname,'inputparam.txt')
+        with open(elastix_param,'w') as g:
+            g.writelines(Params)
+        if sys.platform == 'linux' or _IS_MAC:
+            if sys.platform == 'linux':
+                shell='bash'
+                path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
+            elif _IS_MAC:
+                shell='zsh'
+                path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+            if _IS_MAC:
+                cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '" "' + elastix_param + '"'
                 print(cmd)
                 result = os.system(cmd)
-                if result == 0:
-                    shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-            if result != 0:
-                raise SystemError("Error when trying to run elastix")
-        else:
-            with tempfile.TemporaryDirectory() as tmpdirname:
+            else:
                 result = subprocess.run(
                         [shell,
                         path_script,
                         reference,
                         moving,
-                        tmpdirname], capture_output=True, text=True
+                        tmpdirname,
+                        elastix_param], capture_output=True, text=True
                 )
                 print("stdout:", result.stdout)
                 print("stderr:", result.stderr)
-                if result.returncode == 0:
-                    shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-            if result.returncode != 0:
-                raise SystemError("Error when trying to run elastix")
-    else:
-        path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
-        with tempfile.TemporaryDirectory() as tmpdirname:
+                result=result.returncode 
+        else:
+            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
             result = subprocess.run(
                     [path_script,
                     reference,
                     moving,
-                    tmpdirname], capture_output=True, text=True,shell=True,
+                    tmpdirname,
+                    elastix_param], capture_output=True, text=True,shell=True,
             )
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
-            if result.returncode == 0:
-                shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
-
-        if result.returncode != 0:
+            result=result.returncode 
+        if result == 0:
+            shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
+        else:
             raise SystemError("Error when trying to run elastix")
 
 def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
@@ -181,7 +183,7 @@ def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, ResampleFunc=None, ResampleBackend='OpenCL'):
+def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReuseFiles=False, ResampleFunc=None, ResampleBackend='OpenCL'):
     # CoregCT_MRI =0, do not coregister, just load data
     # CoregCT_MRI =1 , coregister CT-->MRI space
     # CoregCT_MRI =2 , coregister MRI-->CT space
@@ -221,7 +223,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
                         voxel_sizes = tuple(voxel_sizes) + (1,) * (3 - n_dim)
                 out_vox_map = vox2out_vox((in_img.shape, in_img.affine), voxel_sizes)
                 
-                fixed_image = ResampleFunc(in_img,out_vox_map, GPUBackend=ResampleBackend)
+                fixed_image = ResampleFunc(in_img,out_vox_map,cval=cval, GPUBackend=ResampleBackend)
 
 
             T1fname_CTRes=outputfnames['T1fname_CTRes']
@@ -229,7 +231,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
 
             CTInT1W=outputfnames['CTInT1W']
 
-            RunElastix(outputfnames['T1fname_CTRes'],InputCT,CTInT1W)
+            RunElastix(outputfnames['T1fname_CTRes'],InputCT,CTInT1W,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
                 elastixoutput = nibabel.load(CTInT1W)
@@ -238,7 +240,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
             return elastixoutput
         else:
             T1WinCT=outputfnames['T1WinCT']
-            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT)
+            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
                 elastixoutput = nibabel.load(T1WinCT)
@@ -247,7 +249,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,CoregCT_MRI=0, bReuseFiles=False, Res
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer):
     #Bias correction
     
     T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
@@ -259,7 +261,7 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames):
     #coreg
     ZTEInT1W=outputfnames['ZTEInT1W']
 
-    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W)
+    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
     
     img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
     try:

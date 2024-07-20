@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1025</width>
-    <height>421</height>
+    <height>420</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>378</x>
-     <y>379</y>
+     <y>389</y>
      <width>239</width>
      <height>32</height>
     </rect>
@@ -32,7 +32,7 @@
      <x>6</x>
      <y>3</y>
      <width>1014</width>
-     <height>237</height>
+     <height>251</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -127,7 +127,7 @@
     <property name="geometry">
      <rect>
       <x>216</x>
-      <y>171</y>
+      <y>206</y>
       <width>175</width>
       <height>42</height>
      </rect>
@@ -149,7 +149,7 @@
     <property name="geometry">
      <rect>
       <x>402</x>
-      <y>182</y>
+      <y>217</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -374,12 +374,73 @@
      </property>
     </item>
    </widget>
+   <widget class="QLabel" name="CoregCTlabel_2">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>183</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>CT Mapping</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="CTMappingcomboBox">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>395</x>
+      <y>178</y>
+      <width>381</width>
+      <height>32</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="CoregCTlabel_3">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>160</y>
+      <width>281</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Scanner ,Energy, Kernel, Other, Resolution</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ResetCTMapOriginalpushButton">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>780</x>
+      <y>177</y>
+      <width>136</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Reset to original</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
      <x>8</x>
-     <y>242</y>
+     <y>252</y>
      <width>1010</width>
      <height>123</height>
     </rect>
@@ -459,9 +520,9 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>293</x>
-      <y>37</y>
-      <width>151</width>
+      <x>250</x>
+      <y>36</y>
+      <width>121</width>
       <height>20</height>
      </rect>
     </property>
@@ -472,8 +533,8 @@
    <widget class="QComboBox" name="ComputingEnginecomboBox">
     <property name="geometry">
      <rect>
-      <x>422</x>
-      <y>34</y>
+      <x>395</x>
+      <y>32</y>
       <width>275</width>
       <height>30</height>
      </rect>
@@ -576,7 +637,7 @@
    <property name="geometry">
     <rect>
      <x>945</x>
-     <y>380</y>
+     <y>390</y>
      <width>74</width>
      <height>32</height>
     </rect>

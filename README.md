@@ -1,4 +1,4 @@
-BabelBrain v0.3.4-2
+BabelBrain v0.3.5
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -59,9 +59,7 @@ Besides the recommended conda environment, a healthy XCode installation in macOS
 ## Running
 If running from the GitHub source code, just change to the BabelBrain directory and execute
 
-`python BabelBrain.py`
-
-## Building an standalone application
+`python BabelBrain.py`Building a standalone application
 A Pyinstaller specification file is ready for use. To build either the macOS or Windows application, just change to the BabelBrain directory and run
 
 `pyinstaller BabelBrain.spec --noconfirm`
@@ -76,6 +74,18 @@ doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). E
 
 
 # Version log
+- 0.3.5 - July 8thth, 2024
+  - New: Selection of mapping method for acoustic properties based on CT scanner model, kernel variant and resolution is now available when selecting the CT input in the first dialog. The selected scanner combination will be saved for future sessions. However, default values will be applied when changing the type from real CT, PETRA or ZTE. A reset button to restore default values is also available.
+  - New: Add advanced options for fine-tuning the processing. In this first iteration, these parameters are for the control of the domain generation in Step 1.  A new button for "Advanced options" is now available.
+     - **Selection of Elastix Optimizer**. The default optimizer for Elastix, AdaptiveStochasticGradientDescent, works *almost* for every combination of CT->T1W and ZTE/PETRA->T1W. However, as much more testing has started to accumulate, we noticed that the CT->T1W was not working in some cases. We tested different options in Elastix, and the FiniteDifferenceGradientDescent and QuasiNewtonLBFGS seem to work well as a replacement. If your coregistration from CT to T1W is not working as expected, try one of these two other options. FiniteDifferenceGradientDescent seems to work better.
+     - **Control of fraction of trabecular**. By default, the percentage of trabecular is 80% using the line of sight of the trajectory. If the trajectory crosses very thin regions like the parietal bone, there may be a chance all region is considered trabecular, which may not be desired. A warning message will be printed out in the terminal output in that case. In such cases as the parietal bone, consider reducing a lower value of trabecular, such as 0.1 or 0.2.
+     - **Capability of specifying a subvolume region**. This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (i.e., EEG-P7 location) in which the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.
+      - **Force use of blender**. While pycork seems to do a great replacement, we identified that in some instances when using the subvolume feature there was a crash in the low pycork library. Forcing using Blender instead can help to run those special cases.
+  - New: Legend of tissue type added in step 1.
+  - Improvement: Do a watertight fix of STL masks before saving.  Before, a watertight fix for the charm-derived STL masks was being applied all the time, while this could have done only once when creating the STL files the first time. This will save computing time when recalculating trajectories.
+  - Improvement: Replacement of Mechanical Adjustment in Z by Distance from Tx outplane to skin. This change is mostly aesthetic to make the GUI a bit clearer when adjusting the position of the Tx along the acoustic axis. Previously, the mechanical position in Z was shown relative to the target and a label showed the distance from the outplane to the skin. This setup can be confusing, so the control was changed to adjust rather directly the distance from the outplane to the skin, which is more intuitive during the TUS experiments.
+  - Fix: In cases where the trajectory was crossing a very thin skull region, the degree of erosion used to assign the trabecular bone was calculated as 0, meaning all the bone should be considered trabecular. However, the Scipy function for erosion keeps eroding until the mask does not change, which in our case meant all bone was assigned cortical.
+  - Fix: GPU filter to quantification had a bug for CUDA and OPENCL versions. 
 - 0.3.4-2 - May 22nd, 2024
   - Fix: Correct handling of cases with a large number of sonication points in Step 3 when using low duty cycle.
   - Fix: Address hanging in Step 2 when running inside Brainsight with a large list of sonication points.

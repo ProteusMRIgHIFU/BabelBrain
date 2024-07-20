@@ -78,7 +78,6 @@ dependencies:
     - pooch==1.6.0
     - pydicom==2.3.0
     - pygments==2.13.0
-    - pigz_python @ git+https://github.com/ProteusMRIgHIFU/pigz-python
     - pyinstaller==6.1.0
     - pyinstaller-hooks-contrib==2022.13
     - pymeshfix==0.16.2

@@ -74,7 +74,7 @@ class CTX500(BabelBaseTx):
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
@@ -102,9 +102,9 @@ class CTX500(BabelBaseTx):
         self._ZMaxSkin = self._MainApp.AcSim.Config['NaturalOutPlaneDistance']*1e3 -  DistanceFromSkin
         self._ZMaxSkin = np.round(self._ZMaxSkin,1)
         
-        self.Widget.ZMechanicSpinBox.setMaximum(self._ZMaxSkin+self.Config['MaxNegativeDistance'])
-        self.Widget.ZMechanicSpinBox.setMinimum(self._ZMaxSkin-self.Config['MaxDistanceToSkin'])  
-        self.Widget.ZMechanicSpinBox.setValue(self._ZMaxSkin)
+        self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
+        self.Widget.SkinDistanceSpinBox.setValue(0.0)
         self._UnmodifiedZMechanic = self._ZMaxSkin
         self.TPODistanceUpdate(0)
 
@@ -115,14 +115,11 @@ class CTX500(BabelBaseTx):
     @Slot()
     def UpdateDistanceFromSkin(self):
         self._bIgnoreUpdate=True
-        ZMec=self.Widget.ZMechanicSpinBox.value()
-        CurDistance=self._ZMaxSkin-ZMec
-        self.Widget.DistanceTxToSkinLabel.setText('%3.1f' %(CurDistance))
+        ZMec=self.Widget.SkinDistanceSpinBox.value()
+        CurDistance=ZMec
         if CurDistance<0:
-            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: red")
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
-            self.Widget.DistanceTxToSkinLabel.setStyleSheet("color: blue")
             self.Widget.LabelTissueRemoved.setVisible(False)
 
 
@@ -137,12 +134,14 @@ class CTX500(BabelBaseTx):
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
             TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
+            
+            DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                     "ZSteering=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
+                                    "DistanceSkin=%3.2f\n" %(DistanceSkin)+
                                     "Do you want to recalculate?\nSelect No to reload",
                 QMessageBox.Yes | QMessageBox.No)
 
@@ -152,7 +151,7 @@ class CTX500(BabelBaseTx):
                 self.Widget.TPODistanceSpinBox.setValue(TPO*1e3)
                 self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
                 self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+                self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
         else:
@@ -206,7 +205,7 @@ class RunAcousticSim(QObject):
         #we can use mechanical adjustments in other directions for final tuning
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= (self._mainApp.AcSim._ZMaxSkin - self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value())/1e3  #in m
 
         ZIntoSkin =0.0
         CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
@@ -240,6 +239,7 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
+        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
         kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:

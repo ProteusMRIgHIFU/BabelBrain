@@ -1,5 +1,5 @@
 '''
-Pipeline to execute viscoleastic simulations for LIFU experiments
+Pipeline to execute viscoleastic simulations for TUS experiments
 
 ABOUT:
      author        - Samuel Pichardo
@@ -28,7 +28,6 @@ import os
 import pandas as pd
 import h5py
 from linetimer import CodeTimer
-from io import BytesIO
 
 try:
     import mkl_fft as fft
@@ -53,12 +52,6 @@ def resource_path():  # needed for bundling
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
-
-import shutil
-import pigz_python
-command = 'pigz'
-B_PIGZ_AVAILABLE = shutil.which(command) is not None
-
 
 ## Global definitions
 
@@ -290,16 +283,20 @@ def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
 
     return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
 
+def SpeedofSoundWebbDataset():
+    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
+    dict_dtypes = {x : 'str'  for x in lst_str_cols}
+
+    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    return df
+
 
 def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
-    lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
-    dict_dtypes = {x : 'str'  for x in lst_str_cols}
-
-    df=pd.read_csv(os.path.join(resource_path(),'WebbHU_SoS.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
+    df=SpeedofSoundWebbDataset()
     
     sel=df.loc[[Params]]
 
@@ -323,34 +320,20 @@ def DensityToSSoSPichardo(density):
     
 
 def SaveNiftiEnforcedISO(nii,fn):
-    filename, file_extension = os.path.splitext(fn)
-    if '.gz' == file_extension:
-        tempfn=filename
-    else:
-        tempfn=fn
-        
-    #we save first to uncompressed and use pigz to compress
-    nii.to_filename(tempfn)
-    newfn=tempfn.split('__.nii')[0]+'.nii'
+    nii.to_filename(fn)
+    newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
     res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
     try:
-        pre=sitk.ReadImage(tempfn)
+        pre=sitk.ReadImage(fn)
         pre.SetSpacing([res,res,res])
         sitk.WriteImage(pre, newfn)
-        os.remove(tempfn)
+        os.remove(fn)
     except:
         res = '%6.5f' % (res)
-        cmd='flirt -in "'+fn + '" -ref "'+ tempfn + '" -applyisoxfm ' +res + ' -nosearch -out "' +newfn+'"'
+        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
         print(cmd)
         assert(os.system(cmd)==0)
-        os.remove(tempfn)
-    if B_PIGZ_AVAILABLE:
-        cmd = "pigz -f -1 '" + newfn+"'"
-        if os.system(cmd) != 0:
-            raise RuntimeError("compression of file failed:" + newfn)
-    else:
-        pigz_python.compress_file(newfn,blocksize=16000,compresslevel=1)
-        os.remove(newfn)
+        os.remove(fn)
 
 def ResaveNormalized(RPath,Mask):
     assert('_Sub.nii.gz' in RPath)
@@ -372,20 +355,7 @@ def ResaveNormalized(RPath,Mask):
     ResultsData[SubMask<4]=0
     ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
-    filename, file_extension = os.path.splitext(NRPath)
-    assert('.gz'==file_extension)
-    #we save first to uncompressed and use pigz to compress
-    if B_PIGZ_AVAILABLE:
-        NormalizedNifti.to_filename(filename)
-        cmd = "pigz -f -1 '" + filename +"'"
-        if os.system(cmd) != 0:
-            raise RuntimeError("compression of file failed:" + filename)
-    else:
-        bio=BytesIO()
-        NormalizedNifti.to_stream(bio)
-        bio.seek(0)
-        pigz_python.compress_file(bio,compresslevel=1,blocksize=16000,output_filename=NRPath)
-        bio.close()
+    NormalizedNifti.to_filename(NRPath)
     
 ####
 bGPU_INITIALIZED = False
@@ -575,6 +545,7 @@ class BabelFTD_Simulations_BASE(object):
                  bWaterOnly=False,
                  QCorrection=3,
                  MappingMethod='Webb-Marsac',
+                 CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
                  CTFNAME=None):
         self._MASKFNAME=MASKFNAME
@@ -603,6 +574,7 @@ class BabelFTD_Simulations_BASE(object):
         self._CTFNAME=CTFNAME
         self._QCorrection=QCorrection
         self._MappingMethod=MappingMethod
+        self._CTMapCombo=CTMapCombo
         self._bPETRA = bPETRA
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
@@ -634,15 +606,12 @@ class BabelFTD_Simulations_BASE(object):
                 if self._bPETRA:
                     print('Using PETRA to low energy 70 Kvp CT settings')
                     DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
-                    ParamsWebbSOS=['GE','80','B','','0.5, 0.6'] # Params at 80 Kvp
-                    ParamsWebbAtt=['GE','80','B','','0.49, 0.63'] # Params at 80 Kvp
                 else:
                     print('Using 120 Kvp CT settings')
                     DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                    ParamsWebbSOS=['GE','120','B','','0.5, 0.6']  # Params at 120 Kvp
-                    ParamsWebbAtt=['GE','120','B','','0.49, 0.63'] # Params at 80 Kvp
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=ParamsWebbSOS)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=ParamsWebbAtt)
+                print('Using CT combination', self._CTMapCombo)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
                 DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)
@@ -922,16 +891,15 @@ class BabelFTD_Simulations_BASE(object):
             
         sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
-            with CodeTimer("Time to save HDF5 files",unit='s'):
+            SaveToH5py(DataForSim,sname)
+            if bUseRayleighForWater:
+                #we save now the h5 file for water
+                DataForSim['p_amp']= p_amp_water
+                DataForSim['p_complex']= p_complex_water
+                if self._bDoRefocusing:
+                    DataForSim.pop('p_amp_refocus')
+                sname=FILENAMESWater['DataForSim']
                 SaveToH5py(DataForSim,sname)
-                if bUseRayleighForWater:
-                    #we save now the h5 file for water
-                    DataForSim['p_amp']= p_amp_water
-                    DataForSim['p_complex']= p_complex_water
-                    if self._bDoRefocusing:
-                        DataForSim.pop('p_amp_refocus')
-                    sname=FILENAMESWater['DataForSim']
-                    SaveToH5py(DataForSim,sname)
 
         gc.collect()
         
