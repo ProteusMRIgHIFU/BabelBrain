@@ -511,6 +511,8 @@ class BabelBrain(QWidget):
             from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+        elif self.Config['TxSystem'] =='CTX_250':
+            from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':

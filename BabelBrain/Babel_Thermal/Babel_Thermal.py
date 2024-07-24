@@ -574,7 +574,7 @@ class Babel_Thermal(QWidget):
         print(OutName)
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
-        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','Single','H246','BSonix']:
             if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix
@@ -636,7 +636,7 @@ class RunThermalSim(QObject):
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
-        if kargs['TxSystem'] in ['CTX_500','Single','H246','BSonix']:
+        if kargs['TxSystem'] in ['CTX_500','CTX_250','Single','H246','BSonix']:
             kargs['sel_p']='p_amp'
         else:
             bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()

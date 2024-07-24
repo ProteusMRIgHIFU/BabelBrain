@@ -1,0 +1,9 @@
+TxDiam:                   64.0e-3    #in m
+NaturalOutPlaneDistance:  52.4e-3  # in m
+MinimalTPODistance:       25.0e-3  # in m
+MaximalTPODistance:       60.0e-3  # in m
+TxDepth:                  14.0e-3    # Back of Tx to outplane
+USFrequencies:
+    - 250000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm

@@ -37,6 +37,8 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         from TranscranialModeling.BabelIntegrationSingle import RUN_SIM 
     elif TxSystem =='CTX_500':
         from TranscranialModeling.BabelIntegrationCTX500 import RUN_SIM 
+    elif TxSystem =='CTX_250':
+        from TranscranialModeling.BabelIntegrationCTX250 import RUN_SIM 
     elif TxSystem =='H317':
         from TranscranialModeling.BabelIntegrationH317 import RUN_SIM
     elif TxSystem =='H246':
