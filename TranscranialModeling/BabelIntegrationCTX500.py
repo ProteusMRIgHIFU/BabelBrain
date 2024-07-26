@@ -178,7 +178,10 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         super().__init__(**kargs)
         
     def CreateSimConditions(self,**kargs):
-        return SimulationConditions(ZSteering=self._ZSteering,
+        #We apply a correction factor based on how much far the center of the -3dB region is from the experimental report
+        CorZSteering = self._ZSteering + np.polyval([1.20945848e+00, -4.22154994e-02, -1.16523343e-03],(self._ZSteering+52.4e-3))
+        
+        return SimulationConditions(ZSteering=CorZSteering,
                                     Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                     FocalLength=63.2e-3,
                                     **kargs)
