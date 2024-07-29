@@ -7,3 +7,8 @@ USFrequencies:
     - 250000.0
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
+Corrections:
+    Original:
+        - 2.09357001e+00
+        - -6.51438440e-02
+        - 1.59230471e-03

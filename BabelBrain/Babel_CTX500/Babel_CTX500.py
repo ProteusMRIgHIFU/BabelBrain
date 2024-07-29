@@ -78,6 +78,8 @@ class CTX500(BabelBaseTx):
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
+        for e in self.Config['Corrections']:
+            self.Widget.CorrectioncomboBox.addItem(e)
         self.up_load_ui()
 
     def DefaultConfig(self):
@@ -217,9 +219,12 @@ class RunAcousticSim(QObject):
         ##############
 
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
+        SelCorrection =self._mainApp.AcSim.Widget.CorrectioncomboBox.currentText()
+        Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
+        print('Applying ZSteering correction: ',SelCorrection,Correction)
 
 
-        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']
+        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']+Correction
         print('ZSteering',ZSteering*1e3)
 
         Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]

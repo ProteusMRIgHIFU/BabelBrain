@@ -19,9 +19,7 @@ class RUN_SIM(BabelIntegrationCTX500.RUN_SIM):
 
 class BabelFTD_Simulations(BabelIntegrationCTX500.BabelFTD_Simulations):
     def CreateSimConditions(self,**kargs):  
-        #We apply a correction factor based on how much far the center of the -3dB region is from the experimental report
-        CorZSteering = self._ZSteering + np.polyval([ 2.09357001e+00, -6.51438440e-02,  1.59230471e-03],(self._ZSteering+52.4e-3))
-        return SimulationConditions(ZSteering=CorZSteering,
+        return SimulationConditions(ZSteering=self._ZSteering,
                                     Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                     FocalLength=63.2e-3,
                                     **kargs)
