@@ -16,6 +16,7 @@ import base64
 from io import BytesIO
 import numpy as np
 import nibabel
+from nibabel import processing, nifti1, affines
 import SimpleITK as sitk
 import matplotlib
 matplotlib.use('Agg')  # Use the 'Agg' backend, which is noninteractive
@@ -84,9 +85,15 @@ computing_backends = [
     {'type': 'Metal','supported_os': ['Mac']}
 ]
 spatial_step = {
-    'low_res': 0.919, # 6 PPW, 200 kHz
-    'medium_res': 0.163, # 9 PPW, 750 kHz
-    'high_res': 0.092, # 12 PPW, 1000 kHz
+    'Spatial_Step_0_919': 0.919,  # 200 kHz,   6 PPW
+    # 'Spatial_Step_0_613': 0.613,  # 200 kHz,   9 PPW
+    # 'Spatial_Step_0_459': 0.459,  # 200 kHz,  12 PPW
+    'Spatial_Step_0_306': 0.306,  # 600 kHz,   6 PPW
+    # 'Spatial_Step_0_204': 0.204,  # 600 kHz,   9 PPW
+    # 'Spatial_Step_0_153': 0.153,  # 600 kHz,  12 PPW
+    'Spatial_Step_0_184': 0.184,  # 1000 kHz,  6 PPW
+    # 'Spatial_Step_0_123': 0.123,  # 1000 kHz,  9 PPW
+    'Spatial_Step_0_092': 0.092,  # 1000 kHz, 12 PPW
 }
 
 # PYTEST FIXTURES
@@ -100,32 +107,58 @@ def check_files_exist():
                 missing_files.append(file)
 
         if missing_files:
-            logging.warning(f"Following files are missing: {', '.join(missing_files)}")
-            pytest.skip(f"Skipping test because the following files are missing: {', '.join(missing_files)}")
+            return False, missing_files
+        else:
+            return True, ""
 
     return _check_files_exist
 
 @pytest.fixture()
 def load_files(check_files_exist):
     
-    def _load_files(fnames):
+    def _load_files(fnames,skip_test=True):
 
-        # Check files exist otherwise skip test 
-        check_files_exist(fnames.values())
-        
-        # Load files and save to dictionary
-        data = {}
-        for key,file in fnames.items():
-            _, ext = os.path.splitext(file)
+        if isinstance(fnames,dict):
+            datas = fnames.copy()
+            fnames = fnames.values()
+        else:
+            datas = []
 
-            if ext == '.npy':
-                data[key] = np.load(file)
-            elif ext == '.stl':
-                data[key] = trimesh.load(file)
-            elif ext == '.gz':
-                data[key] = nibabel.load(file)
+        # Check files exist
+        files_exist, missing_files = check_files_exist(fnames)
 
-        return data
+        if not files_exist:
+            if skip_test:
+                logging.warning(f"Following files are missing: {', '.join(missing_files)}")
+                pytest.skip(f"Skipping test because the following files are missing: {', '.join(missing_files)}")
+            else:
+                raise ValueError(f"Following files are missing: {', '.join(missing_files)}")
+
+        if isinstance(datas,dict):
+            # Load files and save to dictionary
+            for key,fname in datas.items():
+                _, ext = os.path.splitext(fname)
+
+                if ext == '.npy':
+                    datas[key] = np.load(fname)
+                elif ext == '.stl':
+                    datas[key] = trimesh.load(fname)
+                elif ext == '.gz':
+                    datas[key] = nibabel.load(fname)
+        else:
+            for fname in fnames:
+                _, ext = os.path.splitext(fname)
+
+                if ext == '.npy':
+                    data = np.load(fname)
+                elif ext == '.stl':
+                    data = trimesh.load(fname)
+                elif ext == '.gz':
+                    data  = nibabel.load(fname)
+
+                datas.append(data)
+
+        return datas
 
     return _load_files
 
@@ -164,6 +197,55 @@ def get_rmse():
         return rmse, data_range, norm_rmse
         
     return _get_rmse
+
+@pytest.fixture()
+def get_resampled_input(load_files):
+    def _get_resampled_input(input,new_zoom,output_fname):
+
+        if input.ndim > 3:
+            tmp_data = input.get_fdata()[:,:,:,0]
+            tmp_affine = input.affine
+            input = nifti1.Nifti1Image(tmp_data,tmp_affine)
+
+        # Determine new output dimensions and affine
+        zooms = np.asarray(input.header.get_zooms())
+        new_zooms = np.full(3,new_zoom)
+        logging.info(f"Original zooms: {zooms}")
+        logging.info(f"New zooms: {new_zooms}")
+        new_x_dim = int(input.shape[0]/(new_zooms[0]/zooms[0]))
+        new_y_dim = int(input.shape[1]/(new_zooms[1]/zooms[1]))
+        new_z_dim = int(input.shape[2]/(new_zooms[2]/zooms[2]))
+        new_affine = affines.rescale_affine(input.affine.copy(),
+                                                input.shape,
+                                                new_zooms,
+                                                (new_x_dim,new_y_dim,new_z_dim))
+
+        # Create output
+        output_data = np.zeros((new_x_dim,new_y_dim,new_z_dim),dtype=np.uint8)
+        output_nifti = nifti1.Nifti1Image(output_data,new_affine)
+        logging.info(f"New Dimensions: {output_data.shape}")
+        logging.info(f"New Size: {output_data.size}")
+
+        try:
+            logging.info('Reloading resampled input')
+            resampled_nifti = load_files([output_fname],skip_test=False)[0]
+            resampled_data = resampled_nifti.get_fdata()
+        except:
+            logging.info("File doesn't exist")
+            logging.info('Generating resampled input')
+            resampled_nifti = processing.resample_from_to(input,output_nifti,mode='constant',order=0,cval=input.get_fdata().min()) # Truth method
+            resampled_data = resampled_nifti.get_fdata()
+            logging.info('Saving file for future use')
+            nibabel.save(resampled_nifti,output_fname)
+
+        # Check data is contiguous
+        if not resampled_data.flags.contiguous:
+            logging.info("Changing resampled input data to be a contiguous array")
+            resampled_data = np.ascontiguousarray(resampled_data)
+
+        return resampled_nifti, resampled_data
+    
+    return _get_resampled_input
 
 @pytest.fixture()
 def check_data():
@@ -235,7 +317,10 @@ def compare_data(get_rmse):
         if output_array.size == 0:
             pytest.fail("Arrays are empty")
         
-        matches = abs(output_array - truth_array) < tolerance
+        if output_array.dtype == bool:
+            matches = output_array == truth_array
+        else:
+            matches = abs(output_array - truth_array) < tolerance
         matches_count = len(matches[matches==True])
 
         dice_coeff = 2 * matches_count / (output_array.size + truth_array.size)
@@ -286,25 +371,36 @@ def get_mpl_plot():
     def _get_mpl_plot(datas,axes_num=1,titles=None, color_map='viridis'):
 
         data_num = len(datas)
-        plt.figure()
+        fig, axs = plt.subplots(axes_num, data_num, figsize = (data_num * 2.5, axes_num * 2.5))
 
-        # Create plots
         for axis in range(axes_num):
             for num in range(data_num):
-                plot_idx = axis * data_num + num + 1
                 midpoint = datas[num].shape[axis]//2
-                plt.subplot(axes_num,data_num,plot_idx)
 
-                if axis == 0:
-                    plt.imshow(datas[num][midpoint,:,:], cmap=color_map)
-                elif axis == 1:
-                    plt.imshow(datas[num][:,midpoint,:], cmap=color_map)
-                else:
-                    plt.imshow(datas[num][:,:,midpoint], cmap=color_map)
+                try:
+                    if axis == 0:
+                        axs[axis,num].imshow(np.rot90(datas[num][midpoint,:,:]), cmap=color_map)
+                    elif axis == 1:
+                        axs[axis,num].imshow(np.rot90(datas[num][:,midpoint,:]), cmap=color_map)
+                    else:
+                        axs[axis,num].imshow(datas[num][:,:,midpoint], cmap=color_map)
 
-                if titles is not None and axis == 0:
-                    plt.title(titles[num])
+                    if titles is not None and axis == 0:
+                        axs[axis,num].set_title(titles[num])
+                except:
+                    if axis == 0:
+                        axs[num].imshow(np.rot90(datas[num][midpoint,:,:]), cmap=color_map)
+                    elif axis == 1:
+                        axs[num].imshow(np.rot90(datas[num][:,midpoint,:]), cmap=color_map)
+                    else:
+                        axs[num].imshow(datas[num][:,:,midpoint], cmap=color_map)
+
+                    if titles is not None and axis == 0:
+                        axs[num].set_title(titles[num],fontsize=14)
+
+        # Adjust plots
         plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.5, hspace=0.5)
+        plt.tight_layout()
 
         # Save the plot to a BytesIO object
         buffer = BytesIO()
