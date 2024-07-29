@@ -334,7 +334,12 @@ class BabelBrain(QWidget):
         else:
             TrajectoryType ='slicer'
         
-        self.Config={}
+        prevConfig = GetLatestSelection()
+        if prevConfig is None:
+            self.Config={}
+        else:
+            self.Config=prevConfig
+            print('prevconfig',self.Config)
         ComputingDevice,Backend =widget.GetSelectedComputingEngine()
         if ComputingDevice=='CPU':
             ComputingBackend=0
@@ -493,6 +498,9 @@ class BabelBrain(QWidget):
                     print('Unable to save selection')
                     print(e)
 
+    def AddConfigInformation(self,key,entry):
+        self.Config[key]=entry
+        self.SaveLatestSelection()
 
     def load_ui(self):
         global GetSmallestSOS

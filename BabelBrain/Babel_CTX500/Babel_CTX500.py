@@ -80,6 +80,11 @@ class CTX500(BabelBaseTx):
         self.Widget.CalculateMechAdj.setEnabled(False)
         for e in self.Config['Corrections']:
             self.Widget.CorrectioncomboBox.addItem(e)
+        if self._KeyCorrection in self._MainApp.Config:
+            s=self.Widget.CorrectioncomboBox.findText(self._MainApp.Config[self._KeyCorrection])
+            if s!=-1:
+                self.Widget.CorrectioncomboBox.setCurrentIndex(s)
+        self.Widget.CorrectioncomboBox.currentTextChanged.connect(self.UpdateCorrection)
         self.up_load_ui()
 
     def DefaultConfig(self):
@@ -110,6 +115,11 @@ class CTX500(BabelBaseTx):
         self._UnmodifiedZMechanic = self._ZMaxSkin
         self.TPODistanceUpdate(0)
 
+    @property
+    def _KeyCorrection(self):
+        curTx=self._MainApp.Config['TxSystem']
+        return curTx+'_Correction' 
+
     @Slot()
     def TPODistanceUpdate(self,value):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
@@ -124,6 +134,10 @@ class CTX500(BabelBaseTx):
         else:
             self.Widget.LabelTissueRemoved.setVisible(False)
 
+    @Slot()
+    def UpdateCorrection(self):
+        self._MainApp.AddConfigInformation(self._KeyCorrection,
+                                           self.Widget.CorrectioncomboBox.currentText())
 
     @Slot()
     def RunSimulation(self):
