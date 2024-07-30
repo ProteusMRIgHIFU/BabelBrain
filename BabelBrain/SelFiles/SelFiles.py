@@ -105,6 +105,17 @@ def ValidThermalProfile(fProf):
             if type(entry[k]) is not float:
                 msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be float" % (k,n)
                 return False,msgDetails
+        if 'Repetitions' in entry:
+            if type(entry['Repetitions']) is not int:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be integer" % (k,n)
+                return False,msgDetails
+            if entry['Repetitions'] <1:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be larger than 1" % (k,n)
+                return False,msgDetails
+        for k in entry:
+            if k not in ['DC','PRF','Duration','DurationOff','Repetitions']:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', or 'Repetitions'" % (k,n)
+                return False,msgDetail
     return True,msgDetails
 
 class SelFiles(QDialog):

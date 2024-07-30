@@ -151,6 +151,10 @@ class Babel_Thermal(QWidget):
         with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
             print("Thermal configuration:")
+            for n in range(len(config['AllDC_PRF_Duration'])):
+                #if repetitions is not present in YAML (for all the old cases, we just assign a default of 1)
+                if 'Repetitions' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['Repetitions']=1
             print(config)
             self.Config=config
             self.bDisableUpdate=True
@@ -159,7 +163,10 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.removeItem(0)
 
             for c in self.Config['AllDC_PRF_Duration']:
-                self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
+                stritem ='%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF'])
+                if c['Repetitions'] >1:
+                    stritem += ' %iReps' %(c['Repetitions'])
+                self.Widget.SelCombinationDropDown.addItem(stritem)
             self.bDisableUpdate=False
 
     def EnableMultiPoint(self):
@@ -190,7 +197,8 @@ class Babel_Thermal(QWidget):
                                                     combination['DurationOff'],
                                                     combination['DC'],
                                                     self.Config['BaseIsppa'],
-                                                    combination['PRF'])+'.h5'
+                                                    combination['PRF'],
+                                                    combination['Repetitions'])+'.h5'
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
@@ -269,7 +277,8 @@ class Babel_Thermal(QWidget):
                                                         combination['DurationOff'],
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
-                                                        combination['PRF'])+'.h5'
+                                                        combination['PRF'],
+                                                        combination['Repetitions'])+'.h5'
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
