@@ -339,7 +339,6 @@ class BabelBrain(QWidget):
             self.Config={}
         else:
             self.Config=prevConfig
-            print('prevconfig',self.Config)
         ComputingDevice,Backend =widget.GetSelectedComputingEngine()
         if ComputingDevice=='CPU':
             ComputingBackend=0
@@ -408,18 +407,21 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bForceUseBlender']=False
         self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
         self.DefaultAdvanced['TrabecularProportion']=0.8
+        self.DefaultAdvanced['CTX_500_Correction']='Original'
+        self.DefaultAdvanced['CTX_250_Correction']='Original'
                 
         for k in self.DefaultAdvanced:
-            self.Config[k]=self.DefaultAdvanced[k]
+            if k not in self.Config:
+                self.Config[k]=self.DefaultAdvanced[k]
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-AdvancedParams.yaml')
         
-        if os.path.isfile(self.Config['AdvancedParamsFile']):
-            with open(self.Config['AdvancedParamsFile'],'r') as f:
-                PrevParams=yaml.load(f,yaml.SafeLoader)
-            for k in self.DefaultAdvanced:
-                if k in PrevParams:
-                    self.Config[k]=PrevParams[k]
+        # if os.path.isfile(self.Config['AdvancedParamsFile']):
+        #     with open(self.Config['AdvancedParamsFile'],'r') as f:
+        #         PrevParams=yaml.load(f,yaml.SafeLoader)
+        #     for k in self.DefaultAdvanced:
+        #         if k in PrevParams:
+        #             self.Config[k]=PrevParams[k]
         
             
         self.SaveLatestSelection()
@@ -672,7 +674,8 @@ class BabelBrain(QWidget):
             self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
             self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
             self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
-  
+            self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
+            self.SaveLatestSelection()
 
     @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
@@ -1055,7 +1058,8 @@ class RunMaskGeneration(QObject):
        
         #advanced parameters
         for k in self._mainApp.DefaultAdvanced:
-            kargs[k]=self._mainApp.Config[k] 
+            if k not in ['CTX_500_Correction']:
+                kargs[k]=self._mainApp.Config[k] 
         
         bForceFullRecalculation = False
         if os.path.isfile(self._mainApp.Config['AdvancedParamsFile']):
@@ -1068,21 +1072,24 @@ class RunMaskGeneration(QObject):
                     break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
-                        bForceFullRecalculation=True
-                        break
+                    if k not in ['CTX_500_Correction']: #here we screen out parameters that are irrelevant for Step 1
+                        if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                            bForceFullRecalculation=True
+                            break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
             for k in self._mainApp.DefaultAdvanced:
-                if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                    bForceFullRecalculation=True
-                    break
+                if k not in ['CTX_500_Correction']:
+                    if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
+                        bForceFullRecalculation=True
+                        break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
             
         # now we save the parameters for future comparison
         NewParams={}
         for k in self._mainApp.DefaultAdvanced:
-            NewParams[k]=kargs[k]
+            if k not in ['CTX_500_Correction']:
+                NewParams[k]=kargs[k]
             
         with open(self._mainApp.Config['AdvancedParamsFile'],'w') as f:
             yaml.safe_dump(NewParams,f)

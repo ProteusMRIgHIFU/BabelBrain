@@ -43,12 +43,10 @@ class AdvanceOptions(QDialog):
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
         self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
+        self.ui.tabWidget.setCurrentIndex(0)
 
         self.defaultValues = defaultValues
         kargs={}
-        for k in self.defaultValues:
-            kargs[k]=currentConfig[k]
-
         self.SetValues(**kargs)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
@@ -61,7 +59,9 @@ class AdvanceOptions(QDialog):
                  bApplyBOXFOV=False,
                  FOVDiameter=200.0,
                  FOVLength=400.0,
-                 TrabecularProportion=0.8):
+                 TrabecularProportion=0.8,
+                 CTX_500_Correction='Original',
+                 **kargs):
         
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
         if sel==-1:
@@ -75,6 +75,11 @@ class AdvanceOptions(QDialog):
         self.ui.FOVDiameterSpinBox.setValue(FOVDiameter)
         self.ui.FOVLengthSpinBox.setValue(FOVLength)
         self.ui.TrabecularProportionSpinBox.setValue(TrabecularProportion)
+        
+        sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
+        if sel==-1:
+            raise ValueError('The CTX 500 correction choice is not available in the GUI -'+CTX_500_Correction )
+        self.ui.CTX500CorrectioncomboBox.setCurrentIndex(sel)
 
     @Slot()
     def ResetToDefaults(self):

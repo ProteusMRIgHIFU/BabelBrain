@@ -78,13 +78,6 @@ class CTX500(BabelBaseTx):
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
-        for e in self.Config['Corrections']:
-            self.Widget.CorrectioncomboBox.addItem(e)
-        if self._KeyCorrection in self._MainApp.Config:
-            s=self.Widget.CorrectioncomboBox.findText(self._MainApp.Config[self._KeyCorrection])
-            if s!=-1:
-                self.Widget.CorrectioncomboBox.setCurrentIndex(s)
-        self.Widget.CorrectioncomboBox.currentTextChanged.connect(self.UpdateCorrection)
         self.up_load_ui()
 
     def DefaultConfig(self):
@@ -133,11 +126,6 @@ class CTX500(BabelBaseTx):
             self.Widget.LabelTissueRemoved.setVisible(True)
         else:
             self.Widget.LabelTissueRemoved.setVisible(False)
-
-    @Slot()
-    def UpdateCorrection(self):
-        self._MainApp.AddConfigInformation(self._KeyCorrection,
-                                           self.Widget.CorrectioncomboBox.currentText())
 
     @Slot()
     def RunSimulation(self):
@@ -233,7 +221,7 @@ class RunAcousticSim(QObject):
         ##############
 
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
-        SelCorrection =self._mainApp.AcSim.Widget.CorrectioncomboBox.currentText()
+        SelCorrection =self._mainApp.Config[self._mainApp.AcSim._KeyCorrection]
         Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
         print('Applying ZSteering correction: ',SelCorrection,Correction)
 
