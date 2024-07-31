@@ -96,6 +96,9 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTC.setEnabled(False)
         self.Widget.LocMTS.clicked.connect(self.LocateMTS)
         self.Widget.LocMTS.setEnabled(False)
+        
+        self.Widget.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
+        self.Widget.DisplayDropDown.setEnabled(False)
 
         # for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
         #     l.setText(l.text()+' ('+"\u2103"+'):')
@@ -247,6 +250,10 @@ class Babel_Thermal(QWidget):
     @Slot()
     def UpdateSelCombination(self):
         self.UpdateThermalResults()
+        
+    @Slot()
+    def UpdateDisplay(self,val):
+        self.UpdateThermalResults()
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
@@ -258,12 +265,21 @@ class Babel_Thermal(QWidget):
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
-        self.Widget.LocMTS.setEnabled(True)
-        self.Widget.LocMTC.setEnabled(True)
-        self.Widget.LocMTB.setEnabled(True)
-        if self.Widget.HideMarkscheckBox.isEnabled()== False:
-            self.Widget.HideMarkscheckBox.setEnabled(True)
-
+        self.Widget.DisplayDropDown.setEnabled(True)
+        WhatDisplay = self.Widget.DisplayDropDown.currentIndex()
+        if WhatDisplay==0:
+            self.Widget.LocMTS.setEnabled(True)
+            self.Widget.LocMTC.setEnabled(True)
+            self.Widget.LocMTB.setEnabled(True)
+            if self.Widget.HideMarkscheckBox.isEnabled()== False:
+                self.Widget.HideMarkscheckBox.setEnabled(True)
+        else:
+            self.Widget.LocMTS.setEnabled(False)
+            self.Widget.LocMTC.setEnabled(False)
+            self.Widget.LocMTB.setEnabled(False)
+            if self.Widget.HideMarkscheckBox.isEnabled()== True:
+                self.Widget.HideMarkscheckBox.setEnabled(False)
+            
         BaseField=self._MainApp.AcSim._FullSolName
         if type(BaseField) is list:
             BaseField=BaseField[0]
@@ -386,6 +402,10 @@ class Babel_Thermal(QWidget):
             self._ZZ=ZZ
             
         if bUpdatePlot:
+           
+            if not hasattr(self,'_prevDisplay'):
+                self._prevDisplay = -1 #we set the initial plotting
+            
             DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
             SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
             IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
@@ -400,7 +420,7 @@ class Babel_Thermal(QWidget):
             else:
                 crlims=[0,1,2,3]
 
-            if self._bRecalculated and hasattr(self,'_figIntThermalFields'):
+            if (self._bRecalculated or self._prevDisplay != WhatDisplay) and hasattr(self,'_figIntThermalFields'):
                 children = []
                 for i in range(self._layout.count()):
                     child = self._layout.itemAt(i).widget()
@@ -413,75 +433,110 @@ class Babel_Thermal(QWidget):
                 
 
             if hasattr(self,'_figIntThermalFields'):
-                self._IntensityIm.set_data(IntensityMap)
-                self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
-                self._ThermalIm.set_data(Tmap.T)
-                self._ThermalIm.set(clim=[37,Tmap.max()])
-                if hasattr(self,'_contour1'):
-                    for c in [self._contour1,self._contour2]:
-                        for coll in c.collections:
-                            coll.remove()
-                    del self._contour1
-                    del self._contour2
-                self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                while len(self._ListMarkers)>0:
-                    obj= self._ListMarkers.pop()
-                    obj.remove()
+                if WhatDisplay==0:
+                    self._IntensityIm.set_data(IntensityMap)
+                    self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
+                    self._ThermalIm.set_data(Tmap.T)
+                    self._ThermalIm.set(clim=[37,Tmap.max()])
+                    if hasattr(self,'_contour1'):
+                        for c in [self._contour1,self._contour2]:
+                            for coll in c.collections:
+                                coll.remove()
+                        del self._contour1
+                        del self._contour2
+                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    while len(self._ListMarkers)>0:
+                        obj= self._ListMarkers.pop()
+                        obj.remove()
+                else:
+                    curylim=list(self._static_ax1.get_ylim())
+                    MaxPrevTemp=0.0
+                    MinPrevTemp=1e6
+                    for e in self._TempPlot:
+                        ydata=e.get_ydata()
+                        MaxPrevTemp=np.max([MaxPrevTemp,np.max(ydata)])
+                        MinPrevTemp=np.min([MinPrevTemp,np.min(ydata)])
+                    perUpLim=curylim[1]/MaxPrevTemp
+                    perUpDown=curylim[0]/MinPrevTemp
+                    curylim[1]=np.max(AdjustedTemp)*perUpLim
+                    curylim[0]=np.min(AdjustedTemp)*perUpDown
+                            
+                    for n in range(AdjustedTemp.shape[0]):
+                        self._TempPlot[n].set_ydata(AdjustedTemp[n,:])
+                    self._static_ax1.set_ylim(curylim)
+                    
                 self._figIntThermalFields.canvas.draw_idle()
             else:
-                self._ListMarkers=[]
                 if not hasattr(self,'_layout'):
                     self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+                if WhatDisplay==0:
+                    self._ListMarkers=[]
+                    self._figIntThermalFields=Figure(figsize=(14, 12))
+                    self.static_canvas = FigureCanvas(self._figIntThermalFields)
+                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    self._layout.addWidget(toolbar)
+                    self._layout.addWidget(self.static_canvas)
+                    static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+                    self._static_ax1=static_ax1
+                    self._static_ax2=static_ax2
 
-                self._figIntThermalFields=Figure(figsize=(14, 12))
-                self.static_canvas = FigureCanvas(self._figIntThermalFields)
-                toolbar=NavigationToolbar2QT(self.static_canvas,self)
-                self._layout.addWidget(toolbar)
-                self._layout.addWidget(self.static_canvas)
-                static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
-                self._static_ax1=static_ax1
-                self._static_ax2=static_ax2
+                    self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                            cmap=plt.cm.jet)
+                    self._marker1=static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0]
+                    static_ax1.set_title('Isppa (W/cm$^2$)')
+                    plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-                self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
-                        cmap=plt.cm.jet)
-                self._marker1=static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0]
-                static_ax1.set_title('Isppa (W/cm$^2$)')
-                plt.colorbar(self._IntensityIm,ax=static_ax1)
+                    self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
-                self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    static_ax1.set_ylabel('Distance from skin (mm)')
 
-                static_ax1.set_ylabel('Distance from skin (mm)')
+                    self._ThermalIm=static_ax2.imshow(Tmap.T,
+                            extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+                    self._marker2=static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0]
+                    static_ax2.set_title('Temperature ($^{\circ}$C)')
 
-                self._ThermalIm=static_ax2.imshow(Tmap.T,
-                        extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
-                self._marker2=static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0]
-                static_ax2.set_title('Temperature ($^{\circ}$C)')
+                    plt.colorbar(self._ThermalIm,ax=static_ax2)
+                    self._contour2=static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
-                plt.colorbar(self._ThermalIm,ax=static_ax2)
-                self._contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-
-                # self._figIntThermalFields.set_tight_layout(True)
-
-                self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                else:
+                    self._figIntThermalFields=Figure(figsize=(14, 12))
+                    self.static_canvas = FigureCanvas(self._figIntThermalFields)
+                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    self._layout.addWidget(toolbar)
+                    self._layout.addWidget(self.static_canvas)
+                    static_ax1 = self.static_canvas.figure.subplots(1,1)
+                    timevec=np.arange(AdjustedTemp.shape[1])*DataThermal['dt']
+                    self._TempPlot=static_ax1.plot(timevec,AdjustedTemp.T)
+                    static_ax1.set_xlabel('time (s)')
+                    static_ax1.set_ylabel('temperature (degrees C)')
+                    leg=static_ax1.legend(['Skin','Brain','Skull','Target'], bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+                    self._static_ax1=static_ax1
+                    self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    self._static_ax1.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    leg.get_frame().set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    
 
             self._bRecalculated=False
-            mc = [0.0,0.0,0.0,1.0]
-            if self.Widget.HideMarkscheckBox.isChecked():
-                mc[3]=0.0 
-            self._marker1.set_markerfacecolor(mc)
-            self._marker2.set_markerfacecolor(mc)
+            if WhatDisplay==0:
+                mc = [0.0,0.0,0.0,1.0]
+                if self.Widget.HideMarkscheckBox.isChecked():
+                    mc[3]=0.0 
+                self._marker1.set_markerfacecolor(mc)
+                self._marker2.set_markerfacecolor(mc)
 
-            yf=DataThermal['y_vec']
-            yf-=yf[Loc[1]]
-            if not self.Widget.HideMarkscheckBox.isChecked():
-                for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
-                    if SelY == DataThermal[k][1]:
-                        self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
-                                        zf[DataThermal[k][2]],'wx',markersize=12)[0])
-                        self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
-                                        zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
-            self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
+                yf=DataThermal['y_vec']
+                yf-=yf[Loc[1]]
+                if not self.Widget.HideMarkscheckBox.isChecked():
+                    for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
+                        if SelY == DataThermal[k][1]:
+                            self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
+                                            zf[DataThermal[k][2]],'wx',markersize=12)[0])
+                            self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
+                                            zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
+                self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
+            self._prevDisplay=WhatDisplay
 
     @Slot()
     def LocateMTB(self):
