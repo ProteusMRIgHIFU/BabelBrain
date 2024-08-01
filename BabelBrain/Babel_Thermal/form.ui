@@ -229,7 +229,7 @@
    <property name="geometry">
     <rect>
      <x>1120</x>
-     <y>439</y>
+     <y>429</y>
      <width>116</width>
      <height>28</height>
     </rect>
@@ -325,7 +325,7 @@ Thermal map (.nii.gz)</string>
    <property name="geometry">
     <rect>
      <x>426</x>
-     <y>438</y>
+     <y>430</y>
      <width>103</width>
      <height>32</height>
     </rect>
@@ -345,7 +345,7 @@ Thermal map (.nii.gz)</string>
    <property name="geometry">
     <rect>
      <x>377</x>
-     <y>442</y>
+     <y>434</y>
      <width>41</width>
      <height>20</height>
     </rect>

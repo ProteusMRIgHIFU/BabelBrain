@@ -263,7 +263,6 @@ class Babel_Thermal(QWidget):
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.ExportThermalMap.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
-        self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
         self.Widget.DisplayDropDown.setEnabled(True)
         WhatDisplay = self.Widget.DisplayDropDown.currentIndex()
@@ -271,12 +270,14 @@ class Babel_Thermal(QWidget):
             self.Widget.LocMTS.setEnabled(True)
             self.Widget.LocMTC.setEnabled(True)
             self.Widget.LocMTB.setEnabled(True)
+            self.Widget.IsppaScrollBar.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
                 self.Widget.HideMarkscheckBox.setEnabled(True)
         else:
             self.Widget.LocMTS.setEnabled(False)
             self.Widget.LocMTC.setEnabled(False)
             self.Widget.LocMTB.setEnabled(False)
+            self.Widget.IsppaScrollBar.setEnabled(False)
             if self.Widget.HideMarkscheckBox.isEnabled()== True:
                 self.Widget.HideMarkscheckBox.setEnabled(False)
             
@@ -499,7 +500,7 @@ class Babel_Thermal(QWidget):
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
                     self._contour2=static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
-                    self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:
                     self._figIntThermalFields=Figure(figsize=(14, 12))
                     self.static_canvas = FigureCanvas(self._figIntThermalFields)
@@ -513,9 +514,9 @@ class Babel_Thermal(QWidget):
                     static_ax1.set_ylabel('temperature (degrees C)')
                     leg=static_ax1.legend(['Skin','Brain','Skull','Target'], bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
                     self._static_ax1=static_ax1
-                    self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
-                    self._static_ax1.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
-                    leg.get_frame().set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
+                    self._static_ax1.set_facecolor(self._MainApp._BackgroundColorFigures)
+                    leg.get_frame().set_facecolor(self._MainApp._BackgroundColorFigures)
                     
 
             self._bRecalculated=False

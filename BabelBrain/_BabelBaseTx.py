@@ -271,7 +271,7 @@ class BabelBaseTx(QWidget):
             static_ax2.invert_yaxis()
             self._marker2,=static_ax2.plot(0,self._DistanceToTarget,'+k',markersize=18)
 
-        self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
+        self._figAcField.set_facecolor(self._MainApp._BackgroundColorFigures)
 
         mc=[0.0,0.0,0.0,1.0]
         if self.Widget.HideMarkscheckBox.isChecked():

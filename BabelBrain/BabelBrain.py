@@ -26,7 +26,7 @@ import nibabel
 import numpy as np
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie
+from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie, QPainter, QImage,QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -917,9 +917,10 @@ class BabelBrain(QWidget):
             #we use manual color asignation 
             colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
-        axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
-
-        self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+        leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+        self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
+        self._figMasks.set_facecolor(self._BackgroundColorFigures)
+        leg.get_frame().set_facecolor(self._BackgroundColorFigures)
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
 
@@ -982,6 +983,11 @@ class BabelBrain(QWidget):
         with open(self._trackingtimefile,'w') as f:
             yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
+def get_color_at(widget, x,y):
+    pixmap = QPixmap(widget.size())
+    widget.render(pixmap)
+    return pixmap.toImage().pixelColor(x,y).getRgb()
+        
 class RunMaskGeneration(QObject):
 
     finished = Signal()
