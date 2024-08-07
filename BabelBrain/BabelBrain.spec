@@ -9,6 +9,7 @@ import os
 commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_H246/default.yaml','./Babel_H246'),
         ('Babel_CTX500/default.yaml','./Babel_CTX500'),
+        ('Babel_CTX250/default.yaml','./Babel_CTX250'),
         ('Babel_SingleTx/default.yaml','./Babel_SingleTx'),
         ('Babel_SingleTx/defaultBSonix.yaml','./Babel_SingleTx'),
         ('Babel_REMOPD/default.yaml','./Babel_REMOPD'),
@@ -37,7 +38,15 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('../TranscranialModeling/WebbHU_Att.csv','./TranscranialModeling'),
         ('../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5','./TranscranialModeling'),
         ('../TranscranialModeling/REMOPD_ElementPosition.mat','./TranscranialModeling'),
-        ('Babel_Thermal/form.ui','./Babel_Thermal')]
+        ('Babel_Thermal/form.ui','./Babel_Thermal'),
+        ('GPUFunctions/GPUBinaryClosing/binary_closing.cpp','./GPUFunctions/GPUBinaryClosing'),
+        ('GPUFunctions/GPULabel/label.cpp','./GPUFunctions/GPULabel'),
+        ('GPUFunctions/GPUMapping/map_filter.cpp','./GPUFunctions/GPUMapping'),
+        ('GPUFunctions/GPUMedianFilter/median_filter.cpp','./GPUFunctions/GPUMedianFilter'),
+        ('GPUFunctions/GPUResample/affine_transform.cpp','./GPUFunctions/GPUResample'),
+        ('GPUFunctions/GPUResample/spline_filter.cpp','./GPUFunctions/GPUResample'),
+        ('GPUFunctions/GPUVoxelize/voxelize.cpp','./GPUFunctions/GPUVoxelize'),
+        ('GPUFunctions/GPUVoxelize/helper_math.h','./GPUFunctions/GPUVoxelize')]
 
 with open('version.txt','r') as f:
     version=f.readlines()[0].strip()

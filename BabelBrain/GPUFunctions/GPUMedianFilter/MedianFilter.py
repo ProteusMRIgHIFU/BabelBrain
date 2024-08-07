@@ -21,10 +21,9 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS)
+        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
     else:
         bundle_dir = Path(__file__).parent
-
     return bundle_dir
 
 def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):

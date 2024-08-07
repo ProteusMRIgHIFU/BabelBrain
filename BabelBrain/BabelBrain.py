@@ -1064,7 +1064,7 @@ class RunMaskGeneration(QObject):
        
         #advanced parameters
         for k in self._mainApp.DefaultAdvanced:
-            if k not in ['CTX_500_Correction']:
+            if '_Correction' not in k:
                 kargs[k]=self._mainApp.Config[k] 
         
         bForceFullRecalculation = False
@@ -1078,14 +1078,14 @@ class RunMaskGeneration(QObject):
                     break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if k not in ['CTX_500_Correction']: #here we screen out parameters that are irrelevant for Step 1
+                    if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
                         if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
                             bForceFullRecalculation=True
                             break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
             for k in self._mainApp.DefaultAdvanced:
-                if k not in ['CTX_500_Correction']:
+                if '_Correction' not in k:
                     if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
                         bForceFullRecalculation=True
                         break
@@ -1094,7 +1094,7 @@ class RunMaskGeneration(QObject):
         # now we save the parameters for future comparison
         NewParams={}
         for k in self._mainApp.DefaultAdvanced:
-            if k not in ['CTX_500_Correction']:
+            if '_Correction' not in k:
                 NewParams[k]=kargs[k]
             
         with open(self._mainApp.Config['AdvancedParamsFile'],'w') as f:
