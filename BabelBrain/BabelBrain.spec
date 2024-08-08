@@ -174,10 +174,10 @@ elif 'Windows' in platform.system(): #for Windows
     datas+=commonDatas
     datas+=[('ExternalBin/elastix/run_win.bat','./ExternalBin/elastix'),
             ('SelFiles/form.ui','./SelFiles'),
-            ('GPUVoxelize/helper_math.h','./GPUVoxelize'),
             ('../Profiles/Thermal_Profile_1.yaml','./Profiles'),
             ('../Profiles/Thermal_Profile_2.yaml','./Profiles'),
             ('../Profiles/Thermal_Profile_3.yaml','./Profiles'),
+            ('../Profiles/Thermal_Profile_4.yaml','./Profiles'),
             ('../Profiles/MultiFocus_Profile1.yaml','./Profiles'),
             ('../NeedleModel.stl','./'),
             ('../PlanningModels/Trajectory-20-60-F#1.stl','./PlanningModels'),
