@@ -409,6 +409,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['TrabecularProportion']=0.8
         self.DefaultAdvanced['CTX_500_Correction']='Original'
         self.DefaultAdvanced['CTX_250_Correction']='Original'
+        self.DefaultAdvanced['DPX_500_Correction']='Original'
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -523,6 +524,8 @@ class BabelBrain(QWidget):
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_250':
             from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
+        elif self.Config['TxSystem'] =='DPX_500':
+            from Babel_DPX500.Babel_DPX500 import DPX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':
