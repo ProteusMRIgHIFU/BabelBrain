@@ -347,8 +347,6 @@ class BabelBasePhaseArray(BabelBaseTx):
                     child.deleteLater()
                 delattr(self,'_figAcField')
                 self.Widget.AcField_plot1.repaint()
-                
-                
         
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
 
@@ -361,6 +359,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         #we need to declare these for compatibility for parent functions
         self._IWater = IWater
         self._ISkull = ISkull
+        
+        Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
+        self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f, %2.1f ,%2.1f]' %(Total_Distance,X_dist,Y_dist,Z_dist))
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             sliceXZ=IWater[:,SelY,:]

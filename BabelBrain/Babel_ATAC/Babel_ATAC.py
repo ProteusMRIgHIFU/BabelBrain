@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import platform
 import yaml
-from _BabelBasePhasedArray import BabelBasePhaseArray
+from Babel_H317.Babel_H317 import H317
 
 
 _IS_MAC = platform.system() == 'Darwin'
@@ -21,12 +21,9 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-class ATAC(BabelBasePhaseArray):
-    def __init__(self,parent=None,MainApp=None):
-        super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
-
+class ATAC(H317):
     def DefaultConfig(self):
-        #Specific parameters for the H317 - configured via a yaml
+        #Specific parameters for the ATAC - configured via a yaml
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
         print("ATAC configuration:")

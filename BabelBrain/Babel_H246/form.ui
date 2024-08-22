@@ -32,7 +32,7 @@
   <widget class="QDoubleSpinBox" name="TPODistanceSpinBox">
    <property name="geometry">
     <rect>
-     <x>202</x>
+     <x>200</x>
      <y>21</y>
      <width>90</width>
      <height>22</height>
@@ -159,7 +159,7 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>199</x>
+     <x>200</x>
      <y>144</y>
      <width>90</width>
      <height>22</height>
@@ -238,7 +238,7 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
-     <x>201</x>
+     <x>200</x>
      <y>206</y>
      <width>90</width>
      <height>22</height>
@@ -280,8 +280,8 @@ to skin (mm)</string>
   <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
    <property name="geometry">
     <rect>
-     <x>201</x>
-     <y>262</y>
+     <x>200</x>
+     <y>330</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -309,7 +309,7 @@ to skin (mm)</string>
    <property name="geometry">
     <rect>
      <x>33</x>
-     <y>254</y>
+     <y>322</y>
      <width>153</width>
      <height>30</height>
     </rect>
@@ -355,7 +355,7 @@ water only</string>
    </property>
    <property name="geometry">
     <rect>
-     <x>255</x>
+     <x>290</x>
      <y>430</y>
      <width>95</width>
      <height>28</height>
@@ -365,36 +365,11 @@ water only</string>
     <string>Hide marks</string>
    </property>
   </widget>
-  <widget class="QLabel" name="LabelTissueRemoved">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>98</y>
-     <width>104</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color: red</string>
-   </property>
-   <property name="text">
-    <string>Tissue layers
-will be removed!</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
   <widget class="QPushButton" name="CalculateMechAdj">
    <property name="geometry">
     <rect>
      <x>41</x>
-     <y>353</y>
+     <y>407</y>
      <width>227</width>
      <height>48</height>
     </rect>
@@ -413,7 +388,7 @@ will be removed!</string>
    <property name="geometry">
     <rect>
      <x>41</x>
-     <y>306</y>
+     <y>360</y>
      <width>226</width>
      <height>48</height>
     </rect>
@@ -426,6 +401,75 @@ will be removed!</string>
    </property>
    <property name="text">
     <string>Calculate Fields</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="LabelTissueRemoved">
+   <property name="geometry">
+    <rect>
+     <x>83</x>
+     <y>242</y>
+     <width>203</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: red</string>
+   </property>
+   <property name="text">
+    <string>Tissue layers will be removed!</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_27">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>275</y>
+     <width>164</width>
+     <height>47</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Distance target to FLHM
+center [Total, X, Y, Z] (mm):</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="DistanceTargetLabel">
+   <property name="geometry">
+    <rect>
+     <x>194</x>
+     <y>282</y>
+     <width>135</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
  </widget>

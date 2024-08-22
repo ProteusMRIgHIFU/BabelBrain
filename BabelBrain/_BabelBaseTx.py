@@ -44,7 +44,7 @@ def ellipsoid_axis_lengths(central_moments):
     eigvals = np.sort(np.linalg.eigvalsh(S))[::-1]
     return tuple([np.sqrt(20.0 * e) for e in eigvals]) 
 
-def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.25):
+def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.5):
         '''
         Threshold=0.25 
         '''
@@ -212,6 +212,9 @@ class BabelBaseTx(QWidget):
                         child.deleteLater()
                     delattr(self,'_figAcField')
                     self.Widget.AcField_plot1.repaint()
+                    
+            Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
+            self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f, %2.1f ,%2.1f]' %(Total_Distance,X_dist,Y_dist,Z_dist))
         
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             Field=self._IWater
@@ -290,10 +293,7 @@ class BabelBaseTx(QWidget):
         #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
         pass #to be defined by those Tx capable of multi-point
     
-    @Slot()
-    def CalculateMechAdj(self):
-        #this calculates the required mechanical correction to center acoustic beam
-        #to the target
+    def CalculateDistancesTarget(self):
         dx=  np.mean(np.diff(self._Skull['x_vec']))
         voxelsize=np.array([dx,dx,dx])
         stats=CalcVolumetricMetrics(self._ISkull,voxelsize)
@@ -302,8 +302,20 @@ class BabelBaseTx(QWidget):
         z_o=np.unique(self._ZZX)
         #we get the centroid in the displayed axes convention
         centroid=stats['centroid']+np.array([x_o.min(),y_o.min(),z_o.min()])
-        X_correction = np.round(centroid[0]-x_o[self._Skull['TargetLocation'][0]],1)
-        Y_correction = np.round(centroid[1]-y_o[self._Skull['TargetLocation'][1]],1)
+        X_dist = centroid[0]-x_o[self._Skull['TargetLocation'][0]]
+        Y_dist = centroid[1]-y_o[self._Skull['TargetLocation'][1]]
+        Z_dist = centroid[2]-z_o[self._Skull['TargetLocation'][2]]
+        Total_Distance= np.round(np.sqrt(X_dist**2+Y_dist**2+Z_dist**2),1)
+        X_dist=np.round(X_dist,1)
+        Y_dist=np.round(Y_dist,1)
+        Z_dist=np.round(Z_dist,1)
+        return Total_Distance,X_dist,Y_dist,Z_dist
+    
+    @Slot()
+    def CalculateMechAdj(self):
+        #this calculates the required mechanical correction to center acoustic beam
+        #to the target
+        Total_Distance,X_correction,Y_correction,Z_correction = self.CalculateDistancesTarget()
         ret = QMessageBox.question(self,'', "The focal spot's center of mass (-6dB) "+
                                    'is [%3.1f,%3.1f]' % (X_correction,Y_correction) + " mm-off in [X,Y] relative to the target.\n"+
                                     "Do you want to apply a mechanical correction?",
