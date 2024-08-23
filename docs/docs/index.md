@@ -1,7 +1,7 @@
 BabelBrain 
 =============
-**v0.3.4**  
-April 5th, 2024.
+**v0.4.0**  
+Aug 23th, 2024.
 
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -10,6 +10,8 @@ Cumming School of Medicine,
 University of Calgary   
 samuel.pichardo@ucalgary.ca  
 [www.neurofus.ca](https://www.neurofus.ca)
+
+[![License: BSD-3](https://img.shields.io/badge/BSD-3-Clause.svg)](LICENSE)
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
 

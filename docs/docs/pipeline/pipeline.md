@@ -8,25 +8,25 @@ Currently, five types of transducers are supported:
 
 * **Single**. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 1 MHz.
 * **H317**. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250, 700 and 825 kHz.
-* **CTX_500**. This is a device commercialized by the company NeuroFUS that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz.
+* **CTX_250**. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 250 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 25 to 60 mm from the outplane of the device.
+* **CTX_500**. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 33 to 80 mm from the outplane of the device.
+* **DTX_500**. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 144.9 mm and F# = 2.26, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 50 to 120 mm from the outplane of the device.
 * **H246**. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
 * **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
-* * **I12378**. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.
+* **I12378**. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.
 * **ATAC**. This is a 128-element device operating at 1 MHz with a focal length 53.2 mm and F#=0.9.
-* **REMOPD**.This is a 256-element flat 2D array operating at 300 kHz with a diameter of 58 mm.
+* **REMOPD**. This is a 256-element flat 2D array commercialized by the company Fraunhofer IBMT capable to operate at 300 and 490 kHz with a diameter of 58 mm.
 
 The specific capabilities of each transducer are considered during the simulations. 
 
 # 1 - Preliminary steps
+## Anatomical Imaging 
+* Collect T1W (and optionally T2W) imaging of a participant. T1W scan **must** be 1-mm isotropic scans.
+* *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
+* *Optional*:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository [petra-to-ct](https://github.com/ucl-bug/petra-to-ct), both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult [MRI Sequences](https://github.com/ProteusMRIgHIFU/BabelBrain/MRI_Sequences) for GE and Siemens scan settings recomendations 
 
-* **Mandatory**: Collect T1W (and optionally T2W) imaging of a participant. Highly recommended to use 3D isotropic (1 mm-resolution) scans.
-* **Mandatory**: Execute  SimNIBS 3.x `headreco` or SimNIBS 4.x `charm` processing tool:
-
-    ```
-    headreco all <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
-    ```
-
-    or
+## Pre-processing 
+* Execute [SimNIBS](https://simnibs.github.io/simnibs/build/html/index.html) 4.x `charm` processing tool:
 
     ```
     charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
@@ -36,7 +36,7 @@ The specific capabilities of each transducer are considered during the simulatio
     
     **Note**: Sometimes, `charm` may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with `dcm2niix`. If `charm` complains, you can try passing the  `--forceqform` parameter when executing `charm`.  
 
-* **Mandatory**: Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
+* Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
 
     For example, with FSL, a simple csv file (`mni.csv`) can be created with the coordinates in MNI such as `-32.0 -20.0 65.0`. Then run the following commands
 
@@ -47,10 +47,7 @@ The specific capabilities of each transducer are considered during the simulatio
     The file `natspace.csv` will contain the MNI coordinates converted to T1W space. Please note that often visual inspections could be required to confirm the location.
     
 
-* *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
-* *Optional*:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository [petra-to-ct](https://github.com/ucl-bug/petra-to-ct), both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated.
 
-## 1.a - Availability of CT/ZTE scans
 If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the `headreco` or `charm` tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that `charm` tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.
 
 If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.
@@ -265,14 +262,14 @@ The choices of this tab will depend on the selected transducer. Simulation resul
 
 Common to all transducers, the distance of the maximal depth beyond the target location is set to a user-configurable distance of 40 mm.
 
-Also, all transducers show an action to perform automatic mechanical corrections in the direction perpendicular to the ultrasound propagation. See below the details in the explanations for the CTX 500 device regarding mechanical corrections.
+Also, all transducers show an action to perform automatic mechanical corrections in the direction perpendicular to the ultrasound propagation. See below the details in the explanations for the CTX_250, CTX_500 and DPX_500 devices regarding mechanical corrections.
 
-### 3.c.i - CTX_500
+### 3.c.i - CTX_250, CTX_500 and DPX_500
 <img src="Simulation-7.png" height=350px>
 
-For the CTX_500 transducer, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+For the CTX_250, CTX_500 and DPX_500 transducers, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
 
-The initial "TPO Distance" (an adjustable parameter in the CTX_500 device) is calculated based on the distance skin to the target. 
+The initial "TPO Distance" (an adjustable parameter in the TPO NeuroFUS device) is calculated based on the distance skin to the target. 
 
 It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Simulation should take a couple of minutes in a M1 Max system.
 
@@ -280,7 +277,9 @@ The results window will show two orthogonal views of normalized acoustic intensi
 
 Also, there is a small lateral shift in the negative "Y" direction. This can be corrected with the "Mechanical" adjustment controls (in this example we adjust +1mm in the Y direction). 
  
-After running a first pass of simulations in Step 2, a button action is available to calculate the distance from the target to the center of mass of the focal spot at -6dB and suggest applying the required mechanical corrections in X and Y directions. This action should help to minimize the number of iterations in simulations looking to ensure the focal spot is aligned in the X and Y directions to the intended target.
+After running a first pass of simulations in Step 2, a button action is available to calculate the distance from the target to the center of mass of the focal spot at -3dB and suggest applying the required mechanical corrections in X and Y directions. This action should help to minimize the number of iterations in simulations looking to ensure the focal spot is aligned in the X and Y directions to the intended target.
+
+The GUI shows a label with the "Distance target to FLHM center [X, Y, Z] (mm)" that helps to perform adjustments with mechanical  and steering adjustements.
 
 Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates. However, at the end of the simulations, there will be a report in which direction in the T1W space this adjustment translates. 
 
