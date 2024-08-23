@@ -137,8 +137,7 @@ class CTX500(BabelBaseTx):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            
-            # TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
+
             SelCorrection =self._MainApp.Config[self._KeyCorrection]
             CoeffA = self.Config['Corrections'][SelCorrection][0]
             CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0

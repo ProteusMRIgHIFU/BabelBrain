@@ -1,4 +1,4 @@
-BabelBrain v0.3.5
+BabelBrain v0.4.0
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -14,11 +14,22 @@ www.neurofus.ca
 
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
-BabelBrain is a frontend application specially designed to work in tandem with neuronavigation and visualization software to perform transcranial focused ultrasound research. BabelBrain uses [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) extensively for calculations. BabelViscoFDTD is optimized for multiple GPU backends (Metal, OpenCL and CUDA). In its initial inception, BabelViscoFDTD was focused on MacOS systems based on Apple ARM64 processors. However, BabelViscoFDTD can run on any system (Mac, Linux, Windows) that has a decent GPU from NVidia or AMD. 
+<img src="intro.png">
+
+<img src="Target-demo.png">
+
+BabelBrain is a frontend application for research purposes only in the study of applications of transcranial focused ultrasound. BabelBrain calculates the transmitted acoustic field in the brain tissue, considering the distortion effects caused by the skull barrier. BabelBrain also calculates the thermal effects of a given ultrasound regime, which is regulated mainly by the total duration of ultrasound exposure, the duty cycle of ultrasound use, and the peak acoustic intensity,
+
+BabelBrain is designed to work in tandem with neuronavigation and/or visualization software (such as Rogue Research's Brainsight or 3DSlicer). This tool combines image processing to prepare domains for ultrasound simulation and uses  [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) extensively for transcranial modeling calculations. BabelViscoFDTD is a finite-difference time-difference solver of isotropic viscoelastic equation, which was implemented to support multiple GPU backends (Metal, OpenCL and CUDA).  Predictions of BabelViscoFDTD have been validated experimentally ([Pichardo *et al.*, 2017](https://pubmed.ncbi.nlm.nih.gov/28783716/)) and cross-validated with other numerical tools for ultrasound propagation ([Aubry *et al.*, 2022](https://asa.scitation.org/doi/10.1121/10.0013426)). BabelBrain supports multiple GPU backends (Metal, OpenCL and CUDA) and works in all major operating systems, with an emphasis on Apple ARM64-based systems, which are very common in brain imaging research.  
+
+# Citation
+If you find BabelBrain useful for your research, please consider adding a citation to:  
+Pichardo S. BabelBrain: An Open-Source Application for Prospective Modeling of Transcranial Focused Ultrasound for Neuromodulation Applications.  
+IEEE Trans Ultrason Ferroelectr Freq Control. 2023 Jul;70(7):587-599.  
+doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). Epub 2023 Jun 29. PMID: 37155375.
 
 # Disclaimer
 This software is provided "as is" and it is intended exclusively for research purposes.
-
 # Hardware requirements
 * A decent GPU (AMD, Nvidia or Apple Silicon). For AMD and Nvidia GPUs, 4 GB or more is highly recommended. For Apple Silicon, M1 Max/Ultra or M2 Max with 16 GB RAM or more is highly recommended. Intel-based Mac systems need a dedicated AMD GPU (internal or external). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 650 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 * 16 GB RAM or more for main CPU memory for Intel-based systems.
@@ -65,13 +76,6 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 `pyinstaller BabelBrain.spec --noconfirm`
 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
-
-# Citation
-If you find BabelBrain useful for your research, please consider adding a citation to:  
-Pichardo S. BabelBrain: An Open-Source Application for Prospective Modeling of Transcranial Focused Ultrasound for Neuromodulation Applications.  
-IEEE Trans Ultrason Ferroelectr Freq Control. 2023 Jul;70(7):587-599.  
-doi: [10.1109/TUFFC.2023.3274046](https://doi.org/10.1109/TUFFC.2023.3274046). Epub 2023 Jun 29. PMID: 37155375.
-
 
 # Version log
 - 0.3.5 - July 8thth, 2024
