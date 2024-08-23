@@ -361,7 +361,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         self._ISkull = ISkull
         
         Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
-        self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f, %2.1f ,%2.1f]' %(Total_Distance,X_dist,Y_dist,Z_dist))
+        self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             sliceXZ=IWater[:,SelY,:]

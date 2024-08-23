@@ -608,7 +608,7 @@ will be removed!</string>
    </property>
    <property name="text">
     <string>Distance target to FLHM
-center [Total, X, Y, Z] (mm):</string>
+center [X, Y, Z] (mm):</string>
    </property>
    <property name="indent">
     <number>0</number>

@@ -214,7 +214,7 @@ class BabelBaseTx(QWidget):
                     self.Widget.AcField_plot1.repaint()
                     
             Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
-            self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f, %2.1f ,%2.1f]' %(Total_Distance,X_dist,Y_dist,Z_dist))
+            self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
         
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             Field=self._IWater
