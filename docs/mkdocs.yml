@@ -19,6 +19,7 @@ nav:
   - Installation: installation.md
   - Simulation pipeline : pipeline/pipeline.md
   - Results files : results/results.md
+  - Advanced options: Advanced/advanced.md
   - Appendix : Appendix/Appendix.md
 
 markdown_extensions:

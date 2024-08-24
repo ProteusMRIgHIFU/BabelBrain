@@ -165,13 +165,21 @@ Now that planning is done, you can open BabelBrain.
 
 ## 3.a - Input data
 An input dialog will prompt the different input files required for the simulation. If running directly from BrainSight, some of these fields (marked below with an "*") will be pre-populated.
-<img src="Simulation-2.png" height=250px>
+<img src="Simulation-2.png" height=270px>
 
 
 1. Specify the path to the trajectory file and the source (Slicer or Brainsight) (*).
 2. Select the SimNIBS output directory associated with this test and indicate what tool was used to generate it (`headreco` or `charm`) (*)
 3. Select the path to the T1W Nifti file (*)
 4. Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the `itk-elastix` package with rigid coregistration.
+5. Select the CT mapping profile that matches the better the CT scanner. Consult papers by Webb *et al.* about  
+<a href="https://doi.org/10.1109/TUFFC.2018.2827899" target="_blank">speed of sound</a>
+and 
+<a href="https://doi.org/10.1109/TUFFC.2020.3039743" target="_blank">attenuation</a>
+ as a function of CT scanning conditions. For most practical scenarios, if using GE, the most common scanner combination will **GE, 120, B,, 0.5, 0.6**. For Siemens scanners, it will be **Siemens,120,B,,0.4, 0.5**.
+
+    When selecting **ZTE** or **PETRA** scans, the best CT combination will be selected automatically.
+    
 5. Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
 
     ```
@@ -185,6 +193,20 @@ An input dialog will prompt the different input files required for the simulatio
 
     
     This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
+
+
+    For scenarios where repeated exposures is required, the extra field `Repetitions` can be added. For example:
+        ```
+    BaseIsppa: 5.0 # W/cm2
+    AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.3
+        PRF: 10.0
+        Duration: 30.0
+        DurationOff: 30.0
+        Repetitions: 10
+    ```
+
+    In the previous case, the simulation will run for an exposure lasting 10 min, where ultrasound is turned on for 30s, followed by 30s with ultrasound off, and repeated 10 times.
 
     More than one exposure can be specified. For example:
     
