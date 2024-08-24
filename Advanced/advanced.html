@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Appendix/Appendix.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Advanced/advanced.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Appendix - BabelBrain</title>
+        <title>Advanced options - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -50,11 +50,11 @@
                             <li class="navitem">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem">
-                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
-                            </li>
                             <li class="navitem active">
-                                <a href="Appendix.html" class="nav-link">Appendix</a>
+                                <a href="advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
@@ -65,12 +65,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../Advanced/advanced.html" class="nav-link">
+                                <a rel="prev" href="../results/results.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" class="nav-link disabled">
+                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -92,8 +92,38 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#appendix-tissue-properties" class="nav-link">Appendix - Tissue properties</a>
+            <li class="nav-item" data-level="2"><a href="#advanced-features" class="nav-link">Advanced features</a>
               <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#domain-generation" class="nav-link">Domain Generation</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#elastix-co-registration-optimizer" class="nav-link">Elastix co-registration Optimizer</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#proportion-of-trabecular-bone" class="nav-link">Proportion of trabecular bone</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#force-using-blender-for-constructive-solid-geometry" class="nav-link">Force using Blender for Constructive Solid Geometry</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#manual-subvolume" class="nav-link">Manual Subvolume</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#transcranial-ultrasound" class="nav-link">Transcranial Ultrasound</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#ctx-500-correction" class="nav-link">CTX-500 Correction</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -101,9 +131,25 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="appendix-tissue-properties">Appendix - Tissue properties</h1>
-<p>Please consult the 
-<a href="https://doi.org/10.1109/TUFFC.2023.3274046" target="_blank">manuscript</a> for details on the underlying models, material properties and methodology followed in selecting them.</p></div>
+<h2 id="advanced-features">Advanced features</h2>
+<p>Since release 0.3.5, BabelBrain includes a menu for advanced options controlling low-level details in BabelBrain.</p>
+<p>If any of these options are modified, they will remain persistent on the next BabelBrain sessions. Select <code>Reset to defaults</code> to restore original values.</p>
+<p><img src="advanced-1.png" height=450px></p>
+<h1 id="domain-generation">Domain Generation</h1>
+<p><img src="advanced-2.png" height=250px></p>
+<h2 id="elastix-co-registration-optimizer">Elastix co-registration Optimizer</h2>
+<p>The default optimizer for Elastix, AdaptiveStochasticGradientDescent, works <em>almost</em> for every combination of CT-&gt;T1W and ZTE/PETRA-&gt;T1W. However, as much more testing has started to accumulate, we noticed that the CT-&gt;T1W was not working in some cases. We tested different options in Elastix, and the <strong>FiniteDifferenceGradientDescent</strong> and <strong>QuasiNewtonLBFGS</strong> seem to work well as a replacement. If the coregistration from CT to T1W is not working as expected, try one of these two other options. <strong>FiniteDifferenceGradientDescent</strong> seems to work better.</p>
+<h2 id="proportion-of-trabecular-bone">Proportion of trabecular bone</h2>
+<p>By default, the percentage of trabecular is 80% using the line of sight of the trajectory. If the trajectory crosses very thin regions like the parietal bone, there may be a chance all region is considered trabecular, which may not be desired. A warning message will be printed out in the terminal output in that case. In such cases as the parietal bone, consider reducing a lower value of trabecular, such as 0.1 or 0.2.</p>
+<h2 id="force-using-blender-for-constructive-solid-geometry">Force using Blender for Constructive Solid Geometry</h2>
+<p>While pycork seems to do a great replacement, we identified that in some instances when using the subvolume feature there was a crash in the low pycork library. Forcing using Blender instead can help to run those special cases.</p>
+<h2 id="manual-subvolume">Manual Subvolume</h2>
+<p>This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (i.e., EEG-P7 location) in which the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.</p>
+<h1 id="transcranial-ultrasound">Transcranial Ultrasound</h1>
+<p><img src="advanced-3.png" height=250px></p>
+<h2 id="ctx-500-correction">CTX-500 Correction</h2>
+<p>Starting R0.4.0, BabelBrain introduced a parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: <strong>Original</strong> and <strong>July 2024</strong>. The <strong>Original</strong> setting matches how the CTX-500 unit was modelled in previous releases (&lt;= 0.3.5) and <strong>July 2024</strong> has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.</p>
+<p>The newer <strong>CTX 250</strong> and <strong>CTX 500</strong> transducers (introduced in R0.4.0) have already this correction by default.</p></div>
             </div>
         </div>
 

@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Appendix/Appendix.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/MRISequences/MRISequences.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Appendix - BabelBrain</title>
+        <title>MRI sequences - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -44,8 +44,8 @@
                             <li class="navitem">
                                 <a href="../pipeline/pipeline.html" class="nav-link">Simulation pipeline</a>
                             </li>
-                            <li class="navitem">
-                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            <li class="navitem active">
+                                <a href="MRISequences.html" class="nav-link">MRI sequences</a>
                             </li>
                             <li class="navitem">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
@@ -53,8 +53,8 @@
                             <li class="navitem">
                                 <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="Appendix.html" class="nav-link">Appendix</a>
+                            <li class="navitem">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
@@ -65,12 +65,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../Advanced/advanced.html" class="nav-link">
+                                <a rel="prev" href="../pipeline/pipeline.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" class="nav-link disabled">
+                                <a rel="next" href="../results/results.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -92,7 +92,22 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#appendix-tissue-properties" class="nav-link">Appendix - Tissue properties</a>
+            <li class="nav-item" data-level="2"><a href="#mri-sequences" class="nav-link">MRI Sequences</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#basics" class="nav-link">Basics</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#zte-for-ge-scanners" class="nav-link">ZTE for GE Scanners</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-level="1"><a href="#petra-for-siemens-scanners" class="nav-link">PETRA for Siemens Scanners</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -101,9 +116,21 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="appendix-tissue-properties">Appendix - Tissue properties</h1>
-<p>Please consult the 
-<a href="https://doi.org/10.1109/TUFFC.2023.3274046" target="_blank">manuscript</a> for details on the underlying models, material properties and methodology followed in selecting them.</p></div>
+<h2 id="mri-sequences">MRI Sequences</h2>
+<h1 id="basics">Basics</h1>
+<p>The T1W sequence <strong>must be 1-mm isotropic</strong>. Otherwise, some parts of the processing may fail. Overall,  it is highly recommended that all MRI sequences used in the planning with BabelBrain to be 1-mm isotropic,</p>
+<h1 id="zte-for-ge-scanners">ZTE for GE Scanners</h1>
+<p>The recommended ZTE sequence is derived from a <strong>3dradial</strong> GE PSD, with saggital orientation, reconstruction matrix of 256x256, receiver bandwidth of 62.5 kHz (pixel bandwith of 244 Hz), NEX=3.5, with chemical shift correction enabled, and using SCENIC intensity correction (PURE is also acceptable). The exported settings are available in  <a href="GE_Protocol.pdf" target="_blank">BabelGE_Protocol.pdf</a>
+ and in the protocol  <a href="GE_protocol.tar">GE_protocol.tar</a> file. While the protocol file is the most rigorous approach to reproduce the sequence, please note the protocol file is not backwards compatible with GE DV versions of the console. Be sure of reaching your local GE Clinical Scientist to assist if using the protocol file. </p>
+<p><strong>VERY IMPORTANT</strong>: The number of slabs and slice resolution are not exported in the parameters. Please use <strong>Slices per slab = 184</strong>, and match the same for the T1W and T2W scans. Use <strong>Slice Resolution = 100%</strong>, to keep the acquisition 1mm isotropic</p>
+<p>Below there are screnshots of the console showing how the sequence should appear</p>
+<p><img src="GE_Console_1.png"></p>
+<p><img src="GE_Console_2.png"></p>
+<p><img src="GE_Console_3.png"></p>
+<p><img src="GE_Console_4.png"></p>
+<h1 id="petra-for-siemens-scanners">PETRA for Siemens Scanners</h1>
+<p>We recommend using the <a href="https://github.com/ucl-bug/petra-to-ct/blob/main/scanfiles/PETRA.exar1" target="_blank">EXAR1</a> file available at the
+<a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">UCL's PETRA-TO-CT Github repository</a>. A  <a href="PETRA.exar1">local</a> copy is also provided for convenience.</p></div>
             </div>
         </div>
 
