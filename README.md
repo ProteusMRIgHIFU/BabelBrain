@@ -105,7 +105,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
   - **New**: Thermal temporal profiles in Step 3. 
 
-     <img src="figures/TProfilesExample.png" height=250px>
+     <img src="figures/TProfilesExample.png" height=300px>
 
     A new “Profile” temporal view in Step 3  can be used to visualize how heating evolves over time at the target and voxels with maximal heating at the skull, skin and brain tissue.
    - **Improvement**: Several GPU functions were rewritten for improved stabilitity accross all GPU technologies at high resolutions.
