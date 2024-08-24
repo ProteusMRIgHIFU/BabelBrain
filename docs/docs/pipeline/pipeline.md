@@ -12,7 +12,8 @@ Currently, five types of transducers are supported:
 * **CTX_500**. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 33 to 80 mm from the outplane of the device.
 * **DTX_500**. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 144.9 mm and F# = 2.26, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 50 to 120 mm from the outplane of the device.
 * **H246**. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.
-* **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781).
+* **BSonix**. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in
+<a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>.
 * **I12378**. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.
 * **ATAC**. This is a 128-element device operating at 1 MHz with a focal length 53.2 mm and F#=0.9.
 * **REMOPD**. This is a 256-element flat 2D array commercialized by the company Fraunhofer IBMT capable to operate at 300 and 490 kHz with a diameter of 58 mm.
@@ -23,10 +24,11 @@ The specific capabilities of each transducer are considered during the simulatio
 ## Anatomical Imaging 
 * Collect T1W (and optionally T2W) imaging of a participant. T1W scan **must** be 1-mm isotropic scans.
 * *Optional*: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. 
-* *Optional*:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by [Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository [petra-to-ct](https://github.com/ucl-bug/petra-to-ct), both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult [MRI Sequences](https://github.com/ProteusMRIgHIFU/BabelBrain/MRI_Sequences) for GE and Siemens scan settings recomendations 
+* *Optional*:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by 
+<a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a> (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a>, both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult [MRI Sequences](../MRISequences/MRISequences.md) for GE and Siemens scan settings recomendations 
 
 ## Pre-processing 
-* Execute [SimNIBS](https://simnibs.github.io/simnibs/build/html/index.html) 4.x `charm` processing tool:
+* Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x `charm` processing tool:
 
     ```
     charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
@@ -252,8 +254,10 @@ The diagram below shows flowchart describing the process for the domain generati
 
 <img src="nsclc-V2.svg" height=700px>
 
-The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other [numerical tools](https://asa.scitation.org/doi/10.1121/10.0013426).
- Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult Miscouridou *et al.*](https://ieeexplore.ieee.org/document/9856605) for details on the "classical" approach to convert from ZTE to pseudo-CT.
+The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other <a href="https://asa.scitation.org/doi/10.1121/10.0013426/" target="_blank">numerical tools</a>.
+
+ Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult <a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a>  for details on the "classical" approach to convert from ZTE to pseudo-CT.
+ 
  The execution time in M1 Max processor can take from 1 minute of minutes up to 10 minutes depending on the resolution and availability of ZTE/CT scans.
  When initiating the calculations, a detailed log output will appear in the bottom region of the window. In case of any error during processing, a dialog message will prompt indicating to consult this window for more details. Once executed, orthogonal views of the domain will be shown. T1W scan is also shown to verify that the mask was correctly calculated. 
 
@@ -325,7 +329,7 @@ The "Single" transducer is a generic device with a configurable diameter and foc
 <img src="Simulation-11.png" height=450px>
 
 ### 3.c.v - BSonix
-These are commercial transducers with fixed focal lengths as reported in [Schafer *et al.*](https://doi.org/10.1109/TUFFC.2020.3006781). The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
+These are commercial transducers with fixed focal lengths as reported in <a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>. The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
  
 <img src="Simulation-13.png" height=450px>
 
@@ -346,6 +350,11 @@ The thermal simulation solves the Bio-heat thermal equation (BHTE) for all the c
 The selection of spatial-peak pulse-average intensity ($I_{\text{SPPA}}$) indicates the desired intensity at the target. The spatial-peak time-average intensity ($I_{\text{SPTA}}$) is calculated based on the selected timing conditions.  Based on the selections of timing and desired $I_{\text{SPPA}}$ in tissue, the $I_{\text{SPPA}}$ in water conditions is calculated after taking into account all the losses. Thermal safety parameters (maximal temperature and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. The `MTB`, `MTS` and `MTC` push buttons in the lower region of the interface select the slice corresponding to the the maximal temperature in brain, skin and skull, respectively.
 
 The `Update Profile and Calculate` action can be used to load an updated version of the thermal profile file. This will force the recalculation of thermal results.
+
+The `Show` dropdown menu can be used to select the 2D intensity and thermal `Maps` or `Profiles` that shows the temporal evolution of temperature at the target and locations of maximal temperature at skin, skull and brain tissue.
+
+<img src="Simulation-15.png" height=450px>
+
 
 The `Export summary (CSV)` action exports the input data paths and user selections used for the simulations. It also includes a table of $I_{\text{SPPA}}$ in water conditions and safety metrics in function of the desired $I_{\text{SPPA}}$ in tissue. Below there is an example of the exported data.
 
