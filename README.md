@@ -79,6 +79,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
 - 0.4.0 - Aug 23rd, 2024
+  - **New**: Information on recommended MRI sequences is available in the repository. The GE settings used at UCalgary are available in PDF, screenshots and tar format. Consult [MRI Sequences](https://proteusmrighifu.github.io/BabelBrain/MRISequences/MRISequences.html) in the documentation website for more details.
   - **New**: Two new BrainBox transducers are added: **CTX 250** and **DPX 500**. 
 
     The CTX 250 has the same geometry as the CTX 500 but it operates at 250 kHz. It can focus from 25 mm to 60 mm.
