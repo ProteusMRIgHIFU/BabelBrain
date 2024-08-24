@@ -14,9 +14,9 @@ www.neurofus.ca
 
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
-<img src="intro.png">
+<img src="figures/intro.png">
 
-<img src="Target-demo.png">
+<img src="figures/Target-demo.png">
 
 BabelBrain is a frontend application for research purposes only in the study of applications of transcranial focused ultrasound. BabelBrain calculates the transmitted acoustic field in the brain tissue, considering the distortion effects caused by the skull barrier. BabelBrain also calculates the thermal effects of a given ultrasound regime, which is regulated mainly by the total duration of ultrasound exposure, the duty cycle of ultrasound use, and the peak acoustic intensity,
 
