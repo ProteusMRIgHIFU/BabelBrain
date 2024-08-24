@@ -86,7 +86,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
     The DPX 500 has the same aperture of the CTX 500 of 64 mm but a larger focal length of 144.9 mm. It can focus from 50 mm to 120 mm.
 
   - **New**: The REMOPD phased array device can also now operate at 300 kHz and 490 kHz.
-  - **New**: Corrections to steering of CTX 500.  A parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer was added. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: **Original** and **July 2024**. The **Original** setting matches how the CTX-500 unit was modelled in previous releases (<= 0.3.5) and **July 2024** has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.
+  - **New**: Advanced option - correction to steering of CTX 500.  A parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer was added and is available in the Advanced Options menu. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: **Original** and **July 2024**. The **Original** setting matches how the CTX-500 unit was modelled in previous releases (<= 0.3.5) and **July 2024** has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.
 
     The newer **CTX 250** and **CTX 500** transducers have already this correction by default.
 
