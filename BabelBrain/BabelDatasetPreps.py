@@ -321,8 +321,8 @@ def GenerateFileNames(SimbNIBSDir,SimbNIBSType,T1Source_nii,T1Conformal_nii,CT_o
                 BaseNameInZTE=os.path.splitext(BaseNameInZTE)[0]
             
             outputfiles['ZTEfnameBiasCorrec'] = BaseNameInZTE + '_BiasCorrec.nii.gz'
-            outputfiles['ZTEInT1W'] = BaseNameInZTE+'_InT1.nii.gz'
-            outputfiles['pCTfname'] = outputfiles["ZTEfnameBiasCorrec"] + '_pCT.nii.gz'
+            outputfiles['ZTEInT1W'] = BaseNameInZTE + '_InT1.nii.gz'
+            outputfiles['pCTfname'] = BaseNameInZTE + '_BiasCorrec_pCT.nii.gz'
 
         else: # CT
             if CoregCT_MRI==0:
@@ -882,7 +882,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 print('Processing ZTE/PETRA to pCT')
                 bIsPetra = CTType==3
                 with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
-                    rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames,ElastixOptimizer)
+                    rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames,ElastixOptimizer,
+                                                                bIsPetra=bIsPetra)
                 with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
                     rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),outputfilenames,
                         ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)

@@ -22,6 +22,7 @@ import subprocess
 import shutil
 from linetimer import CodeTimer
 import hashlib
+import matplotlib.pyplot as plt
 
 
 
@@ -249,14 +250,18 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,bIsPetra=False):
     #Bias correction
     
     T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
     N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
 
     ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
-    N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
+    if bIsPetra:
+        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
+    else:
+        convergence={"iters": [50,40,30,20,10], "tol": 1e-7}
+        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,convergence=convergence)
     
     #coreg
     ZTEInT1W=outputfnames['ZTEInT1W']
@@ -286,7 +291,7 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer)
     return T1fnameBiasCorrec,ZTEInT1W
 
 def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
-            PetraMRIPeakDistance=50,PetraNPeaks=2):
+            PetraMRIPeakDistance=50,PetraNPeaks=2,bGeneratePETRAHistogram=False):
     print('converting ZTE/PETRA to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
@@ -343,6 +348,18 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
             pks=pks[ind]
             locs=locs[ind]
             arrZTE/=np.max(locs)
+
+            if bGeneratePETRAHistogram:
+                plt.figure()
+                plt.plot(bins, hist_vals);
+                for ind2 in locs:
+                    plt.plot([ind2,ind2],[np.min(hist_vals),np.max(hist_vals)])
+                plt.xlabel('PETRA Value')
+                plt.ylabel('Count')
+                plt.title('Image Histogram')
+                petrahistofname = InputZTE.split('.nii')[0]+'-PETRA_Histogram.pdf'
+                plt.savefig(petrahistofname)
+                plt.close('all')
         else:
             maskedZTE =arrZTE.copy()
             maskedZTE[arrMask==0]=-1000
