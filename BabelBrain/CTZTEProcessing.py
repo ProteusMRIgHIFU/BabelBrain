@@ -332,7 +332,11 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
             print('Using PETRA specification to convert to pCT')
 
             #histogram normalization
-            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins='auto')
+            #histogram normalization
+            if (arrZTE.max()-arrZTE.min())>2**16-1:
+                raise ValueError('The range of values in the ZTE file exceeds 2^16')
+            edgesin=np.arange(int(arrZTE.min()),int(arrZTE.max())+2)-0.5                   
+            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins=edgesin)
             bins = (edges[1:] + edges[:-1])/2
             bins = bins[1:]
             hist_vals = hist_vals[1:]
