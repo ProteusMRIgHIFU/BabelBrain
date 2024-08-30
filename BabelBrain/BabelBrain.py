@@ -828,7 +828,8 @@ class BabelBrain(QWidget):
         self._MaskData=Data
         if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
-            CTData=np.flip(self._CTnib.get_fdata(),axis=2)
+            AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
+            CTData=AllBoneHU[np.flip(self._CTnib.get_fdata(),axis=2).astype(int)]
         
         self._FinalMask=FinalMask
         voxSize=Data.header.get_zooms()
