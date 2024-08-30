@@ -153,8 +153,20 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
             raise SystemError("Error when trying to run elastix")
 
 def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
-                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
+                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},bInvertValues=False):
     inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
+    if bInvertValues:
+        imarray=sitk.GetArrayFromImage(inputImage)
+        imarray-=imarray.max()
+        imarray=-imarray
+        modified_sitk_image = sitk.GetImageFromArray(imarray)
+
+        # Set the spacing, origin, and direction to match the original image
+        modified_sitk_image.SetSpacing(inputImage.GetSpacing())
+        modified_sitk_image.SetOrigin(inputImage.GetOrigin())
+        modified_sitk_image.SetDirection(inputImage.GetDirection())
+        inputImage=modified_sitk_image
+        
     image = inputImage
 
     maskImage = sitk.OtsuThreshold(inputImage, 0, 1, 200)
@@ -250,7 +262,7 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,bIsPetra=False):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,bIsPetra=False,bInvertZTE=True):
     #Bias correction
     
     T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
@@ -258,10 +270,10 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,
 
     ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
     if bIsPetra:
-        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
-    else:
         convergence={"iters": [50,40,30,20,10], "tol": 1e-7}
         N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,convergence=convergence)
+    else:
+        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
     
     #coreg
     ZTEInT1W=outputfnames['ZTEInT1W']
