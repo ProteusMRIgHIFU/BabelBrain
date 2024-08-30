@@ -510,6 +510,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 FOVDiameter=60.0, # diameter for  manual FOV
                                 FOVLength=300.0, # lenght FOV
                                 ElastixOptimizer='AdaptiveStochasticGradientDescent',
+                                bApplyMedianFilterCT=True,
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -551,7 +552,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     bReuseFiles, prevoutputfilenames = CheckReuseFiles(inputfilenames,outputfilenames,currentCTType=CTType,currentHUT=HUThreshold)
     else:
         bReuseFiles=False
-    print(f"bReuseFiles: {bReuseFiles}")
+    print(f"bReuseFiles, bForceFullRecalculation: {bReuseFiles,bForceFullRecalculation}")
 
     if SimbNIBSType=='charm':
         if bReuseFiles:
@@ -895,20 +896,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             print('*'*40)
             print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
             rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
-            sf=np.round((np.ones(3)*2)/rCT.header.get_zooms()).astype(int)
-            sf2=np.round((np.ones(3)*5)/rCT.header.get_zooms()).astype(int)
-            with CodeTimer("median filter CT",unit='s'):
-                print('Theshold for bone',HUThreshold)
-                if MedianFilter is None:
-                    fct=ndimage.median_filter(rCTdata>HUThreshold,sf,mode='constant',cval=0)
-                else:
-                    fct=MedianFilter(np.ascontiguousarray(rCTdata>HUThreshold).astype(np.uint8),sf,GPUBackend=MedianCOMPUTING_BACKEND)
 
-            with CodeTimer("binary closing CT",unit='s'):
-                fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
-            fct=nibabel.Nifti1Image(fct.astype(np.float32), affine=rCT.affine)
+            fct=nibabel.Nifti1Image((rCTdata>HUThreshold).astype(np.float32), affine=rCT.affine)
 
-            # fct can be reused in future sims to save time
             if CTType in [2,3]:
                 SaveHashInfo([outputfilenames['pCTfname']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold,ZTER=ZTERange)
             else:
@@ -918,63 +908,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     SaveHashInfo([outputfilenames['CTInT1W']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
                 else:
                     SaveHashInfo([outputfilenames['T1WinCT']],outputfilenames['ReuseMask'],fct,CTType=CTType,HUT=HUThreshold)
-
+           
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
-
-        with CodeTimer("median filter CT mask extrapol",unit='s'):
-            if ResampleFilter is None:
-                nfct=processing.resample_from_to(fct,mask_nifti2,mode='constant',cval=0)
-            else:
-                nfct = ResampleFilter(fct,mask_nifti2,mode='constant',cval=0,GPUBackend=ResampleFilterCOMPUTING_BACKEND)
-        
-        nfct=np.ascontiguousarray(nfct.get_fdata())>0.5
-        
-        if bApplyBOXFOV==False:
-            #SP: May 29, 2024. We may need evaluate not using this approach for non sub volume approach
-            ##We will create an smooth surface
-            with CodeTimer("skull surface CT",unit='s'):
-                if LabelImage is None:
-                    label_img=label(nfct)
-                else:
-                    label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
-                regions= regionprops(label_img)
-                regions=sorted(regions,key=lambda d: d.area)
-                nfct=label_img==regions[-1].label
-                smct=MaskToStl(nfct,baseaffineRot)
-        
-            with CodeTimer("CT skull voxelization",unit='s'):
-                if VoxelizeFilter is None:
-                    ct_grid = smct.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                else:
-                    ct_grid=VoxelizeFilter(smct,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-            
-            XYZ=ct_grid
-            XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=ct_grid.dtype))).T
-            AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(int).T
-
-            nfct=np.zeros_like(FinalMask)
-
-            inds=(AffIJK[:,0]<nfct.shape[0])&\
-                (AffIJK[:,1]<nfct.shape[1])&\
-                (AffIJK[:,2]<nfct.shape[2])
-            AffIJK=AffIJK[inds,:]
-
-            nfct[AffIJK[:,0],AffIJK[:,1],AffIJK[:,2]]=1
-
-            smct.export(os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT_smooth.stl')
-            
-            del XYZ
-            del ct_grid
-        else:
-            nfct=nfct.astype(FinalMask.dtype)
-            nfct[nfct!=0]=1
-
-        with CodeTimer("CT median filter",unit='s'):
-            if MedianFilter is None:
-                nfct=ndimage.median_filter(nfct.astype(np.uint8),7)
-            else:
-                nfct=MedianFilter(nfct.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
-            nfct=nfct!=0
 
         ############
         with CodeTimer("CT extrapol",unit='s'):
@@ -987,6 +922,30 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
+            
+            if bApplyMedianFilterCT:
+                with CodeTimer("median filter CT",unit='s'):
+                    print('Theshold for bone',HUThreshold)
+                    if MedianFilter is None:
+                        fct=ndimage.median_filter(ndataCT>HUThreshold,7,mode='constant',cval=0)
+                    else:
+                        fct=MedianFilter(np.ascontiguousarray(ndataCT>HUThreshold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+            else:
+                fct = ndataCT>HUThreshold
+            sf2=np.round((np.ones(3)*5)/mask_nifti2.header.get_zooms()).astype(int)
+            with CodeTimer("binary closing CT",unit='s'):
+                fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
+            nfct=fct!=0
+
+            with CodeTimer("label CT",unit='s'):
+                if LabelImage is None:
+                    label_img=label(nfct)
+                else:
+                    label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                regions= regionprops(label_img)
+                regions=sorted(regions,key=lambda d: d.area)
+                nfct=label_img==regions[-1].label
+
             ndataCT[nfct==False]=0
 
         with CodeTimer("CT binary_dilation",unit='s'):
@@ -1052,11 +1011,35 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
+        FinalMask[FinalMask==2]=1
         if MedianFilter is None:
             FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
             FinalMask=MedianFilter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
-    
+    if CT_or_ZTE_input is not None:
+        FinalMask[nfct]=2
+
+        with CodeTimer("Second Labeling",unit='s'):
+            if LabelImage is None:
+                label_img = label(FinalMask==1)
+            else:
+                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+        
+        with CodeTimer("second regionprops",unit='s'):
+            regions= regionprops(label_img)
+
+        print("second number of skin region islands", len(regions))
+        regions=sorted(regions,key=lambda d: d.area)
+        AllLabels=[]
+        for l in regions[:-1]:
+            if bApplyBOXFOV is  False:
+                AllLabels.append(l.label)
+            else:
+                if l.area < 0.1*regions[-1].area: #in subvolumes, often the far field region is bigger than the near field
+                    AllLabels.append(l.label)
+
+        FinalMask[np.isin(label_img,np.array(AllLabels))]=4
+
     #we extract back the bone part
     BinMaskConformalSkullRot=FinalMask==2
     LineViewBone=BinMaskConformalSkullRot[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]:]

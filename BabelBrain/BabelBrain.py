@@ -1073,17 +1073,21 @@ class RunMaskGeneration(QObject):
         
         bForceFullRecalculation = False
         if os.path.isfile(self._mainApp.Config['AdvancedParamsFile']):
+            print('Advance params file',self._mainApp.Config['AdvancedParamsFile'])
             with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
             for k in self._mainApp.DefaultAdvanced:
-                if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
-                    bForceFullRecalculation=True
-                    break
+                if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
+                    if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
+                        bForceFullRecalculation=True
+                        print('PrevParamsFile - Parameter',k,'is not present in prevparams')
+                        break
             if not bForceFullRecalculation:
                 for k in PrevParams:
                     if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
                         if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                            print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
                             bForceFullRecalculation=True
                             break
         else:
@@ -1091,6 +1095,7 @@ class RunMaskGeneration(QObject):
             for k in self._mainApp.DefaultAdvanced:
                 if '_Correction' not in k:
                     if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k][k])
                         bForceFullRecalculation=True
                         break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
