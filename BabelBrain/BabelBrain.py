@@ -410,20 +410,17 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['CTX_500_Correction']='Original'
         self.DefaultAdvanced['CTX_250_Correction']='Original'
         self.DefaultAdvanced['DPX_500_Correction']='Original'
+        self.DefaultAdvanced['PetraNPeaks']=2
+        self.DefaultAdvanced['PetraMRIPeakDistance']=50
+        self.DefaultAdvanced['bInvertZTE']=False
+        self.DefaultAdvanced['bDisableCTMedianFilter']=False
+        self.DefaultAdvanced['bGeneratePETRAHistogram']=False
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
                 self.Config[k]=self.DefaultAdvanced[k]
             
-        self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-AdvancedParams.yaml')
-        
-        # if os.path.isfile(self.Config['AdvancedParamsFile']):
-        #     with open(self.Config['AdvancedParamsFile'],'r') as f:
-        #         PrevParams=yaml.load(f,yaml.SafeLoader)
-        #     for k in self.DefaultAdvanced:
-        #         if k in PrevParams:
-        #             self.Config[k]=PrevParams[k]
-        
+        self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
             
         self.SaveLatestSelection()
 
@@ -678,6 +675,11 @@ class BabelBrain(QWidget):
             self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
             self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
             self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
+            self.Config['PetraNPeaks']=options.ui.PetraNPeaksSpinBox.value()
+            self.Config['PetraMRIPeakDistance']=options.ui.PetraMRIPeakDistancespinBox.value()
+            self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
+            self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
+            self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -1095,7 +1097,7 @@ class RunMaskGeneration(QObject):
             for k in self._mainApp.DefaultAdvanced:
                 if '_Correction' not in k:
                     if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k][k])
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
                         bForceFullRecalculation=True
                         break
         kargs['bForceFullRecalculation']=bForceFullRecalculation

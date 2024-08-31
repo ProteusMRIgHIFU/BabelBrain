@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -17,25 +17,25 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
     QDoubleSpinBox, QGroupBox, QLabel, QPushButton,
-    QSizePolicy, QTabWidget, QWidget)
+    QSizePolicy, QSpinBox, QTabWidget, QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
-        Dialog.resize(664, 261)
+        Dialog.resize(664, 409)
         self.CancelpushButton = QPushButton(Dialog)
         self.CancelpushButton.setObjectName(u"CancelpushButton")
-        self.CancelpushButton.setGeometry(QRect(579, 232, 74, 32))
+        self.CancelpushButton.setGeometry(QRect(579, 370, 74, 32))
         self.ContinuepushButton = QPushButton(Dialog)
         self.ContinuepushButton.setObjectName(u"ContinuepushButton")
-        self.ContinuepushButton.setGeometry(QRect(275, 234, 136, 32))
+        self.ContinuepushButton.setGeometry(QRect(275, 372, 136, 32))
         self.ResetpushButton = QPushButton(Dialog)
         self.ResetpushButton.setObjectName(u"ResetpushButton")
-        self.ResetpushButton.setGeometry(QRect(5, 232, 136, 32))
+        self.ResetpushButton.setGeometry(QRect(5, 370, 136, 32))
         self.tabWidget = QTabWidget(Dialog)
         self.tabWidget.setObjectName(u"tabWidget")
-        self.tabWidget.setGeometry(QRect(5, 4, 644, 224))
+        self.tabWidget.setGeometry(QRect(5, 4, 644, 354))
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
         self.label_5 = QLabel(self.tab)
@@ -100,6 +100,38 @@ class Ui_Dialog(object):
         self.FocalLengthLabel_2 = QLabel(self.tab)
         self.FocalLengthLabel_2.setObjectName(u"FocalLengthLabel_2")
         self.FocalLengthLabel_2.setGeometry(QRect(151, 37, 181, 20))
+        self.InvertZTEcheckBox = QCheckBox(self.tab)
+        self.InvertZTEcheckBox.setObjectName(u"InvertZTEcheckBox")
+        self.InvertZTEcheckBox.setGeometry(QRect(202, 194, 150, 20))
+        self.InvertZTEcheckBox.setLayoutDirection(Qt.RightToLeft)
+        self.DisableCTMedianFiltercheckBox = QCheckBox(self.tab)
+        self.DisableCTMedianFiltercheckBox.setObjectName(u"DisableCTMedianFiltercheckBox")
+        self.DisableCTMedianFiltercheckBox.setGeometry(QRect(102, 217, 251, 20))
+        self.DisableCTMedianFiltercheckBox.setLayoutDirection(Qt.RightToLeft)
+        self.FocalLengthLabel_4 = QLabel(self.tab)
+        self.FocalLengthLabel_4.setObjectName(u"FocalLengthLabel_4")
+        self.FocalLengthLabel_4.setGeometry(QRect(177, 242, 156, 20))
+        self.FocalLengthLabel_5 = QLabel(self.tab)
+        self.FocalLengthLabel_5.setObjectName(u"FocalLengthLabel_5")
+        self.FocalLengthLabel_5.setGeometry(QRect(90, 270, 241, 20))
+        self.GeneratePETRAHistogramcheckBox = QCheckBox(self.tab)
+        self.GeneratePETRAHistogramcheckBox.setObjectName(u"GeneratePETRAHistogramcheckBox")
+        self.GeneratePETRAHistogramcheckBox.setGeometry(QRect(100, 293, 251, 20))
+        self.GeneratePETRAHistogramcheckBox.setLayoutDirection(Qt.RightToLeft)
+        self.FocalLengthLabel_6 = QLabel(self.tab)
+        self.FocalLengthLabel_6.setObjectName(u"FocalLengthLabel_6")
+        self.FocalLengthLabel_6.setGeometry(QRect(355, 293, 276, 20))
+        self.PetraNPeaksSpinBox = QSpinBox(self.tab)
+        self.PetraNPeaksSpinBox.setObjectName(u"PetraNPeaksSpinBox")
+        self.PetraNPeaksSpinBox.setGeometry(QRect(334, 242, 42, 21))
+        self.PetraNPeaksSpinBox.setMinimum(2)
+        self.PetraNPeaksSpinBox.setMaximum(50)
+        self.PetraMRIPeakDistancespinBox = QSpinBox(self.tab)
+        self.PetraMRIPeakDistancespinBox.setObjectName(u"PetraMRIPeakDistancespinBox")
+        self.PetraMRIPeakDistancespinBox.setGeometry(QRect(334, 270, 42, 22))
+        self.PetraMRIPeakDistancespinBox.setMinimum(10)
+        self.PetraMRIPeakDistancespinBox.setMaximum(5000)
+        self.PetraMRIPeakDistancespinBox.setValue(50)
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
@@ -117,7 +149,7 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -140,6 +172,12 @@ class Ui_Dialog(object):
         self.FocalLengthLabel.setText(QCoreApplication.translate("Dialog", u"Diameter (mm)", None))
         self.ManualFOVcheckBox.setText(QCoreApplication.translate("Dialog", u"Manual Subvolume  ", None))
         self.FocalLengthLabel_2.setText(QCoreApplication.translate("Dialog", u"Proportion of trabecular bone", None))
+        self.InvertZTEcheckBox.setText(QCoreApplication.translate("Dialog", u"Invert ZTE", None))
+        self.DisableCTMedianFiltercheckBox.setText(QCoreApplication.translate("Dialog", u"Disable median filter in CT/ZTE/PETRA", None))
+        self.FocalLengthLabel_4.setText(QCoreApplication.translate("Dialog", u"PETRA: Number of peaks", None))
+        self.FocalLengthLabel_5.setText(QCoreApplication.translate("Dialog", u"PETRA: Minimal distance between peaks", None))
+        self.GeneratePETRAHistogramcheckBox.setText(QCoreApplication.translate("Dialog", u"PETRA: Generate histogram plot ", None))
+        self.FocalLengthLabel_6.setText(QCoreApplication.translate("Dialog", u" (Plot saved at same location as PETRA Nifti)", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Domain Generation", None))
         self.label_6.setText(QCoreApplication.translate("Dialog", u"CTX-500 Correction", None))
         self.CTX500CorrectioncomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Original", None))

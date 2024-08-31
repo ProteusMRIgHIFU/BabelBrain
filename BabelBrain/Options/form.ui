@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>261</height>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>579</x>
-     <y>232</y>
+     <y>370</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>275</x>
-     <y>234</y>
+     <y>372</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>5</x>
-     <y>232</y>
+     <y>370</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -58,7 +58,7 @@
      <x>5</x>
      <y>4</y>
      <width>644</width>
-     <height>224</height>
+     <height>354</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -294,6 +294,128 @@
      </property>
      <property name="text">
       <string>Proportion of trabecular bone</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="InvertZTEcheckBox">
+     <property name="geometry">
+      <rect>
+       <x>202</x>
+       <y>194</y>
+       <width>150</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>Invert ZTE</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="DisableCTMedianFiltercheckBox">
+     <property name="geometry">
+      <rect>
+       <x>102</x>
+       <y>217</y>
+       <width>251</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>Disable median filter in CT/ZTE/PETRA</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_4">
+     <property name="geometry">
+      <rect>
+       <x>177</x>
+       <y>242</y>
+       <width>156</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PETRA: Number of peaks</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_5">
+     <property name="geometry">
+      <rect>
+       <x>90</x>
+       <y>270</y>
+       <width>241</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PETRA: Minimal distance between peaks</string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="GeneratePETRAHistogramcheckBox">
+     <property name="geometry">
+      <rect>
+       <x>100</x>
+       <y>293</y>
+       <width>251</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>PETRA: Generate histogram plot </string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_6">
+     <property name="geometry">
+      <rect>
+       <x>355</x>
+       <y>293</y>
+       <width>276</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string> (Plot saved at same location as PETRA Nifti)</string>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="PetraNPeaksSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>334</x>
+       <y>242</y>
+       <width>42</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="minimum">
+      <number>2</number>
+     </property>
+     <property name="maximum">
+      <number>50</number>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="PetraMRIPeakDistancespinBox">
+     <property name="geometry">
+      <rect>
+       <x>334</x>
+       <y>270</y>
+       <width>42</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="minimum">
+      <number>10</number>
+     </property>
+     <property name="maximum">
+      <number>5000</number>
+     </property>
+     <property name="value">
+      <number>50</number>
      </property>
     </widget>
    </widget>

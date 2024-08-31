@@ -60,6 +60,11 @@ class AdvanceOptions(QDialog):
                  FOVDiameter=200.0,
                  FOVLength=400.0,
                  TrabecularProportion=0.8,
+                 PetraMRIPeakDistance=50,
+                 PetraNPeaks=2,
+                 bInvertZTE=False,
+                 bDisableCTMedianFilter=False,
+                 bGeneratePETRAHistogram=False,
                  CTX_500_Correction='Original',
                  **kargs):
         
@@ -75,6 +80,12 @@ class AdvanceOptions(QDialog):
         self.ui.FOVDiameterSpinBox.setValue(FOVDiameter)
         self.ui.FOVLengthSpinBox.setValue(FOVLength)
         self.ui.TrabecularProportionSpinBox.setValue(TrabecularProportion)
+        self.ui.PetraNPeaksSpinBox.setValue(PetraNPeaks)
+        self.ui.PetraMRIPeakDistancespinBox.setValue(PetraMRIPeakDistance)
+        self.ui.InvertZTEcheckBox.setChecked(bInvertZTE)
+        self.ui.DisableCTMedianFiltercheckBox.setChecked(bDisableCTMedianFilter)
+        self.ui.GeneratePETRAHistogramcheckBox.setChecked(bGeneratePETRAHistogram)
+        
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
         if sel==-1:

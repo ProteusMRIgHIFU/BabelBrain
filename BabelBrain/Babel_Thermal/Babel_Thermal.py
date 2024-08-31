@@ -80,7 +80,7 @@ class Babel_Thermal(QWidget):
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
         self.Widget.CalculateThermal.setStyleSheet("color: red")
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
-        self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
+        self.Widget.ExportMaps.clicked.connect(self.ExportMaps)
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
@@ -261,7 +261,7 @@ class Babel_Thermal(QWidget):
             return
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
-        self.Widget.ExportThermalMap.setEnabled(True)
+        self.Widget.ExportMaps.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
         self.Widget.DisplayDropDown.setEnabled(True)
@@ -622,7 +622,7 @@ class Babel_Thermal(QWidget):
             self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
     @Slot()
-    def ExportThermalMap(self):
+    def ExportMaps(self):
         OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
         SelIsppa=self.Widget.IsppaSpinBox.value()
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
@@ -644,13 +644,36 @@ class Babel_Thermal(QWidget):
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
         nii.to_filename(OutName)
+
+        pressureField = DataThermal['p_map'] * np.sqrt(IsppaRatio)
+        
+        DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap']]
+        SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
+        intensityField=pressureField**2/2/DensityMap/SoSMap/1e4
+
+        pressureField=np.flip(pressureField,axis=2)
+        intensityField=np.flip(intensityField,axis=2)
+
+        OutName2=OutName.replace('ThermalField','PressureField')
+        nii=nibabel.Nifti1Image(pressureField,affine=nidata.affine)
+        nii.to_filename(OutName2)
+
+        OutName3=OutName.replace('ThermalField','IntensityField')
+        nii=nibabel.Nifti1Image(intensityField,affine=nidata.affine)
+        nii.to_filename(OutName3)
+            
+
         #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
                 f.write(OutName)
-        txt = "Thermal map file\n" + os.path.basename(OutName) +'\nsaved at:\n '+os.path.dirname(OutName)
+        txt =  'Thermal map file\n' + os.path.basename(OutName) +',\n'
+        txt += 'Pressure map file\n' + os.path.basename(OutName2) +',\n'
+        txt += 'Intensiy map file\n' + os.path.basename(OutName3) +',\n'
+        txt += 'saved at:\n '+os.path.dirname(OutName)
+
         maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])
-        msgBox = DialogShowText(txt,"Saved thermal map")
+        msgBox = DialogShowText(txt,"Saved maps")
         msgBox.exec()
 
 

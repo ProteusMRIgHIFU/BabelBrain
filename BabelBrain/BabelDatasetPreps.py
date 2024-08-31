@@ -510,7 +510,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 FOVDiameter=60.0, # diameter for  manual FOV
                                 FOVLength=300.0, # lenght FOV
                                 ElastixOptimizer='AdaptiveStochasticGradientDescent',
-                                bApplyMedianFilterCT=True,
+                                bDisableCTMedianFilter=False,
+                                PetraMRIPeakDistance=50,
+                                PetraNPeaks=2,
+                                bInvertZTE=False,
+                                bGeneratePETRAHistogram=False,
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -884,10 +888,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 bIsPetra = CTType==3
                 with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
                     rT1,rZTE=CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,CT_or_ZTE_input,TMaskItk,outputfilenames,ElastixOptimizer,
-                                                                bIsPetra=bIsPetra)
+                                                                bIsPetra=bIsPetra,
+                                                                bInvertZTE=bInvertZTE)
                 with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
                     rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,rZTE,TMaskItk,os.path.dirname(skull_stl),outputfilenames,
-                        ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra)
+                        ThresoldsZTEBone=ZTERange,SimbNIBSType=SimbNIBSType,bIsPetra=bIsPetra,
+                        PetraMRIPeakDistance=PetraMRIPeakDistance,
+                        PetraNPeaks=PetraNPeaks,
+                        bGeneratePETRAHistogram=bGeneratePETRAHistogram)
             else:
                 with CodeTimer("Coregistration CT to T1",unit='s'):
                     rCT=CTZTEProcessing.CTCorreg(T1Conformal_nii,CT_or_ZTE_input, outputfilenames,ElastixOptimizer, CoregCT_MRI, bReuseFiles,ResampleFilter, ResampleFilterCOMPUTING_BACKEND)
@@ -923,7 +931,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
             
-            if bApplyMedianFilterCT:
+            if not bDisableCTMedianFilter:
                 with CodeTimer("median filter CT",unit='s'):
                     print('Theshold for bone',HUThreshold)
                     if MedianFilter is None:

@@ -279,7 +279,7 @@
    <column/>
    <column/>
   </widget>
-  <widget class="QPushButton" name="ExportThermalMap">
+  <widget class="QPushButton" name="ExportMaps">
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -298,8 +298,8 @@
     <string notr="true"/>
    </property>
    <property name="text">
-    <string>Export Current
-Thermal map (.nii.gz)</string>
+    <string>Export maps
+(.nii.gz)</string>
    </property>
   </widget>
   <widget class="QPushButton" name="SelectProfile">
@@ -365,7 +365,7 @@ Thermal map (.nii.gz)</string>
   <tabstop>IsppaSpinBox</tabstop>
   <tabstop>tableWidget</tabstop>
   <tabstop>ExportSummary</tabstop>
-  <tabstop>ExportThermalMap</tabstop>
+  <tabstop>ExportMaps</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
   <tabstop>LocMTB</tabstop>
   <tabstop>LocMTC</tabstop>
