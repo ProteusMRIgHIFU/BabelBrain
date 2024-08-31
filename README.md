@@ -112,6 +112,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
     The newer **CTX 250** and **CTX 500** transducers have already this correction by default.
 - **New**: Advanced options - inversion of ZTE signal. In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option, otherwise an error will occur during the processing.
 - **New**: Advanced options - PETRA conversion options. The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps to match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not selecting correctly the bone region. There is also an option to create the histogram as done in the UCL's tool.
+- **New**: A new label in Step 2 shows the "Distance target to FLHM center [X, Y, Z] (mm)" that helps to perform adjustments with mechanical and steering corrections.
 - **Improvement**: Mask delineation of CT/PETRA/ZTE is closer to the bone region.
 - **Improvement**: Several GPU functions were rewritten for improved stability across all GPU technologies at high resolutions.
 - **Improvement**: Color background of plots matches GUI's window color.
