@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Advanced/advanced.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/pipeline/Planning.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Advanced options - BabelBrain</title>
+        <title>Planning - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -42,16 +42,16 @@
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
+                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
+                                <a href="Preliminary_steps.html" class="nav-link">Preliminary steps</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="Planning.html" class="nav-link">Planning</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
                             <li class="navitem">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
@@ -59,8 +59,8 @@
                             <li class="navitem">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="advanced.html" class="nav-link">Advanced options</a>
+                            <li class="navitem">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
                             <li class="navitem">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
@@ -74,12 +74,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../results/results.html" class="nav-link">
+                                <a rel="prev" href="Preliminary_steps.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
+                                <a rel="next" href="BabelBrain.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -101,43 +101,17 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="2"><a href="#advanced-features" class="nav-link">Advanced features</a>
+            <li class="nav-item" data-level="1"><a href="#planning" class="nav-link">Planning</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#acoustic-path-stl-helpers" class="nav-link">Acoustic path STL helpers</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            
-            <li class="nav-item" data-level="1"><a href="#domain-generation" class="nav-link">Domain Generation</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#elastix-co-registration-optimizer" class="nav-link">Elastix co-registration Optimizer</a>
+            <li class="nav-item" data-level="2"><a href="#planning-with-3dslicer" class="nav-link">Planning with 3DSlicer</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#proportion-of-trabecular-bone" class="nav-link">Proportion of trabecular bone</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#force-using-blender-for-constructive-solid-geometry" class="nav-link">Force using Blender for Constructive Solid Geometry</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#manual-subvolume" class="nav-link">Manual Subvolume</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#invert-zte" class="nav-link">Invert ZTE</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#petra-conversion" class="nav-link">PETRA conversion</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-level="1"><a href="#transcranial-ultrasound" class="nav-link">Transcranial Ultrasound</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#ctx-500-correction" class="nav-link">CTX-500 Correction</a>
+            <li class="nav-item" data-level="2"><a href="#planning-with-brainsight" class="nav-link">Planning with Brainsight</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -148,29 +122,100 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h2 id="advanced-features">Advanced features</h2>
-<p>Since release 0.3.5, BabelBrain includes a menu for advanced options controlling low-level details in BabelBrain.</p>
-<p>If any of these options are modified, they will remain persistent on the next BabelBrain sessions. Select <code>Reset to defaults</code> to restore original values.</p>
-<p><img src="advanced-1.png" height=450px></p>
-<h1 id="domain-generation">Domain Generation</h1>
-<p><img src="advanced-2.png" height=250px></p>
-<h2 id="elastix-co-registration-optimizer">Elastix co-registration Optimizer</h2>
-<p>The default optimizer for Elastix, AdaptiveStochasticGradientDescent, works <em>almost</em> for every combination of CT-&gt;T1W and ZTE/PETRA-&gt;T1W. However, as much more testing has started to accumulate, we noticed that the CT-&gt;T1W was not working in some cases. We tested different options in Elastix, and the <strong>FiniteDifferenceGradientDescent</strong> and <strong>QuasiNewtonLBFGS</strong> seem to work well as a replacement. If the coregistration from CT to T1W is not working as expected, try one of these two other options. <strong>FiniteDifferenceGradientDescent</strong> seems to work better.</p>
-<h2 id="proportion-of-trabecular-bone">Proportion of trabecular bone</h2>
-<p>By default, the percentage of trabecular is 80% using the line of sight of the trajectory. If the trajectory crosses very thin regions like the parietal bone, there may be a chance all region is considered trabecular, which may not be desired. A warning message will be printed out in the terminal output in that case. In such cases as the parietal bone, consider reducing a lower value of trabecular, such as 0.1 or 0.2.</p>
-<h2 id="force-using-blender-for-constructive-solid-geometry">Force using Blender for Constructive Solid Geometry</h2>
-<p>While pycork seems to do a great replacement, we identified that in some instances when using the subvolume feature there was a crash in the low pycork library. Forcing using Blender instead can help to run those special cases.</p>
-<h2 id="manual-subvolume">Manual Subvolume</h2>
-<p>This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (i.e., EEG-P7 location) in which the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.</p>
-<h2 id="invert-zte">Invert ZTE</h2>
-<p>In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option, otherwise an error will occur during the processing.</p>
-<h2 id="petra-conversion">PETRA conversion</h2>
-<p>The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps to match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not selecting correctly the bone region. There is also an option to create the histogram as done in the UCL's tool.</p>
-<h1 id="transcranial-ultrasound">Transcranial Ultrasound</h1>
-<p><img src="advanced-3.png" height=250px></p>
-<h2 id="ctx-500-correction">CTX-500 Correction</h2>
-<p>Starting R0.4.0, BabelBrain introduced a parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: <strong>Original</strong> and <strong>July 2024</strong>. The <strong>Original</strong> setting matches how the CTX-500 unit was modelled in previous releases (&lt;= 0.3.5) and <strong>July 2024</strong> has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.</p>
-<p>The newer <strong>CTX 250</strong> and <strong>CTX 500</strong> transducers (introduced in R0.4.0) have already this correction by default.</p></div>
+<h1 id="planning">Planning</h1>
+<p><img src="Pipeline-1.png" height=300px></p>
+<p>The goal of the planning step is to produce a <strong>trajectory</strong> that provides the location where ultrasound is intended to be focused and the orientation of the transducer in T1W coordinate space. In practice, the trajectory is just an affine matrix applied to a "virtual" needle that describes the <strong>location</strong> and <strong>orientation</strong> where focused ultrasound is desired to be concentrated. The tip of the trajectory needs to be at the intended target. The position of the transducer will be relative to the tip location. The details using 3DSlicer can illustrate this.</p>
+<h2 id="acoustic-path-stl-helpers">Acoustic path STL helpers</h2>
+<p>BabelBrain includes a series of complementary STL files representing the "acoustic" path. Each STL file includes a group of circular meshes combined with a target needle that represent the acoustic cross sections of a field produced with a transducer with F#=1.0 at different depths. As noted in the instructions below, these meshes help to verify a correct alignment with the skin.</p>
+<h2 id="planning-with-3dslicer">Planning with 3DSlicer</h2>
+<ol>
+<li>Install the <strong>SlicerIGT</strong> extension in 3DSlicer (restart 3DSlicer if requested)</li>
+<li>
+<p>Load T1W planning data</p>
+<p><img src="Planning-1.png"></p>
+</li>
+<li>
+<p>In the IGT extension menu, select "Create Models"</p>
+<p><img src="Planning-2.png" height=350px></p>
+</li>
+<li>
+<p>Load one of the STL helpers as a <code>model</code> with <code>RAS</code> coordinate convention. The model will appear by default centred in the T1W space and pointing in the inferior<span class="arithmatex"><span class="MathJax_Preview">\rightarrow</span><script type="math/tex">\rightarrow</script></span>superior direction</p>
+<p><img src="Planning-4b.png" height=300px></p>
+<p>Alternatively, you can create a needle with a length of 100 mm. </p>
+<p><img src="Planning-3.png" height=150px></p>
+<p><img src="Planning-4.png" height=300px></p>
+</li>
+<li>
+<p>Select the model in the data panel and edit the properties to make it appear in the "Slice Display"</p>
+<p><img src="Planning-5.png" height=250px></p>
+</li>
+<li>
+<p>Create a new transform and give it a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.). This is important as BabelBrain will use the name of the transform as a prefix for its output files.</p>
+<p><img src="Planning-6.png" height=200px></p>
+<p>Apply the transform to the  model and be sure the transformation is set to <code>local</code> (little button next to the "invert" button)</p>
+<p><img src="Planning-7.png" height=400px></p>
+</li>
+<li>
+<p>Select "Volume Reslice Driver" in the IGT module menu</p>
+<p><img src="Planning-8.png" height=450px></p>
+</li>
+<li>
+<p>Select the linear transform in the two first slice views</p>
+<p><img src="Planning-9.png" height=110px></p>
+</li>
+<li>
+<p>Select one view to be "Inplane" and the other to be "Inplane 90"</p>
+<p><img src="Planning-10.png" height=120px></p>
+</li>
+<li>
+<p>In the Data panel, select the linear transform and edit properties, you should be able to see the slice views aligned along the model </p>
+<p><img src="Planning-11b.png" height=400px></p>
+</li>
+<li>
+<p>Adjust the location of the tip of the needle using the <strong>translation</strong> (LR, PA, IS) controls to match the tip of the model to your area of interest.</p>
+<p><img src="Planning-12.png" height=300px></p>
+</li>
+<li>
+<p>Adjust the trajectory path using the <strong>rotation</strong> (LR, PA, IS) controls until finding a trajectory that has a clear path and mimics how the transducer will be placed. Tip: Adjust the trajectory to make it orthogonal to the skin surface in the inline and inline90 views; this recreates the condition of placing a transducer aligned relative to the skin.</p>
+<p><img src="Planning-13.png" height=400px></p>
+<p>Note: If you navigate to other windows in 3DSlicer, the transition and rotation control may be set back to 0s. But the transformation matrix will remain with the latest values applied. Any other adjustment will be added to the transformation matrix. Be sure that the <code>local</code> option is always selected.</p>
+</li>
+<li>
+<p>Save the transformation in text format. Select "Save data" and select text as the file format. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. </p>
+</li>
+</ol>
+<h2 id="planning-with-brainsight">Planning with Brainsight</h2>
+<p>Alternatively, planning can also be performed with the proprietary software Brainsight made by Rogue Research (Montreal, Canada) for the planning and execution of non-invasive neuromodulation. This software has an existing feature that exports a trajectory that can be used in BabelBrain. The workflow to export a trajectory is very similar to 3DSlicer.</p>
+<p><strong>Important</strong>: Starting with BabelBrain v0.3.2 and Brainsight v2.5.3, BabelBrain can be directly called from Brainsight, importing simulations automatically once the BabelBrain execution is completed.</p>
+<ol>
+<li>If using Brainsight v2.5.3, create a new "SimNIBS" project; If using an older version of Brainsight, create an "empty" project.</li>
+</ol>
+<p><img src="Planning-14.png" height=200px></p>
+<ol>
+<li>
+<p>If using  "SimNIBS" project, it will preload the T1W imaging dataset automatically. Otherwise, load T1W planning data manually.  </p>
+<p><img src="Planning-15.png" height=250px></p>
+</li>
+<li>
+<p>Open target window</p>
+<p><img src="Planning-16.png" height=250px></p>
+</li>
+<li>
+<p>Adjust coordinates and orientation with control in the user interface (right side of screen)</p>
+<p><img src="Planning-17.png" height=400px></p>
+</li>
+<li>
+<p>Create a new target as a trajectory</p>
+<p><img src="Planning-18.png" height=200px></p>
+</li>
+<li>
+<p>Rename the trajectory with a name related to the target (e.g. LGPI, RSTN, LVIM, RM1, etc.)</p>
+</li>
+<li>
+<p><strong>If using a version of Brainsight previous to 2.5.3</strong>:  Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. This step is not required if using Brainsight version 2.5.3 and up.</p>
+<p><img src="Planning-19.png" height=250px></p>
+</li>
+</ol></div>
             </div>
         </div>
 

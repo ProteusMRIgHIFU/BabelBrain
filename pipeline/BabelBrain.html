@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/pipeline/BabelBrain.html">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>BabelBrain simulation - BabelBrain</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
+
+        <script src="../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="Preliminary_steps.html" class="nav-link">Preliminary steps</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="Planning.html" class="nav-link">Planning</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="Planning.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../MRISequences/MRISequences.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#babelbrain-simulation" class="nav-link">BabelBrain Simulation</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#input-data" class="nav-link">Input data</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#step-1-domain-generation" class="nav-link">STEP 1 - Domain generation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#step-2-transcranial-ultrasound-simulation" class="nav-link">STEP 2 - Transcranial ultrasound simulation</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="3"><a href="#common-features-to-all-transducers" class="nav-link">Common features to all transducers</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="3"><a href="#distance-of-the-maximal-depth" class="nav-link">Distance of the maximal depth</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="3"><a href="#mechanical-corrections" class="nav-link">Mechanical corrections</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="3"><a href="#modified-trajectory-very-important" class="nav-link">Modified trajectory - VERY IMPORTANT</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="3"><a href="#transducers" class="nav-link">Transducers</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="4"><a href="#ctx_250-ctx_500-and-dpx_500" class="nav-link">CTX_250, CTX_500 and DPX_500</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="4"><a href="#h246" class="nav-link">H246</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="4"><a href="#h317-i12378-and-atac" class="nav-link">H317, I12378 and ATAC</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="4"><a href="#single" class="nav-link">Single</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="4"><a href="#bsonix" class="nav-link">BSonix</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="4"><a href="#remopd" class="nav-link">REMOPD</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#step-3-thermal-simulation" class="nav-link">STEP 3 - Thermal simulation</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="babelbrain-simulation">BabelBrain Simulation</h1>
+<p>Now that planning is done, you can open BabelBrain.</p>
+<p><img src="Simulation-1.png" height=150px></p>
+<ol>
+<li>
+<p><strong>If using a version of Brainsight previous to 2.5.3</strong>: Open BabelBrain either from the Applications menu in macOS if the DMG installer was used, from the Start menu if in Windows or with <code>python BabelBrain.py</code> if using the manual installation.</p>
+</li>
+<li>
+<p><strong>If using Brainsight version 2.5.3 and up</strong>: In the lower-left corner of Brainsight's target UI, there is a simulation panel. Specify first an output directory to save the results, then click on the "FUS" button and the BabelBrain GUI will open.</p>
+</li>
+</ol>
+<p><img src="Planning-20.png" height=350px></p>
+<h2 id="input-data">Input data</h2>
+<p>An input dialog will prompt the different input files required for the simulation. If running directly from BrainSight, some of these fields (marked below with an "*") will be pre-populated.
+<img src="Simulation-2.png" height=320px></p>
+<ol>
+<li>Specify the path to the trajectory file and the source (Slicer or Brainsight) (*).</li>
+<li>Select the SimNIBS output directory associated with this test and indicate what tool was used to generate it (<code>headreco</code> or <code>charm</code>) (*)</li>
+<li>Select the path to the T1W Nifti file (*)</li>
+<li>Indicate if CT scan is available. Options are "No", "real CT" or "ZTE". Select if coregistration of CT to T1W space must be performed. Depending on your specific preliminary steps, you may have CT already coregistered in T1W space. If coregistration is done by BabelBrain, the resolution of the CT will be preserved. The T1W file will be first bias-corrected and upscaled to the CT resolution and then the CT will be coregistered using the <code>itk-elastix</code> package with rigid coregistration.</li>
+<li>
+<p>Select the CT mapping profile that matches the better the CT scanner. Consult papers by Webb <em>et al.</em> about<br />
+<a href="https://doi.org/10.1109/TUFFC.2018.2827899" target="_blank">speed of sound</a>
+and 
+<a href="https://doi.org/10.1109/TUFFC.2020.3039743" target="_blank">attenuation</a>
+ as a function of CT scanning conditions. For most practical scenarios, if using GE, the most common scanner combination will <strong>GE, 120, B,, 0.5, 0.6</strong>. For Siemens scanners, it will be <strong>Siemens,120,B,,0.4, 0.5</strong>.</p>
+<p>When selecting <strong>ZTE</strong> or <strong>PETRA</strong> scans, the best CT combination will be selected automatically.</p>
+</li>
+<li>
+<p>Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:</p>
+<p><code>BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+-   DC: 0.3
+    PRF: 10.0
+    Duration: 40.0
+    DurationOff: 40.0</code></p>
+<p>This definition helps in the step of thermal simulation with BabelBrain. <code>BaseIsspa</code> is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm<span class="arithmatex"><span class="MathJax_Preview">^2</span><script type="math/tex">^2</script></span>. Choices for other powers will be scaled (no recalculations) based on this value.</p>
+<p>For scenarios where repeated exposures is required, the extra field <code>Repetitions</code> can be added. For example:
+    <code>BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+-   DC: 0.3
+    PRF: 10.0
+    Duration: 30.0
+    DurationOff: 30.0
+    Repetitions: 10</code></p>
+<p>In the previous case, the simulation will run for an exposure lasting 10 min, where ultrasound is turned on for 30s, followed by 30s with ultrasound off, and repeated 10 times.</p>
+<p>More than one exposure can be specified. For example:</p>
+<p><code>BaseIsppa: 5.0 # W/cm2
+ AllDC_PRF_Duration: #All combinations of timing that will be considered
+     -   DC: 0.3
+         PRF: 10.0
+         Duration: 40.0
+         DurationOff: 40.0
+     -   DC: 0.1
+         PRF: 5.0
+         Duration: 80.0
+         DurationOff: 50.0</code></p>
+<p>When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated.</p>
+</li>
+<li>
+<p>Select the type of transducer to be used in simulations.</p>
+</li>
+<li>
+<p>Optional. Select a multi-point profile file for simulations. BabelBrain offers the possibility to execute electronic steering over a list of points if a concave array is selected. If any of the three concave arrays is selected (H317, I12378 and ATAC), the user can select a profile definition specific to multi-point steering. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:</p>
+<p><code>MultiPoint:
+ -   X: 2.0
+     Y: 0.0
+     Z: 0.0
+ -   X: -1.0
+     Y: 1.73205081
+     Z: 0.0
+ -   X: -1.0
+     Y: -1.73205081
+     Z: 0.0</code></p>
+<p>In this example, we create a 3-point steering list that makes a 3-point star with a radius from the origin of 2 mm.</p>
+</li>
+<li>
+<p>Once all inputs are set, then click on "CONTINUE"</p>
+</li>
+</ol>
+<h2 id="step-1-domain-generation">STEP 1 - Domain generation</h2>
+<p>The diagram below shows flowchart describing the process for the domain generation.</p>
+<p><img src="nsclc-V2.svg" height=700px></p>
+<p>The first step after specifying input data is to create the simulation domain. The available operating frequencies will depend on the selected transducer. The second main input is the resolution of the simulation expressed in the number of points per wavelength (PPW). The minimum for fast estimation is 6 PPW, and 9 PPW to meet criteria de convergence when compared to other <a href="https://asa.scitation.org/doi/10.1121/10.0013426/" target="_blank">numerical tools</a>.</p>
+<p>Depending on if CT or ZTE scans are available, options to fine-tune the domain generation will be available. For CT scans, the user can adjust the threshold for bone detection (set by default to 300 HU). For ZTE scans the user can specify the thresholds to select normalized ZTE signal (by default 0.1 and 0.6) to convert to pseudo-CT. Please consult <a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a>  for details on the "classical" approach to convert from ZTE to pseudo-CT.</p>
+<p>The execution time in M1 Max processor can take from 1 minute of minutes up to 10 minutes depending on the resolution and availability of ZTE/CT scans.
+ When initiating the calculations, a detailed log output will appear in the bottom region of the window. In case of any error during processing, a dialog message will prompt indicating to consult this window for more details. Once executed, orthogonal views of the domain will be shown. T1W scan is also shown to verify that the mask was correctly calculated. </p>
+<p><img src="Simulation-3.png" height=450px></p>
+<p>Once executed, a Nifti file containing the mask describing the different tissue regions will be produced in the directory where the T1W Nifit file is located. It will have a file with the following structure:
+<code>&lt;Name of target file&gt;_&lt;Frequency&gt;_&lt;PPW&gt;_BabelViscoInput.nii.gz</code>, for example <code>LinearTransform_500kHz_6PPW_BabelViscoInput.nii.gz</code>. The mask will be in T1W space, facilitating its inspection as overlay with T1W data. The mask has values of 1 for skin, 2 for cortical bone, 3 for trabecular and 4 for brain tissue. A single voxel with a value of 5 indicates the location of the target. The raw data inside the Nifti file is organized in a 3D Cartesian volume that is aligned to the transducer acoustic axis. The Nifti affine matrix ensures the mask can be inspected in T1W space.</p>
+<p>If a CT or ZTE dataset is indicated as input, the skull mask will be created using this scan rather than the output of <code>headreco</code> or <code>charm</code>. Also, an overlay of the CT/pseudo-CT will be also shown for verification purposes. </p>
+<p><img src="Simulation-4.png" height=450px> </p>
+<p>If the co-registration is not correct enough, you can adjust the Elastix co-registration option in the <a href="../Advanced/advanced.html#elastix-co-registration-optimizer">advanced menu</a>.</p>
+<p>Please note if a <code>&lt;Name of target file&gt;_&lt;Frequency&gt;_&lt;PPW&gt;_BabelViscoInput.nii.gz</code> file exists, the GUI will ask confirmation to recalculate the mask. Selecting "No" will load the previous mask. </p>
+<p>STL files are produced from the file <code>final_tissues.nii.gz</code> created by charm. Meshes are created and smoothed (Laplace filtering), and the mask for simulation is calculated via GPU-accelerated voxelization. The STL files of skin, csf and bone will be saved in the output directory of SimNIBS by BabelBrain. </p>
+<h2 id="step-2-transcranial-ultrasound-simulation">STEP 2 - Transcranial ultrasound simulation</h2>
+<p>The second tab in the GUI of BabelBrain shows the ultrasound simulation step.  The diagram below shows a flowchart of this step.</p>
+<p><img src="nsclc2-V2.svg" height=600px></p>
+<p>The choices of this tab will depend on the selected transducer. Simulation results in this step are shown in normalized conditions. The final step (see below) later will show the results denormalized in function of the selected intensity at the target. </p>
+<h3 id="common-features-to-all-transducers">Common features to all transducers</h3>
+<p>After running a simulation in Step 2, the results window will show two orthogonal views of normalized acoustic intensity. The intensity in the skin and skull regions is masked out (it can be visualized later in those regions in step 3). In this step, the main goal is to ensure a correct spatial focusing on the target. Depending on the capabilities of the transducer, this will imply for the most doing a combination of <strong>mechanical corrections</strong> and (if available) use of <strong>steering</strong> capabilities. The common features to all transducers are highlighted by the red box in the figure below</p>
+<p><img src="Simulation-17.png" height=450px></p>
+<h3 id="distance-of-the-maximal-depth">Distance of the maximal depth</h3>
+<p>This distance is set a default value of 40 mm and controls how deep the simulation domain extends beyond the focal point. For many targets and transducers, 40 mm is more than enough. But for devices producing large focal spots, it may be necessary to extend this value. This is particular important if the far field region gets too close to bony structures as this can help to model potential reflections.</p>
+<h3 id="mechanical-corrections">Mechanical corrections</h3>
+<p>All transducers show an action to perform mechanical corrections that mimic moving the transducer in the X, Y, and Z directions to make sure the focal spot is well centred at the target. Corrections on X and Y mimic moving the transducer along the scalp. Use these corrections to compensate refraction effects that may push laterally a focal spot. 
+Corrections on Z, which appear in the GUI for most transducers as <strong>Distance Tx outplane to skin</strong> mimic placing some distance between the scalp and the transducer; for example, when using a gel pad.</p>
+<p>After running a first pass of simulations in Step 2, a button action <strong>Calculate Mechanical Adjustments</strong> is available to calculate the distance from the target to the center of mass of the focal spot at -3dB and suggest applying the required mechanical corrections in X and Y directions. This action should help to minimize the number of iterations in simulations looking to ensure the focal spot is aligned in the X and Y directions to the intended target.</p>
+<p>The GUI shows a label with the "Distance target to FLHM center [X, Y, Z] (mm)" that helps to perform adjustments with mechanical and steering corrections.</p>
+<p>Please note that in the simulation domain, X, Y and Z are not mapped to subject coordinates directly in the GUI. However, at the end of the simulations in Step 3, there will be a report in which direction in the T1W space this adjustment translates. Also, as noted below, the modified trajectory will be saved automatically.</p>
+<h3 id="modified-trajectory-very-important">Modified trajectory - VERY IMPORTANT</h3>
+<p>Every time a simulation in Step 2 is run, Babelbrain saves automatically the corrected trajectory in the same directory where the input trajectory is located. A <strong>_mod</strong> suffix will be added to the file; for example, if the input file was <code>R_Vim.txt</code>, the modified trajectory will be called <code>R_Vim-mod.txt</code>.</p>
+<p>This trajectory is the one that is recommended to be used in neuronavigation when performing the <strong>real</strong> experiment. This trajectory will help to place the transducer in the position that helps to compensate for the skull refraction effects.</p>
+<p>When running in tandem with Brainsight, this trajectory will be loaded automatically along with the results as shown below</p>
+<p><img src="Simulation-16.png" height=450px></p>
+<h3 id="transducers">Transducers</h3>
+<h4 id="ctx_250-ctx_500-and-dpx_500">CTX_250, CTX_500 and DPX_500</h4>
+<p><img src="Simulation-7.png" height=450px></p>
+<p>For the CTX_250, CTX_500 and DPX_500 transducers, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. </p>
+<p>The initial "TPO Distance" (an adjustable parameter in the TPO NeuroFUS device) is calculated based on the distance skin to the target. </p>
+<p>It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Adjust both mechanical corrections as described above and combined with the TPO Distance to ensure your target is correctly engaged.</p>
+<h4 id="h246">H246</h4>
+<p>The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.</p>
+<p><img src="Simulation-9.png" height=450px></p>
+<h4 id="h317-i12378-and-atac">H317, I12378 and ATAC</h4>
+<p>These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the <code>Distance cone to Focus</code> that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.</p>
+<p><img src="Simulation-10.png" height=450px></p>
+<h4 id="single">Single</h4>
+<p>The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which means that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point of the out plane of the transducer reaches the skin.</p>
+<p><img src="Simulation-11.png" height=450px></p>
+<h4 id="bsonix">BSonix</h4>
+<p>These are commercial transducers with fixed focal lengths as reported in <a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>. The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. </p>
+<p><img src="Simulation-13.png" height=450px></p>
+<h4 id="remopd">REMOPD</h4>
+<p>This transducer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.</p>
+<p><img src="Simulation-14.png" height=450px></p>
+<h2 id="step-3-thermal-simulation">STEP 3 - Thermal simulation</h2>
+<p>The third tab in the GUI of BabelBrain shows the thermal simulation step.  The diagram below shows a flowchart of this step.</p>
+<p><img src="nsclc3-V2.svg" height=250px></p>
+<p>The thermal simulation solves the Bio-heat thermal equation (BHTE) for all the combinations of duty cycle, timing and ultrasound exposure indicated in the thermal profile definition file. </p>
+<p><img src="Simulation-12.png" height=450px></p>
+<p>The selection of spatial-peak pulse-average intensity (<span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPPA}}</span><script type="math/tex">I_{\text{SPPA}}</script></span>) indicates the desired intensity at the target. The spatial-peak time-average intensity (<span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPTA}}</span><script type="math/tex">I_{\text{SPTA}}</script></span>) is calculated based on the selected timing conditions.  Based on the selections of timing and desired <span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPPA}}</span><script type="math/tex">I_{\text{SPPA}}</script></span> in tissue, the <span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPPA}}</span><script type="math/tex">I_{\text{SPPA}}</script></span> in water conditions is calculated after taking into account all the losses. Thermal safety parameters (maximal temperature and thermal doses) in the skin, skull bone and brain tissue are calculated at the locations showing the highest temperature elevation in the whole 3D volume. The <code>MTB</code>, <code>MTS</code> and <code>MTC</code> push buttons in the lower region of the interface select the slice corresponding to the maximal temperature in brain, skin and skull, respectively.</p>
+<p>The <code>Update Profile and Calculate</code> action can be used to load an updated version of the thermal profile file. This will force the recalculation of thermal results.</p>
+<p>The <code>Show</code> dropdown menu can be used to select the 2D intensity and thermal <code>Maps</code> or <code>Profiles</code> that shows the temporal evolution of temperature at the target and locations of maximal temperature at skin, skull and brain tissue.</p>
+<p><img src="Simulation-15.png" height=450px></p>
+<p>The <code>Export summary (CSV)</code> action exports the input data paths and user selections used for the simulations. It also includes a table of <span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPPA}}</span><script type="math/tex">I_{\text{SPPA}}</script></span> in water conditions and safety metrics in function of the desired <span class="arithmatex"><span class="MathJax_Preview">I_{\text{SPPA}}</span><script type="math/tex">I_{\text{SPPA}}</script></span> in tissue. Below there is an example of the exported data.</p>
+<table>
+<thead>
+<tr>
+<th>Isppa</th>
+<th>IsppaWater</th>
+<th>MI</th>
+<th>Ispta</th>
+<th>MTB</th>
+<th>MTS</th>
+<th>MTC</th>
+<th>CEMBrain</th>
+<th>CEMSkin</th>
+<th>CEMSkull</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.5</td>
+<td>2.38</td>
+<td>0.18</td>
+<td>0.15</td>
+<td>0.03</td>
+<td>0.01</td>
+<td>0.02</td>
+<td>0.00033419</td>
+<td>0.000329626</td>
+<td>0.00033046</td>
+</tr>
+<tr>
+<td>1</td>
+<td>4.77</td>
+<td>0.25</td>
+<td>0.3</td>
+<td>0.07</td>
+<td>0.03</td>
+<td>0.04</td>
+<td>0.000343142</td>
+<td>0.000333787</td>
+<td>0.000335482</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>7.15</td>
+<td>0.31</td>
+<td>0.45</td>
+<td>0.10</td>
+<td>0.04</td>
+<td>0.05</td>
+<td>0.000352388</td>
+<td>0.000338007</td>
+<td>0.000340589</td>
+</tr>
+<tr>
+<td>2</td>
+<td>9.54</td>
+<td>0.35</td>
+<td>0.6</td>
+<td>0.13</td>
+<td>0.06</td>
+<td>0.07</td>
+<td>0.00036194</td>
+<td>0.000342286</td>
+<td>0.000345782</td>
+</tr>
+<tr>
+<td>2.5</td>
+<td>11.92</td>
+<td>0.39</td>
+<td>0.75</td>
+<td>0.17</td>
+<td>0.07</td>
+<td>0.09</td>
+<td>0.000371807</td>
+<td>0.000346625</td>
+<td>0.000351062</td>
+</tr>
+<tr>
+<td>3</td>
+<td>14.31</td>
+<td>0.43</td>
+<td>0.9</td>
+<td>0.20</td>
+<td>0.09</td>
+<td>0.11</td>
+<td>0.000382002</td>
+<td>0.000351024</td>
+<td>0.000356431</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>Export maps (.nii.gz)</code> action exports the thermal, pressure and intensity fields in Nifti format based on the selected Isppa at target. This can be used for inspection in neuronavigation and visualization software</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js" defer></script>
+        <script src="../mathjax-config.js" defer></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
+        <script src="../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

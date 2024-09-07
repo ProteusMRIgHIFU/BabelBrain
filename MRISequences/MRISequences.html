@@ -42,7 +42,16 @@
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/pipeline.html" class="nav-link">Simulation pipeline</a>
+                                <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
                             <li class="navitem active">
                                 <a href="MRISequences.html" class="nav-link">MRI sequences</a>
@@ -65,7 +74,7 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../pipeline/pipeline.html" class="nav-link">
+                                <a rel="prev" href="../pipeline/BabelBrain.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
@@ -92,18 +101,24 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="2"><a href="#mri-sequences" class="nav-link">MRI Sequences</a>
+            <li class="nav-item" data-level="1"><a href="#mri-sequences" class="nav-link">MRI Sequences</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#basics" class="nav-link">Basics</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            
-            <li class="nav-item" data-level="1"><a href="#basics" class="nav-link">Basics</a>
+            <li class="nav-item" data-level="2"><a href="#zte-for-ge-scanners" class="nav-link">ZTE for GE Scanners</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="3"><a href="#3dradial" class="nav-link">3dradial</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            
-            <li class="nav-item" data-level="1"><a href="#zte-for-ge-scanners" class="nav-link">ZTE for GE Scanners</a>
+            <li class="nav-item" data-level="3"><a href="#ozteo" class="nav-link">oZTEo</a>
               <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
               </ul>
             </li>
             
@@ -116,11 +131,13 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h2 id="mri-sequences">MRI Sequences</h2>
-<h1 id="basics">Basics</h1>
+<h1 id="mri-sequences">MRI Sequences</h1>
+<h2 id="basics">Basics</h2>
 <p>The T1W sequence <strong>must be 1-mm isotropic</strong>. Otherwise, some parts of the processing may fail. Overall,  it is highly recommended that all MRI sequences used in the planning with BabelBrain to be 1-mm isotropic,</p>
-<h1 id="zte-for-ge-scanners">ZTE for GE Scanners</h1>
-<p>The recommended ZTE sequence is derived from a <strong>3dradial</strong> GE PSD, with saggital orientation, reconstruction matrix of 256x256, receiver bandwidth of 62.5 kHz (pixel bandwith of 244 Hz), NEX=3.5, with chemical shift correction enabled, and using SCENIC intensity correction (PURE is also acceptable). The exported settings are available in  <a href="GE_Protocol.pdf" target="_blank">BabelGE_Protocol.pdf</a>
+<h2 id="zte-for-ge-scanners">ZTE for GE Scanners</h2>
+<p>There are two variants of the ZTE sequences that are emerging with GE scanners: <strong>3dradial</strong> and <strong>oZTE</strong>. Both are technically equivalent, but they are postprocessed by the GE console differently. The recommended sequence is 3dradial (as this is one we have much more experience in UCalgary) as oZTEo is still under exploration. However, not every site will have access to all sequences.</p>
+<h3 id="3dradial">3dradial</h3>
+<p>The recommended ZTE sequence is derived from a <strong>3dradial</strong> GE PSD, with saggital orientation, reconstruction matrix of 256x256, receiver bandwidth of 62.5 kHz (pixel bandwith of 244 Hz), NEX=3.5, with chemical shift correction enabled, and using SCENIC intensity correction (PURE is also acceptable). The exported settings are available in  &lt;a href="GE_Protocol.pdf" target="_blank"GE_Protocol.pdf</a>
  and in the protocol  <a href="GE_protocol.tar">GE_protocol.tar</a> file. While the protocol file is the most rigorous approach to reproduce the sequence, please note the protocol file is not backwards compatible with GE DV versions of the console. Be sure of reaching your local GE Clinical Scientist to assist if using the protocol file. </p>
 <p><strong>VERY IMPORTANT</strong>: The number of slabs and slice resolution are not exported in the parameters. Please use <strong>Slices per slab = 184</strong>, and match the same for the T1W and T2W scans. Use <strong>Slice Resolution = 100%</strong>, to keep the acquisition 1mm isotropic</p>
 <p>Below there are screnshots of the console showing how the sequence should appear</p>
@@ -128,7 +145,10 @@
 <p><img src="GE_Console_2.png"></p>
 <p><img src="GE_Console_3.png"></p>
 <p><img src="GE_Console_4.png"></p>
+<h3 id="ozteo">oZTEo</h3>
+<p>The exported settings are available in  <a href="GE_oZTEo_Protocol.pdf" target="_blank">GE_oZTEo_Protocol.pdf</a>. The oZTEo sequence inverts the MRI signal by default, so it is important to activate the advanced option <a href="../Advanced/advanced.html#invert-zte">Invert ZTE</a>, otherwise it will produce a crash in BabelBrain.</p>
 <h1 id="petra-for-siemens-scanners">PETRA for Siemens Scanners</h1>
+<p><strong>IMPORTANT NOTE</strong>. We are seeing some sites obtaining pseudo CTs with too high HU values using this PETRA sequence. We are still investigating for a fix. Please let us know if you are experiencing this issue.</p>
 <p>We recommend using the <a href="https://github.com/ucl-bug/petra-to-ct/blob/main/scanfiles/PETRA.exar1" target="_blank">EXAR1</a> file available at the
 <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">UCL's PETRA-TO-CT Github repository</a>. A  <a href="PETRA.exar1">local</a> copy is also provided for convenience.</p></div>
             </div>

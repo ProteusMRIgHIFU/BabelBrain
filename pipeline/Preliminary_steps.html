@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Advanced/advanced.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/pipeline/Preliminary_steps.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Advanced options - BabelBrain</title>
+        <title>Preliminary steps - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/font-awesome.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
@@ -42,16 +42,16 @@
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
+                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
+                                <a href="Planning.html" class="nav-link">Planning</a>
                             </li>
                             <li class="navitem">
-                                <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
-                            </li>
-                            <li class="navitem">
-                                <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
                             <li class="navitem">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
@@ -59,8 +59,8 @@
                             <li class="navitem">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="advanced.html" class="nav-link">Advanced options</a>
+                            <li class="navitem">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
                             <li class="navitem">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
@@ -74,12 +74,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../results/results.html" class="nav-link">
+                                <a rel="prev" href="pipeline.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
+                                <a rel="next" href="Planning.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -101,43 +101,13 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="2"><a href="#advanced-features" class="nav-link">Advanced features</a>
+            <li class="nav-item" data-level="1"><a href="#preliminary-steps" class="nav-link">Preliminary steps</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#anatomical-imaging" class="nav-link">Anatomical Imaging</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            
-            <li class="nav-item" data-level="1"><a href="#domain-generation" class="nav-link">Domain Generation</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#elastix-co-registration-optimizer" class="nav-link">Elastix co-registration Optimizer</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#proportion-of-trabecular-bone" class="nav-link">Proportion of trabecular bone</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#force-using-blender-for-constructive-solid-geometry" class="nav-link">Force using Blender for Constructive Solid Geometry</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#manual-subvolume" class="nav-link">Manual Subvolume</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#invert-zte" class="nav-link">Invert ZTE</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#petra-conversion" class="nav-link">PETRA conversion</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-level="1"><a href="#transcranial-ultrasound" class="nav-link">Transcranial Ultrasound</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#ctx-500-correction" class="nav-link">CTX-500 Correction</a>
+            <li class="nav-item" data-level="2"><a href="#pre-processing" class="nav-link">Pre-processing</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -148,29 +118,32 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h2 id="advanced-features">Advanced features</h2>
-<p>Since release 0.3.5, BabelBrain includes a menu for advanced options controlling low-level details in BabelBrain.</p>
-<p>If any of these options are modified, they will remain persistent on the next BabelBrain sessions. Select <code>Reset to defaults</code> to restore original values.</p>
-<p><img src="advanced-1.png" height=450px></p>
-<h1 id="domain-generation">Domain Generation</h1>
-<p><img src="advanced-2.png" height=250px></p>
-<h2 id="elastix-co-registration-optimizer">Elastix co-registration Optimizer</h2>
-<p>The default optimizer for Elastix, AdaptiveStochasticGradientDescent, works <em>almost</em> for every combination of CT-&gt;T1W and ZTE/PETRA-&gt;T1W. However, as much more testing has started to accumulate, we noticed that the CT-&gt;T1W was not working in some cases. We tested different options in Elastix, and the <strong>FiniteDifferenceGradientDescent</strong> and <strong>QuasiNewtonLBFGS</strong> seem to work well as a replacement. If the coregistration from CT to T1W is not working as expected, try one of these two other options. <strong>FiniteDifferenceGradientDescent</strong> seems to work better.</p>
-<h2 id="proportion-of-trabecular-bone">Proportion of trabecular bone</h2>
-<p>By default, the percentage of trabecular is 80% using the line of sight of the trajectory. If the trajectory crosses very thin regions like the parietal bone, there may be a chance all region is considered trabecular, which may not be desired. A warning message will be printed out in the terminal output in that case. In such cases as the parietal bone, consider reducing a lower value of trabecular, such as 0.1 or 0.2.</p>
-<h2 id="force-using-blender-for-constructive-solid-geometry">Force using Blender for Constructive Solid Geometry</h2>
-<p>While pycork seems to do a great replacement, we identified that in some instances when using the subvolume feature there was a crash in the low pycork library. Forcing using Blender instead can help to run those special cases.</p>
-<h2 id="manual-subvolume">Manual Subvolume</h2>
-<p>This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (i.e., EEG-P7 location) in which the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.</p>
-<h2 id="invert-zte">Invert ZTE</h2>
-<p>In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option, otherwise an error will occur during the processing.</p>
-<h2 id="petra-conversion">PETRA conversion</h2>
-<p>The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps to match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not selecting correctly the bone region. There is also an option to create the histogram as done in the UCL's tool.</p>
-<h1 id="transcranial-ultrasound">Transcranial Ultrasound</h1>
-<p><img src="advanced-3.png" height=250px></p>
-<h2 id="ctx-500-correction">CTX-500 Correction</h2>
-<p>Starting R0.4.0, BabelBrain introduced a parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: <strong>Original</strong> and <strong>July 2024</strong>. The <strong>Original</strong> setting matches how the CTX-500 unit was modelled in previous releases (&lt;= 0.3.5) and <strong>July 2024</strong> has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.</p>
-<p>The newer <strong>CTX 250</strong> and <strong>CTX 500</strong> transducers (introduced in R0.4.0) have already this correction by default.</p></div>
+<h1 id="preliminary-steps">Preliminary steps</h1>
+<h2 id="anatomical-imaging">Anatomical Imaging</h2>
+<ul>
+<li>Collect T1W (and optionally T2W) imaging of a participant. T1W scan <strong>must</strong> be 1-mm isotropic scans.</li>
+<li><em>Optional</em>: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. </li>
+<li><em>Optional</em>:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by 
+<a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a> (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a>, both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult <a href="../MRISequences/MRISequences.html">MRI Sequences</a> for GE and Siemens scan settings recomendations </li>
+</ul>
+<h2 id="pre-processing">Pre-processing</h2>
+<ul>
+<li>
+<p>Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x <code>charm</code> processing tool:</p>
+<p><code>charm &lt;ID&gt; &lt;Path to T1W Nifti file&gt; &lt;Path to T2W Nifti file&gt;</code></p>
+<p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual.</p>
+<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
+</li>
+<li>
+<p>Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
+<p>For example, with FSL, a simple csv file (<code>mni.csv</code>) can be created with the coordinates in MNI such as <code>-32.0 -20.0 65.0</code>. Then run the following commands</p>
+<p><code>flirt -in &lt;path to T1W nifti&gt; -ref $FSLDIR/data/standard/MNI152_T1_1mm -omat anat2mni.xfm -out anat_norm</code></p>
+<p><code>std2imgcoord -img &lt;path to T1W nifti&gt;  -std $FSLDIR/data/standard/MNI152_T1_1mm.nii -xfm anat2mni.xfm mni.csv &gt; natspace.csv</code></p>
+<p>The file <code>natspace.csv</code> will contain the MNI coordinates converted to T1W space. Please note that often visual inspections could be required to confirm the location.</p>
+</li>
+</ul>
+<p>If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the <code>headreco</code> or <code>charm</code> tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that <code>charm</code> tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.</p>
+<p>If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.</p></div>
             </div>
         </div>
 
