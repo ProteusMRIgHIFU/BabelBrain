@@ -82,13 +82,13 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **New**: Information on recommended MRI sequences is available in the repository. The GE settings used at UCalgary are available in PDF, screenshots and tar format. Consult [MRI Sequences](https://proteusmrighifu.github.io/BabelBrain/MRISequences/MRISequences.html) in the documentation website for more details.
   - **New**: Two new BrainBox transducers are added: **CTX 250** and **DPX 500**. 
 
-    The CTX 250 has the same geometry as the CTX 500 but it operates at 250 kHz. It can focus from 25 mm to 60 mm.
-    
-    The DPX 500 has the same aperture of the CTX 500 of 64 mm but a larger focal length of 144.9 mm. It can focus from 50 mm to 120 mm.
+      The CTX 250 has the same geometry as the CTX 500, but it operates at 250 kHz. It can focus from 25 mm to 60 mm.
+      
+      The DPX 500 has the same aperture as the CTX 500, 64 mm, but a larger focal length, 144.9 mm. It can focus from 50 mm to 120 mm.
 
-  - **New**: The REMOPD phased array device can also now operate at 300 kHz and 490 kHz.
+  - **New**: The REMOPD phased array device can now operate at 300 and 490 kHz.
 
-  - **New**: Repetitions of TUS exposures in treatment profiles. For scenarios where repeated exposures is required, the extra field `Repetitions` can be added. For example:
+  - **New**: Repetitions of TUS exposures in treatment profiles. For scenarios where repeated exposures are required, the extra field `Repetitions` can be added. For example:
     ```
     BaseIsppa: 5.0 # W/cm2
     AllDC_PRF_Duration: #All combinations of timing that will be considered
@@ -99,27 +99,27 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
         Repetitions: 10
     ```
 
-    In this example, the simulation will run for an exposure lasting 10 min, where ultrasound is turned on for 30s, followed by 30s with ultrasound off, and repeated 10 times.
+    In this example, the simulation will run for a 10-minute exposure, with ultrasound turned on for 30 seconds, followed by 30 seconds with ultrasound off, and repeated 10 times.
 
   - **New**: Thermal temporal profiles in Step 3. 
 
-     <img src="figures/TProfilesExample.png" height=300px>
+    <img src="figures/TProfilesExample.png" height=300px>
 
-    A new “Profile” temporal view in Step 3 can be used to visualize how heating evolves over time at the target and voxels with maximal heating at the skull, skin and brain tissue.
+    A new “Profile” temporal view in Step 3 can be used to visualize how heating evolves at the target and voxels with maximal heating at the skull, skin and brain tissue.
   - **New**: Export thermal map function in Step 3 now also exports maps in Nifti format of temperature, intensity and pressure scaled to the selected Isspa.
-  - **New**: Advanced option - correction to steering of CTX 500.  A parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer was added and is available in the Advanced Options menu. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: **Original** and **July 2024**. The **Original** setting matches how the CTX-500 unit was modelled in previous releases (<= 0.3.5) and **July 2024** has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.
+  - **New**: Advanced option - correction to steering of CTX 500.  A parabolic correction to Rayleigh's integral-based modelling of the CTX-500 transducer was added and is available in the Advanced Options menu. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: **Original** and **July 2024**. The **Original** setting matches how the CTX-500 unit was modelled in previous releases (<= 0.3.5) and **July 2024** has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.
 
     The newer **CTX 250** and **CTX 500** transducers have already this correction by default.
-- **New**: Advanced options - inversion of ZTE signal. In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option, otherwise an error will occur during the processing.
-- **New**: Advanced options - PETRA conversion options. The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps to match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not selecting correctly the bone region. There is also an option to create the histogram as done in the UCL's tool.
-- **New**: A new label in Step 2 shows the "Distance target to FLHM center [X, Y, Z] (mm)" that helps to perform adjustments with mechanical and steering corrections.
-- **Improvement**: The <a href="https://proteusmrighifu.github.io/BabelBrain/index.html" target="_blank">Documentation</a> was reorganized and updated for a (hopefully) better reading. In particular, we make now more emphasis on the common features for all the transducers and the importance of the corrections done in Step 2 that can be 
-<a href="https://proteusmrighifu.github.io/BabelBrain/pipeline/BabelBrain.html#modified-trajectory-very-important" target="_blank">carried over</a> to the neuronavigation for the real experiments.
-- **Improvement**: Mask delineation of CT/PETRA/ZTE is closer to the bone region.
-- **Improvement**: Several GPU functions were rewritten for improved stability across all GPU technologies at high resolutions.
-- **Improvement**: Color background of plots matches GUI's window color.
-- **Fix**: Multi focus steering was crashing when using refocusing in phased array simulations.
-- **Fix**: Unhide marks keeps stopped working now if color scaled was manually adjusted using the Matplotlib controls.
+  - **New**: Advanced options - inversion of ZTE signal. In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option; otherwise, an error will occur during the processing.
+  - **New**: Advanced options - PETRA conversion options. The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not correctly selecting the bone region. There is also an option to create the histogram as done in the UCL tool.
+  - **New**: A new label in Step 2 shows the "Distance target to FLHM center [X, Y, Z] (mm)" that helps to perform adjustments with mechanical and steering corrections.
+  - **Improvement**: The <a href="https://proteusmrighifu.github.io/BabelBrain/index.html" target="_blank">Documentation</a> was reorganized and updated for a (hopefully) better reading. In particular, we make now more emphasis on the common features for all the transducers and the importance of the corrections done in Step 2 that can be 
+  <a href="https://proteusmrighifu.github.io/BabelBrain/pipeline/BabelBrain.html#modified-trajectory-very-important" target="_blank">carried over</a> to the neuronavigation for the real experiments.
+  - **Improvement**: Mask delineation of CT/PETRA/ZTE is closer to the bone region.
+  - **Improvement**: Several GPU functions were rewritten for improved stability across all GPU technologies at high resolutions.
+  - **Improvement**: The colour background of plots matches GUI's window colour.
+  - **Fix**: Multi focus steering was crashing when using refocusing in phased array simulations.
+  - **Fix**: Unhide marks stopped working if the colour scaled was manually adjusted using the Matplotlib controls.
 
 
 - 0.3.5 - July 8th, 2024
