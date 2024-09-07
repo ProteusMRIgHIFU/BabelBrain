@@ -17,7 +17,10 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Simulation pipeline : pipeline/pipeline.md
+  - Overall pipeline : pipeline/pipeline.md
+  - Preliminary steps: pipeline/Preliminary_steps.md
+  - Planning: pipeline/Planning.md
+  - BabelBrain simulation : pipeline/BabelBrain.md
   - MRI sequences : MRISequences/MRISequences.md
   - Results files : results/results.md
   - Advanced options: Advanced/advanced.md
