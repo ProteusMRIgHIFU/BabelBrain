@@ -1019,7 +1019,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 SaveHashInfo([outputfilenames['ReuseMask']],outputfilenames['CTfname'],nCT,CTType=CTType,HUT=HUThreshold)
 
     with CodeTimer("final median filter ",unit='s'):
-        FinalMask[FinalMask==2]=1
+        if CT_or_ZTE_input is not None:
+            FinalMask[FinalMask==2]=1
         if MedianFilter is None:
             FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
