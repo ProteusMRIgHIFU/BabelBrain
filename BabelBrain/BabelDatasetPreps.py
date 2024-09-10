@@ -740,11 +740,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     if VoxelizeFilter is None:
         while(True):
             try:
-                with CodeTimer("skull voxelization",unit='s'):
+                with CodeTimer("cpu skull voxelization",unit='s'):
                     skull_grid = skull_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                with CodeTimer("brain voxelization",unit='s'):
+                with CodeTimer("cpu voxelization",unit='s'):
                     csf_grid = csf_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                with CodeTimer("skin voxelization",unit='s'):
+                with CodeTimer("cpu voxelization",unit='s'):
                     skin_grid = skin_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
                 break
             except AttributeError as err:
@@ -753,11 +753,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 raise err
     else:
-        with CodeTimer("cpu skull voxelization",unit='s'):
+        with CodeTimer("skull voxelization",unit='s'):
             skull_grid = VoxelizeFilter(skull_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-        with CodeTimer("cpu brain voxelization",unit='s'):
+        with CodeTimer("brain voxelization",unit='s'):
             csf_grid = VoxelizeFilter(csf_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-        with CodeTimer("cpu skin voxelization",unit='s'):
+        with CodeTimer("skin voxelization",unit='s'):
             skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
         
     

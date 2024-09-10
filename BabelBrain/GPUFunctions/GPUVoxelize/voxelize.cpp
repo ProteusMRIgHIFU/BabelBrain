@@ -258,12 +258,9 @@ __kernel void ExtractPoints(__global const unsigned int* voxel_table,
                                           const unsigned int * int_params,
                                           const unsigned int gx,
                                           const unsigned int gy,
-                                          const unsigned int gz,
-                                          const unsigned int section_size)
+                                          const unsigned int gz)
                                           {
     size_t k = (size_t)(blockIdx.x*blockDim.x + threadIdx.x);
-
-    if (k >= section_size) return;
 #endif
 
 #ifdef _METAL                      
