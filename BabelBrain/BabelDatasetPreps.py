@@ -753,11 +753,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 raise err
     else:
-        with CodeTimer("skull voxelization",unit='s'):
+        with CodeTimer("cpu skull voxelization",unit='s'):
             skull_grid = VoxelizeFilter(skull_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-        with CodeTimer("brain voxelization",unit='s'):
+        with CodeTimer("cpu brain voxelization",unit='s'):
             csf_grid = VoxelizeFilter(csf_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-        with CodeTimer("skin voxelization",unit='s'):
+        with CodeTimer("cpu skin voxelization",unit='s'):
             skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
         
     
