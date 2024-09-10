@@ -245,9 +245,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                                                     int_params_gpu,
                                                     np.uint32(gx),
                                                     np.uint32(gy),
-                                                    np.uint32(gz),
-                                                    np.uint32(points_section.size))
-                                                    )
+                                                    np.uint32(gz)))
 
                 # Move kernel output data back to host memory
                 points_section=points_section_gpu.get()
