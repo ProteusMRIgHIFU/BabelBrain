@@ -717,6 +717,7 @@ class RunThermalSim(QObject):
         kargs['deviceName']=self._mainApp.Config['ComputingDevice']
         kargs['COMPUTING_BACKEND']=self._mainApp.Config['ComputingBackend']
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
+        kargs['Frequency']=self._mainApp._Frequency
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:

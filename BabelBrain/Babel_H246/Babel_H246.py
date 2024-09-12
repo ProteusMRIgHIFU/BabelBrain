@@ -215,8 +215,8 @@ class RunAcousticSim(QObject):
         ZSteering=TPODistance
         print('ZSteering',ZSteering*1e3)
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        Frequencies = [self._mainApp._Frequency)]
+        basePPW=[self._mainApp._BasePPW]
         ZIntoSkin =0.0
         if TxMechanicalAdjustmentZ > 0:
             ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)

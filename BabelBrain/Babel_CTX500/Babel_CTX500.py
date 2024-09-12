@@ -235,8 +235,8 @@ class RunAcousticSim(QObject):
         ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']+Correction
         print('ZSteering',ZSteering*1e3)
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        Frequencies = [self._mainApp._Frequency]
+        basePPW=[self._mainApp._BasePPW]
         T0=time.time()
         kargs={}
         kargs['ID']=ID

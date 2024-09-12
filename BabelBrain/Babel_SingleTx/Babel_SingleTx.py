@@ -237,8 +237,8 @@ class RunAcousticSim(QObject):
         if CurDistance < 0:
             ZIntoSkin = np.abs(CurDistance)
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        Frequencies = [self._mainApp._Frequency]
+        basePPW=[self._mainApp._BasePPW]
         T0=time.time()
         kargs={}
         kargs['extrasuffix']=self._extrasuffix
