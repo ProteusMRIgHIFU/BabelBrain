@@ -410,10 +410,7 @@ def CalculateTemperatureEffects(InputPData,
     
     print('CEMBrain,CEMSkin,CEMSkull',CEMBrain,CEMSkin,CEMSkull)
 
-    if 'MaterialMapCT' in Input:
-        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==3].max()
-    else:
-        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
+    MaxBrainPressure = SaveDict['p_map'][SelBrain].max()
         
     MI=MaxBrainPressure/1e6/np.sqrt(Frequency/1e6)
     MaxIsppa=MaxBrainPressure**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])

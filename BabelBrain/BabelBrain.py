@@ -1026,7 +1026,7 @@ class RunMaskGeneration(QObject):
         Frequency=  self._mainApp._Frequency
         SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
 
-        BasePPW=self._BasePPW
+        BasePPW=self._mainApp._BasePPW
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 
