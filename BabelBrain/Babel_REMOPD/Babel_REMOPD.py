@@ -110,6 +110,7 @@ class REMOPD(BabelBasePhaseArray):
         
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
 
 
     @Slot()
