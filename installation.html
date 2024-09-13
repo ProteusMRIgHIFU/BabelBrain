@@ -108,10 +108,16 @@
             
             <li class="nav-item" data-level="1"><a href="#preliminary-requirements" class="nav-link">Preliminary requirements</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#os" class="nav-link">OS</a>
+            <li class="nav-item" data-level="3"><a href="#os" class="nav-link">OS</a>
               <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="3"><a href="#gpu" class="nav-link">GPU</a>
               <ul class="nav flex-column">
+            <li class="nav-item" data-level="4"><a href="#nvidia-based-systems" class="nav-link">Nvidia-based systems</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="4"><a href="#note-for-intel-based-mac-systems" class="nav-link">Note for Intel-based Mac systems</a>
               <ul class="nav flex-column">
               </ul>
@@ -128,8 +134,6 @@
             </li>
             <li class="nav-item" data-level="3"><a href="#navigation-planning-software" class="nav-link">Navigation-planning software</a>
               <ul class="nav flex-column">
-              </ul>
-            </li>
               </ul>
             </li>
               </ul>
@@ -169,12 +173,14 @@
 
 <h2 id="installation-and-running">Installation and Running</h2>
 <h1 id="preliminary-requirements">Preliminary requirements</h1>
-<h2 id="os">OS</h2>
+<h3 id="os">OS</h3>
 <p>Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via 
 <a href="https://learn.microsoft.com/en-us/windows/wsl/install" target="_blank">WSL2</a>
 with NVidia GPUs (see this <a href="https://docs.nvidia.com/cuda/wsl-user-guide/index.html" target="_blank">guide</a>). </p>
 <h3 id="gpu">GPU</h3>
 <p>BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (8 GPU RAM or more) are recommended. ARM64 processors (M1, M2, M3 families) in Mac systems with 16GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on Mx processors as primary targets. </p>
+<h4 id="nvidia-based-systems">Nvidia-based systems</h4>
+<p>Be sure that <a href="https://docs.nvidia.com/cuda/" target="_blank">CUDA</a> is properly installed.  Visual Studio (commercial or Community version) must be also installed. Verify the version of Visual Studio is officially supported with the CUDA version. Visual Studio 2019 and 2022 Community versions works well with recent versions of CUDA.  Please ensure Visual Studio has the 'Desktop development with C++' option installed.</p>
 <h4 id="note-for-intel-based-mac-systems">Note for Intel-based Mac systems</h4>
 <p>Intel-based systems need to have a dedicated AMD GPU (internal or external via Thunderbolt). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 500 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.</p>
 <p><strong>Important note</strong>. Before v0.3.4, BabelBrain required having installed Blender for some CSG operations. This is not required anymore for v0.3.4 and up.</p>
