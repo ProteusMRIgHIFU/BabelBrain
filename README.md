@@ -1,4 +1,4 @@
-BabelBrain v0.4.0
+BabelBrain v0.4.1
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -39,7 +39,7 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 * For macOS, download the correct DMG image according to your CPU architecture (Intel X64 or ARM64),  and double-click the PKG installer. The first time you use you will be prompted to authorize to run and access directories.
 * For Windows, download the MSI file and run the installer.
 
-**Note for Windows:** CUDA 11.7 or up must be installed.
+**Note for Windows:** CUDA 11.7 or up must be installed. Visual Studio (commercial or Community version) must be also installed. Verify the version of Visual Studio is officially supported with the CUDA version. Visual Studio 2019 and 2022 Community versions works well with recent versions of CUDA.  Please ensure Visual Studio has the 'Desktop development with C++' option installed.
 
 # Instructions for use
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
@@ -80,7 +80,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 # Version log
 - 0.4.0-1 - Sep 10th, 2024
   - **Fix**: Filter for voxelization on CONDA reenabled.
-- 0.4.0 - Sep 7th, 2024
+  - 0.4.0 - Sep 7th, 2024
   - **New**: Information on recommended MRI sequences is available in the repository. The GE settings used at UCalgary are available in PDF, screenshots and tar format. Consult [MRI Sequences](https://proteusmrighifu.github.io/BabelBrain/MRISequences/MRISequences.html) in the documentation website for more details.
   - **New**: Two new BrainBox transducers are added: **CTX 250** and **DPX 500**. 
 

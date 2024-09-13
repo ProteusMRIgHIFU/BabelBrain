@@ -329,8 +329,6 @@ class Babel_Thermal(QWidget):
 
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
         
-        PresRatio=np.sqrt(IsppaRatio)
-
         if self._bMultiPoint:
             AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
             AdjustedIsspaStDev = np.std(AdjustedIsspa)
@@ -353,11 +351,22 @@ class Babel_Thermal(QWidget):
                 font.setPointSize(12)
             item.setFont(font)
             return item
+        
+        DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap']]
+        SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
 
-        IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/\
-                      DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
-                      DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
-                      1e4*IsppaRatio
+        ImpedanceTarget = DensityMap[Loc[0],Loc[1],Loc[2]]*SoSMap[Loc[0],Loc[1],Loc[2]]
+        
+        if self._MainApp.Config['bUseCT']:
+            SelBrain=DataThermal['MaterialMap']==2
+        else:
+            SelBrain=DataThermal['MaterialMap']>=4
+
+        IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
+        
+        LocMax=np.array(np.where(DataThermal['p_map']==DataThermal['p_map'][SelBrain].max())).flatten()
+        ImpedanceLocMax= DensityMap[LocMax[0],LocMax[1],LocMax[2]]*SoSMap[LocMax[0],LocMax[1],LocMax[2]]
+        
         self.Widget.tableWidget.setItem(0,1,NewItem('%4.2f' % IsppaTarget,IsppaTarget))
 
         if self._bMultiPoint:
@@ -391,9 +400,9 @@ class Babel_Thermal(QWidget):
         MTCCEM=DoseUpdate[2]
         self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
-        MI=DataThermal['MI']*PresRatio
+        MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         self.Widget.tableWidget.setItem(9,1,NewItem('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
-    
+
         Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
         self.Widget.tableWidget.setItem(10,1,NewItem('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
 
