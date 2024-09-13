@@ -1,13 +1,18 @@
 Installation and Running
 ----
 # Preliminary requirements 
-## OS
+### OS
 Currently, macOS (ARM64, X64), Windows/Linux (X64) are supported. Windows users can run BabelBrain natively or via 
 <a href="https://learn.microsoft.com/en-us/windows/wsl/install" target="_blank">WSL2</a>
 with NVidia GPUs (see this <a href="https://docs.nvidia.com/cuda/wsl-user-guide/index.html" target="_blank">guide</a>). 
 
 ### GPU
 BabelBrain supports GPUs enabled via CUDA, OpenCL or Metal. High-end GPUs (8 GPU RAM or more) are recommended. ARM64 processors (M1, M2, M3 families) in Mac systems with 16GB or more RAM are highly recommended. BabelBrain was designed with Mac systems based on Mx processors as primary targets. 
+
+#### Nvidia-based systems
+Be sure that <a href="https://docs.nvidia.com/cuda/" target="_blank">CUDA</a> is properly installed.  Visual Studio (commercial or Community version) must be also installed. Verify the version of Visual Studio is officially supported with the CUDA version. Visual Studio 2019 and 2022 Community versions works well with recent versions of CUDA.  Please ensure Visual Studio has the 'Desktop development with C++' option installed.
+
+
 #### Note for Intel-based Mac systems
 Intel-based systems need to have a dedicated AMD GPU (internal or external via Thunderbolt). Intel-based iMac Pro and MacPro systems have internal GPUs suitable for sub 500 kHz simulations (i.e., Vega 56, Vega 64). An external GPU (i.e., AMD W6800 Pro) offers excellent performance and capability for high-frequency simulations.
 

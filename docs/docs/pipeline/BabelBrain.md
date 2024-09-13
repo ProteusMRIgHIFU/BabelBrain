@@ -43,7 +43,8 @@ and
 
 
     For scenarios where repeated exposures is required, the extra field `Repetitions` can be added. For example:
-        ```
+
+    ```
     BaseIsppa: 5.0 # W/cm2
     AllDC_PRF_Duration: #All combinations of timing that will be considered
     -   DC: 0.3
