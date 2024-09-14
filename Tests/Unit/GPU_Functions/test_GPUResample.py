@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUResample')
+sys.path.append('BabelBrain/GPUFunctions/GPUResample')
+sys.path.append('BabelBrain/GPUFunctions')
 import logging
 
 import pytest

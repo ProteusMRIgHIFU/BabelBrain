@@ -29,9 +29,10 @@ config = configparser.ConfigParser()
 config.read('Tests' + os.sep + 'config.ini')
 test_data_folder = config['Paths']['data_folder_path']
 gpu_device = config['GPU']['device_name']
+print('gpu_device',gpu_device)
 
 # PARAMETERS
-trajectory_type = {
+test_trajectory_type = {
     'brainsight': 0,
     'slicer': 1
 }
@@ -65,9 +66,9 @@ coregistration = {
     'yes': 1
 }
 thermal_profiles = {
-    'thermal_profile_1': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml',
-    'thermal_profile_2': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml',
-    'thermal_profile_3': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml'
+    'thermal_profile_1': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_1.yaml',
+    'thermal_profile_2': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_2.yaml',
+    'thermal_profile_3': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_3.yaml'
 }
 transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
@@ -352,7 +353,7 @@ def get_freq():
 
     def _get_freq(tx):
         if tx == 'H317':
-            freq = '700'
+            freq = '250'
         elif tx == 'BSonix':
             freq = '650'
         else:
@@ -362,7 +363,10 @@ def get_freq():
     return _get_freq
 
 @pytest.fixture()
-def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_widget,get_freq,tmp_path):
+def babelbrain_widget(qtbot,trajectory,
+                      trajectory_type,
+                      transducer,
+                      scan_type,dataset,selfiles_widget,get_freq,tmp_path):
 
     # Folder paths
     input_folder = dataset['folder_path']
@@ -377,7 +381,7 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
     trajectory_file = trajectory_folder + f"{trajectory}.txt"
 
     # Set SelFiles Parameters
-    selfiles_widget.ui.TrajectoryTypecomboBox.setCurrentIndex(trajectory_type['slicer'])
+    selfiles_widget.ui.TrajectoryTypecomboBox.setCurrentIndex(test_trajectory_type[trajectory_type])
     selfiles_widget.ui.TrajectorylineEdit.setText(trajectory_file)
     selfiles_widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimNIBS_type['charm'])
     selfiles_widget.ui.SimbNIBSlineEdit.setText(simNIBS_folder)
@@ -420,9 +424,10 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
         bb_widget.Config['CT_or_ZTE_input'] = os.path.join(tmp_path,os.path.basename(bb_widget.Config['CT_or_ZTE_input']))
 
     # Set Sim Parameters
-    freq = get_freq(transducer)
+    freq = get_freq(transducer['name'])
 
     freq_index = bb_widget.Widget.USMaskkHzDropDown.findText(freq)
+
     bb_widget.Widget.USMaskkHzDropDown.setCurrentIndex(freq_index)
     bb_widget.Widget.USPPWSpinBox.setProperty('UserData',6) # 6 PPW
     if scan_type != 'NONE':
@@ -474,8 +479,13 @@ def pytest_generate_tests(metafunc):
 
     if 'trajectory' in metafunc.fixturenames and 'invalid' in metafunc.function.__name__:
         metafunc.parametrize('trajectory', tuple(invalid_trajectories))
-    elif 'trajectory' in metafunc.fixturenames and 'valid' in metafunc.function.__name__:
+    elif 'trajectory' in metafunc.fixturenames and ('valid' in metafunc.function.__name__ or
+                                                    'normal' in metafunc.function.__name__):
         metafunc.parametrize('trajectory', tuple(valid_trajectories)) 
+    
+
+    if 'trajectory_type' in metafunc.fixturenames:
+        metafunc.parametrize('trajectory_type', tuple(test_trajectory_type)) 
 
     if 'computing_backend' in metafunc.fixturenames:
         metafunc.parametrize('computing_backend',tuple(computing_backends),ids=tuple(cb['type'] for cb in computing_backends))

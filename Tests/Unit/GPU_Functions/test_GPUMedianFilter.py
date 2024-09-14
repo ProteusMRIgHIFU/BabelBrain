@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUMedianFilter')
+sys.path.append('BabelBrain/GPUFunctions/GPUMedianFilter')
+sys.path.append('BabelBrain/GPUFunctions')
 import logging
 
 import pytest
@@ -16,12 +17,8 @@ def test_median_filter(computing_backend,dataset,check_os,get_gpu_device,load_fi
 
      # Initialize GPU Backend
      gpu_device = get_gpu_device()
-     if computing_backend['type'] == 'OpenCL':
-          MedianFilter.InitOpenCL(gpu_device)
-     elif computing_backend['type'] == 'CUDA':
-          MedianFilter.InitCUDA(gpu_device)
-     elif computing_backend['type'] == 'Metal':
-          MedianFilter.InitMetal(gpu_device)
+     MedianFilter.InitResample(DeviceName=gpu_device,GPUBackend=computing_backend['type'])
+
 
      # Load inputs
      input_files = {

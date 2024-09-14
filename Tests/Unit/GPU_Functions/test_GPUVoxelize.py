@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append('BabelBrain/GPUVoxelize')
+sys.path.append('BabelBrain/GPUFunctions/GPUVoxelize')
+sys.path.append('BabelBrain/GPUFunctions')
 import logging
 
 import pytest
@@ -17,12 +18,7 @@ def test_voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device
 
      # Initialize GPU Backend
      gpu_device = get_gpu_device()
-     if computing_backend['type'] == 'OpenCL':
-          Voxelize.InitOpenCL(gpu_device)
-     elif computing_backend['type'] == 'CUDA':
-          Voxelize.InitCUDA(gpu_device)
-     elif computing_backend['type'] == 'Metal':
-          Voxelize.InitMetal(gpu_device)
+     Voxelize.InitVoxelize(DeviceName=gpu_device,GPUBackend=computing_backend['type'])
 
      # Load inputs
      input_files = {

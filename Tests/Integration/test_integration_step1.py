@@ -8,7 +8,27 @@ import pytest
 
 class TestStep1:
 
-    def test_step1_valid_case(self,qtbot,trajectory,transducer,scan_type,dataset,babelbrain_widget,load_files,compare_data,mock_NotifyError,mock_UpdateMask,tmp_path):
+    def test_step1_normal(self,qtbot,babelbrain_widget):
+
+          # Run Step 1
+        babelbrain_widget.testing_error = False
+        babelbrain_widget.Widget.CalculatePlanningMask.click()
+
+        # Wait for step 1 completion before continuing. Test timeouts after 15 min have past
+        qtbot.waitUntil(babelbrain_widget.Widget.tabWidget.isEnabled,timeout=900000)
+
+        # Check if step 1 failed
+        if babelbrain_widget.testing_error == True:
+            pytest.fail(f"Test failed due to error in execution")
+
+
+    def test_step1_valid_case(self,qtbot,trajectory,
+                              transducer,
+                              scan_type,
+                              dataset,
+                              babelbrain_widget,
+                              load_files,
+                              compare_data,mock_NotifyError,mock_UpdateMask,tmp_path):
 
         # Truth folder path
         if scan_type == "NONE":
