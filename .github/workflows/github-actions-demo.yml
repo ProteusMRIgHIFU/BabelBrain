@@ -7,7 +7,6 @@ jobs:
   Explore-GitHub-Actions:
     runs-on: [self-hosted, macOS, ARM64]
     steps:
-      - uses: actions/checkout@v2
       - name: Activate Conda
         -run: |
           cd BabelBrain
