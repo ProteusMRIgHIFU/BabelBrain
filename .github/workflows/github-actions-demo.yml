@@ -10,11 +10,11 @@ jobs:
       #- uses: actions/checkout@v2
       - name: Activate Conda
         run: |
-          cd BabelBrain
+          /Users/spichardo/miniconda3/etc/profile.d/conda.sh
           conda activate BabelBrain
       - name: Copy config files
         run: |
-          cp ~/Documents/BabelBrain/Test/config.ini Test/
+          cp /Users/spichardo/Documents/BabelBrain/Tests/config.ini Tests/
       - name: run pytest
         run: |
           coverage run -m pytest Tests -k 'test_step1_normal[SDR_0p55-CT-H317-Deep_Target-brainsight]' 
