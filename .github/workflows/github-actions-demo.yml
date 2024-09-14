@@ -6,6 +6,9 @@ on:
 jobs:
   Explore-GitHub-Actions:
     runs-on: [self-hosted, macOS, ARM64]
+    defaults:
+     run:
+       shell: zsh {0}
     steps:
       #- uses: actions/checkout@v2
       - name: Activate Conda
