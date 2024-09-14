@@ -13,7 +13,7 @@ jobs:
           conda init
           conda env create --name Babel --file=environment_mac_arm64-39.yml
           conda activate Babel
-      - name: Copy config files
+      #- name: Copy config files
         #run: |
         #  cp /Users/spichardo/Documents/BabelBrain/Tests/config.ini Tests/
       - name: run pytest
