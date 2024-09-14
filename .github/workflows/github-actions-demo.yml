@@ -7,13 +7,14 @@ jobs:
   Explore-GitHub-Actions:
     runs-on: [self-hosted, macOS, ARM64]
     steps:
+      #- uses: actions/checkout@v2
       - name: Activate Conda
-        -run: |
+        run: |
           cd BabelBrain
           conda activate BabelBrain
       - name: Copy config files
-        -run: |
+        run: |
           cp ~/Documents/BabelBrain/Test/config.ini Test/
       - name: run pytest
-        -run: |
+        run: |
           coverage run -m pytest Tests -k 'test_step1_normal[SDR_0p55-CT-H317-Deep_Target-brainsight]' 
