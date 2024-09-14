@@ -7,7 +7,7 @@ import logging
 import pytest
 import numpy as np
 from scipy import ndimage
-
+print('current dir',os.getcwd())
 import MedianFilter
 
 def test_median_filter(computing_backend,dataset,check_os,get_gpu_device,load_files,get_mpl_plot,compare_data,request):
