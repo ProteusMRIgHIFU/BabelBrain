@@ -20,7 +20,6 @@ jobs:
          cp /Users/spichardo/Public/TempForSim/config.ini Tests/
       - name: run pytest
         run: |
-          whoami
           . /Users/spichardo/miniconda3/etc/profile.d/conda.sh
           conda activate BabelBrain
-          coverage run -m pytest Tests -k 'test_step1_normal[SDR_0p55-CT-H317-Deep_Target-brainsight]' 
+          pytest Tests -k 'test_step1_normal[SDR_0p55-CT-H317-Deep_Target-brainsight]' 
