@@ -13,14 +13,14 @@ jobs:
     defaults:
      run:
        shell: zsh {0}
-    if: ${{ (github.event.comment.body== 'macarm64')}) #&& (needs.rules.outputs.branch_name != 'staging') }}
+    if: ${{ (github.event.comment.body== 'macarm64') })
     steps:
       - name: execute if macarm64
         run: |
           echo "username  $github_username"
           echo "github_id  $github_id" 
           echo "Running pytest mac arm 64"
-
+      #&& (needs.rules.outputs.branch_name != 'staging') }}
       # - name: Activate Conda
       #   run: |
       #     . /Users/spichardo/miniconda3/etc/profile.d/conda.sh
