@@ -361,7 +361,7 @@ def get_freq():
     def _get_freq(tx):
         if tx == 'Single':
             freq = '400'
-        elif tx in ['CTX_500','DPX_500']:
+        elif tx in ['CTX_500','DPX_500','H246']:
             freq = '500'
         elif tx == 'CTX_250':
             freq = '250'
