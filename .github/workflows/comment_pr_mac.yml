@@ -13,7 +13,7 @@ jobs:
     defaults:
      run:
        shell: zsh {0}
-    if: ${{ (github.event.comment.body== 'macarm64') #&& (needs.rules.outputs.branch_name != 'staging') }}
+    if: ${{ (github.event.comment.body== 'macarm64')}) #&& (needs.rules.outputs.branch_name != 'staging') }}
     steps:
       - name: execute if macarm64
         run: |
