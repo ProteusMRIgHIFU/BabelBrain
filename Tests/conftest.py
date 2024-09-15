@@ -54,7 +54,8 @@ test_datasets = [
     {'id': 'SDR_0p42','folder_path': test_data_folder + 'SDR_0p42' + os.sep},
     {'id': 'SDR_0p55','folder_path': test_data_folder + 'SDR_0p55' + os.sep},    
     {'id': 'SDR_0p67','folder_path': test_data_folder + 'SDR_0p67' + os.sep},     
-    {'id': 'SDR_0p79','folder_path': test_data_folder + 'SDR_0p79' + os.sep}
+    {'id': 'SDR_0p79','folder_path': test_data_folder + 'SDR_0p79' + os.sep},
+    {'id': 'ID_0082','folder_path': test_data_folder + 'ID_0082' + os.sep}
 ]
 CT_types = {
     'NONE': 0, # T1W Only

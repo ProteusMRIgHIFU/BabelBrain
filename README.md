@@ -78,6 +78,8 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+-0.4.1 -  Sep 15th, 2024
+- **Fix** : Correcting Mechanical Index (MI) report in Step 3. We identified that a wrong mask was used to find the highest value of pressure used to report the MI. This error was only applicable to the MI. The fix now uses the same location as used for maximal intensity Isppa. Results from studies using versions of BabelBrain prior to 0.4.1 can retrospectively calculate the correct MI using the formula `MI=SQRT(Selected_Isppa * 1e4 * 2 * 1041 * 1562)/1e6/SQRT(Frequency_MHz)`, where `Selected_Isppa` is the intensity in W/cm2 as used in Step 3 and `Frequency_MHz` is the selected frequency in MHz.
 - 0.4.0-1 - Sep 10th, 2024
   - **Fix**: Filter for voxelization on CONDA reenabled.
   - 0.4.0 - Sep 7th, 2024
