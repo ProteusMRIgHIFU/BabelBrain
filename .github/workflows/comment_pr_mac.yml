@@ -9,17 +9,18 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     env:
       github_username: ${{ github.actor }}
+      github_id: ${{ github.actor_id }}
     defaults:
      run:
        shell: zsh {0}
+    if: ${{ (github.event.comment.body== 'macarm64') #&& (needs.rules.outputs.branch_name != 'staging') }}
     steps:
       - name: execute if macarm64
-        if: contains(github.event.comment.body, '/[macarm64]]') 
-      - uses: actions/checkout@v2
-      - name: Do pytest
         run: |
-          echo "username  $github_username""
+          echo "username  $github_username"
+          echo "github_id  $github_id" 
           echo "Running pytest mac arm 64"
+
       # - name: Activate Conda
       #   run: |
       #     . /Users/spichardo/miniconda3/etc/profile.d/conda.sh
