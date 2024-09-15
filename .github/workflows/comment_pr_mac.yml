@@ -18,7 +18,8 @@ jobs:
       - name: execute if macarm64
         run: |
           echo "username  $github_username"
-          echo "github_id  $github_id" 
+          echo "github_id  $github_id"
+          echo "comment  $github_comment" 
           echo "Running pytest mac arm 64"
       #&& (needs.rules.outputs.branch_name != 'staging') }}
       # - name: Activate Conda
