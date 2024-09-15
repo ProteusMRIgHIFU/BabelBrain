@@ -13,7 +13,7 @@ jobs:
     defaults:
      run:
        shell: zsh {0}
-    if: ${{ (github.event.comment.body== 'macarm64') })
+    if: contains(github.event.comment.body, '/[macarm64]]') 
     steps:
       - name: execute if macarm64
         run: |
