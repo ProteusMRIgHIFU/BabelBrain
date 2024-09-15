@@ -1,0 +1,17 @@
+name: action on PR
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on:
+  pull_request:
+    types: [opened, reopened]
+jobs:
+  Explore-GitHub-Actions:
+    runs-on: [self-hosted, macOS, ARM64]
+    defaults:
+     run:
+       shell: zsh {0}
+    steps:
+      - uses: actions/checkout@v2
+      - name: notify checkout
+        run: |
+          echo "checkout of PR"
+     
