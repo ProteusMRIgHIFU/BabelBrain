@@ -1,5 +1,6 @@
 
 import os
+from glob import glob
 import sys
 sys.path.append('./BabelBrain/')
 import platform
@@ -73,9 +74,14 @@ thermal_profiles = {
 transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
     {'name': 'CTX_500', 'dropdown_index': 1, 'diameter': 0},
-    {'name': 'H317', 'dropdown_index': 2, 'diameter': 0},
-    {'name': 'H246', 'dropdown_index': 3, 'diameter': 0},
-    {'name': 'BSonix', 'dropdown_index': 4, 'diameter': 0}
+    {'name': 'CTX_250', 'dropdown_index': 2, 'diameter': 0},
+    {'name': 'DPX_500', 'dropdown_index': 3, 'diameter': 0},
+    {'name': 'H317', 'dropdown_index': 4, 'diameter': 0},
+    {'name': 'H246', 'dropdown_index': 5, 'diameter': 0},
+    {'name': 'BSonix', 'dropdown_index': 6, 'diameter': 0},
+    {'name': 'REMOPD', 'dropdown_index': 7, 'diameter': 0},
+    {'name': 'I12378', 'dropdown_index': 8, 'diameter': 0},
+    {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -352,21 +358,33 @@ def selfiles_widget(qtbot):
 def get_freq():
 
     def _get_freq(tx):
-        if tx == 'H317':
-            freq = '250'
-        elif tx == 'BSonix':
-            freq = '650'
-        else:
+        if tx == 'Single':
+            freq = '400'
+        elif tx in ['CTX_500','DPX_500']:
             freq = '500'
+        elif tx == 'CTX_250':
+            freq = '250'
+        elif tx == 'H317':
+            freq = '250'
+        elif tx in ['BSonix','I12378']:
+            freq = '650'
+        elif tx in ['ATAC']:
+            freq = '1000'
+        elif tx == 'REMOPD':
+            freq = '300'
         return freq
 
     return _get_freq
 
 @pytest.fixture()
-def babelbrain_widget(qtbot,trajectory,
-                      trajectory_type,
+def babelbrain_widget(qtbot,trajectory_type,
+                      scan_type,
+                      trajectory,
+                      dataset,
                       transducer,
-                      scan_type,dataset,selfiles_widget,get_freq,tmp_path):
+                      selfiles_widget,
+                      get_freq,
+                      tmp_path):
 
     # Folder paths
     input_folder = dataset['folder_path']
@@ -395,6 +413,7 @@ def babelbrain_widget(qtbot,trajectory,
     selfiles_widget.ui.ContinuepushButton.click()
 
     # Create BabelBrain widget
+    os.environ['BABEL_PYTEST']='1'
     bb_widget = BabelBrain(selfiles_widget,AltOutputFilesPath=str(tmp_path))
     bb_widget.show()
     qtbot.addWidget(bb_widget) # qtbot will handle bb_widget teardown
@@ -439,43 +458,16 @@ def babelbrain_widget(qtbot,trajectory,
     if tmp_path.exists():
         shutil.rmtree(tmp_path) # Remove all files created in tmp folder
 
-@pytest.fixture()
-def mock_NotifyError(babelbrain_widget,monkeypatch):
-    # Tests hang up when a messagebox is created during testing (e.g. an error box)
-    # To prevent this from happening, we mock the function responsible for creating the error box
-
-    def _mock_NotifyError(self):
-        self.Widget.tabWidget.setEnabled(True) # Set to True to prevent timeout from occurring
-        self.testing_error = True
-    
-    monkeypatch.setattr(BabelBrain,'NotifyError',_mock_NotifyError)
-
-    return _mock_NotifyError
-
-@pytest.fixture()
-def mock_UpdateMask(babelbrain_widget,monkeypatch):
-    # Occasionally get errors during UpdateMask call, we'll temporarily mock it until
-    # more in depth testing can reveal the cause
-
-    def _mock_UpdateMask(self):
-        self.Widget.tabWidget.setEnabled(True) # Set to True to prevent timeout from occurring
-        self.testing_error = False
-    
-    monkeypatch.setattr(BabelBrain,'UpdateMask',_mock_UpdateMask)
-
-    return _mock_UpdateMask
+    os.environ.pop('BABEL_PYTEST')
 
 # PYTEST HOOKS
 def pytest_generate_tests(metafunc):
     # Parametrize tests based on arguments
-    if 'dataset' in metafunc.fixturenames:
-        metafunc.parametrize('dataset',tuple(test_datasets),ids=tuple(ds['id'] for ds in test_datasets))
+    if 'trajectory_type' in metafunc.fixturenames:
+        metafunc.parametrize('trajectory_type', tuple(test_trajectory_type)) 
 
     if 'scan_type' in metafunc.fixturenames:
         metafunc.parametrize('scan_type',tuple(CT_types.keys()))
-
-    if 'transducer' in metafunc.fixturenames:
-        metafunc.parametrize('transducer', tuple(transducers),ids=tuple(tx['name'] for tx in transducers))
 
     if 'trajectory' in metafunc.fixturenames and 'invalid' in metafunc.function.__name__:
         metafunc.parametrize('trajectory', tuple(invalid_trajectories))
@@ -483,10 +475,12 @@ def pytest_generate_tests(metafunc):
                                                     'normal' in metafunc.function.__name__):
         metafunc.parametrize('trajectory', tuple(valid_trajectories)) 
     
-
-    if 'trajectory_type' in metafunc.fixturenames:
-        metafunc.parametrize('trajectory_type', tuple(test_trajectory_type)) 
-
+    if 'dataset' in metafunc.fixturenames:
+        metafunc.parametrize('dataset',tuple(test_datasets),ids=tuple(ds['id'] for ds in test_datasets))
+    
+    if 'transducer' in metafunc.fixturenames:
+        metafunc.parametrize('transducer', tuple(transducers),ids=tuple(tx['name'] for tx in transducers))
+    
     if 'computing_backend' in metafunc.fixturenames:
         metafunc.parametrize('computing_backend',tuple(computing_backends),ids=tuple(cb['type'] for cb in computing_backends))
 

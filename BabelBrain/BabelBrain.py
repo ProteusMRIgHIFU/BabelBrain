@@ -806,10 +806,15 @@ class BabelBrain(QWidget):
     def NotifyError(self):
         self.SetErrorDomainCode()
         self.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.exec()
+        else:
+            #this will unblock for PyTest
+            self.testing_error = True
+            self.Widget.tabWidget.setEnabled(True)
 
     def UpdateMask(self):
         '''

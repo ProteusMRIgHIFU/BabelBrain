@@ -490,7 +490,9 @@ class RUN_SIM_BASE(object):
                                                         bMinimalSaving=bMinimalSaving,
                                                         bUseRayleighForWater=bUseRayleighForWater,
                                                         FILENAMESWater=FILENAMESWater)
-                    
+        if 'TEST_FORCE_ERROR_BABEL_STEP2' in os.environ:
+            if  os.environ['TEST_FORCE_ERROR_BABEL_STEP2']=='1':
+                raise ValueError('TEST_FORCE_ERROR_BABEL_STEP2 was set to 1')
         return OutNames
     
 def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
