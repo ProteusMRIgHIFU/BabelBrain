@@ -1,8 +1,8 @@
 name: GitHub Actions Demo
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on:
-  pull_request_review_comment:
-    types: [created, edited]
+  issue_comment:
+    types: [created]
 jobs:
   Run-test-mac-arm64:
     #if: ${{ (github.event.issue.pull_request) && (github.event.comment.body== '[macarm64]') }}
