@@ -5,11 +5,12 @@ on:
     types: [created]
 jobs:
   Run-test-mac-arm64:
-    if: ${{ (github.event.issue.pull_request) && (github.event.comment.body== '[macarm64]') }}
+    #if: ${{ (github.event.issue.pull_request) && (github.event.comment.body== '[macarm64]') }}
     runs-on: [self-hosted, macOS, ARM64]
     env:
       github_username: ${{ github.actor }}
       github_id: ${{ github.actor_id }}
+      github_comment: ${{ github.event.comment.body }}
     defaults:
      run:
        shell: zsh {0}
