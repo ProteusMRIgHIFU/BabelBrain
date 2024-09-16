@@ -1,4 +1,5 @@
 
+import datetime
 import os
 from glob import glob
 import sys
@@ -641,3 +642,15 @@ def pytest_runtest_makereport(item,call):
             extras.append(pytest_html.extras.html(f"<tr>{img_tags}</tr>"))
             
         report.extras = extras
+
+@pytest.hookimpl()
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Hook to modify inline final report"""
+    terminalreporter.write_line(f"Total tests run: {terminalreporter._numcollected}")
+    terminalreporter.write_line(f"Total failures: {len(terminalreporter.stats.get('failed', []))}")
+    terminalreporter.write_line(f"Total passes: {len(terminalreporter.stats.get('passed', []))}")
+
+    # Change report name to include time of completion
+    report_name = f"report_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
+    os.rename('PyTest_Reports' + os.sep + 'report.html', 'PyTest_Reports' + os.sep + report_name)
+    print(f"Report saved as {report_name}")
