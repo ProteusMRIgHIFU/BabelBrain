@@ -37,6 +37,10 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         from TranscranialModeling.BabelIntegrationSingle import RUN_SIM 
     elif TxSystem =='CTX_500':
         from TranscranialModeling.BabelIntegrationCTX500 import RUN_SIM 
+    elif TxSystem =='CTX_250':
+        from TranscranialModeling.BabelIntegrationCTX250 import RUN_SIM 
+    elif TxSystem =='DPX_500':
+        from TranscranialModeling.BabelIntegrationDPX500 import RUN_SIM 
     elif TxSystem =='H317':
         from TranscranialModeling.BabelIntegrationH317 import RUN_SIM
     elif TxSystem =='H246':
@@ -95,7 +99,10 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                         fsub=f.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz')
                         nSub.append(nibabel.load(fsub))    
                         if kargs['bDoRefocusing']:
-                            fsubrefocus=f.replace('DataForSim.h5','FullElasticSolutionRefocus_Sub_NORM.nii.gz')
+                            if 'Water_DataForSim.h5' in f:
+                                fsubrefocus=fsub
+                            else:
+                                fsubrefocus=f.replace('DataForSim.h5','FullElasticSolutionRefocus_Sub_NORM.nii.gz')
                             nRefocus.append(nibabel.load(fsubrefocus))    
                     
                     for ss,sub in zip(['','Refocus'],[nSub,nRefocus]):
@@ -106,7 +113,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             AllpData=AllpData.max(axis=0)
                             combinedNifti=nibabel.Nifti1Image(AllpData,sub[0].affine,header=sub[0].header)
                             if 'Water_DataForSim.h5' in fnames[0] :
-                                send = '_Water_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
+                                send = '_Water_FullElasticSolution_Sub_NORM.nii.gz'
                             else:
                                 send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
                             finalName=fnames[0].split('__Steer_X')[0]+send

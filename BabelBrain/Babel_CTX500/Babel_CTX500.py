@@ -108,6 +108,11 @@ class CTX500(BabelBaseTx):
         self._UnmodifiedZMechanic = self._ZMaxSkin
         self.TPODistanceUpdate(0)
 
+    @property
+    def _KeyCorrection(self):
+        curTx=self._MainApp.Config['TxSystem']
+        return curTx+'_Correction' 
+
     @Slot()
     def TPODistanceUpdate(self,value):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
@@ -122,7 +127,6 @@ class CTX500(BabelBaseTx):
         else:
             self.Widget.LabelTissueRemoved.setVisible(False)
 
-
     @Slot()
     def RunSimulation(self):
         self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
@@ -133,7 +137,13 @@ class CTX500(BabelBaseTx):
         bCalcFields=False
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
-            TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
+
+            SelCorrection =self._MainApp.Config[self._KeyCorrection]
+            CoeffA = self.Config['Corrections'][SelCorrection][0]
+            CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0
+            CoeffC = self.Config['Corrections'][SelCorrection][2]-Skull['ZSteering']-self.Config['NaturalOutPlaneDistance']
+            
+            TPO=np.max(np.roots([CoeffA,CoeffB,CoeffC]))
             
             DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
@@ -217,13 +227,16 @@ class RunAcousticSim(QObject):
         ##############
 
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
+        SelCorrection =self._mainApp.Config[self._mainApp.AcSim._KeyCorrection]
+        Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
+        print('Applying ZSteering correction: ',SelCorrection,Correction)
 
 
-        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']
+        ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']+Correction
         print('ZSteering',ZSteering*1e3)
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        Frequencies = [self._mainApp._Frequency]
+        basePPW=[self._mainApp._BasePPW]
         T0=time.time()
         kargs={}
         kargs['ID']=ID

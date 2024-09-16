@@ -1,7 +1,9 @@
 import logging
 logger = logging.getLogger()
 import os
+from pathlib import Path
 import platform
+import sys
 import warnings
 
 from nibabel import processing
@@ -18,6 +20,20 @@ try:
 except:
     from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
 
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
+
 def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
     global prgcl
@@ -29,9 +45,8 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    base_path = os.path.abspath('.')
     kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'affine_transform.cpp',
+       os.path.join(resource_path(), 'affine_transform.cpp'),
         # base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'spline_filter.cpp'
     ]
 

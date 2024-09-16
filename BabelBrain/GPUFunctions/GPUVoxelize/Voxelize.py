@@ -21,7 +21,7 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS)
+        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
     else:
         bundle_dir = Path(__file__).parent
 
@@ -54,10 +54,7 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global mf
     global clp
 
-    base_path = os.path.abspath('.')
-    kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUVoxelize' + os.sep + 'voxelize.cpp',
-    ]
+    kernel_files = [os.path.join(resource_path(),'voxelize.cpp')]
 
     if GPUBackend == 'CUDA':
         import cupy as cp
@@ -248,9 +245,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                                                     int_params_gpu,
                                                     np.uint32(gx),
                                                     np.uint32(gy),
-                                                    np.uint32(gz),
-                                                    np.uint32(points_section.size))
-                                                    )
+                                                    np.uint32(gz)))
 
                 # Move kernel output data back to host memory
                 points_section=points_section_gpu.get()

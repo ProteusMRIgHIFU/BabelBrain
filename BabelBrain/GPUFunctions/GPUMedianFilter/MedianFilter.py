@@ -2,13 +2,29 @@ import logging
 logger = logging.getLogger()
 import os
 import platform
+import sys
 
 import numpy as np
+
+from pathlib import Path
 
 try:
     from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
 except:
     from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
+    else:
+        bundle_dir = Path(__file__).parent
+    return bundle_dir
 
 def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue
@@ -20,10 +36,7 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    base_path = os.path.abspath('.')
-    kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUMedianFilter' + os.sep + 'median_filter.cpp',
-    ]
+    kernel_files = [os.path.join(resource_path(), 'median_filter.cpp')]
 
     if GPUBackend == 'CUDA':
         import cupy as cp

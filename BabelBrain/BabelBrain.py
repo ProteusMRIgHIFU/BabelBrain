@@ -26,7 +26,7 @@ import nibabel
 import numpy as np
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie
+from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie, QPainter, QImage,QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -353,7 +353,11 @@ class BabelBrain(QWidget):
         else:
             TrajectoryType ='slicer'
         
-        self.Config={}
+        prevConfig = GetLatestSelection()
+        if prevConfig is None:
+            self.Config={}
+        else:
+            self.Config=prevConfig
         ComputingDevice,Backend =widget.GetSelectedComputingEngine()
         if ComputingDevice=='CPU':
             ComputingBackend=0
@@ -422,19 +426,20 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bForceUseBlender']=False
         self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
         self.DefaultAdvanced['TrabecularProportion']=0.8
+        self.DefaultAdvanced['CTX_500_Correction']='Original'
+        self.DefaultAdvanced['CTX_250_Correction']='Original'
+        self.DefaultAdvanced['DPX_500_Correction']='Original'
+        self.DefaultAdvanced['PetraNPeaks']=2
+        self.DefaultAdvanced['PetraMRIPeakDistance']=50
+        self.DefaultAdvanced['bInvertZTE']=False
+        self.DefaultAdvanced['bDisableCTMedianFilter']=False
+        self.DefaultAdvanced['bGeneratePETRAHistogram']=False
                 
         for k in self.DefaultAdvanced:
-            self.Config[k]=self.DefaultAdvanced[k]
+            if k not in self.Config:
+                self.Config[k]=self.DefaultAdvanced[k]
             
-        self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-AdvancedParams.yaml')
-        
-        if os.path.isfile(self.Config['AdvancedParamsFile']):
-            with open(self.Config['AdvancedParamsFile'],'r') as f:
-                PrevParams=yaml.load(f,yaml.SafeLoader)
-            for k in self.DefaultAdvanced:
-                if k in PrevParams:
-                    self.Config[k]=PrevParams[k]
-        
+        self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
             
         self.SaveLatestSelection()
 
@@ -512,6 +517,9 @@ class BabelBrain(QWidget):
                     print('Unable to save selection')
                     print(e)
 
+    def AddConfigInformation(self,key,entry):
+        self.Config[key]=entry
+        self.SaveLatestSelection()
 
     def load_ui(self):
         global GetSmallestSOS
@@ -530,6 +538,10 @@ class BabelBrain(QWidget):
             from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_500':
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+        elif self.Config['TxSystem'] =='CTX_250':
+            from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
+        elif self.Config['TxSystem'] =='DPX_500':
+            from Babel_DPX500.Babel_DPX500 import DPX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
             from Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':
@@ -681,7 +693,13 @@ class BabelBrain(QWidget):
             self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
             self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
             self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
-  
+            self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
+            self.Config['PetraNPeaks']=options.ui.PetraNPeaksSpinBox.value()
+            self.Config['PetraMRIPeakDistance']=options.ui.PetraMRIPeakDistancespinBox.value()
+            self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
+            self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
+            self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
+            self.SaveLatestSelection()
 
     @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
@@ -695,8 +713,12 @@ class BabelBrain(QWidget):
         '''
         Frequency=  self.Widget.USMaskkHzDropDown.property('UserData')
         BasePPW=self.Widget.USPPWSpinBox.property('UserData')
+        self._Frequency =Frequency
+        self._BasePPW =BasePPW
 
         self._prefix= self.Config['ID'] + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
+        
+        
         basedir = self.Config['OutputFilesPath']
         if not os.path.isdir(basedir):
             try:
@@ -803,10 +825,15 @@ class BabelBrain(QWidget):
     def NotifyError(self):
         self.SetErrorDomainCode()
         self.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.exec()
+        else:
+            #this will unblock for PyTest
+            self.testing_error = True
+            self.Widget.tabWidget.setEnabled(True)
 
     def UpdateMask(self):
         '''
@@ -831,7 +858,8 @@ class BabelBrain(QWidget):
         self._MaskData=Data
         if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
-            CTData=np.flip(self._CTnib.get_fdata(),axis=2)
+            AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
+            CTData=AllBoneHU[np.flip(self._CTnib.get_fdata(),axis=2).astype(int)]
         
         self._FinalMask=FinalMask
         voxSize=Data.header.get_zooms()
@@ -923,9 +951,10 @@ class BabelBrain(QWidget):
             #we use manual color asignation 
             colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
-        axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
-
-        self._figMasks.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+        leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+        self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
+        self._figMasks.set_facecolor(self._BackgroundColorFigures)
+        leg.get_frame().set_facecolor(self._BackgroundColorFigures)
         self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
 
@@ -954,7 +983,8 @@ class BabelBrain(QWidget):
           
     def GetExport(self):
         ExtraConfig ={}
-        ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
+        ExtraConfig['Frequency']=self._Frequency
+        ExtraConfig['PPW']=self._BasePPW
         if self.Config['bUseCT']:
             ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
@@ -988,6 +1018,11 @@ class BabelBrain(QWidget):
         with open(self._trackingtimefile,'w') as f:
             yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
+def get_color_at(widget, x,y):
+    pixmap = QPixmap(widget.size())
+    widget.render(pixmap)
+    return pixmap.toImage().pixelColor(x,y).getRgb()
+        
 class RunMaskGeneration(QObject):
 
     finished = Signal()
@@ -1012,10 +1047,10 @@ class RunMaskGeneration(QObject):
         T1WIso= self._mainApp.Config['T1WIso']
         T1W= self._mainApp.Config['T1W']
 
-        Frequency=  Widget.USMaskkHzDropDown.property('UserData')
+        Frequency=  self._mainApp._Frequency
         SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
 
-        BasePPW=Widget.USPPWSpinBox.property('UserData')
+        BasePPW=self._mainApp._BasePPW
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 
@@ -1047,34 +1082,43 @@ class RunMaskGeneration(QObject):
        
         #advanced parameters
         for k in self._mainApp.DefaultAdvanced:
-            kargs[k]=self._mainApp.Config[k] 
+            if '_Correction' not in k:
+                kargs[k]=self._mainApp.Config[k] 
         
         bForceFullRecalculation = False
         if os.path.isfile(self._mainApp.Config['AdvancedParamsFile']):
+            print('Advance params file',self._mainApp.Config['AdvancedParamsFile'])
             with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
             for k in self._mainApp.DefaultAdvanced:
-                if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
-                    bForceFullRecalculation=True
-                    break
+                if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
+                    if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
+                        bForceFullRecalculation=True
+                        print('PrevParamsFile - Parameter',k,'is not present in prevparams')
+                        break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
-                        bForceFullRecalculation=True
-                        break
+                    if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
+                        if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                            print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
+                            bForceFullRecalculation=True
+                            break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
             for k in self._mainApp.DefaultAdvanced:
-                if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                    bForceFullRecalculation=True
-                    break
+                if '_Correction' not in k:
+                    if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
+                        bForceFullRecalculation=True
+                        break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
             
         # now we save the parameters for future comparison
         NewParams={}
         for k in self._mainApp.DefaultAdvanced:
-            NewParams[k]=kargs[k]
+            if '_Correction' not in k:
+                NewParams[k]=kargs[k]
             
         with open(self._mainApp.Config['AdvancedParamsFile'],'w') as f:
             yaml.safe_dump(NewParams,f)

@@ -42,7 +42,7 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
 
     BetaStep = DBeta/nrstep
     
-    print(Beta1+BetaStep/2,Beta1+BetaStep*(1/2 + nrstep),BetaStep)
+    # print(Beta1+BetaStep/2,Beta1+BetaStep*(1/2 + nrstep),BetaStep)
     BetaC = np.arange(Beta1+BetaStep/2,Beta1+BetaStep*(1/2 + nrstep),BetaStep)
     
     Ind=0
@@ -177,7 +177,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._ZSteering=ZSteering
         super().__init__(**kargs)
         
-    def CreateSimConditions(self,**kargs):
+    def CreateSimConditions(self,**kargs):     
         return SimulationConditions(ZSteering=self._ZSteering,
                                     Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                     FocalLength=63.2e-3,

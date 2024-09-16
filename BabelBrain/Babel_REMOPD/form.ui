@@ -20,7 +20,7 @@
    <property name="geometry">
     <rect>
      <x>31</x>
-     <y>211</y>
+     <y>182</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -33,7 +33,7 @@
    <property name="geometry">
     <rect>
      <x>231</x>
-     <y>102</y>
+     <y>92</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -61,7 +61,7 @@
    <property name="geometry">
     <rect>
      <x>29</x>
-     <y>103</y>
+     <y>93</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -74,7 +74,7 @@
    <property name="geometry">
     <rect>
      <x>180</x>
-     <y>169</y>
+     <y>141</y>
      <width>76</width>
      <height>31</height>
     </rect>
@@ -99,7 +99,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>168</y>
+     <y>140</y>
      <width>150</width>
      <height>31</height>
     </rect>
@@ -118,8 +118,8 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="XMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>228</x>
-     <y>209</y>
+     <x>231</x>
+     <y>180</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -147,7 +147,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>241</y>
+     <y>205</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -159,8 +159,8 @@ to target (mm) :</string>
   <widget class="QDoubleSpinBox" name="YMechanicSpinBox">
    <property name="geometry">
     <rect>
-     <x>229</x>
-     <y>239</y>
+     <x>231</x>
+     <y>203</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -198,7 +198,7 @@ to target (mm) :</string>
    <property name="geometry">
     <rect>
      <x>32</x>
-     <y>272</y>
+     <y>229</y>
      <width>143</width>
      <height>31</height>
     </rect>
@@ -211,8 +211,8 @@ to skin (mm)</string>
   <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
    <property name="geometry">
     <rect>
-     <x>229</x>
-     <y>270</y>
+     <x>231</x>
+     <y>227</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -239,7 +239,7 @@ to skin (mm)</string>
   <widget class="QCheckBox" name="RefocusingcheckBox">
    <property name="geometry">
     <rect>
-     <x>223</x>
+     <x>222</x>
      <y>23</y>
      <width>27</width>
      <height>20</height>
@@ -260,7 +260,7 @@ to skin (mm)</string>
   <widget class="QLabel" name="label_22">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>25</x>
      <y>22</y>
      <width>143</width>
      <height>20</height>
@@ -280,7 +280,7 @@ to skin (mm)</string>
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>135</y>
+     <y>115</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -293,7 +293,7 @@ to skin (mm)</string>
    <property name="geometry">
     <rect>
      <x>231</x>
-     <y>134</y>
+     <y>114</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -321,7 +321,7 @@ to skin (mm)</string>
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>335</y>
+     <y>286</y>
      <width>153</width>
      <height>30</height>
     </rect>
@@ -337,8 +337,8 @@ target (mm)</string>
   <widget class="QDoubleSpinBox" name="MaxDepthSpinBox">
    <property name="geometry">
     <rect>
-     <x>229</x>
-     <y>343</y>
+     <x>231</x>
+     <y>289</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -409,7 +409,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>28</x>
-     <y>305</y>
+     <y>262</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -428,7 +428,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>225</x>
-     <y>305</y>
+     <y>256</y>
      <width>102</width>
      <height>30</height>
     </rect>
@@ -453,7 +453,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>231</x>
-     <y>75</y>
+     <y>70</y>
      <width>90</width>
      <height>22</height>
     </rect>
@@ -481,7 +481,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>29</x>
-     <y>76</y>
+     <y>71</y>
      <width>143</width>
      <height>20</height>
     </rect>
@@ -535,7 +535,7 @@ water only</string>
    <property name="geometry">
     <rect>
      <x>233</x>
-     <y>168</y>
+     <y>140</y>
      <width>104</width>
      <height>30</height>
     </rect>
@@ -592,6 +592,51 @@ will be removed!</string>
    </property>
    <property name="text">
     <string>Calculate Mechanical Adjustments</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_29">
+   <property name="geometry">
+    <rect>
+     <x>18</x>
+     <y>323</y>
+     <width>164</width>
+     <height>47</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Distance target to FLHM
+center [X, Y, Z] (mm):</string>
+   </property>
+   <property name="indent">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="DistanceTargetLabel">
+   <property name="geometry">
+    <rect>
+     <x>188</x>
+     <y>330</y>
+     <width>135</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
    </property>
   </widget>
  </widget>

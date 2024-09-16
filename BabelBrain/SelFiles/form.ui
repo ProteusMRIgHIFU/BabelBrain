@@ -475,6 +475,16 @@
     </item>
     <item>
      <property name="text">
+      <string>CTX_250</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>DPX_500</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
       <string>H317</string>
      </property>
     </item>

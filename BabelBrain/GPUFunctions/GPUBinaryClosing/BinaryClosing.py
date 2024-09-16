@@ -5,7 +5,9 @@ import os
 os.environ['PYOPENCL_NO_CACHE']='1'
 
 import numpy as np
+from pathlib import Path
 import platform
+import sys
 from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
@@ -13,6 +15,20 @@ try:
     from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
 except:
     from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
 
 def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
@@ -24,9 +40,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    base_path = os.path.abspath('.')
-    kernel_files = [
-        base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUBinaryClosing' + os.sep + 'binary_closing.cpp',
+    kernel_files = [os.path.join(resource_path(), 'binary_closing.cpp')
     ]
 
     if GPUBackend == 'CUDA':

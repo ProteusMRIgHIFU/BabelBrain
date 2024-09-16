@@ -68,11 +68,13 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
             kargsSub['PRF']=combination['PRF']
             kargsSub['DurationUS']=combination['Duration']
             kargsSub['DurationOff']=combination['DurationOff']
+            kargsSub['Repetitions']=combination['Repetitions']
             kargsSub['Isppa']=kargs['Isppa']
             kargsSub['sel_p']=kargs['sel_p']
             kargsSub['bPlot']=False
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
+            kargsSub['Frequency']=kargs['Frequency']
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)

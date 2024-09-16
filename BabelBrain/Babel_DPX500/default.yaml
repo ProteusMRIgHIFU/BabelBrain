@@ -1,0 +1,13 @@
+TxDiam:                   64.0e-3    #in m
+NaturalOutPlaneDistance:  144.9e-3  # in m
+MinimalTPODistance:       50.0e-3  # in m
+MaximalTPODistance:       120.0e-3  # in m
+USFrequencies:
+    - 500000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm
+Corrections:
+    Original:
+        - 1.03596820e+00 
+        - -8.90691139e-02
+        - -1.54865609e-04

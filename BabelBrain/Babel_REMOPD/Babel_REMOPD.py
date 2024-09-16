@@ -110,6 +110,7 @@ class REMOPD(BabelBasePhaseArray):
         
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
 
 
     @Slot()
@@ -250,9 +251,9 @@ class RunAcousticSim(QObject):
         RotationZ=self._mainApp.AcSim.Widget.ZRotationSpinBox.value()
         TxSet = self._mainApp.AcSim.Widget.SelTxSetDropDown.currentText()
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
+        Frequencies = [self._mainApp._Frequency]
 
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        basePPW=[self._mainApp._BasePPW]
         ZIntoSkin =0.0
         if TxMechanicalAdjustmentZ > 0:
             ZIntoSkin = np.abs(TxMechanicalAdjustmentZ)

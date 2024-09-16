@@ -347,8 +347,6 @@ class BabelBasePhaseArray(BabelBaseTx):
                     child.deleteLater()
                 delattr(self,'_figAcField')
                 self.Widget.AcField_plot1.repaint()
-                
-                
         
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
 
@@ -361,6 +359,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         #we need to declare these for compatibility for parent functions
         self._IWater = IWater
         self._ISkull = ISkull
+        
+        Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
+        self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
             sliceXZ=IWater[:,SelY,:]
@@ -420,7 +421,7 @@ class BabelBasePhaseArray(BabelBaseTx):
             static_ax2.invert_yaxis()
             self._marker2,=static_ax2.plot(0,self._DistanceToTarget,'+k',markersize=18)
         
-        self._figAcField.set_facecolor(np.array(self.Widget.palette().color(QPalette.Window).getRgb())/255)
+        self._figAcField.set_facecolor(self._MainApp._BackgroundColorFigures)
 
         mc=[0.0,0.0,0.0,1.0]
         if self.Widget.HideMarkscheckBox.isChecked():
@@ -487,8 +488,8 @@ class RunAcousticSim(QObject):
         print('ZSteering',ZSteering*1e3)
         print('RotationZ',RotationZ)
 
-        Frequencies = [self._mainApp.Widget.USMaskkHzDropDown.property('UserData')]
-        basePPW=[self._mainApp.Widget.USPPWSpinBox.property('UserData')]
+        Frequencies = [self._mainApp._Frequency]
+        basePPW=[self._mainApp._BasePPW]
         T0=time.time()
 
         DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3

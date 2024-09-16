@@ -8,6 +8,7 @@ MaximalZSteering:      100.0e-3  # in m
 DefaultZSteering:      30.0e-3  # in m
 USFrequencies:
     - 300000.0
+    - 490000.0 
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
 

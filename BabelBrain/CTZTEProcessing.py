@@ -22,6 +22,7 @@ import subprocess
 import shutil
 from linetimer import CodeTimer
 import hashlib
+import matplotlib.pyplot as plt
 
 
 
@@ -152,8 +153,20 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
             raise SystemError("Error when trying to run elastix")
 
 def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
-                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},):
+                convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},bInvertValues=False):
     inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
+    if bInvertValues:
+        imarray=sitk.GetArrayFromImage(inputImage)
+        imarray-=imarray.max()
+        imarray=-imarray
+        modified_sitk_image = sitk.GetImageFromArray(imarray)
+
+        # Set the spacing, origin, and direction to match the original image
+        modified_sitk_image.SetSpacing(inputImage.GetSpacing())
+        modified_sitk_image.SetOrigin(inputImage.GetOrigin())
+        modified_sitk_image.SetDirection(inputImage.GetDirection())
+        inputImage=modified_sitk_image
+        
     image = inputImage
 
     maskImage = sitk.OtsuThreshold(inputImage, 0, 1, 200)
@@ -249,14 +262,18 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer):
+def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,bIsPetra=False,bInvertZTE=True):
     #Bias correction
     
     T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
     N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
 
     ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
-    N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec)
+    if bIsPetra:
+        convergence={"iters": [50,40,30,20,10], "tol": 1e-7}
+        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,convergence=convergence)
+    else:
+        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
     
     #coreg
     ZTEInT1W=outputfnames['ZTEInT1W']
@@ -286,7 +303,7 @@ def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer)
     return T1fnameBiasCorrec,ZTEInT1W
 
 def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
-            PetraMRIPeakDistance=50,PetraNPeaks=2):
+            PetraMRIPeakDistance=50,PetraNPeaks=2,bGeneratePETRAHistogram=False):
     print('converting ZTE/PETRA to pCT with range',ThresoldsZTEBone)
 
     if SimbNIBSType=='charm':
@@ -327,7 +344,11 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
             print('Using PETRA specification to convert to pCT')
 
             #histogram normalization
-            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins='auto')
+            #histogram normalization
+            if (arrZTE.max()-arrZTE.min())>2**16-1:
+                raise ValueError('The range of values in the ZTE file exceeds 2^16')
+            edgesin=np.arange(int(arrZTE.min()),int(arrZTE.max())+2)-0.5                   
+            hist_vals, edges = np.histogram(arrZTE.flatten().astype(int),bins=edgesin)
             bins = (edges[1:] + edges[:-1])/2
             bins = bins[1:]
             hist_vals = hist_vals[1:]
@@ -343,6 +364,18 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
             pks=pks[ind]
             locs=locs[ind]
             arrZTE/=np.max(locs)
+
+            if bGeneratePETRAHistogram:
+                plt.figure()
+                plt.plot(bins, hist_vals);
+                for ind2 in locs:
+                    plt.plot([ind2,ind2],[np.min(hist_vals),np.max(hist_vals)])
+                plt.xlabel('PETRA Value')
+                plt.ylabel('Count')
+                plt.title('Image Histogram')
+                petrahistofname = InputZTE.split('.nii')[0]+'-PETRA_Histogram.pdf'
+                plt.savefig(petrahistofname)
+                plt.close('all')
         else:
             maskedZTE =arrZTE.copy()
             maskedZTE[arrMask==0]=-1000

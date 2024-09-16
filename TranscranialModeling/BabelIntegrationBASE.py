@@ -131,7 +131,7 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,1025e3,25e3):
+for f in np.arange(100e3,1025e3,5e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -490,7 +490,9 @@ class RUN_SIM_BASE(object):
                                                         bMinimalSaving=bMinimalSaving,
                                                         bUseRayleighForWater=bUseRayleighForWater,
                                                         FILENAMESWater=FILENAMESWater)
-                    
+        if 'TEST_FORCE_ERROR_BABEL_STEP2' in os.environ:
+            if  os.environ['TEST_FORCE_ERROR_BABEL_STEP2']=='1':
+                raise ValueError('TEST_FORCE_ERROR_BABEL_STEP2 was set to 1')
         return OutNames
     
 def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):

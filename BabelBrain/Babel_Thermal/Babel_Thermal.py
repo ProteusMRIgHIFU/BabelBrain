@@ -80,7 +80,7 @@ class Babel_Thermal(QWidget):
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
         self.Widget.CalculateThermal.setStyleSheet("color: red")
         self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
-        self.Widget.ExportThermalMap.clicked.connect(self.ExportThermalMap)
+        self.Widget.ExportMaps.clicked.connect(self.ExportMaps)
 
         self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
         self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
@@ -96,6 +96,9 @@ class Babel_Thermal(QWidget):
         self.Widget.LocMTC.setEnabled(False)
         self.Widget.LocMTS.clicked.connect(self.LocateMTS)
         self.Widget.LocMTS.setEnabled(False)
+        
+        self.Widget.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
+        self.Widget.DisplayDropDown.setEnabled(False)
 
         # for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
         #     l.setText(l.text()+' ('+"\u2103"+'):')
@@ -151,6 +154,10 @@ class Babel_Thermal(QWidget):
         with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
             print("Thermal configuration:")
+            for n in range(len(config['AllDC_PRF_Duration'])):
+                #if repetitions is not present in YAML (for all the old cases, we just assign a default of 1)
+                if 'Repetitions' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['Repetitions']=1
             print(config)
             self.Config=config
             self.bDisableUpdate=True
@@ -159,7 +166,10 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.removeItem(0)
 
             for c in self.Config['AllDC_PRF_Duration']:
-                self.Widget.SelCombinationDropDown.addItem('%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF']))
+                stritem ='%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF'])
+                if c['Repetitions'] >1:
+                    stritem += ' %iReps' %(c['Repetitions'])
+                self.Widget.SelCombinationDropDown.addItem(stritem)
             self.bDisableUpdate=False
 
     def EnableMultiPoint(self):
@@ -190,7 +200,8 @@ class Babel_Thermal(QWidget):
                                                     combination['DurationOff'],
                                                     combination['DC'],
                                                     self.Config['BaseIsppa'],
-                                                    combination['PRF'])+'.h5'
+                                                    combination['PRF'],
+                                                    combination['Repetitions'])+'.h5'
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
@@ -227,10 +238,15 @@ class Babel_Thermal(QWidget):
 
     def NotifyError(self):
         self._MainApp.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.exec()
+        else:
+            #this will unblock for PyTest
+            self._MainApp.testing_error = True
+            self._MainApp.Widget.tabWidget.setEnabled(True)
 
     @Slot()
     def HideMarkChange(self,val):
@@ -239,6 +255,10 @@ class Babel_Thermal(QWidget):
     @Slot()
     def UpdateSelCombination(self):
         self.UpdateThermalResults()
+        
+    @Slot()
+    def UpdateDisplay(self,val):
+        self.UpdateThermalResults()
 
     @Slot()
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
@@ -246,16 +266,26 @@ class Babel_Thermal(QWidget):
             return
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
-        self.Widget.ExportThermalMap.setEnabled(True)
+        self.Widget.ExportMaps.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
-        self.Widget.IsppaScrollBar.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
-        self.Widget.LocMTS.setEnabled(True)
-        self.Widget.LocMTC.setEnabled(True)
-        self.Widget.LocMTB.setEnabled(True)
-        if self.Widget.HideMarkscheckBox.isEnabled()== False:
-            self.Widget.HideMarkscheckBox.setEnabled(True)
-
+        self.Widget.DisplayDropDown.setEnabled(True)
+        WhatDisplay = self.Widget.DisplayDropDown.currentIndex()
+        if WhatDisplay==0:
+            self.Widget.LocMTS.setEnabled(True)
+            self.Widget.LocMTC.setEnabled(True)
+            self.Widget.LocMTB.setEnabled(True)
+            self.Widget.IsppaScrollBar.setEnabled(True)
+            if self.Widget.HideMarkscheckBox.isEnabled()== False:
+                self.Widget.HideMarkscheckBox.setEnabled(True)
+        else:
+            self.Widget.LocMTS.setEnabled(False)
+            self.Widget.LocMTC.setEnabled(False)
+            self.Widget.LocMTB.setEnabled(False)
+            self.Widget.IsppaScrollBar.setEnabled(False)
+            if self.Widget.HideMarkscheckBox.isEnabled()== True:
+                self.Widget.HideMarkscheckBox.setEnabled(False)
+            
         BaseField=self._MainApp.AcSim._FullSolName
         if type(BaseField) is list:
             BaseField=BaseField[0]
@@ -269,7 +299,8 @@ class Babel_Thermal(QWidget):
                                                         combination['DurationOff'],
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
-                                                        combination['PRF'])+'.h5'
+                                                        combination['PRF'],
+                                                        combination['Repetitions'])+'.h5'
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
                 if self._MainApp.Config['bUseCT']:
@@ -303,8 +334,6 @@ class Babel_Thermal(QWidget):
 
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
         
-        PresRatio=np.sqrt(IsppaRatio)
-
         if self._bMultiPoint:
             AdjustedIsspa = SelIsppa/DataThermal['RatioLosses']
             AdjustedIsspaStDev = np.std(AdjustedIsspa)
@@ -327,11 +356,22 @@ class Babel_Thermal(QWidget):
                 font.setPointSize(12)
             item.setFont(font)
             return item
+        
+        DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap']]
+        SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
 
-        IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/\
-                      DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
-                      DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][Loc[0],Loc[1],Loc[2]]]/\
-                      1e4*IsppaRatio
+        ImpedanceTarget = DensityMap[Loc[0],Loc[1],Loc[2]]*SoSMap[Loc[0],Loc[1],Loc[2]]
+        
+        if self._MainApp.Config['bUseCT']:
+            SelBrain=DataThermal['MaterialMap']==2
+        else:
+            SelBrain=DataThermal['MaterialMap']>=4
+
+        IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
+        
+        LocMax=np.array(np.where(DataThermal['p_map']==DataThermal['p_map'][SelBrain].max())).flatten()
+        ImpedanceLocMax= DensityMap[LocMax[0],LocMax[1],LocMax[2]]*SoSMap[LocMax[0],LocMax[1],LocMax[2]]
+        
         self.Widget.tableWidget.setItem(0,1,NewItem('%4.2f' % IsppaTarget,IsppaTarget))
 
         if self._bMultiPoint:
@@ -365,9 +405,9 @@ class Babel_Thermal(QWidget):
         MTCCEM=DoseUpdate[2]
         self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
-        MI=DataThermal['MI']*PresRatio
+        MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         self.Widget.tableWidget.setItem(9,1,NewItem('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
-    
+
         Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
         self.Widget.tableWidget.setItem(10,1,NewItem('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
 
@@ -377,6 +417,10 @@ class Babel_Thermal(QWidget):
             self._ZZ=ZZ
             
         if bUpdatePlot:
+           
+            if not hasattr(self,'_prevDisplay'):
+                self._prevDisplay = -1 #we set the initial plotting
+            
             DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap'][:,SelY,:]]
             SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap'][:,SelY,:]]
             IntensityMap=(DataThermal['p_map'][:,SelY,:]**2/2/DensityMap/SoSMap/1e4*IsppaRatio).T
@@ -391,7 +435,7 @@ class Babel_Thermal(QWidget):
             else:
                 crlims=[0,1,2,3]
 
-            if self._bRecalculated and hasattr(self,'_figIntThermalFields'):
+            if (self._bRecalculated or self._prevDisplay != WhatDisplay) and hasattr(self,'_figIntThermalFields'):
                 children = []
                 for i in range(self._layout.count()):
                     child = self._layout.itemAt(i).widget()
@@ -404,75 +448,105 @@ class Babel_Thermal(QWidget):
                 
 
             if hasattr(self,'_figIntThermalFields'):
-                self._IntensityIm.set_data(IntensityMap)
-                self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
-                self._ThermalIm.set_data(Tmap.T)
-                self._ThermalIm.set(clim=[37,Tmap.max()])
-                if hasattr(self,'_contour1'):
-                    for c in [self._contour1,self._contour2]:
-                        for coll in c.collections:
-                            coll.remove()
-                    del self._contour1
-                    del self._contour2
-                self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                while len(self._ListMarkers)>0:
-                    obj= self._ListMarkers.pop()
-                    obj.remove()
+                if WhatDisplay==0:
+                    self._IntensityIm.set_data(IntensityMap)
+                    self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
+                    self._ThermalIm.set_data(Tmap.T)
+                    self._ThermalIm.set(clim=[37,Tmap.max()])
+                    if hasattr(self,'_contour1'):
+                        for c in [self._contour1,self._contour2]:
+                            for coll in c.collections:
+                                coll.remove()
+                        del self._contour1
+                        del self._contour2
+                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    while len(self._ListMarkers)>0:
+                        obj= self._ListMarkers.pop()
+                        obj.remove()
+                else:
+                    curylim=list(self._static_ax1.get_ylim())
+                    MaxPrevTemp=0.0
+                    MinPrevTemp=1e6
+                    for e in self._TempPlot:
+                        ydata=e.get_ydata()
+                        MaxPrevTemp=np.max([MaxPrevTemp,np.max(ydata)])
+                        MinPrevTemp=np.min([MinPrevTemp,np.min(ydata)])
+                    perUpLim=curylim[1]/MaxPrevTemp
+                    perUpDown=curylim[0]/MinPrevTemp
+                    curylim[1]=np.max(AdjustedTemp)*perUpLim
+                    curylim[0]=np.min(AdjustedTemp)*perUpDown
+                            
+                    for n in range(AdjustedTemp.shape[0]):
+                        self._TempPlot[n].set_ydata(AdjustedTemp[n,:])
+                    self._static_ax1.set_ylim(curylim)
+                    
                 self._figIntThermalFields.canvas.draw_idle()
             else:
-                self._ListMarkers=[]
                 if not hasattr(self,'_layout'):
                     self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+                if WhatDisplay==0:
+                    self._ListMarkers=[]
+                    self._figIntThermalFields=Figure(figsize=(14, 12))
+                    self.static_canvas = FigureCanvas(self._figIntThermalFields)
+                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    self._layout.addWidget(toolbar)
+                    self._layout.addWidget(self.static_canvas)
+                    static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+                    self._static_ax1=static_ax1
+                    self._static_ax2=static_ax2
 
-                self._figIntThermalFields=Figure(figsize=(14, 12))
-                self.static_canvas = FigureCanvas(self._figIntThermalFields)
-                toolbar=NavigationToolbar2QT(self.static_canvas,self)
-                self._layout.addWidget(toolbar)
-                self._layout.addWidget(self.static_canvas)
-                static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
-                self._static_ax1=static_ax1
-                self._static_ax2=static_ax2
+                    self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                            cmap=plt.cm.jet)
+                    static_ax1.set_title('Isppa (W/cm$^2$)')
+                    plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-                self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
-                        cmap=plt.cm.jet)
-                self._marker1=static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0]
-                static_ax1.set_title('Isppa (W/cm$^2$)')
-                plt.colorbar(self._IntensityIm,ax=static_ax1)
+                    self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
-                self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    static_ax1.set_ylabel('Distance from skin (mm)')
 
-                static_ax1.set_ylabel('Distance from skin (mm)')
+                    self._ThermalIm=static_ax2.imshow(Tmap.T,
+                            extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+                    static_ax2.set_title('Temperature ($^{\circ}$C)')
 
-                self._ThermalIm=static_ax2.imshow(Tmap.T,
-                        extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
-                self._marker2=static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0]
-                static_ax2.set_title('Temperature ($^{\circ}$C)')
+                    plt.colorbar(self._ThermalIm,ax=static_ax2)
+                    self._contour2=static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
 
-                plt.colorbar(self._ThermalIm,ax=static_ax2)
-                self._contour2=static_ax2.contour(XX,ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-
-                # self._figIntThermalFields.set_tight_layout(True)
-
-                self._figIntThermalFields.set_facecolor(np.array(self.palette().color(QPalette.Window).getRgb())/255)
+                    self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
+                else:
+                    self._figIntThermalFields=Figure(figsize=(14, 12))
+                    self.static_canvas = FigureCanvas(self._figIntThermalFields)
+                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    self._layout.addWidget(toolbar)
+                    self._layout.addWidget(self.static_canvas)
+                    static_ax1 = self.static_canvas.figure.subplots(1,1)
+                    timevec=np.arange(AdjustedTemp.shape[1])*DataThermal['dt']
+                    self._TempPlot=static_ax1.plot(timevec,AdjustedTemp.T)
+                    static_ax1.set_xlabel('time (s)')
+                    static_ax1.set_ylabel('temperature (degrees C)')
+                    leg=static_ax1.legend(['Skin','Brain','Skull','Target'], bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+                    self._static_ax1=static_ax1
+                    self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
+                    self._static_ax1.set_facecolor(self._MainApp._BackgroundColorFigures)
+                    leg.get_frame().set_facecolor(self._MainApp._BackgroundColorFigures)
+                    
 
             self._bRecalculated=False
-            mc = [0.0,0.0,0.0,1.0]
-            if self.Widget.HideMarkscheckBox.isChecked():
-                mc[3]=0.0 
-            self._marker1.set_markerfacecolor(mc)
-            self._marker2.set_markerfacecolor(mc)
-
-            yf=DataThermal['y_vec']
-            yf-=yf[Loc[1]]
-            if not self.Widget.HideMarkscheckBox.isChecked():
-                for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
-                    if SelY == DataThermal[k][1]:
-                        self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
-                                        zf[DataThermal[k][2]],'wx',markersize=12)[0])
-                        self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
-                                        zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
-            self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
+            if WhatDisplay==0:
+                yf=DataThermal['y_vec']
+                yf-=yf[Loc[1]]
+                if not self.Widget.HideMarkscheckBox.isChecked():
+                    self._ListMarkers.append(self._static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0])
+                    self._ListMarkers.append(self._static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0])
+                    for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
+                        if SelY == DataThermal[k][1]:
+                            self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
+                                            zf[DataThermal[k][2]],'wx',markersize=12)[0])
+                            self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
+                                            zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
+                            
+                self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
+            self._prevDisplay=WhatDisplay
 
     @Slot()
     def LocateMTB(self):
@@ -562,7 +636,7 @@ class Babel_Thermal(QWidget):
             self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
     @Slot()
-    def ExportThermalMap(self):
+    def ExportMaps(self):
         OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
         SelIsppa=self.Widget.IsppaSpinBox.value()
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
@@ -574,7 +648,7 @@ class Babel_Thermal(QWidget):
         print(OutName)
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
-        if self._MainApp.Config['TxSystem'] not in ['CTX_500','Single','H246','BSonix']:
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
             if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix
@@ -584,13 +658,36 @@ class Babel_Thermal(QWidget):
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
         nii.to_filename(OutName)
+
+        pressureField = DataThermal['p_map'] * np.sqrt(IsppaRatio)
+        
+        DensityMap=DataThermal['MaterialList']['Density'][DataThermal['MaterialMap']]
+        SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
+        intensityField=pressureField**2/2/DensityMap/SoSMap/1e4
+
+        pressureField=np.flip(pressureField,axis=2)
+        intensityField=np.flip(intensityField,axis=2)
+
+        OutName2=OutName.replace('ThermalField','PressureField')
+        nii=nibabel.Nifti1Image(pressureField,affine=nidata.affine)
+        nii.to_filename(OutName2)
+
+        OutName3=OutName.replace('ThermalField','IntensityField')
+        nii=nibabel.Nifti1Image(intensityField,affine=nidata.affine)
+        nii.to_filename(OutName3)
+            
+
         #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
                 f.write(OutName)
-        txt = "Thermal map file\n" + os.path.basename(OutName) +'\nsaved at:\n '+os.path.dirname(OutName)
+        txt =  'Thermal map file\n' + os.path.basename(OutName) +',\n'
+        txt += 'Pressure map file\n' + os.path.basename(OutName2) +',\n'
+        txt += 'Intensiy map file\n' + os.path.basename(OutName3) +',\n'
+        txt += 'saved at:\n '+os.path.dirname(OutName)
+
         maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])
-        msgBox = DialogShowText(txt,"Saved thermal map")
+        msgBox = DialogShowText(txt,"Saved maps")
         msgBox.exec()
 
 
@@ -634,9 +731,10 @@ class RunThermalSim(QObject):
         kargs['deviceName']=self._mainApp.Config['ComputingDevice']
         kargs['COMPUTING_BACKEND']=self._mainApp.Config['ComputingBackend']
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
+        kargs['Frequency']=self._mainApp._Frequency
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
-        if kargs['TxSystem'] in ['CTX_500','Single','H246','BSonix']:
+        if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
             kargs['sel_p']='p_amp'
         else:
             bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
