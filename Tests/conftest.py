@@ -1,5 +1,6 @@
 
 import os
+from glob import glob
 import sys
 sys.path.append('./BabelBrain/')
 import platform
@@ -29,9 +30,10 @@ config = configparser.ConfigParser()
 config.read('Tests' + os.sep + 'config.ini')
 test_data_folder = config['Paths']['data_folder_path']
 gpu_device = config['GPU']['device_name']
+print('gpu_device',gpu_device)
 
 # PARAMETERS
-trajectory_type = {
+test_trajectory_type = {
     'brainsight': 0,
     'slicer': 1
 }
@@ -52,7 +54,8 @@ test_datasets = [
     {'id': 'SDR_0p42','folder_path': test_data_folder + 'SDR_0p42' + os.sep},
     {'id': 'SDR_0p55','folder_path': test_data_folder + 'SDR_0p55' + os.sep},    
     {'id': 'SDR_0p67','folder_path': test_data_folder + 'SDR_0p67' + os.sep},     
-    {'id': 'SDR_0p79','folder_path': test_data_folder + 'SDR_0p79' + os.sep}
+    {'id': 'SDR_0p79','folder_path': test_data_folder + 'SDR_0p79' + os.sep},
+    {'id': 'ID_0082','folder_path': test_data_folder + 'ID_0082' + os.sep}
 ]
 CT_types = {
     'NONE': 0, # T1W Only
@@ -65,16 +68,21 @@ coregistration = {
     'yes': 1
 }
 thermal_profiles = {
-    'thermal_profile_1': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml',
-    'thermal_profile_2': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml',
-    'thermal_profile_3': test_data_folder + 'Thermal_Profiles' + os.sep + 'Profile_1.yaml'
+    'thermal_profile_1': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_1.yaml',
+    'thermal_profile_2': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_2.yaml',
+    'thermal_profile_3': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_3.yaml'
 }
 transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
     {'name': 'CTX_500', 'dropdown_index': 1, 'diameter': 0},
-    {'name': 'H317', 'dropdown_index': 2, 'diameter': 0},
-    {'name': 'H246', 'dropdown_index': 3, 'diameter': 0},
-    {'name': 'BSonix', 'dropdown_index': 4, 'diameter': 0}
+    {'name': 'CTX_250', 'dropdown_index': 2, 'diameter': 0},
+    {'name': 'DPX_500', 'dropdown_index': 3, 'diameter': 0},
+    {'name': 'H317', 'dropdown_index': 4, 'diameter': 0},
+    {'name': 'H246', 'dropdown_index': 5, 'diameter': 0},
+    {'name': 'BSonix', 'dropdown_index': 6, 'diameter': 0},
+    {'name': 'REMOPD', 'dropdown_index': 7, 'diameter': 0},
+    {'name': 'I12378', 'dropdown_index': 8, 'diameter': 0},
+    {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -351,18 +359,33 @@ def selfiles_widget(qtbot):
 def get_freq():
 
     def _get_freq(tx):
-        if tx == 'H317':
-            freq = '700'
-        elif tx == 'BSonix':
-            freq = '650'
-        else:
+        if tx == 'Single':
+            freq = '400'
+        elif tx in ['CTX_500','DPX_500','H246']:
             freq = '500'
+        elif tx == 'CTX_250':
+            freq = '250'
+        elif tx == 'H317':
+            freq = '250'
+        elif tx in ['BSonix','I12378']:
+            freq = '650'
+        elif tx in ['ATAC']:
+            freq = '1000'
+        elif tx == 'REMOPD':
+            freq = '300'
         return freq
 
     return _get_freq
 
 @pytest.fixture()
-def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_widget,get_freq,tmp_path):
+def babelbrain_widget(qtbot,trajectory_type,
+                      scan_type,
+                      trajectory,
+                      dataset,
+                      transducer,
+                      selfiles_widget,
+                      get_freq,
+                      tmp_path):
 
     # Folder paths
     input_folder = dataset['folder_path']
@@ -377,7 +400,7 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
     trajectory_file = trajectory_folder + f"{trajectory}.txt"
 
     # Set SelFiles Parameters
-    selfiles_widget.ui.TrajectoryTypecomboBox.setCurrentIndex(trajectory_type['slicer'])
+    selfiles_widget.ui.TrajectoryTypecomboBox.setCurrentIndex(test_trajectory_type[trajectory_type])
     selfiles_widget.ui.TrajectorylineEdit.setText(trajectory_file)
     selfiles_widget.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimNIBS_type['charm'])
     selfiles_widget.ui.SimbNIBSlineEdit.setText(simNIBS_folder)
@@ -391,6 +414,7 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
     selfiles_widget.ui.ContinuepushButton.click()
 
     # Create BabelBrain widget
+    os.environ['BABEL_PYTEST']='1'
     bb_widget = BabelBrain(selfiles_widget,AltOutputFilesPath=str(tmp_path))
     bb_widget.show()
     qtbot.addWidget(bb_widget) # qtbot will handle bb_widget teardown
@@ -420,9 +444,10 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
         bb_widget.Config['CT_or_ZTE_input'] = os.path.join(tmp_path,os.path.basename(bb_widget.Config['CT_or_ZTE_input']))
 
     # Set Sim Parameters
-    freq = get_freq(transducer)
+    freq = get_freq(transducer['name'])
 
     freq_index = bb_widget.Widget.USMaskkHzDropDown.findText(freq)
+
     bb_widget.Widget.USMaskkHzDropDown.setCurrentIndex(freq_index)
     bb_widget.Widget.USPPWSpinBox.setProperty('UserData',6) # 6 PPW
     if scan_type != 'NONE':
@@ -434,49 +459,29 @@ def babelbrain_widget(qtbot,trajectory,transducer,scan_type,dataset,selfiles_wid
     if tmp_path.exists():
         shutil.rmtree(tmp_path) # Remove all files created in tmp folder
 
-@pytest.fixture()
-def mock_NotifyError(babelbrain_widget,monkeypatch):
-    # Tests hang up when a messagebox is created during testing (e.g. an error box)
-    # To prevent this from happening, we mock the function responsible for creating the error box
-
-    def _mock_NotifyError(self):
-        self.Widget.tabWidget.setEnabled(True) # Set to True to prevent timeout from occurring
-        self.testing_error = True
-    
-    monkeypatch.setattr(BabelBrain,'NotifyError',_mock_NotifyError)
-
-    return _mock_NotifyError
-
-@pytest.fixture()
-def mock_UpdateMask(babelbrain_widget,monkeypatch):
-    # Occasionally get errors during UpdateMask call, we'll temporarily mock it until
-    # more in depth testing can reveal the cause
-
-    def _mock_UpdateMask(self):
-        self.Widget.tabWidget.setEnabled(True) # Set to True to prevent timeout from occurring
-        self.testing_error = False
-    
-    monkeypatch.setattr(BabelBrain,'UpdateMask',_mock_UpdateMask)
-
-    return _mock_UpdateMask
+    os.environ.pop('BABEL_PYTEST')
 
 # PYTEST HOOKS
 def pytest_generate_tests(metafunc):
     # Parametrize tests based on arguments
-    if 'dataset' in metafunc.fixturenames:
-        metafunc.parametrize('dataset',tuple(test_datasets),ids=tuple(ds['id'] for ds in test_datasets))
+    if 'trajectory_type' in metafunc.fixturenames:
+        metafunc.parametrize('trajectory_type', tuple(test_trajectory_type)) 
 
     if 'scan_type' in metafunc.fixturenames:
         metafunc.parametrize('scan_type',tuple(CT_types.keys()))
 
-    if 'transducer' in metafunc.fixturenames:
-        metafunc.parametrize('transducer', tuple(transducers),ids=tuple(tx['name'] for tx in transducers))
-
     if 'trajectory' in metafunc.fixturenames and 'invalid' in metafunc.function.__name__:
         metafunc.parametrize('trajectory', tuple(invalid_trajectories))
-    elif 'trajectory' in metafunc.fixturenames and 'valid' in metafunc.function.__name__:
+    elif 'trajectory' in metafunc.fixturenames and ('valid' in metafunc.function.__name__ or
+                                                    'normal' in metafunc.function.__name__):
         metafunc.parametrize('trajectory', tuple(valid_trajectories)) 
-
+    
+    if 'dataset' in metafunc.fixturenames:
+        metafunc.parametrize('dataset',tuple(test_datasets),ids=tuple(ds['id'] for ds in test_datasets))
+    
+    if 'transducer' in metafunc.fixturenames:
+        metafunc.parametrize('transducer', tuple(transducers),ids=tuple(tx['name'] for tx in transducers))
+    
     if 'computing_backend' in metafunc.fixturenames:
         metafunc.parametrize('computing_backend',tuple(computing_backends),ids=tuple(cb['type'] for cb in computing_backends))
 

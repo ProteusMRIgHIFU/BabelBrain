@@ -694,8 +694,12 @@ class BabelBrain(QWidget):
         '''
         Frequency=  self.Widget.USMaskkHzDropDown.property('UserData')
         BasePPW=self.Widget.USPPWSpinBox.property('UserData')
+        self._Frequency =Frequency
+        self._BasePPW =BasePPW
 
         self._prefix= self.Config['ID'] + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
+        
+        
         basedir = self.Config['OutputFilesPath']
         if not os.path.isdir(basedir):
             try:
@@ -802,10 +806,15 @@ class BabelBrain(QWidget):
     def NotifyError(self):
         self.SetErrorDomainCode()
         self.hideClockDialog()
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("There was an error in execution -\nconsult log window for details")
-        msgBox.exec()
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.exec()
+        else:
+            #this will unblock for PyTest
+            self.testing_error = True
+            self.Widget.tabWidget.setEnabled(True)
 
     def UpdateMask(self):
         '''
@@ -955,7 +964,8 @@ class BabelBrain(QWidget):
           
     def GetExport(self):
         ExtraConfig ={}
-        ExtraConfig['PPW']=self.Widget.USPPWSpinBox.property('UserData')
+        ExtraConfig['Frequency']=self._Frequency
+        ExtraConfig['PPW']=self._BasePPW
         if self.Config['bUseCT']:
             ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
@@ -1018,10 +1028,10 @@ class RunMaskGeneration(QObject):
         T1WIso= self._mainApp.Config['T1WIso']
         T1W= self._mainApp.Config['T1W']
 
-        Frequency=  Widget.USMaskkHzDropDown.property('UserData')
+        Frequency=  self._mainApp._Frequency
         SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
 
-        BasePPW=Widget.USPPWSpinBox.property('UserData')
+        BasePPW=self._mainApp._BasePPW
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 

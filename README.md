@@ -1,4 +1,4 @@
-BabelBrain v0.4.0
+BabelBrain v0.4.1
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -39,7 +39,7 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 * For macOS, download the correct DMG image according to your CPU architecture (Intel X64 or ARM64),  and double-click the PKG installer. The first time you use you will be prompted to authorize to run and access directories.
 * For Windows, download the MSI file and run the installer.
 
-**Note for Windows:** CUDA 11.7 or up must be installed.
+**Note for Windows:** CUDA 11.7 or up must be installed. Visual Studio (commercial or Community version) must be also installed. Verify the version of Visual Studio is officially supported with the CUDA version. Visual Studio 2019 and 2022 Community versions works well with recent versions of CUDA.  Please ensure Visual Studio has the 'Desktop development with C++' option installed.
 
 # Instructions for use
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
@@ -78,6 +78,9 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.4.1 -  Sep 15th, 2024
+  - **Fix** : Correcting Mechanical Index (MI) report in Step 3. We identified that a wrong mask was used to find the highest value of pressure used to report the MI. This error was only applicable to the MI. The fix now uses the same location as used for the maximal Isppa in the brain. Results from studies using versions of BabelBrain prior to 0.4.1 can retrospectively calculate the correct MI using the formula `MI=SQRT(Selected_Isppa * 1e4 * 2 * 1041 * 1562)/1e6/SQRT(Frequency_MHz)`, where `Selected_Isppa` is the intensity in W/cm2 as used in Step 3 and `Frequency_MHz` is the selected frequency in MHz.
+  
 - 0.4.0-1 - Sep 10th, 2024
   - **Fix**: Filter for voxelization on CONDA reenabled.
 - 0.4.0 - Sep 7th, 2024

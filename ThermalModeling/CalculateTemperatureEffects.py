@@ -106,6 +106,7 @@ def CalculateTemperatureEffects(InputPData,
                                 bForceRecalc=False,
                                 OutTemperature=37,
                                 bGlobalDCMultipoint=False,
+                                Frequency=7e5,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
 
 
@@ -117,6 +118,7 @@ def CalculateTemperatureEffects(InputPData,
     print(outfname)
 
     print('Thermal sim with Backend',Backend)
+    print('Operating Frequency',Frequency)
     if bForceRecalc==False:
         if isfile(outfname+'.h5'):
             print('skipping', outfname)
@@ -408,12 +410,9 @@ def CalculateTemperatureEffects(InputPData,
     
     print('CEMBrain,CEMSkin,CEMSkull',CEMBrain,CEMSkin,CEMSkull)
 
-    if 'MaterialMapCT' in Input:
-        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==3].max()
-    else:
-        MaxBrainPressure = SaveDict['p_map'][SaveDict['MaterialMap']==4].max()
+    MaxBrainPressure = SaveDict['p_map'][SelBrain].max()
         
-    MI=MaxBrainPressure/1e6/np.sqrt(0.7)
+    MI=MaxBrainPressure/1e6/np.sqrt(Frequency/1e6)
     MaxIsppa=MaxBrainPressure**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
     MaxIsppa=MaxIsppa/1e4
     MaxIspta=DutyCycle*MaxIsppa
