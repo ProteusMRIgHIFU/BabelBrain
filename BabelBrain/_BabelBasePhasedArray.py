@@ -504,6 +504,7 @@ class RunAcousticSim(QObject):
         kargs['TxMechanicalAdjustmentX']=TxMechanicalAdjustmentX
         kargs['TxMechanicalAdjustmentY']=TxMechanicalAdjustmentY
         kargs['XSteering']=XSteering
+        kargs['YSteering']=YSteering
         kargs['ZSteering']=ZSteering
         kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
