@@ -97,7 +97,7 @@ def test_Voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device
      match_count = len(common_coordinates)
 
      # Calculate dice coefficient
-     dice_coeff = 2 * match_count / (ijk.shape[0] + ijk_truth.shape[0])
+     dice_coeff = 2 * match_count / (ijk_unique.shape[0] + ijk_truth_unique.shape[0])
      logging.info(f"Dice coefficient: {dice_coeff}")
      
-     assert dice_coeff > 0.9, f"Dice coefficient is less than 0.90 ({dice_coeff})"
+     assert dice_coeff > 0.95, f"Dice coefficient is less than 0.95 ({dice_coeff})"
