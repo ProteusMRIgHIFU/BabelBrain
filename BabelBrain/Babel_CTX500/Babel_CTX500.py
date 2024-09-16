@@ -29,9 +29,9 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from CalculateFieldProcess import CalculateFieldProcess
-from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from GUI._BabelBaseTx import BabelBaseTx
+from _BabelBaseTx import BabelBaseTx
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'

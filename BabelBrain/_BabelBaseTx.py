@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
-from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from skimage.measure import label, regionprops, regionprops_table
 #auxiliary functions to measure metrics in acoustic fields

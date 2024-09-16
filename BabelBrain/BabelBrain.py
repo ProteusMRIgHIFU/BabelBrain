@@ -527,25 +527,25 @@ class BabelBrain(QWidget):
 
         from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
         if self.Config['TxSystem'] =='Single':
-            from GUI.Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
+            from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_500':
-            from GUI.Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+            from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
-            from GUI.Babel_H317.Babel_H317 import H317 as WidgetAcSim
+            from Babel_H317.Babel_H317 import H317 as WidgetAcSim
         elif self.Config['TxSystem'] =='H246':
-            from GUI.Babel_H246.Babel_H246 import H246 as WidgetAcSim
+            from Babel_H246.Babel_H246 import H246 as WidgetAcSim
         elif self.Config['TxSystem'] =='BSonix':
-            from GUI.Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
+            from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
         elif self.Config['TxSystem'] =='REMOPD':
-            from GUI.Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
+            from Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
         elif self.Config['TxSystem'] =='I12378':
-            from GUI.Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
+            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
         elif self.Config['TxSystem'] =='ATAC':
-            from GUI.Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
+            from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
-        from GUI.Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
+        from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
 
         new_tab = WidgetAcSim(parent=self.Widget.tabWidget,MainApp=self)
         grid_tab = QGridLayout(new_tab)

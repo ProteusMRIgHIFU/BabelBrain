@@ -33,12 +33,12 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from GUI.GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from CalculateFieldProcess import CalculateFieldProcess
 import platform 
 
-from GUI._BabelBaseTx import BabelBaseTx
+from _BabelBaseTx import BabelBaseTx
 
 
 class BabelBasePhaseArray(BabelBaseTx):

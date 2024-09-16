@@ -82,7 +82,6 @@ dependencies:
       - packaging==21.3
       - pandas==1.5.0
       - patsy==0.5.3
-      - pigz_python @ git+https://github.com/ProteusMRIgHIFU/pigz-python
       - pillow==9.3.0
       - platformdirs==2.5.4
       - plotly==5.11.0
