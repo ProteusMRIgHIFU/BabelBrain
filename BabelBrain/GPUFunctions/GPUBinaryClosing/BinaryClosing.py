@@ -230,7 +230,6 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
 def _origins_to_offsets(origins, w_shape):
     return tuple(x//2+o for x, o in zip(w_shape, origins))
 
-
 def _get_inttype(input):
     # The integer type to use for indices in the input array
     # The indices actually use byte positions and we can't just use
