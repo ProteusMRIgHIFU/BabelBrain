@@ -17,10 +17,9 @@ logger = logging.getLogger()
 
 class FileManager:
     def __init__(self, simNIBS_dir, simbNIBS_type, T1_fname, T1_iso_fname, extra_scan_fname, prefix, current_CT_type,coreg=None, current_HUT=None, current_pCT_range=None, max_workers=MAX_WORKERS):
-        self.files_being_saved = {}
-        self.lock = threading.Lock()
-        self.conditions = {}
-        self.executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._lock = threading.Lock()
+        self._saving_file = {}
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
         self.CT_type = current_CT_type
         self.HU_threshold = None
         self.pseudo_CT_range = None
@@ -42,57 +41,53 @@ class FileManager:
         self.input_files = input_files
         self.output_files = output_files
 
-    def load_file(self, filename, nifti_load_method='nibabel'):
-        # # Check if file is currently being saved and wait if it is
-        # with self.lock:
-        #     condition = self.conditions.get(filename)
-        #     if condition:
-        #         condition.wait_for(lambda: filename not in self.files_being_saved)
-
+    def load_file(self, filename, **kwargs):
+        # Check if file is currently being saved and wait if it is
         self.wait_for_file(filename)
         
         # Determine file extension
         ext = self.get_file_type(filename)
 
+        logger.info(f"{filename} started loading at {datetime.now().strftime('%H:%M:%S')}")
         # Load file using appropriate method
         if ext == '.npy' or ext == '.npz':
             loaded_data = np.load(filename)
         elif ext == '.stl':
             loaded_data = trimesh.load_mesh(filename)
         elif ext == '.nii':
-            loaded_data = self._load_nifti_file(filename,nifti_load_method)
+            loaded_data = self._load_nifti_file(filename,**kwargs)
         elif ext == '.txt':
             with open(filename, 'r') as file:
                 loaded_data = file.read()
         else:
             raise ValueError(f"Not able to load this file type ({ext})")
         
+        logger.info(f"{filename} finished loading at {datetime.now().strftime('%H:%M:%S')}")
         return loaded_data
     
-    def save_file(self, file_data, filename, precursor_files=None):
-        self.wait_for_file(filename)
-        self.set_condition(filename)
-        self.executor.submit(self._save_file, file_data, filename, precursor_files)
-        # self._save_file(file_data, filename, precursor_files)
+    def save_file(self, file_data, filename, precursor_files=None, **kwargs):
+        self.wait_for_file(filename) # Wait if file is already being saved
+        self.set_saving(filename)
+        self._executor.submit(self._save_file, file_data, filename, precursor_files, **kwargs)
+        # self._save_file(file_data, filename, precursor_files,  **kwargs)
 
     def wait_for_file(self, filename):
         # Check if file is currently being saved and wait if it is
-        with self.lock:
-            condition = self.conditions.get(filename)
-            if condition:
-                condition.wait_for(lambda: filename not in self.files_being_saved)
+        with self._lock:
+            saving = self._saving_file.get(filename)
+            if saving:
+                logger.info(f"Waiting for {filename} to finish saving ({datetime.now().strftime('%H:%M:%S')})")
+                saving.wait()
 
-    def set_condition(self, filename):
-        with self.lock:
-            self.files_being_saved[filename] = True
-            self.conditions[filename] = threading.Condition(self.lock)
+    def set_saving(self, filename):
+        with self._lock:
+            self._saving_file[filename] = threading.Condition(self._lock)
 
-    def notify_condition(self, filename):
-        with self.lock:
-            self.files_being_saved.pop(filename, None)
-            condition = self.conditions.pop(filename, None)
-            if condition:
-                condition.notify_all()
+    def notify_saving_complete(self, filename):
+        with self._lock:
+            file_saved = self._saving_file.pop(filename, None)
+            if file_saved:
+                file_saved.notify_all()
 
     def get_file_type(self,filename):
         # Determine file extension
@@ -384,21 +379,21 @@ class FileManager:
         return nib_image
 
     def shutdown(self):
-        self.executor.shutdown(wait=True)
+        logger.info("Waiting for ongoing tasks to complete...")
+        self._executor.shutdown(wait=True)
         logger.info("FileManager has been shut down.")
 
-    def _load_nifti_file(self, filename,load_method):
-        if load_method == 'nibabel':
+    def _load_nifti_file(self, filename,nifti_load_method='nibabel',sitk_dtype=sitk.sitkFloat32):
+        if nifti_load_method == 'nibabel':
             loaded_file = nibabel.load(filename)
-        elif load_method == 'sitk':
-            loaded_file = sitk.ReadImage(filename)
+        elif nifti_load_method == 'sitk':
+            loaded_file = sitk.ReadImage(filename,sitk_dtype)
         else:
             raise ValueError('Invalid load method specified')
         
-        logger.info(f"{filename} loaded")
         return loaded_file
     
-    def _save_file(self, file_data, filename, precursor_files=None):
+    def _save_file(self, file_data, filename, precursor_files=None, **kwargs):
         
         # Ensure precursor values is iterable if provided
         if precursor_files is not None:
@@ -432,7 +427,7 @@ class FileManager:
             if ext == '.npy':
                 np.save(filename,file_data)
             elif ext == '.npz':
-                np.savez_compressed(filename,file_data)
+                np.savez_compressed(filename,**kwargs)
             elif ext == '.stl':
                 file_data.export(filename)
             elif ext == '.nii':
@@ -444,7 +439,7 @@ class FileManager:
             logger.error(f"Error saving {filename}: {e}")
         finally:
             logger.info(f"{filename} finished saving at {datetime.now().strftime('%H:%M:%S')}")
-            self.notify_condition(filename)
+            self.notify_saving_complete(filename)
 
     def _generate_filenames(self):
         input_files = {}
@@ -509,61 +504,3 @@ class FileManager:
             output_files['CTfname'] = os.path.dirname(self.T1_iso_fname) + os.sep + self.prefix + 'CT.nii.gz'
 
         return input_files, output_files
-    
-def main():
-    # Save to file
-    fname = "C:/Users/alanc/Documents/NeuroFUS/BabelBrain_Test_Data/SDR_0p55/m2m_SDR_0p55/final_tissues.nii.gz"
-    # fname = "C:/Users/alanc/Documents/NeuroFUS/BabelBrain_Test_Data/SDR_0p55/CT.nii.gz"
-    nifti_nib = nibabel.load(fname)
-    nib_original_zooms = np.asarray(nifti_nib.header.get_zooms())[:3]
-    nib_original_data = np.squeeze(nifti_nib.get_fdata())
-    # nifti_sitk = sitk.ReadImage(fname,sitk.sitkFloat32)
-    nifti_sitk = sitk.ReadImage(fname)
-
-    file_manager = FileManager()
-
-    print('Test nibabel to sitk conversion')
-    # Convert nibabel image to SimpleITK image
-    nifti_converted = file_manager.nibabel_to_sitk(nifti_nib)
-
-    # Check that the data is the same after the round-trip conversion
-    print(f'Spacing difference: \n {abs(np.asarray(nifti_converted.GetSpacing()) - np.asarray(nifti_sitk.GetSpacing()))}')
-    print(f'Direction difference: \n {abs(np.asarray(nifti_converted.GetDirection()) - np.asarray(nifti_sitk.GetDirection()))}')
-    print(f'Origin difference: \n {abs(np.asarray(nifti_converted.GetOrigin()) - np.asarray(nifti_sitk.GetOrigin()))}')
-    print(f'\nConverted nifti has same data as sitk: {np.allclose(sitk.GetArrayFromImage(nifti_converted),sitk.GetArrayFromImage(nifti_sitk))}')
-
-    print("-"*50)
-    print('\nTest sitk to nibabel conversion')
-    # Convert nibabel image to SimpleITK image
-    nifti_converted_2 = file_manager.sitk_to_nibabel(nifti_sitk)
-
-    # Check that the data is the same after the round-trip conversion
-    print(f'\nspacing difference:\n{abs(np.asarray(nifti_converted_2.header.get_zooms()) - nib_original_zooms)}')
-    print(f'\naffine difference:\n{abs(nifti_converted_2.affine - nifti_nib.affine)}')
-    print(f'\nConverted nifti has same data as sitk: {np.allclose(nifti_converted_2.get_fdata(),nib_original_data)}')
-
-    print("-"*50)
-    print('\nTest sitk to nibabel back to sitk conversion')
-    # Convert nibabel image to SimpleITK image
-    nifti_converted_3 = file_manager.nibabel_to_sitk(nifti_converted_2)
-
-    # Check that the data is the same after the round-trip conversion
-    print(f'Spacing difference: \n {abs(np.asarray(nifti_converted_3.GetSpacing()) - np.asarray(nifti_sitk.GetSpacing()))}')
-    print(f'Direction difference: \n {abs(np.asarray(nifti_converted_3.GetDirection()) - np.asarray(nifti_sitk.GetDirection()))}')
-    print(f'Origin difference: \n {abs(np.asarray(nifti_converted_3.GetOrigin()) - np.asarray(nifti_sitk.GetOrigin()))}')
-    print(f'\nConverted nifti has same data as sitk: {np.allclose(sitk.GetArrayFromImage(nifti_converted_3),sitk.GetArrayFromImage(nifti_sitk))}')
-
-    print("-"*50)
-    print('\nTest nibabel to sitk back to nibabel conversion')
-    # Convert nibabel image to SimpleITK image
-    nifti_converted_4 = file_manager.sitk_to_nibabel(nifti_converted)
-
-    # Check that the data is the same after the round-trip conversion
-    print(f'\nspacing difference:\n{abs(np.asarray(nifti_converted_4.header.get_zooms()) - nib_original_zooms)}')
-    print(f'\naffine difference:\n{abs(nifti_converted_4.affine - nifti_nib.affine)}')
-    print(f'\nConverted nifti has same data as sitk: {np.allclose(nifti_converted_4.get_fdata(),nib_original_data)}')
-
-
-
-if __name__ == "__main__":
-    main()

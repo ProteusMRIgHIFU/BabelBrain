@@ -817,8 +817,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         UniqueHU=np.unique(ndataCT[nfct])
         print('Unique CT values',len(UniqueHU))
         CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
-        np.savez_compressed(CTCalfname,UniqueHU=UniqueHU)
-        # S1_file_manager.save_file(file_data=UniqueHU,filename=CTCalfname)
+        S1_file_manager.save_file(file_data=None,filename=CTCalfname,UniqueHU=UniqueHU)
 
         with CodeTimer("Mapping unique values",unit='s'):
             if MapFilter is None:

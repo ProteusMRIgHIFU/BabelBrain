@@ -163,7 +163,6 @@ def N4BiasCorrec(input,file_manager,hashFiles,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},bInvertValues=False):
     with CodeTimer("Load nifti via sitk", unit="s"):
         inputImage = file_manager.load_file(input,nifti_load_method='sitk')
-    inputImage = sitk.Cast(inputImage, sitk.sitkFloat32)
 
     if bInvertValues:
         imarray=sitk.GetArrayFromImage(inputImage)
@@ -316,7 +315,6 @@ def BiasCorrecAndCoreg(InputT1,
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
     
     img = file_manager.load_file(T1fnameBiasCorrec,nifti_load_method='sitk')
-    img = sitk.Cast(img, sitk.sitkFloat32)
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:
@@ -335,7 +333,6 @@ def BiasCorrecAndCoreg(InputT1,
         file_manager.save_file(file_data=ZTEfnameBiasCorrecOutput,filename=ZTEfnameBiasCorrec,precursor_files=T1fnameBiasCorrec)
 
     img = file_manager.load_file(ZTEInT1W,nifti_load_method='sitk')
-    img = sitk.Cast(img, sitk.sitkFloat32)
     img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
     img_out_nib = file_manager.sitk_to_nibabel(img_out)
     file_manager.save_file(file_data=img_out_nib,
