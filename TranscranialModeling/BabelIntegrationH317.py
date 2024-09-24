@@ -8,7 +8,7 @@ ABOUT:
 
 '''
 
-from .H317 import GenerateH317Tx
+from .H317 import GenerateH317Tx, GenerateRandomPhase
 from . import BabelIntegrationCONCAVE_PHASEDARRAY  
 
 class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
@@ -18,6 +18,7 @@ class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
+                                    bDoRandomPhase=self._bDoRandomPhase,
                                     **kargs)
     
 ##########################################
@@ -33,6 +34,7 @@ class BabelFTD_Simulations(BabelIntegrationCONCAVE_PHASEDARRAY.BabelFTD_Simulati
                                     ZSteering=self._ZSteering,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
                                     RotationZ=self._RotationZ,
+                                    bDoRandomPhase=self._bDoRandomPhase,
                                     **kargs)
 
         
@@ -49,4 +51,5 @@ class SimulationConditions(BabelIntegrationCONCAVE_PHASEDARRAY.SimulationConditi
     def GenTransducerGeom(self):
         self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
         self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._RandomPhase = GenerateRandomPhase()
         

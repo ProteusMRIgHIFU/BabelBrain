@@ -114,3 +114,8 @@ def GenerateI12378Tx(Frequency=650e3,RotationZ=0,FactorEnlarge=1):
     TxI12378['Aperture']=np.max([TxI12378['VertDisplay'][:,0].max()-TxI12378['VertDisplay'][:,0].min(),
                                       TxI12378['VertDisplay'][:,1].max()-TxI12378['VertDisplay'][:,1].min()]);
     return TxI12378
+
+def GenerateRandomPhase():
+    phases = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'I12378 Random Phases.csv'),delimiter=',',skiprows=0).flatten()
+    assert(phases.shape[0]==128) #number of elements
+    return phases

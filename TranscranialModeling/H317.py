@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 import os
 
 
@@ -128,3 +129,8 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
     TxH317['Aperture']=np.max([TxH317['VertDisplay'][:,0].max()-TxH317['VertDisplay'][:,0].min(),
                                       TxH317['VertDisplay'][:,1].max()-TxH317['VertDisplay'][:,1].min()]);
     return TxH317
+
+def GenerateRandomPhase():
+    phases = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'H-317 Random Phases.csv'),delimiter=',',skiprows=0).flatten()
+    assert(phases.shape[0]==128) #number of elements
+    return phases

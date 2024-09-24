@@ -113,3 +113,8 @@ def GenerateATACTx(Frequency=1e6,RotationZ=0,FactorEnlarge=1):
     TxATAC['Aperture']=np.max([TxATAC['VertDisplay'][:,0].max()-TxATAC['VertDisplay'][:,0].min(),
                                       TxATAC['VertDisplay'][:,1].max()-TxATAC['VertDisplay'][:,1].min()]);
     return TxATAC
+
+def GenerateRandomPhase():
+    phases = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'ATAC Random Phases.csv'),delimiter=',',skiprows=0).flatten()
+    assert(phases.shape[0]==128) #number of elements
+    return phases

@@ -543,7 +543,7 @@ class BabelFTD_Simulations_BASE(object):
                  ExtraAdjustX=[0.0], #these parameters help to enlarge the FOV for any reason (Steering, multipoint, etc.)
                  ExtraAdjustY=[0.0],
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
-                 bDoRefocusing=True,
+                 bDoRefocusing=False,
                  bWaterOnly=False,
                  QCorrection=3,
                  MappingMethod='Webb-Marsac',
@@ -853,7 +853,6 @@ class BabelFTD_Simulations_BASE(object):
             p_amp_water =DataForSim.pop('p_amp_water')
             p_complex_water =DataForSim.pop('p_complex_water')
 
-        DataForSim['bDoRefocusing']=self._bDoRefocusing
         DataForSim['affine']=affine
 
         DataForSim['TxMechanicalAdjustmentX']=self._TxMechanicalAdjustmentX
@@ -999,9 +998,6 @@ class SimulationConditionsBASE(object):
         self._ExtraAdjustY =ExtraAdjustY
         self._ZTxCorrecton=ZTxCorrecton
 
-        
-        
-        
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
         

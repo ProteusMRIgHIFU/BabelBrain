@@ -67,6 +67,7 @@ class RUN_SIM(RUN_SIM_BASE):
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
+                                    bDoRandomPhase=self._bDoRandomPhase,
                                      **kargs)
         
     def RunCases(self,
@@ -76,9 +77,11 @@ class RUN_SIM(RUN_SIM_BASE):
                     RotationZ=0.0,
                     DistanceConeToFocus=27e-3,
                     MultiPoint=None,
+                    bDoRandomPhase=False,
                     **kargs):
         self._RotationZ=RotationZ
         self._DistanceConeToFocus=DistanceConeToFocus
+        self._bDoRandomPhase=bDoRandomPhase
         if MultiPoint is None:
             self._XSteering=XSteering
             self._YSteering=YSteering
@@ -118,6 +121,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                  ZSteering=0.0,
                  RotationZ=0.0,
                  DistanceConeToFocus=27e-3,
+                 bDoRandomPhase=False,
                  **kargs):
         
         self._XSteering=XSteering
@@ -125,6 +129,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._ZSteering=ZSteering
         self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
+        self._bDoRandomPhase=bDoRandomPhase
         super().__init__(**kargs)
 
     def CreateSimConditions(self,**kargs):
@@ -135,6 +140,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     RotationZ=self._RotationZ,
                                     Aperture=0.16, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                                     FocalLength=135e-3,
+                                    bDoRandomPhase=self._bDoRandomPhase,
                                     **kargs)
 
     def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
@@ -203,6 +209,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         DataForSim['ZSteering']=self._ZSteering
         DataForSim['RotationZ']=self._RotationZ
         DataForSim['bDoRefocusing']=self._bDoRefocusing
+        DataForSim['bDoRandomPhase']=self._bDoRandomPhase
         DataForSim['DistanceConeToFocus']=self._DistanceConeToFocus
         DataForSim['BasePhasedArrayProgrammingRefocusing']=self._SIM_SETTINGS.BasePhasedArrayProgrammingRefocusing
         DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
@@ -219,6 +226,7 @@ class SimulationConditions(SimulationConditionsBASE):
                       ZSteering=0.0,
                       RotationZ=0.0,#rotation of Tx over Z axis
                       DistanceConeToFocus=0.0,
+                      bDoRandomPhase=False,
                       **kargs):
         super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=FocalLength*FactorEnlarge,**kargs)
         self._FactorEnlarge=FactorEnlarge
@@ -231,11 +239,12 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
-
-    def GenTransducerGeom(self):
-        self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._bDoRandomPhase=bDoRandomPhase
+        print('bDoRandomPhase 22',self._bDoRandomPhase)
         
+    def GenTransducerGeom(self):
+        raise  NotImplementedError("Subclass must implement abstract method")
+    
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
@@ -245,24 +254,6 @@ class SimulationConditions(SimulationConditionsBASE):
         LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
         print('StartSkin',StartSkin)
-        
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
-
-            fig = plt.figure()
-            ax = Axes3D(fig)
-
-            ax.add_collection3d(Poly3DCollection(self._Tx['VertDisplay'][self._Tx['FaceDisplay']]*1e3)) #we plot the units in mm
-            #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
         
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX
@@ -290,8 +281,17 @@ class SimulationConditions(SimulationConditionsBASE):
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
         self.BasePhasedArrayProgramming=np.zeros(self._Tx['NumberElems'],np.complex64)
         self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._Tx['NumberElems'],np.complex64)
-        
-        if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
+        print('bDoRandomPhase 3',self._bDoRandomPhase)
+        if self._bDoRandomPhase:
+            print('Using random phase')
+            u0=np.zeros((self._Tx['center'].shape[0],1),np.complex64)
+            nBase=0
+            for n in range(self._Tx['NumberElems']):
+                phi=self._RandomPhase[n] #this needs to defined per Tx in GenTransducerGeom
+                self.BasePhasedArrayProgramming[n]=np.exp(1j*phi)
+                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+                nBase+=self._Tx['elemdims']
+        elif self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
             ds=np.ones((1))*self._SpatialStep**2
         

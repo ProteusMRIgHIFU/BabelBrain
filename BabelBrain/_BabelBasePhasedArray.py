@@ -81,7 +81,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
         
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
-        self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
+        self.Widget.RefocusingDropDown.currentIndexChanged.connect(self.ChangeRefocusing)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
         self.Widget.ZMechaniclabel.setVisible(False)
@@ -95,11 +95,11 @@ class BabelBasePhaseArray(BabelBaseTx):
         self._ZSteering =self.Widget.ZSteeringSpinBox.value()/1e3
 
     @Slot()
-    def EnableRefocusing(self,value):
-        bRefocus =self.Widget.RefocusingcheckBox.isChecked()
-        self.Widget.XMechanicSpinBox.setEnabled(not bRefocus)
-        self.Widget.YMechanicSpinBox.setEnabled(not bRefocus)
-        self.Widget.ZMechanicSpinBox.setEnabled(not bRefocus)
+    def ChangeRefocusing(self,value):
+        bRefocusOrRandom =self.Widget.RefocusingDropDown.currentIndex() !=0
+        self.Widget.XMechanicSpinBox.setEnabled(not bRefocusOrRandom)
+        self.Widget.YMechanicSpinBox.setEnabled(not bRefocusOrRandom)
+        self.Widget.ZMechanicSpinBox.setEnabled(not bRefocusOrRandom)
 
     def DefaultConfig(self):
         #Specific parameters for the Tx - to be configured later via a yaml
@@ -164,7 +164,11 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
-                self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
+                if Skull['bDoRefocusing']:
+                    self.Widget.RefocusingDropDown.setCurrentIndex(1)
+                elif 'bDoRandomPhase' in Skull:
+                    if Skull['bDoRandomPhase']:
+                        self.Widget.RefocusingDropDown.setCurrentIndex(2)
                 if 'DistanceConeToFocus' in Skull:
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
@@ -196,7 +200,9 @@ class BabelBasePhaseArray(BabelBaseTx):
 
     def GetExport(self):
         Export=super().GetExport()
-        Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
+        RefocusingRandom=self.Widget.RefocusingDropDown.currentIndex()
+        Export['Refocusing']=RefocusingRandom==1
+        Export['RandomPhase']=RefocusingRandom==2
         def dict_to_string(d, separator=', ', equals_sign='='):
             return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
         if self._MultiPoint is not None:
@@ -464,9 +470,10 @@ class RunAcousticSim(QObject):
 
         InputSim=self._mainApp._outnameMask
 
-        bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
+        RefocusingRandom=self._mainApp.AcSim.Widget.RefocusingDropDown.currentIndex()
+        print('RefocusingRandom',RefocusingRandom)
         #we can use mechanical adjustments in other directions for final tuning
-        if not bRefocus:
+        if RefocusingRandom==0:
             TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
             TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
             TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
@@ -509,7 +516,8 @@ class RunAcousticSim(QObject):
         kargs['RotationZ']=RotationZ
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
-        kargs['bDoRefocusing']=bRefocus
+        kargs['bDoRefocusing']=RefocusingRandom==1
+        kargs['bDoRandomPhase']=RefocusingRandom==2
         kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['bUseCT']=self._mainApp.Config['bUseCT']
         kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo'] 

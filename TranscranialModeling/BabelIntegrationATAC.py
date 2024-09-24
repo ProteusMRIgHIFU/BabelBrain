@@ -6,7 +6,7 @@ ABOUT:
      date          - March 21, 2024
 
 '''
-from .ATAC import GenerateATACTx
+from .ATAC import GenerateATACTx, GenerateRandomPhase
 from . import BabelIntegrationCONCAVE_PHASEDARRAY  
 
 class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
@@ -31,6 +31,7 @@ class BabelFTD_Simulations(BabelIntegrationCONCAVE_PHASEDARRAY.BabelFTD_Simulati
                                     ZSteering=self._ZSteering,
                                     DistanceConeToFocus=self._DistanceConeToFocus,
                                     RotationZ=self._RotationZ,
+                                    bDoRandomPhase=self._bDoRandomPhase,
                                     **kargs)
 
         
@@ -47,5 +48,6 @@ class SimulationConditions(BabelIntegrationCONCAVE_PHASEDARRAY.SimulationConditi
     def GenTransducerGeom(self):
         self._Tx=GenerateATACTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
         self._TxOrig=GenerateATACTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._RandomPhase = GenerateRandomPhase()
         
         

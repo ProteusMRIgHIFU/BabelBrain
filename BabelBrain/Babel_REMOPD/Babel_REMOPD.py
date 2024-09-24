@@ -74,7 +74,7 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
         self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
-        self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
+        self.Widget.RefocusingcheckBox.stateChanged.connect(self.ChangeRefocusing)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.LabelTissueRemoved.setVisible(False)

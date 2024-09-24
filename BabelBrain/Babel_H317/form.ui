@@ -235,46 +235,6 @@ to target (mm) :</string>
     <double>0.000000000000000</double>
    </property>
   </widget>
-  <widget class="QCheckBox" name="RefocusingcheckBox">
-   <property name="geometry">
-    <rect>
-     <x>223</x>
-     <y>10</y>
-     <width>27</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::RightToLeft</enum>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_22">
-   <property name="geometry">
-    <rect>
-     <x>30</x>
-     <y>9</y>
-     <width>143</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color:rgb(22, 110, 255)</string>
-   </property>
-   <property name="text">
-    <string>Refocusing</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignCenter</set>
-   </property>
-  </widget>
   <widget class="QDoubleSpinBox" name="DistanceConeToFocusSpinBox">
    <property name="geometry">
     <rect>
@@ -644,6 +604,50 @@ center [X, Y, Z] (mm):</string>
     <number>0</number>
    </property>
   </widget>
+  <widget class="QComboBox" name="RefocusingDropDown">
+   <property name="geometry">
+    <rect>
+     <x>227</x>
+     <y>5</y>
+     <width>100</width>
+     <height>30</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>None</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Refocus</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Random</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="MultifocusLabel_2">
+   <property name="geometry">
+    <rect>
+     <x>16</x>
+     <y>11</y>
+     <width>136</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:rgb(22, 110, 255)</string>
+   </property>
+   <property name="text">
+    <string>Refocus / Random</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>DistanceConeToFocusSpinBox</tabstop>
@@ -657,7 +661,6 @@ center [X, Y, Z] (mm):</string>
   <tabstop>SelCombinationDropDown</tabstop>
   <tabstop>MaxDepthSpinBox</tabstop>
   <tabstop>ShowWaterResultscheckBox</tabstop>
-  <tabstop>RefocusingcheckBox</tabstop>
   <tabstop>HideMarkscheckBox</tabstop>
  </tabstops>
  <resources/>

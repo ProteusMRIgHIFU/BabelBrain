@@ -38,6 +38,11 @@ def computeREMOPDGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
+def GenerateRandomPhase():
+    phases = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD Random Phases.csv'),delimiter=',',skiprows=0).flatten()
+    assert(phases.shape[0]==256) #number of elements
+    return phases
+
 def GenerateSingleElem(PPW=12.0):
     #60.08 PPW produces close to integer steps for both pitch and kerf
     
@@ -282,6 +287,7 @@ class SimulationConditions(SimulationConditionsBASE):
         #first we generate the high res source of the tx elements
         # and we select the set based on input
         self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ)[self._TxSet]
+        self._RandomPhase = GenerateRandomPhase()
         
         
         #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx

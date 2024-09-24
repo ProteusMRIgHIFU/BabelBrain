@@ -649,7 +649,7 @@ class Babel_Thermal(QWidget):
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
         if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
-            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+            if self._MainApp.AcSim.Widget.RefocusingDropDown.currentIndex()==1:
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix
         nidata = nibabel.load(BasePath)
@@ -737,7 +737,7 @@ class RunThermalSim(QObject):
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
             kargs['sel_p']='p_amp'
         else:
-            bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
+            bRefocus = self._mainApp.AcSim.Widget.RefocusingDropDown.currentIndex()==1
             if bRefocus:
                 kargs['sel_p']='p_amp_refocus'
             else:
