@@ -745,8 +745,9 @@ class RunThermalSim(QObject):
 
         # Start mask generation as separate process.
         queue=Queue()
+        ExtraData=self._mainApp.AcSim.GetExtraDataForThermal()
         fieldWorkerProcess = Process(target=CalculateThermalProcess, 
-                                    args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration']),
+                                    args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration'],ExtraData),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
         # progress.
