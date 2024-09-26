@@ -314,7 +314,7 @@ def BiasCorrecAndCoreg(InputT1,
     file_manager.wait_for_file(ZTEfnameBiasCorrec)
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
     
-    img = file_manager.load_file(T1fnameBiasCorrec,nifti_load_method='sitk')
+    img = file_manager.load_file(T1fnameBiasCorrec,nifti_load_method='sitk',sitk_dtype=sitk.sitkFloat32)
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:

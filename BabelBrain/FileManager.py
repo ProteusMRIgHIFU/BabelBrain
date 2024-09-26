@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import copy
 from datetime import datetime
 import glob
 import hashlib
@@ -30,6 +31,7 @@ class FileManager:
         self.extra_scan_fname = extra_scan_fname
         self.prefix = prefix
         self.coreg = coreg
+        self.saved_objects = {}
 
         if current_CT_type != 0: # Not T1W Only
             self.HU_threshold = current_HUT
@@ -41,32 +43,83 @@ class FileManager:
         self.input_files = input_files
         self.output_files = output_files
 
-    def load_file(self, filename, **kwargs):
-        # Check if file is currently being saved and wait if it is
-        self.wait_for_file(filename)
-        
-        # Determine file extension
-        ext = self.get_file_type(filename)
+    def _return_copy(self,value,nifti_load_method='nibabel',sitk_dtype=None):
 
-        logger.info(f"{filename} started loading at {datetime.now().strftime('%H:%M:%S')}")
-        # Load file using appropriate method
-        if ext == '.npy' or ext == '.npz':
-            loaded_data = np.load(filename)
-        elif ext == '.stl':
-            loaded_data = trimesh.load_mesh(filename)
-        elif ext == '.nii':
-            loaded_data = self._load_nifti_file(filename,**kwargs)
-        elif ext == '.txt':
-            with open(filename, 'r') as file:
-                loaded_data = file.read()
-        else:
-            raise ValueError(f"Not able to load this file type ({ext})")
+        # Handle nibabel NIfti images 
+        if isinstance(value, nibabel.Nifti1Image):
+
+            if nifti_load_method == 'sitk':
+                return self.nibabel_to_sitk(value,sitk_dtype=sitk_dtype) # nibabel_to_sitk automatically makes a copy
+            else:
+                data_copy = nibabel.Nifti1Image(value.get_fdata(), value.affine, value.header.copy())
+                return data_copy
         
-        logger.info(f"{filename} finished loading at {datetime.now().strftime('%H:%M:%S')}")
-        return loaded_data
+        # Handle sitk NIfti images 
+        elif isinstance(value,sitk.Image):
+            if nifti_load_method == 'nibabel':
+                return self.sitk_to_nibabel(value) # sitk_to_nibabel automatically makes a copy
+            else:
+                data_copy = sitk.Image(value)
+                return data_copy
+
+        # Handles trimesh meshes
+        elif isinstance(value, trimesh.Trimesh):
+            return value.copy()
+        
+        # Handle NumPy arrays
+        elif isinstance(value, np.ndarray):
+            return np.copy(value)  # Shallow copy of NumPy array
+
+        # Handle plain text (string)
+        elif isinstance(value, str):
+            return value  # Strings are immutable, return directly
+        
+        else:
+            logger.warning('Loading unknown type of object')
+            # For any other type, fallback to deep copy
+            return copy.deepcopy(value)
+
+    def load_file(self, filename, **kwargs):
+        logger.info(f"{filename} started loading")
+
+        file_saved = self.saved_objects.get(filename)
+
+        if file_saved:
+            data_copy = self._return_copy(file_saved,**kwargs)
+            logger.info(f"{filename} saved object returned instead")
+            return data_copy
+        else:
+            # Determine file extension
+            ext = self.get_file_type(filename)
+
+            # Load file using appropriate method
+            if ext == '.npy' or ext == '.npz':
+                loaded_data = np.load(filename)
+            elif ext == '.stl':
+                loaded_data = trimesh.load_mesh(filename)
+            elif ext == '.nii':
+                loaded_data = self._load_nifti_file(filename,**kwargs)
+            elif ext == '.txt':
+                with open(filename, 'r') as file:
+                    loaded_data = file.read()
+            else:
+                raise ValueError(f"Not able to load this file type ({ext})")
+            
+            logger.info(f"{filename} finished loading")
+            return loaded_data
     
     def save_file(self, file_data, filename, precursor_files=None, **kwargs):
-        self.wait_for_file(filename) # Wait if file is already being saved
+        logger.info(f"{filename} preparing to save")
+
+        # Save object for future use
+        self.saved_objects[filename] = file_data
+
+        file_being_saved = self._saving_file.get(filename)
+
+        if file_being_saved:
+            logger.info(f"current {filename} save has been stopped, restarting save")
+            self._saving_file.pop(filename, None)
+
         self.set_saving(filename)
         self._executor.submit(self._save_file, file_data, filename, precursor_files, **kwargs)
         # self._save_file(file_data, filename, precursor_files,  **kwargs)
@@ -76,8 +129,17 @@ class FileManager:
         with self._lock:
             saving = self._saving_file.get(filename)
             if saving:
-                logger.info(f"Waiting for {filename} to finish saving ({datetime.now().strftime('%H:%M:%S')})")
+                logger.info(f"{filename} needs to save first")
                 saving.wait()
+
+    def _file_saving(self, filename):
+        # Check if file is currently being saved and wait if it is
+        with self._lock:
+            saving = self._saving_file.get(filename)
+            if saving:
+                return True
+            else:
+                return False
 
     def set_saving(self, filename):
         with self._lock:
@@ -294,7 +356,7 @@ class FileManager:
         print("Reusing previously generated files")
         return True, prev_files
 
-    def nibabel_to_sitk(self,original_nib_image):
+    def nibabel_to_sitk(self,original_nib_image,sitk_dtype=None):
         """
         Convert a nibabel.Nifti1Image to a SimpleITK.Image with correct spacing, direction, and origin.
 
@@ -338,6 +400,9 @@ class FileManager:
         sitk_img.SetSpacing(spacing)
         sitk_img.SetDirection(direction.flatten())
         sitk_img.SetOrigin(origin)
+
+        if sitk_dtype:
+            sitk_img = sitk.Cast(sitk_img,sitk_dtype)
 
         return sitk_img
 
@@ -394,6 +459,7 @@ class FileManager:
         return loaded_file
     
     def _save_file(self, file_data, filename, precursor_files=None, **kwargs):
+        logger.info(f"{filename} saving started in separate thread")
         
         # Ensure precursor values is iterable if provided
         if precursor_files is not None:
@@ -422,7 +488,7 @@ class FileManager:
                 print("checksum data not saved, invalid output file type specified")      
 
         # Save file using appropriate method
-        logger.info(f"{filename} started saving at {datetime.now().strftime('%H:%M:%S')}")
+        # logger.info(f"{filename} started saving")
         try:
             if ext == '.npy':
                 np.save(filename,file_data)
@@ -438,7 +504,7 @@ class FileManager:
         except Exception as e:
             logger.error(f"Error saving {filename}: {e}")
         finally:
-            logger.info(f"{filename} finished saving at {datetime.now().strftime('%H:%M:%S')}")
+            logger.info(f"{filename} finished saving")
             self.notify_saving_complete(filename)
 
     def _generate_filenames(self):
