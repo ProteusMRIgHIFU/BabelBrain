@@ -16,5 +16,7 @@ BSonix80mm:
     AdjustDistanceSkin:       2.5e-3
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
+CaseDiameter:                 70.00 #mm
+CaseHeight:                   34.00 #mm
 USFrequencies:
     - 650000.0
