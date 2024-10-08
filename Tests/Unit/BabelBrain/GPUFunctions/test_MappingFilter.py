@@ -16,8 +16,8 @@ def test_MappingFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_d
     # Parameters
     input_folder = dataset['folder_path']
     input_files = {
-        'T1W': input_folder + 'T1W.nii.gz',
-        'Final_Tissues': input_folder + os.sep + 'm2m_' + dataset['id'] + os.sep + 'final_tissues.nii.gz'
+        'T1W': dataset['T1_path'],
+        'Final_Tissues': dataset['m2m_folder_path'] + 'final_tissues.nii.gz'
     }
     spatial_step_text = re.sub("\.","_",str(spatial_step))
     output_fnames = {

@@ -18,8 +18,8 @@ def test_Voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device
      # Parameters
      input_folder = dataset['folder_path']
      input_files = {
-          'T1W': input_folder + 'T1W.nii.gz',
-          'skin': input_folder + f"m2m_{dataset['id']}" + os.sep + 'skin.stl',
+          'T1W': dataset['T1_path'],
+          'skin': dataset['m2m_folder_path'] + os.sep + 'skin.stl',
      }
      spatial_step_text = re.sub("\.","_",str(spatial_step))
      output_fnames = {

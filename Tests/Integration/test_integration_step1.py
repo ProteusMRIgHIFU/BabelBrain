@@ -110,7 +110,7 @@ class TestSteps:
         
         assert cumulative_error == 0 and lengths_equal, f"Array lengths were equal? {lengths_equal}\nCumulative error was {cumulative_error}"
 
-    def test_step1_invalid_case(self,qtbot,trajectory,transducer,scan_type,dataset,babelbrain_widget,mock_NotifyError,mock_UpdateMask,tmp_path):
+    def test_step1_invalid_case(self,qtbot,trajectory,transducer,scan_type,dataset,babelbrain_widget,tmp_path):
 
         # Run Step 1
         babelbrain_widget.Widget.CalculatePlanningMask.click()

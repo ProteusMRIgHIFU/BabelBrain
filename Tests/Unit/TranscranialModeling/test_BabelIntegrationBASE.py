@@ -10,7 +10,7 @@ from TranscranialModeling import BabelIntegrationBASE as BIBase
 def test_SaveNiftiEnforcedISO(dataset,load_files,check_data,tmp_path):
 
     # Load inputs
-    input_files = {'T1W': dataset['folder_path'] + 'T1W.nii.gz'}
+    input_files = {'T1W': dataset['T1_path']}
     input_data = load_files(input_files)
 
     # Run SaveNiftiEnforcedISO

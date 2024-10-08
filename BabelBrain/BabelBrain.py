@@ -9,7 +9,9 @@ ABOUT:
 import argparse
 import multiprocessing
 import logging
-# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO,
+#                     format='%(name)s - %(levelname)s - %(asctime)s.%(msecs)03d - %(message)s',
+#                     datefmt='%H:%M:%S')
 import os
 import platform
 import shutil

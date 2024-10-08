@@ -17,6 +17,7 @@ import pyvista as pv
 import base64
 from io import BytesIO
 import numpy as np
+np.random.seed(42) # RNG is same every time
 import nibabel
 from nibabel import processing, nifti1, affines
 import SimpleITK as sitk
@@ -27,6 +28,7 @@ from skimage.metrics import structural_similarity, mean_squared_error
 
 from BabelBrain.BabelBrain import BabelBrain
 from BabelBrain.SelFiles.SelFiles import SelFiles
+from BabelBrain.FileManager import FileManager
 
 # FOLDER/FILE PATHS
 config = configparser.ConfigParser()
@@ -53,13 +55,36 @@ SimNIBS_type = {
     'headreco': 1
 }
 test_datasets = [
-    {'id': 'SDR_0p31','folder_path': test_data_folder + 'SDR_0p31' + os.sep},
-    {'id': 'SDR_0p42','folder_path': test_data_folder + 'SDR_0p42' + os.sep},
-    {'id': 'SDR_0p55','folder_path': test_data_folder + 'SDR_0p55' + os.sep},    
-    {'id': 'SDR_0p67','folder_path': test_data_folder + 'SDR_0p67' + os.sep},     
-    {'id': 'SDR_0p79','folder_path': test_data_folder + 'SDR_0p79' + os.sep},
-    {'id': 'ID_0082','folder_path': test_data_folder + 'ID_0082' + os.sep}
+    {'id': 'SDR_0p31','folder_path': test_data_folder + os.sep + 'SDR_0p31' + os.sep},
+    {'id': 'SDR_0p42','folder_path': test_data_folder + os.sep + 'SDR_0p42' + os.sep},
+    {'id': 'SDR_0p55','folder_path': test_data_folder + os.sep + 'SDR_0p55' + os.sep},    
+    {'id': 'SDR_0p67','folder_path': test_data_folder + os.sep + 'SDR_0p67' + os.sep},     
+    {'id': 'SDR_0p79','folder_path': test_data_folder + os.sep + 'SDR_0p79' + os.sep},
+    {'id': 'ID_0082','folder_path': test_data_folder + os.sep + 'ID_0082' + os.sep}
 ]
+for ds in test_datasets:
+    ds['m2m_folder_path'] = ds['folder_path'] + f"m2m_{ds['id']}" + os.sep
+    ds['T1_path'] = ds['folder_path'] + "T1W.nii.gz"
+    ds['T1_iso_path'] = ds['folder_path'] + "T1W-isotropic.nii.gz"
+    
+    if os.path.exists(ds['folder_path'] + "CT.nii.gz"):
+        ds['extra_scan_type'] = 'CT'
+        ds['extra_scan_path'] = ds['folder_path'] + "CT.nii.gz"
+    elif os.path.exists(ds['folder_path'] + "ZTE.nii.gz"):
+        ds['extra_scan_type'] = 'ZTE'
+        ds['extra_scan_path'] = ds['folder_path'] + "ZTE.nii.gz"
+    elif os.path.exists(ds['folder_path'] + "PETRA.nii.gz"):
+        ds['extra_scan_type'] = 'PETRA'
+        ds['extra_scan_path'] = ds['folder_path'] + "PETRA.nii.gz"
+    else:
+        ds['extra_scan_type'] = 'NONE'
+        ds['extra_scan_path'] = ''
+
+    if os.path.exists(ds['m2m_folder_path'] + 'charm_log.html'):
+        ds['simbNIBS_type'] = 'charm'
+    else:
+        ds['simbNIBS_type'] = 'headreco'
+
 CT_types = {
     'NONE': 0, # T1W Only
     'CT': 1,
@@ -71,9 +96,9 @@ coregistration = {
     'yes': 1
 }
 thermal_profiles = {
-    'thermal_profile_1': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_1.yaml',
-    'thermal_profile_2': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_2.yaml',
-    'thermal_profile_3': test_data_folder + 'Profiles' + os.sep + 'Thermal_Profile_3.yaml'
+    'thermal_profile_1': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_1.yaml',
+    'thermal_profile_2': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_2.yaml',
+    'thermal_profile_3': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_3.yaml'
 }
 transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
@@ -125,49 +150,61 @@ def check_files_exist():
 @pytest.fixture()
 def load_files(check_files_exist):
     
-    def _load_files(fnames,skip_test=True):
+    def _load_files(fnames,nifti_load_method='nibabel',skip_test=True):
 
         if isinstance(fnames,dict):
             datas = fnames.copy()
-            fnames = fnames.values()
+            fnames_list = fnames.values()
         else:
             datas = []
+            fnames_list = fnames
 
         # Check files exist
-        files_exist, missing_files = check_files_exist(fnames)
+        files_exist, missing_files = check_files_exist(fnames_list)
 
         if not files_exist:
             if skip_test:
                 logging.warning(f"Following files are missing: {', '.join(missing_files)}")
                 pytest.skip(f"Skipping test because the following files are missing: {', '.join(missing_files)}")
             else:
-                raise ValueError(f"Following files are missing: {', '.join(missing_files)}")
+                raise FileNotFoundError(f"Following files are missing: {', '.join(missing_files)}")
 
-        if isinstance(datas,dict):
-            # Load files and save to dictionary
-            for key,fname in datas.items():
-                _, ext = os.path.splitext(fname)
-
-                if ext == '.npy':
-                    datas[key] = np.load(fname)
-                elif ext == '.stl':
-                    datas[key] = trimesh.load(fname)
-                elif ext == '.gz':
-                    datas[key] = nibabel.load(fname)
+        # Load files based on their extensions
+        if isinstance(datas, dict):
+            # Iterate over dictionary keys and values directly
+            for key, fname in fnames.items():
+                datas[key] = _load_file(fname, nifti_load_method)
         else:
-            for fname in fnames:
-                _, ext = os.path.splitext(fname)
-
-                if ext == '.npy':
-                    data = np.load(fname)
-                elif ext == '.stl':
-                    data = trimesh.load(fname)
-                elif ext == '.gz':
-                    data  = nibabel.load(fname)
-
-                datas.append(data)
+            # For lists, just iterate over file names
+            for fname in fnames_list:
+                datas.append(_load_file(fname,nifti_load_method))
 
         return datas
+    
+    def _load_file(fname, nifti_load_method='nibabel'):
+        """Helper function to load a single file based on its extension."""
+        
+        # Get file extension type
+        base, ext = os.path.splitext(fname)
+        
+        # Repeat for compressed files
+        if ext == '.gz':
+            base, ext = os.path.splitext(base)
+
+        # Load file using appropriate method
+        if ext == '.npy':
+            return np.load(fname)
+        elif ext == '.stl':
+            return trimesh.load(fname)
+        elif ext == '.nii':
+            if nifti_load_method == 'nibabel':
+                return nibabel.load(fname)
+            elif nifti_load_method == 'sitk':
+                return sitk.ReadImage(fname)
+            else:
+                pass # continue to next if statement
+        else:
+            raise ValueError(f"Unsupported file extension: {ext}")
 
     return _load_files
 
@@ -376,6 +413,29 @@ def compare_data(get_rmse):
     return {'array_data': array_data,'bhatt_distance': bhattacharyya_distance,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
 
 @pytest.fixture()
+def extract_nib_info():
+    def _extract_nib_info(nifti_nib):
+        zooms = np.asarray(nifti_nib.header.get_zooms())[:3]
+        affine = nifti_nib.affine
+        data = np.squeeze(nifti_nib.get_fdata())
+
+        return zooms, affine, data
+    
+    return _extract_nib_info
+
+@pytest.fixture()
+def extract_sitk_info():
+    def _extract_sitk_info(nifti_sitk):
+        spacing = np.asarray(nifti_sitk.GetSpacing())
+        direction = np.asarray(nifti_sitk.GetDirection())
+        origin = np.asarray(nifti_sitk.GetOrigin())
+        data = sitk.GetArrayFromImage(nifti_sitk)
+
+        return spacing, direction, origin, data
+    
+    return _extract_sitk_info
+
+@pytest.fixture()
 def get_mpl_plot():
     def _get_mpl_plot(datas,axes_num=1,titles=None, color_map='viridis'):
 
@@ -527,13 +587,13 @@ def babelbrain_widget(qtbot,trajectory_type,
 
     # Folder paths
     input_folder = dataset['folder_path']
-    simNIBS_folder = input_folder + f"m2m_{dataset['id']}" + os.sep
+    simNIBS_folder = dataset['m2m_folder_path']
     trajectory_folder = input_folder + 'Trajectories' + os.sep
 
     # Filenames
-    T1W_file = dataset['folder_path'] + 'T1W.nii.gz'
+    T1W_file = dataset['T1_path']
     if scan_type != 'NONE':
-        CT_file = dataset['folder_path'] + f"{scan_type}.nii.gz"
+        CT_file = dataset['extra_scan_path']
     thermal_profile_file = thermal_profiles['thermal_profile_1']
     trajectory_file = trajectory_folder + f"{trajectory}.txt"
 
@@ -599,6 +659,92 @@ def babelbrain_widget(qtbot,trajectory_type,
 
     os.environ.pop('BABEL_PYTEST')
 
+@pytest.fixture()
+def set_up_file_manager(load_files,tmpdir,get_example_data):
+
+    def existing_dataset(ds,HUT=300.0,pCT_range=(0.1,0.6)):
+        T1_iso_path = ds['folder_path'] + f"T1W-isotropic.nii.gz"
+        prefix = ""
+
+        # Instantiate FileManager class object
+        file_manager = FileManager(ds['m2m_folder_path'],
+                                   ds['simbNIBS_type'],
+                                   ds['T1_path'],
+                                   T1_iso_path,
+                                   ds['extra_scan_path'],
+                                   prefix,
+                                   CT_types[ds['extra_scan_type']],
+                                   current_HUT=HUT,
+                                   current_pCT_range=pCT_range)
+        
+        # Load T1 using nibabel and save to file manager
+        file_manager.saved_objects['T1_nib'] = load_files([ds['T1_path']],nifti_load_method='nibabel')[0]
+
+        # Load T1 using sitk and save to file manager
+        file_manager.saved_objects['T1_sitk'] = load_files([ds['T1_path']],nifti_load_method='sitk')[0]
+
+        return file_manager
+    
+    def blank(CT_type='NONE',HUT=300.0,pCT_range=(0.1,0.6)):
+
+        # Instantiate blank FileManager class object
+        file_manager = FileManager(simNIBS_dir="",
+                                   simbNIBS_type="",
+                                   T1_fname="",
+                                   T1_iso_fname="",
+                                   extra_scan_fname="",
+                                   prefix="",
+                                   current_CT_type=CT_types[CT_type],
+                                   current_HUT=HUT,
+                                   current_pCT_range=pCT_range)
+        
+        # Set file paths
+        input_1_path = str(tmpdir.join('input1.npy'))
+        output_1_path = str(tmpdir.join('output1.nii.gz'))
+        output_2_path = str(tmpdir.join('output2.nii.gz'))
+        input_fnames = {'input1': input_1_path}
+        output_fnames = {'output1': output_1_path,'output2': output_2_path}
+
+        # Get random example data
+        example_input_data = get_example_data['numpy']()
+
+        # Save input files
+        if not os.path.exists(input_1_path):
+            np.save(input_1_path,example_input_data)
+
+        return file_manager, input_fnames, output_fnames
+    
+    return {'existing_dataset':existing_dataset,'blank':blank}
+
+@pytest.fixture()
+def get_example_data():
+    def numpy_data(dims = (4,4)):
+        return np.random.random(dims)
+    
+    def nifti_nib_data(dims=(256,256,128)):
+        affine = np.random.rand(4,4)
+        data = np.random.random(dims)
+        nibabel_nifti = nibabel.nifti1.Nifti1Image(data,affine)
+        nibabel_nifti.header.set_zooms(np.random.rand(3))
+        
+        return nibabel_nifti
+    
+    def nifti_sitk_data():
+        data = np.random.rand(256,256,128)
+        nibabel_sitk = sitk.GetImageFromArray(data)
+
+        # Set the spacing, direction, and origin in the SimpleITK image
+        nibabel_sitk.SetSpacing(np.random.rand(3))
+        nibabel_sitk.SetDirection(np.random.rand(3,3))
+        nibabel_sitk.SetOrigin(np.random.rand(3))
+        
+        return nibabel_sitk
+    
+    # Return the fixture object with the specified attribute
+    return {'numpy': numpy_data,
+            'nifti_nib':nifti_nib_data,
+            'nifti_sitk':nifti_sitk_data}
+        
 # PYTEST HOOKS
 def pytest_generate_tests(metafunc):
     # Parametrize tests based on arguments
@@ -607,6 +753,9 @@ def pytest_generate_tests(metafunc):
 
     if 'scan_type' in metafunc.fixturenames:
         metafunc.parametrize('scan_type',tuple(CT_types.keys()))
+
+    if 'second_scan_type' in metafunc.fixturenames:
+        metafunc.parametrize('second_scan_type',tuple(CT_types.keys()))
 
     if 'trajectory' in metafunc.fixturenames and 'invalid' in metafunc.function.__name__:
         metafunc.parametrize('trajectory', tuple(invalid_trajectories))
