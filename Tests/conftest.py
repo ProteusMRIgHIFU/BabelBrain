@@ -96,9 +96,9 @@ coregistration = {
     'yes': 1
 }
 thermal_profiles = {
-    'thermal_profile_1': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_1.yaml',
-    'thermal_profile_2': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_2.yaml',
-    'thermal_profile_3': test_data_folder + os.sep + 'ThermalProfiles' + os.sep + 'Profile_3.yaml'
+    'thermal_profile_1': test_data_folder + os.sep + 'Profiles' + os.sep + 'Thermal_Profile_1.yaml',
+    'thermal_profile_2': test_data_folder + os.sep + 'Profiles' + os.sep + 'Thermal_Profile_2.yaml',
+    'thermal_profile_3': test_data_folder + os.sep + 'Profiles' + os.sep + 'Thermal_Profile_3.yaml'
 }
 transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
@@ -593,7 +593,7 @@ def babelbrain_widget(qtbot,trajectory_type,
     # Filenames
     T1W_file = dataset['T1_path']
     if scan_type != 'NONE':
-        CT_file = dataset['extra_scan_path']
+        CT_file = dataset['folder_path'] + os.sep + scan_type + '.nii.gz'
     thermal_profile_file = thermal_profiles['thermal_profile_1']
     trajectory_file = trajectory_folder + f"{trajectory}.txt"
 
