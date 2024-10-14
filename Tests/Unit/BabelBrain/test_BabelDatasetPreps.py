@@ -13,7 +13,7 @@ class TestBabelDatasetPreps:
         
         # Parameters
         truth_folder = dataset['folder_path'] + 'Truth' + os.sep + 'Unit' + os.sep + 'DoIntersect' + os.sep
-        input_folder = dataset['folder_path'] + f"m2m_{dataset['id']}" + os.sep
+        input_folder = dataset['m2m_folder_path']
 
         # Load inputs
         input_files = {}
@@ -67,8 +67,8 @@ class TestBabelDatasetPreps:
     def test_do_intersect_invalid_case(self,trajectory,transducer,dataset,load_files):
 
         # Parameters
-        truth_folder = dataset['folder_path'] + 'Truth' + os.sep + 'DoIntersect' + os.sep
-        input_folder = dataset['folder_path'] + f"m2m_{dataset['id']}" + os.sep
+        truth_folder = dataset['folder_path'] + 'Truth' + os.sep + 'Unit' + os.sep + 'DoIntersect' + os.sep
+        input_folder = dataset['m2m_folder_path']
 
         # Load inputs
         input_files = {}
