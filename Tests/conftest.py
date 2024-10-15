@@ -345,7 +345,7 @@ def compare_data(get_rmse):
 
         return bhatt_distance
 
-    def dice_coefficient(output_array,truth_array,tolerance=1e-6):
+    def dice_coefficient(output_array,truth_array,abs_tolerance=1e-6,rel_tolerance=0):
         logging.info('Calculating dice coefficient')
 
         if output_array.size != truth_array.size:
@@ -357,7 +357,7 @@ def compare_data(get_rmse):
         if output_array.dtype == bool:
             matches = output_array == truth_array
         else:
-            matches = abs(output_array - truth_array) < tolerance
+            matches = np.isclose(output_array,truth_array,atol=abs_tolerance,rtol=rel_tolerance)
         matches_count = len(matches[matches==True])
 
         dice_coeff = 2 * matches_count / (output_array.size + truth_array.size)
