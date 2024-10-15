@@ -66,19 +66,6 @@ for ds in test_datasets:
     ds['m2m_folder_path'] = ds['folder_path'] + f"m2m_{ds['id']}" + os.sep
     ds['T1_path'] = ds['folder_path'] + "T1W.nii.gz"
     ds['T1_iso_path'] = ds['folder_path'] + "T1W-isotropic.nii.gz"
-    
-    if os.path.exists(ds['folder_path'] + "CT.nii.gz"):
-        ds['extra_scan_type'] = 'CT'
-        ds['extra_scan_path'] = ds['folder_path'] + "CT.nii.gz"
-    elif os.path.exists(ds['folder_path'] + "ZTE.nii.gz"):
-        ds['extra_scan_type'] = 'ZTE'
-        ds['extra_scan_path'] = ds['folder_path'] + "ZTE.nii.gz"
-    elif os.path.exists(ds['folder_path'] + "PETRA.nii.gz"):
-        ds['extra_scan_type'] = 'PETRA'
-        ds['extra_scan_path'] = ds['folder_path'] + "PETRA.nii.gz"
-    else:
-        ds['extra_scan_type'] = 'NONE'
-        ds['extra_scan_path'] = ''
 
     if os.path.exists(ds['m2m_folder_path'] + 'charm_log.html'):
         ds['simbNIBS_type'] = 'charm'
@@ -202,9 +189,13 @@ def load_files(check_files_exist):
             elif nifti_load_method == 'sitk':
                 return sitk.ReadImage(fname)
             else:
-                pass # continue to next if statement
+                raise ValueError(f"Invalid nifti load method specified: {nifti_load_method}")
+        elif ext == '.txt':
+            with open(fname, 'r') as file:
+                content = file.read()
+                return content
         else:
-            raise ValueError(f"Unsupported file extension: {ext}")
+            logging.warning(f"Unsupported file extension, {fname} not loaded")
 
     return _load_files
 
@@ -354,7 +345,7 @@ def compare_data(get_rmse):
 
         return bhatt_distance
 
-    def dice_coefficient(output_array,truth_array,tolerance=1e-6):
+    def dice_coefficient(output_array,truth_array,abs_tolerance=1e-6,rel_tolerance=0):
         logging.info('Calculating dice coefficient')
 
         if output_array.size != truth_array.size:
@@ -366,7 +357,7 @@ def compare_data(get_rmse):
         if output_array.dtype == bool:
             matches = output_array == truth_array
         else:
-            matches = abs(output_array - truth_array) < tolerance
+            matches = np.isclose(output_array,truth_array,atol=abs_tolerance,rtol=rel_tolerance)
         matches_count = len(matches[matches==True])
 
         dice_coeff = 2 * matches_count / (output_array.size + truth_array.size)
@@ -576,6 +567,21 @@ def get_freq():
     return _get_freq
 
 @pytest.fixture()
+def get_extra_scan_file():
+    def _get_extra_scan_file(extra_scan_type,ds_folder_path):
+        scan_file_path = ""
+
+        if extra_scan_type != 'NONE':
+            scan_file_path = ds_folder_path + os.sep + extra_scan_type + '.nii.gz'
+
+            if not os.path.exists(scan_file_path):
+                pytest.skip(f"{ds_folder_path} does not possess a {extra_scan_type} file")
+
+        return scan_file_path
+    
+    return _get_extra_scan_file
+
+@pytest.fixture()
 def babelbrain_widget(qtbot,trajectory_type,
                       scan_type,
                       trajectory,
@@ -583,6 +589,7 @@ def babelbrain_widget(qtbot,trajectory_type,
                       transducer,
                       selfiles_widget,
                       get_freq,
+                      get_extra_scan_file,
                       tmp_path):
 
     # Folder paths
@@ -593,7 +600,7 @@ def babelbrain_widget(qtbot,trajectory_type,
     # Filenames
     T1W_file = dataset['T1_path']
     if scan_type != 'NONE':
-        CT_file = dataset['folder_path'] + os.sep + scan_type + '.nii.gz'
+        CT_file = get_extra_scan_file(scan_type,input_folder)
     thermal_profile_file = thermal_profiles['thermal_profile_1']
     trajectory_file = trajectory_folder + f"{trajectory}.txt"
 
@@ -660,10 +667,11 @@ def babelbrain_widget(qtbot,trajectory_type,
     os.environ.pop('BABEL_PYTEST')
 
 @pytest.fixture()
-def set_up_file_manager(load_files,tmpdir,get_example_data):
+def set_up_file_manager(load_files,tmpdir,get_example_data,get_extra_scan_file):
 
-    def existing_dataset(ds,HUT=300.0,pCT_range=(0.1,0.6)):
+    def existing_dataset(ds,extra_scan_type="NONE",HUT=300.0,pCT_range=(0.1,0.6)):
         T1_iso_path = ds['folder_path'] + f"T1W-isotropic.nii.gz"
+        extra_scan_path = get_extra_scan_file(extra_scan_type,ds['folder_path'])
         prefix = ""
 
         # Instantiate FileManager class object
@@ -671,9 +679,9 @@ def set_up_file_manager(load_files,tmpdir,get_example_data):
                                    ds['simbNIBS_type'],
                                    ds['T1_path'],
                                    T1_iso_path,
-                                   ds['extra_scan_path'],
+                                   extra_scan_path,
                                    prefix,
-                                   CT_types[ds['extra_scan_type']],
+                                   CT_types[extra_scan_type],
                                    current_HUT=HUT,
                                    current_pCT_range=pCT_range)
         
