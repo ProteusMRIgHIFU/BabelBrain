@@ -16,7 +16,7 @@ def test_BinaryClosing(computing_backend,dataset,spatial_step,check_os,get_gpu_d
         
     # Parameters
     input_folder = dataset['folder_path']
-    input_fnames = {'CT': dataset['extra_scan_path']}
+    input_fnames = {'CT': input_folder + 'CT.nii.gz',}
     spatial_step_text = re.sub("\.","_",str(spatial_step))
     output_fnames = {
         'Resampled_Input': input_folder + f"CT_cpu_resampled_spatial_step_{spatial_step_text}.nii.gz",
