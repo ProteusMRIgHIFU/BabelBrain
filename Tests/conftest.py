@@ -4,6 +4,7 @@ import os
 from glob import glob
 import sys
 sys.path.append('./BabelBrain/')
+from pathlib import Path
 import platform
 import shutil
 import re
@@ -425,6 +426,25 @@ def extract_sitk_info():
         return spacing, direction, origin, data
     
     return _extract_sitk_info
+
+@pytest.fixture()
+def image_to_base64():
+    def _image_to_base64(image_path):
+        # Ensure the file exists
+        if not image_path.exists() or not image_path.is_file():
+            raise FileNotFoundError(f"File {image_path} does not exist.")
+        
+        # Open the image file in binary mode
+        with image_path.open("rb") as image_file:
+            # Read the binary data from the file
+            image_data = image_file.read()
+            
+            # Encode the binary data to a base64 string
+            base64_string = base64.b64encode(image_data).decode('utf-8')
+        
+        return base64_string
+    
+    return _image_to_base64
 
 @pytest.fixture()
 def get_mpl_plot():
