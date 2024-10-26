@@ -8,7 +8,10 @@ import pytest
 
 class TestSteps:
 
-    def test_steps_normal(self,qtbot,babelbrain_widget):
+    def test_steps_normal(self,qtbot,babelbrain_widget,image_to_base64,request):
+
+        # Save plot screenshot to be added to html report later
+        request.node.screenshots = []
 
         # Run Step 1
         babelbrain_widget.testing_error = False
@@ -17,24 +20,38 @@ class TestSteps:
         # Wait for step 1 completion before continuing. Test timeouts after 15 min have past
         qtbot.waitUntil(babelbrain_widget.Widget.tabWidget.isEnabled,timeout=900000)
 
+        # Take screenshot of step 1 results
+        screenshot = qtbot.screenshot(babelbrain_widget)
+        request.node.screenshots.append(image_to_base64(screenshot))
+    
         # Check if step 1 failed
         if babelbrain_widget.testing_error == True:
             pytest.fail(f"Test failed due to error in execution")
 
         # Run Step 2
+        babelbrain_widget.Widget.tabWidget.setCurrentIndex(1)
         babelbrain_widget.AcSim.Widget.CalculateAcField.click()
 
         # Wait for step 2 completion before continuing. Test timeouts after 15 min have past
         qtbot.waitUntil(babelbrain_widget.Widget.tabWidget.isEnabled,timeout=900000)
 
+        # Take screenshot of step 2 results
+        screenshot = qtbot.screenshot(babelbrain_widget)
+        request.node.screenshots.append(image_to_base64(screenshot))
+
         if babelbrain_widget.testing_error == True:
             pytest.fail(f"Test failed due to error in execution")
 
         # Run Step 3
+        babelbrain_widget.Widget.tabWidget.setCurrentIndex(2)
         babelbrain_widget.ThermalSim.Widget.CalculateThermal.click()
 
         # Wait for step 3 completion before continuing. Test timeouts after 15 min have past
         qtbot.waitUntil(babelbrain_widget.Widget.tabWidget.isEnabled,timeout=900000)
+
+        # Take screenshot of step 3 results
+        screenshot = qtbot.screenshot(babelbrain_widget)
+        request.node.screenshots.append(image_to_base64(screenshot))
 
         if babelbrain_widget.testing_error == True:
             pytest.fail(f"Test failed due to error in execution")
@@ -110,7 +127,7 @@ class TestSteps:
         
         assert cumulative_error == 0 and lengths_equal, f"Array lengths were equal? {lengths_equal}\nCumulative error was {cumulative_error}"
 
-    def test_step1_invalid_case(self,qtbot,trajectory,transducer,scan_type,dataset,babelbrain_widget,mock_NotifyError,mock_UpdateMask,tmp_path):
+    def test_step1_invalid_case(self,qtbot,trajectory,transducer,scan_type,dataset,babelbrain_widget,tmp_path):
 
         # Run Step 1
         babelbrain_widget.Widget.CalculatePlanningMask.click()
