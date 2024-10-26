@@ -47,6 +47,8 @@ class AdvanceOptions(QDialog):
 
         self.defaultValues = defaultValues
         kargs={}
+        for k in defaultValues:
+            kargs[k]=self.currentConfig[k]
         self.SetValues(**kargs)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
@@ -66,6 +68,7 @@ class AdvanceOptions(QDialog):
                  bDisableCTMedianFilter=False,
                  bGeneratePETRAHistogram=False,
                  CTX_500_Correction='Original',
+                 BaselineTemperature=37.0,
                  **kargs):
         
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
@@ -85,7 +88,7 @@ class AdvanceOptions(QDialog):
         self.ui.InvertZTEcheckBox.setChecked(bInvertZTE)
         self.ui.DisableCTMedianFiltercheckBox.setChecked(bDisableCTMedianFilter)
         self.ui.GeneratePETRAHistogramcheckBox.setChecked(bGeneratePETRAHistogram)
-        
+        self.ui.BaselineTemperatureSpinBox.setValue(BaselineTemperature)
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
         if sel==-1:

@@ -436,6 +436,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bInvertZTE']=False
         self.DefaultAdvanced['bDisableCTMedianFilter']=False
         self.DefaultAdvanced['bGeneratePETRAHistogram']=False
+        self.DefaultAdvanced['BaselineTemperature']=37.0
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:

@@ -75,6 +75,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             kargsSub['Frequency']=kargs['Frequency']
+            kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)

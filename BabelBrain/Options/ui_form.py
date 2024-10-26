@@ -146,10 +146,25 @@ class Ui_Dialog(object):
         self.CTX500CorrectioncomboBox.setLayoutDirection(Qt.LeftToRight)
         self.CTX500CorrectioncomboBox.setStyleSheet(u"")
         self.tabWidget.addTab(self.tab_2, "")
+        self.tab_3 = QWidget()
+        self.tab_3.setObjectName(u"tab_3")
+        self.BaselineTemperatureSpinBox = QDoubleSpinBox(self.tab_3)
+        self.BaselineTemperatureSpinBox.setObjectName(u"BaselineTemperatureSpinBox")
+        self.BaselineTemperatureSpinBox.setGeometry(QRect(343, 30, 61, 22))
+        self.BaselineTemperatureSpinBox.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.BaselineTemperatureSpinBox.setDecimals(1)
+        self.BaselineTemperatureSpinBox.setMinimum(35.500000000000000)
+        self.BaselineTemperatureSpinBox.setMaximum(38.000000000000000)
+        self.BaselineTemperatureSpinBox.setSingleStep(0.100000000000000)
+        self.BaselineTemperatureSpinBox.setValue(37.000000000000000)
+        self.FocalLengthLabel_7 = QLabel(self.tab_3)
+        self.FocalLengthLabel_7.setObjectName(u"FocalLengthLabel_7")
+        self.FocalLengthLabel_7.setGeometry(QRect(170, 30, 171, 20))
+        self.tabWidget.addTab(self.tab_3, "")
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -184,5 +199,7 @@ class Ui_Dialog(object):
         self.CTX500CorrectioncomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"July2024", None))
 
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Transcranial Ultrasound", None))
+        self.FocalLengthLabel_7.setText(QCoreApplication.translate("Dialog", u"Baseline temperature (\u00b0C)", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("Dialog", u"Thermal", None))
     # retranslateUi
 

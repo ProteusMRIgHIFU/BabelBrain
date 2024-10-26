@@ -104,7 +104,7 @@ def CalculateTemperatureEffects(InputPData,
                                 DurationOff=40,
                                 Repetitions=1,
                                 bForceRecalc=False,
-                                OutTemperature=37,
+                                BaselineTemperature=37,
                                 bGlobalDCMultipoint=False,
                                 Frequency=7e5,
                                 Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
@@ -119,6 +119,7 @@ def CalculateTemperatureEffects(InputPData,
 
     print('Thermal sim with Backend',Backend)
     print('Operating Frequency',Frequency)
+    print('Baseline Temperature',BaselineTemperature)
     if bForceRecalc==False:
         if isfile(outfname+'.h5'):
             print('skipping', outfname)
@@ -192,7 +193,8 @@ def CalculateTemperatureEffects(InputPData,
         
         MaterialList['Absorption']=np.array([0,0.85,0.16,0.15,0.85])
 
-        MaterialList['InitTemperature']=[OutTemperature,37,37,37,37]
+        MaterialList['InitTemperature']=[BaselineTemperature,BaselineTemperature,
+                                         BaselineTemperature,BaselineTemperature,BaselineTemperature]
     else:
         #Water, Skin, Brain and skull material
         MaterialList['SpecificHeat']=np.zeros_like(MaterialList['SoS'])
@@ -212,8 +214,8 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Absorption'][3:]=(0.16+0.15)/2
 
         MaterialList['InitTemperature']=np.zeros_like(MaterialList['SoS'])
-        MaterialList['InitTemperature'][0]=OutTemperature
-        MaterialList['InitTemperature'][1:]=37
+        MaterialList['InitTemperature'][0]=BaselineTemperature
+        MaterialList['InitTemperature'][1:]=BaselineTemperature
     
 
     SaveDict={}
@@ -431,9 +433,9 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3
     SaveDict['z_vec']=zf*1e3
-    SaveDict['TI']=TI-37.0
-    SaveDict['TIC']=TIC-37.0
-    SaveDict['TIS']=TIS-37.0
+    SaveDict['TI']=TI-BaselineTemperature
+    SaveDict['TIC']=TIC-BaselineTemperature
+    SaveDict['TIS']=TIS-BaselineTemperature
     SaveDict['CEMBrain']=CEMBrain
     SaveDict['CEMSkin']=CEMSkin
     SaveDict['CEMSkull']=CEMSkull
