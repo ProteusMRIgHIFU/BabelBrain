@@ -264,7 +264,6 @@ class Babel_Thermal(QWidget):
     def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
         if self.bDisableUpdate:
             return
-        BaselineTemperature = self._MainApp.Config['BaselineTemperature']
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.ExportMaps.setEnabled(True)
@@ -313,6 +312,10 @@ class Babel_Thermal(QWidget):
             self._zf-=self._zf[SkinZ]
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        if 'BaselineTemperature' in DataThermal:
+            BaselineTemperature=DataThermal['BaselineTemperature']
+        else:
+            BaselineTemperature=37.0
 
         Loc=DataThermal['TargetLocation']
 
@@ -655,6 +658,11 @@ class Babel_Thermal(QWidget):
         BasePath+=suffix
         nidata = nibabel.load(BasePath)
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        if 'BaselineTemperature' in DataThermal:
+            BaselineTemperature=DataThermal['BaselineTemperature']
+            print('Using BaselineTemperature from file',BaselineTemperature)
+        else:
+            BaselineTemperature=37.0
         Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)

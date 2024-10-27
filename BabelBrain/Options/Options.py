@@ -31,7 +31,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 
-class AdvanceOptions(QDialog):
+class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,
                  defaultValues,
@@ -48,7 +48,7 @@ class AdvanceOptions(QDialog):
         self.defaultValues = defaultValues
         kargs={}
         for k in defaultValues:
-            kargs[k]=self.currentConfig[k]
+            kargs[k]=currentConfig[k]
         self.SetValues(**kargs)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
@@ -114,6 +114,6 @@ class AdvanceOptions(QDialog):
 if __name__ == "__main__":
     
     app = QApplication(sys.argv)
-    widget = AdvanceOptions()
+    widget = AdvancedOptions()
     widget.show()
     sys.exit(app.exec())

@@ -291,7 +291,8 @@ def CalculateTemperatureEffects(InputPData,
                                                         nFactorMonitoring=nFactorMonitoring,
                                                         dt=dt,
                                                         DutyCycle=DutyCycle,
-                                                        Backend=Backend)
+                                                        Backend=Backend,
+                                                        stableTemp=BaselineTemperature)
     else:
         InputsBHTE=AllInputs.copy()
         for n in range(len(InputPData)):
@@ -305,7 +306,8 @@ def CalculateTemperatureEffects(InputPData,
                                                       cy,
                                                       nFactorMonitoring=nFactorMonitoring,
                                                       dt=dt,
-                                                      Backend=Backend)
+                                                      Backend=Backend,
+                                                      stableTemp=BaselineTemperature)
 
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
     ResTempBrain=ResTemp * SelBrain.astype(np.float32)
@@ -343,7 +345,8 @@ def CalculateTemperatureEffects(InputPData,
                                                             Backend=Backend,
                                                             initT0=initT0,
                                                             initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap)
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=BaselineTemperature)
         else:
             ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(InputsBHTE,
                                                             MaterialMap,
@@ -357,7 +360,8 @@ def CalculateTemperatureEffects(InputPData,
                                                             Backend=Backend,
                                                             initT0=initT0,
                                                             initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap)
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=BaselineTemperature)
             
         
         #for cooling off, we do not need to do steering, just running with no energy
@@ -374,7 +378,8 @@ def CalculateTemperatureEffects(InputPData,
                                                         Backend=Backend,
                                                         initT0=ResTemp,
                                                         initDose=ResDose,
-                                                        MonitoringPointsMap=MonitoringPointsMap) 
+                                                        MonitoringPointsMap=MonitoringPointsMap,
+                                                        stableTemp=BaselineTemperature) 
     
     
         if NTotalRep==0:
@@ -469,6 +474,7 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['DurationOff']=DurationOff
     SaveDict['DutyCycle']=DutyCycle
     SaveDict['PRF']=PRF
+    SaveDict['BaselineTemperature']=BaselineTemperature
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)
