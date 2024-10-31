@@ -60,14 +60,18 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         knl = prgcl.mapfilter
 
     elif GPUBackend == 'Metal':
-        import metalcomputebabel as mc
-        clp = mc
-
-        preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
-
-        # Create kernels from program function
-        knl=prgcl.function('mapfilter')
+        import mlx.core as mx
+        clp = mx
+        
+        kernel_functions = [{'name': 'mapfilter',
+                             'file': kernel_files[0],
+                             'input_names': ["HUMap","IsBone","UniqueHU","int_params"],
+                             'output_names': ["CtMap"],
+                             'atomic_outputs': False}]
+        preamble = '#define _METAL\n'
+        kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['mapfilter']
 
     
 def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
@@ -157,24 +161,23 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
             queue.finish()
 
         else:
-            # Move input data from host to device memory
-            HUMap_section_gpu = ctx.buffer(HUMap_section) 
-            UniqueHU_gpu = ctx.buffer(UniqueHU)
-            SelBone_section_gpu = ctx.buffer(SelBone_section)
-            output_section_gpu = ctx.buffer(output_section.nbytes)
-            int_params_gpu = ctx.buffer(int_params)
+            # Change to mlx arrays
+            HUMap_section_mlx = clp.array(HUMap_section) 
+            UniqueHU_mlx = clp.array(UniqueHU)
+            SelBone_section_mlx = clp.array(SelBone_section)
+            output_section_mlx = clp.array(output_section)
+            int_params_mlx = clp.array(int_params)
 
             # Deploy map filter kernel
-            ctx.init_command_buffer()
-            handle=knl(HUMap_section.size,HUMap_section_gpu,SelBone_section_gpu,UniqueHU_gpu,output_section_gpu,int_params_gpu)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            if 'arm64' not in platform.platform():
-                ctx.sync_buffers((output_section_gpu,UniqueHU_gpu))
-
+            output_section_mlx = knl(inputs=[HUMap_section_mlx,SelBone_section_mlx,UniqueHU_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False)[0]
+            
             # Move kernel output data back to host memory
-            output_section = np.frombuffer(output_section_gpu,dtype=output.dtype).reshape(output_section.shape)
+            output_section = np.array(output_section_mlx)
   
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

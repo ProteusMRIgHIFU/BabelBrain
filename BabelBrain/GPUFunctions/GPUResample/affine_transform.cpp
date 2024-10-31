@@ -1,24 +1,3 @@
-#define SIGNED_INT32_LIM 2147483648
-#define UNSIGNED_INT32_LIM 4294967296
-
-typedef float W;
-typedef float X;
-typedef short Y;
-
-#ifdef _METAL
-ptrdiff_t ptrdiff_t_min(ptrdiff_t a, ptrdiff_t b)
-{
-    if (a < b)
-    {
-        return a;
-    }
-    else
-    {
-        return b;
-    }
-}
-#endif
-
 #ifdef _CUDA
 extern "C" __global__ void affine_transform(const float * x, 
                                             const float * mat,
@@ -98,15 +77,7 @@ __kernel void affine_transform(__global const float * x,
 #endif
 
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
-kernel void affine_transform(const device float * x [[ buffer(0) ]], 
-                             const device float * mat [[ buffer(1) ]],
-                             device float * y [[ buffer(2) ]],
-                             const device float * float_params [[ buffer(3) ]],
-                             device unsigned int * int_params [[ buffer(4) ]],
-                             uint gid[[thread_position_in_grid]]) 
-{
+    uint gid = thread_position_in_grid.x;
     const float cval = float_params[0];
     const unsigned int order = int_params[0];
     const unsigned int in_dims_0 = int_params[1];
@@ -222,7 +193,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 ci_0[0] = 1 + (ci_0[0] - 1) % ((xsize_0 - 1) * 2);
                 #ifdef _METAL
                 ci_0[0] = ptrdiff_t_min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
-                #else
+                #endif
+                #if defined(_OPENCL) || defined(_CUDA)
                 ci_0[0] = min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
                 #endif
             }
@@ -240,7 +212,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 ci_0[1] = 1 + (ci_0[1] - 1) % ((xsize_0 - 1) * 2);
                 #ifdef _METAL
                 ci_0[1] = ptrdiff_t_min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
-                #else
+                #endif
+                #if defined(_OPENCL) || defined(_CUDA)
                 ci_0[1] = min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
                 #endif
             }
@@ -258,7 +231,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 ci_0[2] = 1 + (ci_0[2] - 1) % ((xsize_0 - 1) * 2);
                 #ifdef _METAL
                 ci_0[2] = ptrdiff_t_min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
-                #else
+                #endif
+                #if defined(_OPENCL) || defined(_CUDA)
                 ci_0[2] = min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
                 #endif
             }
@@ -276,7 +250,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                 ci_0[3] = 1 + (ci_0[3] - 1) % ((xsize_0 - 1) * 2);
                 #ifdef _METAL
                 ci_0[3] = ptrdiff_t_min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
-                #else
+                #endif
+                #if defined(_OPENCL) || defined(_CUDA)
                 ci_0[3] = min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
                 #endif
             }
@@ -316,7 +291,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_1[0] = 1 + (ci_1[0] - 1) % ((xsize_1 - 1) * 2);
                     #ifdef _METAL
                     ci_1[0] = ptrdiff_t_min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
-                    #else
+                    #endif
+                    #if defined(_OPENCL) || defined(_CUDA)
                     ci_1[0] = min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
                     #endif
                 }
@@ -334,7 +310,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_1[1] = 1 + (ci_1[1] - 1) % ((xsize_1 - 1) * 2);
                     #ifdef _METAL
                     ci_1[1] = ptrdiff_t_min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
-                    #else
+                    #endif
+                    #if defined(_OPENCL) || defined(_CUDA)
                     ci_1[1] = min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
                     #endif
                 }
@@ -352,7 +329,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_1[2] = 1 + (ci_1[2] - 1) % ((xsize_1 - 1) * 2);
                     #ifdef _METAL
                     ci_1[2] = ptrdiff_t_min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
-                    #else
+                    #endif
+                    #if defined(_OPENCL) || defined(_CUDA)
                     ci_1[2] = min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
                     #endif
                 }
@@ -370,7 +348,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_1[3] = 1 + (ci_1[3] - 1) % ((xsize_1 - 1) * 2);
                     #ifdef _METAL
                     ci_1[3] = ptrdiff_t_min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
-                    #else
+                    #endif
+                    #if defined(_OPENCL) || defined(_CUDA)
                     ci_1[3] = min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
                     #endif
                 }
@@ -410,7 +389,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_2[0] = 1 + (ci_2[0] - 1) % ((xsize_2 - 1) * 2);
                         #ifdef _METAL
                         ci_2[0] = ptrdiff_t_min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
-                        #else
+                        #endif
+                        #if defined(_OPENCL) || defined(_CUDA)
                         ci_2[0] = min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
                         #endif
                     }
@@ -428,7 +408,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_2[1] = 1 + (ci_2[1] - 1) % ((xsize_2 - 1) * 2);
                         #ifdef _METAL
                         ci_2[1] = ptrdiff_t_min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
-                        #else
+                        #endif
+                        #if defined(_OPENCL) || defined(_CUDA)
                         ci_2[1] = min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
                         #endif
                     }
@@ -446,7 +427,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_2[2] = 1 + (ci_2[2] - 1) % ((xsize_2 - 1) * 2);
                         #ifdef _METAL
                         ci_2[2] = ptrdiff_t_min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
-                        #else
+                        #endif
+                        #if defined(_OPENCL) || defined(_CUDA)
                         ci_2[2] = min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
                         #endif
                     }
@@ -464,7 +446,8 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_2[3] = 1 + (ci_2[3] - 1) % ((xsize_2 - 1) * 2);
                         #ifdef _METAL
                         ci_2[3] = ptrdiff_t_min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
-                        #else
+                        #endif
+                        #if defined(_OPENCL) || defined(_CUDA)
                         ci_2[3] = min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
                         #endif
                     }

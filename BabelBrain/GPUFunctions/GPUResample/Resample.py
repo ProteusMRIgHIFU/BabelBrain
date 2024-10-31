@@ -47,8 +47,11 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
 
     kernel_files = [
        os.path.join(resource_path(), 'affine_transform.cpp'),
-        # base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'spline_filter.cpp'
+    #    os.path.join(resource_path(), 'spline_filter.cpp'),
     ]
+    
+    with open(os.path.join(resource_path(), 'resample.hpp'), 'r') as f:
+        header = f.read()
 
     if GPUBackend == 'CUDA':
         import cupy as cp
@@ -57,7 +60,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         cndimage = ndimage
 
         preamble = '#define _CUDA'
-        ctx,prgcl,sel_device = InitCUDA(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        ctx,prgcl,sel_device = InitCUDA(preamble=preamble+header,kernel_files=kernel_files,DeviceName=DeviceName)
 
         # Create kernels from program function
         knl_at = prgcl.get_function('affine_transform')
@@ -67,22 +70,25 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = pocl
 
         preamble = '#define _OPENCL'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble=preamble+header,kernel_files=kernel_files,DeviceName=DeviceName)
         
         # Create kernels from program function
         knl_at=prgcl.affine_transform
         # knl_sf=prgcl.spline_filter_3d
 
     elif GPUBackend == 'Metal':
-        import metalcomputebabel as mc
-        clp = mc
+        import mlx.core as mx
+        clp = mx
         
-        preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
-       
-        # Create kernels from program function
-        knl_at=prgcl.function('affine_transform')
-        # knl_sf=prgcl.function('spline_filter_3d')
+        kernel_functions = [{'name': 'affine_transform',
+                             'file': kernel_files[0],
+                             'input_names': ["x", "mat", "int_params", "float_params"],
+                             'output_names': ["y"],
+                             'atomic_outputs': False}]
+        preamble = '#define _METAL\n'
+        kernels, sel_device = InitMetal(kernel_functions,header=preamble+header,device_name=DeviceName)
+        
+        knl_at = kernels['affine_transform']
 
 
 def _check_cval_modified(mode, cval, integer_output):
@@ -414,24 +420,23 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
 
         elif GPUBackend == 'Metal':
 
-            # Move input data from host to device memory
-            filtered_gpu = ctx.buffer(filtered)
-            m_gpu = ctx.buffer(m) 
-            output_section_gpu = ctx.buffer(output_section)
-            float_params_gpu = ctx.buffer(float_params)
-            int_params_gpu = ctx.buffer(int_params)
+            # Change to mlx arrays
+            filtered_mlx = clp.array(filtered)
+            m_mlx = clp.array(m) 
+            output_section_mlx = clp.array(output_section)
+            float_params_mlx = clp.array(float_params)
+            int_params_mlx = clp.array(int_params)
 
             # Deploy affine transform kernel
-            ctx.init_command_buffer()
-            handle=knl_at(output_section.size,filtered_gpu,m_gpu,output_section_gpu,float_params_gpu,int_params_gpu)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            if 'arm64' not in platform.platform():
-                ctx.sync_buffers((output_section_gpu,float_params_gpu))
-
-            # Move kernel output data back to host memory
-            output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+            output_section_mlx = knl_at(inputs=[filtered_mlx,m_mlx,int_params_mlx,float_params_mlx],
+                                        output_shapes=[output_section_mlx.shape],
+                                        output_dtypes=[output_section_mlx.dtype],
+                                        grid=(output_section_mlx.size,1,1),
+                                        threadgroup=(256, 1, 1),
+                                        verbose=False)[0]
+        
+            # Change back to numpy array
+            output_section = np.array(output_section_mlx)
             
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

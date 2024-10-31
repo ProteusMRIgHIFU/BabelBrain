@@ -69,18 +69,46 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
         knl_label_finalize = prgcl.label_finalize
 
     elif GPUBackend == 'Metal':
-        import metalcomputebabel as mc
-
-        clp = mc
-        preamble = '#define _METAL' 
-        prgcl, sel_device, ctx = InitMetal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
-       
-        # Create kernel from program function
-        knl_label_init = prgcl.function('label_init')
-        knl_label_connect = prgcl.function('label_connect')
-        knl_label_count = prgcl.function('label_count')
-        knl_label_labels = prgcl.function('label_labels')
-        knl_label_finalize = prgcl.function('label_finalize')
+        # Template created however kernel atomic functions are not as easily 
+        # implemented in metal therefore shelved for now
+        
+        import mlx.core as mx
+        clp = mx
+        
+        # kernel_functions = [{'name': 'label_init',
+        #                      'file': kernel_files[0],
+        #                      'input_names': ["x"],
+        #                      'output_names': ["y"],
+        #                      'atomic_outputs': False},
+        #                     {'name': 'label_connect',
+        #                      'file': kernel_files[1],
+        #                      'input_names': ["shape","dirs","int_params","y"],
+        #                      'output_names': ["y"],
+        #                      'atomic_outputs': True},
+        #                     {'name': 'label_count',
+        #                      'file': kernel_files[2],
+        #                      'input_names': ["y"],
+        #                      'output_names': ["y","count"],
+        #                      'atomic_outputs': False},
+        #                     {'name': 'label_labels',
+        #                      'file': kernel_files[3],
+        #                      'input_names': ["y","count"],
+        #                      'output_names': ["count","labels"],
+        #                      'atomic_outputs': False},
+        #                     {'name': 'label_finalize',
+        #                      'file': kernel_files[4],
+        #                      'input_names': ["y","labels","int_params"],
+        #                      'output_names': ["y"],
+        #                      'atomic_outputs': False},]
+        # preamble = '#define _METAL\n'
+        # kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        # # Create kernel from program function
+        # knl_label_init = kernels['label_init']
+        # knl_label_connect = kernels['label_connect']
+        # knl_label_count = kernels['label_count']
+        # knl_label_labels = kernels['label_labels']
+        # knl_label_finalize = kernels['label_finalize']
 
 
 def _label_modified(x, structure, y, GPUBackend='OpenCL'):
@@ -166,97 +194,77 @@ def _label_modified(x, structure, y, GPUBackend='OpenCL'):
         clp.enqueue_copy(queue, labels, labels_gpu)
     else: # Metal
         # Template created however kernel atomic functions are not as easily 
-        # implemented in metalcompute therefore shelved for now
+        # implemented in metal therefore shelved for now
         int_params=np.zeros(3,np.int32)
         int_params[0] = ndirs
         int_params[1] = x.ndim
         # assign last element later
 
         # Step 1
-        x_gpu = ctx.buffer(x)
-        y_gpu = ctx.buffer(y)
+        x_mlx = clp.array(x)
+        y_mlx = clp.array(y)
 
-        ctx.init_command_buffer()
-
-        handle = knl_label_init(int(np.prod(y.shape)),
-                                x_gpu,
-                                y_gpu)
-
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((x_gpu,y_gpu))
+        y_mlx = knl_label_init(inputs=[x_mlx],
+                               output_shapes=[y_mlx.shape],
+                               output_dtypes=[y_mlx.dtype],
+                               grid=(y_mlx.size,1,1),
+                               threadgroup=(256, 1, 1),
+                               verbose=True)[0]
 
         # Step 2
-        y_shape_gpu = ctx.buffer(y_shape)
-        dirs_gpu = ctx.buffer(dirs)
-        int_params_gpu = ctx.buffer(int_params)
+        y_shape_mlx = clp.array(y_shape)
+        dirs_mlx = clp.array(dirs)
+        int_params_mlx = clp.array(int_params)
 
-        handle = knl_label_connect(int(np.prod(y.shape)),
-                                   y_shape_gpu,
-                                   dirs_gpu,
-                                   int_params_gpu,
-                                   y_gpu)
-        
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((y_shape_gpu,y_gpu))
+        y_mlx = knl_label_connect(inputs=[y_shape_mlx,dirs_mlx,int_params_mlx],
+                                  output_shapes=[y_mlx.shape],
+                                  output_dtypes=[y_mlx.dtype],
+                                  grid=(y_mlx.size,1,1),
+                                  threadgroup=(256, 1, 1),
+                                  verbose=True)[0]
         
         # Step 3
-        count_gpu = ctx.buffer(count)
+        count_mlx = clp.array(count)
 
-        handle = knl_label_count(int(np.prod(y.shape)),
-                                 y_gpu,
-                                 count_gpu)
+        y_mlx,count_mlx = knl_label_count(inputs=[y_mlx],
+                                          output_shapes=[y_mlx.shape,count_mlx.shape],
+                                          output_dtypes=[y_mlx.dtype,count_mlx.shape],
+                                          grid=(y_mlx.size,1,1),
+                                          threadgroup=(256, 1, 1),
+                                          verbose=True)
         
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((y_gpu,count_gpu))
-
         # Step 4
-        count = np.frombuffer(count_gpu,dtype=np.int32).reshape(count.shape)
+        count = np.array(count_gpu)
         maxlabel = int(count[0])
         labels = np.empty(maxlabel, dtype=np.int32)
-        labels_gpu = ctx.buffer(labels)
+        labels_mlx = clp.array(labels)
         
-        handle = knl_label_labels(int(np.prod(y.shape)),
-                                  y_gpu,
-                                  count_gpu,
-                                  labels_gpu)
-
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((y_gpu,labels_gpu))
+        count_mlx,labels_mlx = knl_label_labels(inputs=[y_mlx,count_mlx,],
+                                                output_shapes=[count_mlx.shape,labels_mlx.shape],
+                                                output_dtypes=[count_mlx.dtype,labels_mlx.shape],
+                                                grid=(y_mlx.size,1,1),
+                                                threadgroup=(256, 1, 1),
+                                                verbose=True)
 
         # Step 5
-        labels = np.frombuffer(labels_gpu,dtype=np.int32).reshape(labels.shape)
+        labels = np.array(labels_gpu)
         labels = np.sort(labels)
-        labels_gpu = ctx.buffer(labels)
+        labels_mlx = clp.array(labels)
         
         int_params[5] = maxlabel
-        int_params_gpu = ctx.buffer(int_params)
+        int_params_mlx = clp.array(int_params)
         
-        handle = knl_label_finalize(int(np.prod(y.shape)),
-                                    int_params_gpu,
-                                    labels_gpu,
-                                    y_gpu)
+        y_mlx = knl_label_finalize(int_params_mlx,labels_mlx,y_mlx)
+        y_mlx = knl_label_finalize(inputs=[int_params_mlx,labels_mlx,y_mlx],
+                                   output_shapes=[y_mlx.shape],
+                                   output_dtypes=[y_mlx.dtype],
+                                   grid=(y_mlx.size,1,1),
+                                   threadgroup=(256, 1, 1),
+                                   verbose=True)[0]
                             
-        ctx.commit_command_buffer()
-        ctx.wait_command_buffer()
-        del handle
-        if 'arm64' not in platform.platform():
-            ctx.sync_buffers((int_params_gpu,y_gpu))
-
-        y = np.frombuffer(y_gpu,dtype=np.int32).reshape(y.shape)
-        count = np.frombuffer(count_gpu,dtype=np.int32).reshape(count.shape)
-        labels = np.frombuffer(labels_gpu,dtype=np.int32).reshape(labels.shape)
+        y = np.array(y_mlx)
+        count = np.array(count_mlx)
+        labels = np.array(labels_mlx)
 
     return y, maxlabel
 

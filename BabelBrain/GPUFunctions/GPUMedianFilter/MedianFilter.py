@@ -57,15 +57,18 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         knl=prgcl.median_reflect
 
     elif GPUBackend == 'Metal':
-        import metalcomputebabel as mc
+        import mlx.core as mx
+        clp = mx
 
-        clp = mc
-        preamble = '#define _METAL\ntypedef unsigned char PixelType;\n' 
-        prgcl, sel_device, ctx = InitMetal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
-       
-        # Create kernel from program function
-        knl=prgcl.function('median_reflect')
-    
+        kernel_functions = [{'name': 'median_reflect',
+                             'file': kernel_files[0],
+                             'input_names': ["input", "int_params"],
+                             'output_names': ["output"],
+                             'atomic_outputs': False}]
+        preamble = '#define _METAL\ntypedef unsigned char PixelType;\n'
+        kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['median_reflect']
     
 def MedianFilter(data,size,GPUBackend='OpenCL'):
 
@@ -152,20 +155,22 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
             int_params[3] = footprint.shape[0]
             int_params[4] = footprint.shape[1]
             int_params[5] = footprint.shape[2]
-
-            data_section_pr = ctx.buffer(data_section)
-            output_section_pr = ctx.buffer(output_section)
-            int_params_pr = ctx.buffer(int_params)
             
-            ctx.init_command_buffer()
-            handle=knl(output_section.size,data_section_pr,output_section_pr,int_params_pr)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            if 'arm64' not in platform.platform():
-                ctx.sync_buffers((data_section_pr,output_section_pr))
+            # Change to mlx arrays
+            data_section_mlx = clp.array(data_section)
+            output_section_mlx = clp.array(output_section)
+            int_params_mlx = clp.array(int_params)
             
-            output_section = np.frombuffer(output_section_pr,dtype=np.uint8).reshape(output_section.shape)
+            # Deploy kernel
+            output_section_mlx = knl(inputs=[data_section_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False)[0]
+            
+            # Change back to numpy array
+            output_section = np.array(output_section_mlx)
 
         # Record results in output array
         if slice_end == output.shape[2]:

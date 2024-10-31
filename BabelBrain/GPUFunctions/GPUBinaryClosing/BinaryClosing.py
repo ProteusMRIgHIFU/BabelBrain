@@ -64,13 +64,18 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         # Create kernels from program function
         knl=prgcl.binary_erosion
     elif GPUBackend == 'Metal':
-        import metalcomputebabel as mc
-        clp = mc
-        preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
-
-        # Create kernels from program function
-        knl=prgcl.function('binary_erosion')
+        import mlx.core as mx
+        clp = mx
+        
+        kernel_functions = [{'name': 'binary_erosion',
+                             'file': kernel_files[0],
+                             'input_names': ["x","w","int_params"],
+                             'output_names': ["y"],
+                             'atomic_outputs': False}]
+        preamble = '#define _METAL\n#include <metal_stdlib>\nusing namespace metal;'
+        kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['binary_erosion']
 
 def erode_kernel(input, structure, output, offsets, border_value, center_is_true, invert, GPUBackend='OpenCL'):
 
@@ -199,23 +204,23 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
             queue.finish()
         elif GPUBackend=='Metal':
             
-            # Move input data from host to device memory
-            input_section_gpu = ctx.buffer(input_section)
-            structure_gpu = ctx.buffer(structure)
-            int_params_gpu = ctx.buffer(int_params)
-            output_section_gpu = ctx.buffer(output_section)
+            # Change to mlx arrays
+            input_section_mlx = clp.array(input_section)
+            structure_mlx = clp.array(structure)
+            int_params_mlx = clp.array(int_params)
+            output_section_mlx = clp.array(output_section)
             
             # Deploy kernel
-            ctx.init_command_buffer()
-            handle=knl(output_section.size,input_section_gpu,structure_gpu,int_params_gpu,output_section_gpu)
-            ctx.commit_command_buffer()
-            ctx.wait_command_buffer()
-            del handle
-            if 'arm64' not in platform.platform():
-                ctx.sync_buffers((int_params_gpu,output_section_gpu))
+            output_section_mlx = knl(inputs=[input_section_mlx,structure_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False)[0]
 
-            # Move kernel output data back to host memory
-            output_section = np.frombuffer(output_section_gpu,dtype=np.uint8).reshape(output_section.shape)
+            # Change back to numpy array
+            output_section = np.array(output_section_mlx)
+            
         else:
             raise ValueError("Unknown gpu backend was selected")
         
