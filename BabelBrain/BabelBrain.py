@@ -9,7 +9,9 @@ ABOUT:
 import argparse
 import multiprocessing
 import logging
-# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO,
+#                     format='%(name)s - %(levelname)s - %(asctime)s.%(msecs)03d - %(message)s',
+#                     datefmt='%H:%M:%S')
 import os
 import platform
 import shutil
@@ -64,7 +66,7 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
-from Options.Options import AdvanceOptions
+from Options.Options import AdvancedOptions
 
 
 multiprocessing.freeze_support()
@@ -434,6 +436,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bInvertZTE']=False
         self.DefaultAdvanced['bDisableCTMedianFilter']=False
         self.DefaultAdvanced['bGeneratePETRAHistogram']=False
+        self.DefaultAdvanced['BaselineTemperature']=37.0
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -682,7 +685,7 @@ class BabelBrain(QWidget):
     @Slot()
     def ShowAdvancedOptions(self):
         
-        options = AdvanceOptions(self.Config,
+        options = AdvancedOptions(self.Config,
                                  self.DefaultAdvanced,
                                  parent=self)
         ret=options.exec()
@@ -699,6 +702,7 @@ class BabelBrain(QWidget):
             self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
             self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
             self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
+            self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -1079,10 +1083,15 @@ class RunMaskGeneration(QObject):
                 kargs['ZTERange']=Widget.ZTERangeSlider.value()
             kargs['HUThreshold']=Widget.HUTreshold.value()
             
-       
+        def ValidParam(k):
+            #here we screen out parameters that are irrelevant for Step 1
+            if '_Correction' not in k and 'BaselineTemperature' != k:
+                return True
+            else:
+                return False
         #advanced parameters
         for k in self._mainApp.DefaultAdvanced:
-            if '_Correction' not in k:
+            if ValidParam(k):
                 kargs[k]=self._mainApp.Config[k] 
         
         bForceFullRecalculation = False
@@ -1092,14 +1101,14 @@ class RunMaskGeneration(QObject):
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
             for k in self._mainApp.DefaultAdvanced:
-                if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
+                if ValidParam(k): 
                     if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
                         bForceFullRecalculation=True
                         print('PrevParamsFile - Parameter',k,'is not present in prevparams')
                         break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if '_Correction' not in k: #here we screen out parameters that are irrelevant for Step 1
+                    if ValidParam(k): 
                         if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
                             print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
                             bForceFullRecalculation=True
@@ -1107,7 +1116,7 @@ class RunMaskGeneration(QObject):
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
             for k in self._mainApp.DefaultAdvanced:
-                if '_Correction' not in k:
+                if ValidParam(k):
                     if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
                         print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
                         bForceFullRecalculation=True
@@ -1117,7 +1126,7 @@ class RunMaskGeneration(QObject):
         # now we save the parameters for future comparison
         NewParams={}
         for k in self._mainApp.DefaultAdvanced:
-            if '_Correction' not in k:
+            if ValidParam(k):
                 NewParams[k]=kargs[k]
             
         with open(self._mainApp.Config['AdvancedParamsFile'],'w') as f:

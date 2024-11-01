@@ -9,6 +9,7 @@ from nibabel import processing
 from nibabel.spaces import vox2out_vox
 import SimpleITK as sitk
 import tempfile
+import logging
 import os
 import scipy
 from skimage.measure import label, regionprops
@@ -24,7 +25,7 @@ from linetimer import CodeTimer
 import hashlib
 import matplotlib.pyplot as plt
 
-
+logger = logging.getLogger()
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -102,7 +103,6 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
 
 
 def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGradientDescent'):
-    
     template =os.path.join(resource_path(),'rigid_template.txt')
     with open(template,'r') as g:
         Params=g.readlines()
@@ -112,6 +112,7 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
         elastix_param = os.path.join(tmpdirname,'inputparam.txt')
         with open(elastix_param,'w') as g:
             g.writelines(Params)
+        
         if sys.platform == 'linux' or _IS_MAC:
             if sys.platform == 'linux':
                 shell='bash'
@@ -119,6 +120,8 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
             elif _IS_MAC:
                 shell='zsh'
                 path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+            
+            logger.info("Starting Elastix")
             if _IS_MAC:
                 cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '" "' + elastix_param + '"'
                 print(cmd)
@@ -137,6 +140,8 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
                 result=result.returncode 
         else:
             path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
+            
+            logger.info("Starting Elastix")
             result = subprocess.run(
                     [path_script,
                     reference,
@@ -147,14 +152,18 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             result=result.returncode 
+        logger.info("Elastix Finished")
+        
         if result == 0:
             shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
         else:
             raise SystemError("Error when trying to run elastix")
 
-def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
+def N4BiasCorrec(input,file_manager,hashFiles,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},bInvertValues=False):
-    inputImage = sitk.ReadImage(input, sitk.sitkFloat32)
+    with CodeTimer("Load nifti via sitk", unit="s"):
+        inputImage = file_manager.load_file(input,nifti_load_method='sitk')
+
     if bInvertValues:
         imarray=sitk.GetArrayFromImage(inputImage)
         imarray-=imarray.max()
@@ -188,37 +197,41 @@ def N4BiasCorrec(input,hashFiles,output=None,shrinkFactor=4,
     corrected_image_full_resolution = inputImage / sitk.Exp(log_bias_field)
 
     if output is not None:
-        sitk.WriteImage(corrected_image_full_resolution, output)
-
-        # Reload nifti and save info in header
-        corrected_image_full_resolution_nifti = nibabel.load(output)
-        SaveHashInfo(hashFiles,output,corrected_image_full_resolution_nifti)
+        corrected_image_full_resolution_nib = file_manager.sitk_to_nibabel(corrected_image_full_resolution)
+        file_manager.save_file(file_data=corrected_image_full_resolution_nib,filename=output,precursor_files=hashFiles)
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReuseFiles=False, ResampleFunc=None, ResampleBackend='OpenCL'):
-    # CoregCT_MRI =0, do not coregister, just load data
-    # CoregCT_MRI =1 , coregister CT-->MRI space
-    # CoregCT_MRI =2 , coregister MRI-->CT space
+def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, ResampleBackend='OpenCL'):
+    # coreg = 0, do not coregister, just load data
+    # coreg = 1 , coregister CT-->MRI space
+    # coreg = 2 , coregister MRI-->CT space
+    InputCT = file_manager.input_files['ExtraScan']
+
     #Bias correction
-    if CoregCT_MRI==0:
-        return nibabel.load(InputCT)
+    if file_manager.coreg == 0:
+        return file_manager.load_file(InputCT)
     else:
-        T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
-        N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
+        T1fnameBiasCorrec = file_manager.output_files['T1fnameBiasCorrec']
+        N4BiasCorrec(InputT1,
+                     file_manager,
+                     [file_manager.output_files['ReuseSimbNIBS'],
+                      file_manager.output_files['Skull_STL'],
+                      file_manager.output_files['CSF_STL'],
+                      file_manager.output_files['Skin_STL']],
+                     T1fnameBiasCorrec)
         
         #coreg
-        if CoregCT_MRI==1:
+        if file_manager.coreg == 1:
             #we first upsample the T1W to the same resolution as CT
-            in_img=nibabel.load(T1fnameBiasCorrec)
+            in_img = file_manager.load_file(T1fnameBiasCorrec)
 
+            voxel_sizes = file_manager.load_file(InputCT).header.get_zooms()
+            cval = in_img.get_fdata().min()
             if ResampleFunc is None:
-                fixed_image=processing.resample_to_output(in_img,voxel_sizes=nibabel.load(InputCT).header.get_zooms(),cval=in_img.get_fdata().min())
+                fixed_image = processing.resample_to_output(in_img,voxel_sizes=voxel_sizes,cval=cval)
             else:
                 # Set up for Resample call
-                voxel_sizes = nibabel.load(InputCT).header.get_zooms()
-                cval=in_img.get_fdata().min()
-
                 in_shape = in_img.shape
                 n_dim = len(in_shape)
                 if voxel_sizes is not None:
@@ -239,77 +252,112 @@ def CTCorreg(InputT1,InputCT, outputfnames,ElastixOptimizer,CoregCT_MRI=0, bReus
                 fixed_image = ResampleFunc(in_img,out_vox_map,cval=cval, GPUBackend=ResampleBackend)
 
 
-            T1fname_CTRes=outputfnames['T1fname_CTRes']
-            SaveHashInfo([outputfnames['T1fnameBiasCorrec']],T1fname_CTRes,fixed_image,CTType=1)
+            T1fname_CTRes = file_manager.output_files['T1fname_CTRes']
+            file_manager.save_file(file_data=fixed_image,filename=T1fname_CTRes,precursor_files=T1fnameBiasCorrec)
 
-            CTInT1W=outputfnames['CTInT1W']
+            CTInT1W = file_manager.output_files['CTInT1W']
 
-            RunElastix(outputfnames['T1fname_CTRes'],InputCT,CTInT1W,ElastixOptimizer)
+            # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
+            file_manager.wait_for_file(T1fname_CTRes)
+            RunElastix(T1fname_CTRes,InputCT,CTInT1W,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
-                elastixoutput = nibabel.load(CTInT1W)
-                SaveHashInfo([T1fname_CTRes],CTInT1W,elastixoutput,CTType=1)
+                elastixoutput = file_manager.load_file(CTInT1W)
+                file_manager.save_file(file_data=elastixoutput,filename=CTInT1W,precursor_files=T1fname_CTRes)
             
             return elastixoutput
         else:
-            T1WinCT=outputfnames['T1WinCT']
+            T1WinCT = file_manager.output_files['T1WinCT']
+
+            # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
+            file_manager.wait_for_file(T1fnameBiasCorrec)
             RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
-                elastixoutput = nibabel.load(T1WinCT)
-                SaveHashInfo([T1fnameBiasCorrec],T1WinCT,elastixoutput,CTType=1)
+                elastixoutput = file_manager.load_file(T1WinCT)
+                file_manager.save_file(file_data=elastixoutput,filename=T1WinCT,precursor_files=T1fnameBiasCorrec)
 
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,InputZTE,img_mask, outputfnames,ElastixOptimizer,bIsPetra=False,bInvertZTE=True):
-    #Bias correction
+def BiasCorrecAndCoreg(InputT1,
+                       img_mask,
+                       file_manager,
+                       ElastixOptimizer,
+                       bIsPetra=False,
+                       bInvertZTE=True):
     
-    T1fnameBiasCorrec= outputfnames['T1fnameBiasCorrec']
-    N4BiasCorrec(InputT1,[outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec)
+    InputZTE = file_manager.input_files['ExtraScan']
+    
+    #Bias correction
+    T1fnameBiasCorrec= file_manager.output_files['T1fnameBiasCorrec']
+    N4BiasCorrec(InputT1,
+                 file_manager,
+                 [file_manager.output_files['ReuseSimbNIBS'],
+                  file_manager.output_files['Skull_STL'],
+                  file_manager.output_files['CSF_STL'],
+                  file_manager.output_files['Skin_STL']],
+                 T1fnameBiasCorrec)
 
-    ZTEfnameBiasCorrec= outputfnames['ZTEfnameBiasCorrec']
+    ZTEfnameBiasCorrec= file_manager.output_files['ZTEfnameBiasCorrec']
     if bIsPetra:
         convergence={"iters": [50,40,30,20,10], "tol": 1e-7}
-        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,convergence=convergence)
+        N4BiasCorrec(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,convergence=convergence)
     else:
-        N4BiasCorrec(InputZTE,[T1fnameBiasCorrec],ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
+        N4BiasCorrec(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
     
     #coreg
-    ZTEInT1W=outputfnames['ZTEInT1W']
+    ZTEInT1W = file_manager.output_files['ZTEInT1W']
 
+    # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
+    file_manager.wait_for_file(T1fnameBiasCorrec)
+    file_manager.wait_for_file(ZTEfnameBiasCorrec)
     RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
     
-    img=sitk.ReadImage(T1fnameBiasCorrec, sitk.sitkFloat32)
+    img = file_manager.load_file(T1fnameBiasCorrec,nifti_load_method='sitk',sitk_dtype=sitk.sitkFloat32)
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:
         img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    sitk.WriteImage(img_out, T1fnameBiasCorrec)
-
-    img=sitk.ReadImage(ZTEInT1W, sitk.sitkFloat32)
-    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
-    sitk.WriteImage(img_out, ZTEInT1W)
+    img_out_nib = file_manager.sitk_to_nibabel(img_out)
+    file_manager.save_file(file_data=img_out_nib,
+                           filename=T1fnameBiasCorrec,
+                           precursor_files = [file_manager.output_files['ReuseSimbNIBS'],
+                                              file_manager.output_files['Skull_STL'],
+                                              file_manager.output_files['CSF_STL'],
+                                              file_manager.output_files['Skin_STL']])
 
     with CodeTimer("Reloading niftis, adding hashes to header, and saving", unit="s"):
-        T1fnameBiasCorrecOutput = nibabel.load(T1fnameBiasCorrec)
-        ZTEfnameBiasCorrecOutput = nibabel.load(ZTEfnameBiasCorrec)
-        ZTEInT1WOutput = nibabel.load(ZTEInT1W)
-        SaveHashInfo([outputfnames['ReuseSimbNIBS'],outputfnames['Skull_STL'],outputfnames['CSF_STL'],outputfnames['Skin_STL']],T1fnameBiasCorrec,T1fnameBiasCorrecOutput)
-        SaveHashInfo([T1fnameBiasCorrec],ZTEfnameBiasCorrec,ZTEfnameBiasCorrecOutput)
-        SaveHashInfo([ZTEfnameBiasCorrec],ZTEInT1W,ZTEInT1WOutput)
+        ZTEfnameBiasCorrecOutput = file_manager.load_file(ZTEfnameBiasCorrec)
+        file_manager.save_file(file_data=ZTEfnameBiasCorrecOutput,filename=ZTEfnameBiasCorrec,precursor_files=T1fnameBiasCorrec)
+
+    img = file_manager.load_file(ZTEInT1W,nifti_load_method='sitk')
+    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    img_out_nib = file_manager.sitk_to_nibabel(img_out)
+    file_manager.save_file(file_data=img_out_nib,
+                           filename=ZTEInT1W,
+                           precursor_files=ZTEfnameBiasCorrec)
 
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,ThresoldsZTEBone=[0.1,0.6],SimbNIBSType='charm',bIsPetra=False,
-            PetraMRIPeakDistance=50,PetraNPeaks=2,bGeneratePETRAHistogram=False):
-    print('converting ZTE/PETRA to pCT with range',ThresoldsZTEBone)
+def ConvertZTE_PETRA_pCT(InputT1,
+                         InputZTE,
+                         TMaskItk,
+                         file_manager,
+                         bIsPetra=False,
+                         PetraMRIPeakDistance=50,
+                         PetraNPeaks=2,
+                         bGeneratePETRAHistogram=False):
+    print('converting ZTE/PETRA to pCT with range',file_manager.pseudo_CT_range)
+
+    SimbsPath = file_manager.simNIBS_dir
+    SimbNIBSType = file_manager.simNIBS_type
 
     if SimbNIBSType=='charm':
         #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
         charminput = os.path.join(SimbsPath,'final_tissues.nii.gz')
-        charm= nibabel.load(charminput)
+        charm = file_manager.load_file(charminput)
         charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
         arrSkin=charmdata>0 #this mimics what the old headreco does for skin
         arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
@@ -322,20 +370,22 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
         SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
         CavitiesMask=os.path.join(SimbsPath,'cavities.nii.gz')
         # Load T1 and ZTE
-        volumeMask = nibabel.load(InputBrainMask)
-        volumeSkin = nibabel.load(SkinMask)
-        volumeCavities = nibabel.load(CavitiesMask)
+        volumeMask = file_manager.load_file(InputBrainMask)
+        volumeSkin = file_manager.load_file(SkinMask)
+        volumeCavities = file_manager.load_file(CavitiesMask)
+
         arrMask=volumeMask.get_fdata()
         arrSkin=volumeSkin.get_fdata()
         arrCavities=volumeCavities.get_fdata()
     
     with tempfile.TemporaryDirectory() as tmpdirname:
         HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
-        sitk.WriteImage(TMaskItk,HeadMask)
+        TMaskItk_nib = file_manager.sitk_to_nibabel(TMaskItk)
+        file_manager.save_file(file_data=TMaskItk_nib,filename=HeadMask)
         
-        volumeT1 = nibabel.load(InputT1)
-        volumeZTE = nibabel.load(InputZTE)
-        volumeHead = nibabel.load(HeadMask)
+        volumeT1 = file_manager.load_file(InputT1)
+        volumeZTE = file_manager.load_file(InputZTE)
+        volumeHead = file_manager.load_file(HeadMask)
         
         arrZTE=volumeZTE.get_fdata()
         arrHead=volumeHead.get_fdata()
@@ -386,7 +436,7 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
 
         arrGauss=arrZTE.copy()
         arrGauss[scipy.ndimage.binary_erosion(arrHead,iterations=3)==0]=np.max(arrGauss)
-        arr=(arrGauss>=ThresoldsZTEBone[0]) & (arrGauss<=ThresoldsZTEBone[1])
+        arr=(arrGauss>=file_manager.pseudo_CT_range[0]) & (arrGauss<=file_manager.pseudo_CT_range[1])
             
         label_img = label(arr)
         
@@ -411,6 +461,6 @@ def ConvertZTE_PETRA_pCT(InputT1,InputZTE,TMaskItk,SimbsPath,outputfnames,Threso
         arrCT[arrCavities!=0]=-1000
         
         pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
-        CTfname=outputfnames['pCTfname']
-        SaveHashInfo([outputfnames['ZTEInT1W']],CTfname,pCT,CTType=(bIsPetra+2))
+        CTfname = file_manager.output_files['pCTfname']
+        file_manager.save_file(file_data=pCT,filename=CTfname,precursor_files=file_manager.output_files['ZTEInT1W'])
     return pCT

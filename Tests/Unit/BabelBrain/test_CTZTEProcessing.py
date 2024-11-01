@@ -9,19 +9,23 @@ import SimpleITK as sitk
 
 from BabelBrain import CTZTEProcessing
 
-def test_N4BiasCorrec(dataset,load_files,get_mpl_plot,compare_data,tmp_path,request):
+def test_N4BiasCorrec(dataset,set_up_file_manager,load_files,get_mpl_plot,compare_data,tmp_path,request):
 
-    # # Load inputs
-    input_files = {'T1W': dataset['folder_path'] + 'T1W-isotropic.nii.gz'}
+    # Load inputs
+    input_files = {'T1W': dataset['T1_iso_path']}
     input_data = load_files(input_files)
 
     # Load truth data
     truth_files = {'T1W_bias_correc': dataset['folder_path'] + 'Truth' + os.sep + 'Unit' + os.sep + 'T1W-isotropic_BiasCorrec.nii.gz'}
     truth_data = load_files(truth_files)
 
-    # Run save_T1W_iso function
+    # Set up file manager
+    fm = set_up_file_manager['existing_dataset'](dataset)
+
+    # Run N4BiasCorrec function
     output_fname= str(tmp_path) + os.sep + 'T1W_BiasCorrec.nii.gz'
-    CTZTEProcessing.N4BiasCorrec(input_files['T1W'], hashFiles=[],output=output_fname)
+    CTZTEProcessing.N4BiasCorrec(input_files['T1W'], fm,hashFiles=[],output=output_fname)
+    fm.wait_for_file(output_fname)
 
     # Load output
     T1W_bias_correc = nibabel.load(output_fname)
