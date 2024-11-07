@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -167,10 +168,18 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
                                      output_dtypes=[output_section_mlx.dtype],
                                      grid=(output_section_mlx.size,1,1),
                                      threadgroup=(256, 1, 1),
-                                     verbose=False)[0]
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
             
             # Change back to numpy array
             output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del data_section_mlx
+            del int_params_mlx
+            del output_section_mlx
+            gc.collect()
 
         # Record results in output array
         if slice_end == output.shape[2]:

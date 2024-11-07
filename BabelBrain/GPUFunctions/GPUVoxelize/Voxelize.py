@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -192,14 +193,14 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
 
         # Build program from source code
         preamble = metal_def + '\n' + constant_defs + '\n'
-        knl_vts = clp.fast.metal_kernel(name = kernel_code['voxelize_triangle_solid']['name'],
+        knl_vts = clp.fast.metal_kernel(name = f"{kernel_code['voxelize_triangle_solid']['name']}_{gx}_{gy}_{gz}",
                                         input_names = kernel_code['voxelize_triangle_solid']['input_names'],
                                         output_names = kernel_code['voxelize_triangle_solid']['output_names'],
                                         source = kernel_code['voxelize_triangle_solid']['source'],
                                         header = preamble + kernel_code['voxelize_triangle_solid']['header'],
                                         atomic_outputs = kernel_code['voxelize_triangle_solid']['atomic_outputs'],
                                         )
-        knl_ep = clp.fast.metal_kernel(name = kernel_code['extract_points']['name'],
+        knl_ep = clp.fast.metal_kernel(name = f"{kernel_code['extract_points']['name']}_{gx}_{gy}_{gz}",
                                        input_names = kernel_code['extract_points']['input_names'],
                                        output_names = kernel_code['extract_points']['output_names'],
                                        source = kernel_code['extract_points']['source'],
@@ -217,7 +218,9 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                              output_dtypes=[vtable_mlx.dtype],
                              grid=(n_triangles,1,1),
                              threadgroup=(256, 1, 1),
-                             verbose=False)[0]
+                             verbose=False,
+                             stream=sel_device)[0]
+        clp.synchronize()
 
         # Change back to numpy array
         vtable = np.array(vtable_mlx,dtype=np.uint32)
@@ -313,12 +316,20 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                                                          output_dtypes=[globalcount_mlx.dtype,points_section_mlx.dtype],
                                                          grid=(ntotal,1,1),
                                                          threadgroup=(256, 1, 1),
-                                                         verbose=False)
+                                                         verbose=False,
+                                                         stream=sel_device)
+            clp.synchronize()
 
             # Change back to numpy arrays
             points_section = np.array(points_section_mlx)
             globalcount = np.array(globalcount_mlx)
             logger.info(f"globalcount: {globalcount}")
+            
+            # Clean up mlx arrays
+            del points_section_mlx
+            del globalcount_mlx
+            del int_params_mlx
+            gc.collect()
 
         try:
             Points[prev_start_ind:int(globalcount[0]),:]=points_section[:int(globalcount[0])-prev_start_ind,:]

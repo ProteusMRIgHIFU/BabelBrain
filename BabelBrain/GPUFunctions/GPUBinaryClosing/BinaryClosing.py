@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import operator
@@ -216,10 +217,19 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
                                      output_dtypes=[output_section_mlx.dtype],
                                      grid=(output_section_mlx.size,1,1),
                                      threadgroup=(256, 1, 1),
-                                     verbose=False)[0]
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
 
             # Change back to numpy array
             output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del input_section_mlx
+            del structure_mlx
+            del int_params_mlx
+            del output_section_mlx
+            gc.collect()
             
         else:
             raise ValueError("Unknown gpu backend was selected")

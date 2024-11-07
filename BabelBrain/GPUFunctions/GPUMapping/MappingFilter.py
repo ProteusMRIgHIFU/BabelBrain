@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -68,7 +69,7 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
                              'input_names': ["HUMap","IsBone","UniqueHU","int_params"],
                              'output_names': ["CtMap"],
                              'atomic_outputs': False}]
-        preamble = '#define _METAL\n'
+        preamble = '#define _METAL\n#include <metal_stdlib>\nusing namespace metal;\n'
         kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
         
         knl = kernels['mapfilter']
@@ -174,10 +175,20 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
                                      output_dtypes=[output_section_mlx.dtype],
                                      grid=(output_section_mlx.size,1,1),
                                      threadgroup=(256, 1, 1),
-                                     verbose=False)[0]
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
             
             # Move kernel output data back to host memory
             output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del HUMap_section_mlx
+            del UniqueHU_mlx
+            del SelBone_section_mlx
+            del output_section_mlx
+            del int_params_mlx
+            gc.collect()
   
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

@@ -62,18 +62,20 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
 
     elif GPUBackend == 'Metal':
         
-        import mlx.core as mx
+        # import mlx.core as mx
         
-        # Get available memory
-        gpu_available_memory = mx.metal.device_info()['memory_size'] - mx.metal.get_active_memory()
-        logger.info(f"GPU available memory: {gpu_available_memory} bytes")
+        # # Get available memory
+        # gpu_available_memory = mx.metal.device_info()['memory_size'] - mx.metal.get_active_memory()
+        # logger.info(f"GPU available memory: {gpu_available_memory} bytes")
 
-        # Get GPU max buffer size
-        max_buffer_size = mx.metal.device_info()['max_buffer_length'] // num_large_buffers
-        logger.info(f"GPU max buffer size for {num_large_buffers} array(s): {max_buffer_size} bytes")
+        # # Get GPU max buffer size
+        # max_buffer_size = mx.metal.device_info()['max_buffer_length'] // num_large_buffers
+        # logger.info(f"GPU max buffer size for {num_large_buffers} array(s): {max_buffer_size} bytes")
+        logger.info(f"Step size: {step}")
+        return step
     
     # Determine largest safe buffer size
-    max_buffer_size = int(max_buffer_size * 0.8)  # Use 80% to be safe
+    max_buffer_size = int(max_buffer_size * 0.75)  # Use 80% to be safe
     logger.info(f"GPU max safe buffer size: {max_buffer_size} bytes")
 
     # Determine appropriate step size

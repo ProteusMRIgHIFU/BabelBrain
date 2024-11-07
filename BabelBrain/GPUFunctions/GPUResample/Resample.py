@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -433,10 +434,20 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
                                         output_dtypes=[output_section_mlx.dtype],
                                         grid=(output_section_mlx.size,1,1),
                                         threadgroup=(256, 1, 1),
-                                        verbose=False)[0]
+                                        verbose=False,
+                                        stream=sel_device)[0]
+            clp.synchronize()
         
             # Change back to numpy array
             output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del filtered_mlx
+            del m_mlx
+            del output_section_mlx
+            del float_params_mlx
+            del int_params_mlx
+            gc.collect()
             
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]
