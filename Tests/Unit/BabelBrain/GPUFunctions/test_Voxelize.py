@@ -23,7 +23,7 @@ def test_Voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device
      }
      spatial_step_text = re.sub("\.","_",str(spatial_step))
      output_fnames = {
-          'Output_Truth': input_folder + f"T1W_cpu_voxelized_spatial_step_{spatial_step_text}.npy",
+          'Output_Truth': input_folder + f"T1W_voxelized_CPU_spatial_step_{spatial_step_text}.npy",
      }
 
      # Initialize GPU Backend

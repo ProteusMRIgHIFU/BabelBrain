@@ -19,8 +19,8 @@ def test_MedianFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_de
      input_files = {'CT': input_folder + 'CT.nii.gz',}
      spatial_step_text = re.sub("\.","_",str(spatial_step))
      output_fnames = {
-          'Resampled_Input': input_folder + f"CT_cpu_resampled_spatial_step_{spatial_step_text}.nii.gz",
-          'Output_Truth': input_folder + f"CT_cpu_median_filter_spatial_step_{spatial_step_text}.nii.gz"
+          'Resampled_Input': input_folder + f"CT_resampled_CPU_mode_constant_order_0_spatial_step_{spatial_step_text}.nii.gz",
+          'Output_Truth': input_folder + f"median_filter_CPU_size_sf_CT_resampled_CPU_mode_constant_order_0_spatial_step_{spatial_step_text}.nii.gz"
      }
 
      # Initialize GPU Backend
@@ -39,10 +39,11 @@ def test_MedianFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_de
      
      if np.any(filter_size[filter_size > 7]):
           logging.warning(f"Median filter was capped at 7")
-          filter_size = 7 
+          filter_size = [7, 7, 7] 
+     output_fnames['Output_Truth'] = output_fnames['Output_Truth'].replace("sf",f"{filter_size[0]}_{filter_size[1]}_{filter_size[2]}") # specify filter size in output file name
 
      # Run median filter step
-     CT_data = np.ascontiguousarray(input_data['CT'].get_fdata().astype(np.uint8))
+     CT_data = np.ascontiguousarray(resampled_data.astype(np.uint8))
      logging.info('Running Median Filter via GPU')
      data_median_filter_gpu = MedianFilter.MedianFilter(CT_data,filter_size,GPUBackend=computing_backend['type'])
      try:

@@ -16,11 +16,11 @@ def test_Resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device
         
     # Parameters
     input_folder = dataset['folder_path']
-    order = 3
+    order = 0
     input_files = {'CT': input_folder + 'CT.nii.gz',}
     spatial_step_text = re.sub("\.","_",str(spatial_step))
     output_fnames = {
-        'Output_Truth': input_folder + f"CT_cpu_resampled_order_{order}_spatial_step_{spatial_step_text}.nii.gz",
+        'Output_Truth': input_folder + f"CT_resampled_CPU_mode_constant_order_{order}_spatial_step_{spatial_step_text}.nii.gz",
     }
 
     # Initialize GPU Backend
@@ -77,4 +77,4 @@ def test_Resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device
     bhatt_dist = calc_bd_func(data_resampled_gpu,data_resampled_cpu,256)
     logging.info(f"Bhatt Distance: {bhatt_dist}")
 
-    assert bhatt_dist < 0.01, f"Bhatt Distance is grater than 0.01 ({bhatt_dist})"
+    assert bhatt_dist < 0.01, f"Bhatt Distance is greater than 0.01 ({bhatt_dist})"

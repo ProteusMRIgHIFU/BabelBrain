@@ -474,14 +474,14 @@ __kernel void affine_transform(__global const float * x,
             }
         }
     }
-    // if(order == 0)
-    // {
-    //     y[_i] = (float)rint((float)out);
-    // }
-    // else
-    // {
-    //     y[_i] = (float)out;
-    // }
+    if(order == 0)
+    {
+        y[_i] = (float)rint((float)out);
+    }
+    else
+    {
+        y[_i] = (float)out;
+    }
 
     y[_i] = (float)rint((W)out);
 

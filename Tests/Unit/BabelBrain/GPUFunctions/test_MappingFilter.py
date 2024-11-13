@@ -21,9 +21,9 @@ def test_MappingFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_d
     }
     spatial_step_text = re.sub("\.","_",str(spatial_step))
     output_fnames = {
-        'Resampled_T1W': input_folder + f"T1W_cpu_resampled_spatial_step_{spatial_step_text}.nii.gz",
-        'Resampled_Final_Tissues': input_folder + f"final_tissues_cpu_resampled_spatial_step_{spatial_step_text}.nii.gz",
-        'Output_Truth': input_folder + f"CT_cpu_mapping_spatial_step_{spatial_step_text}.nii.gz"
+        'Resampled_T1W': input_folder + f"T1W_resampled_CPU_mode_constant_order_0_spatial_step_{spatial_step_text}.nii.gz",
+        'Resampled_Final_Tissues': input_folder + f"final_tissues_resampled_CPU_mode_constant_order_0_spatial_step_{spatial_step_text}.nii.gz",
+        'Output_Truth': input_folder + f"map_filter_CPU_T1W_resampled_CPU_mode_constant_order_0_spatial_step_{spatial_step_text}.nii.gz"
     }
 
     # Initialize GPU Backend
