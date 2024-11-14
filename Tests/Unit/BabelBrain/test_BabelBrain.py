@@ -43,7 +43,7 @@ def test_save_T1W_iso(dataset,load_files,check_data,get_mpl_plot,compare_data,tm
     screenshot = get_mpl_plot(plots, axes_num=2,titles=plot_names,color_map='gray')
     request.node.screenshots.append(screenshot)
 
-    # Calculate Bhattacharyya Distance, output is between 0 and 1
-    bhatt_distance = compare_data['bhatt_distance'](T1W_data, T1W_iso_data, num_bins=256)
+    # Calculate Bhattacharyya coefficient, output is between 0 and 1
+    bhatt_coeff = compare_data['bhatt_coeff'](T1W_data, T1W_iso_data)
 
-    assert bhatt_distance < 0.01, f"Bhattacharyya Distance is greater than 0.01 ({bhatt_distance})"
+    assert bhatt_coeff > 0.99, f"Bhattacharyya Coefficient is less than 0.99 ({bhatt_coeff})"

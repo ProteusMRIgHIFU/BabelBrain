@@ -72,9 +72,8 @@ def test_Resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device
     screenshot = get_mpl_plot(plots, axes_num=3,titles=plot_names,color_map='gray')
     request.node.screenshots.append(screenshot)
     
-    # Calculate Bhatt Distance
-    calc_bd_func = compare_data['bhatt_distance']
-    bhatt_dist = calc_bd_func(data_resampled_gpu,data_resampled_cpu,256)
-    logging.info(f"Bhatt Distance: {bhatt_dist}")
+    # Calculate Bhatt Coefficient
+    calc_bc_func = compare_data['bhatt_coeff']
+    bhatt_coeff = calc_bc_func(data_resampled_gpu,data_resampled_cpu)
 
-    assert bhatt_dist < 0.01, f"Bhatt Distance is greater than 0.01 ({bhatt_dist})"
+    assert bhatt_coeff > 0.99, f"Bhatt coefficient is less than 0.99 ({bhatt_coeff})"
