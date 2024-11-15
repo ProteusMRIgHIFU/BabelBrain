@@ -829,3 +829,14 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     report_name = f"report_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
     os.rename('PyTest_Reports' + os.sep + 'report.html', 'PyTest_Reports' + os.sep + report_name)
     print(f"Report saved as {report_name}")
+    
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "0_919" in item.nodeid:
+            item.add_marker(pytest.mark.low_res)
+        elif "0_306" in item.nodeid:
+            item.add_marker(pytest.mark.med_res)
+        elif "0_184" in item.nodeid:
+            item.add_marker(pytest.mark.high_res)
+        elif "0_092" in item.nodeid:
+            item.add_marker(pytest.mark.stress)
