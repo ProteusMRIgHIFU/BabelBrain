@@ -883,6 +883,24 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         FinalMask[BinMaskConformalSkullRot]=3 #trabecula
     
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
+
+    if CT_or_ZTE_input is not None:
+        with CodeTimer("Final cleanup of prefocal region",unit='s'):
+            FinalMask=np.flip(FinalMask,axis=2)
+            Rloc = np.array(np.where(FinalMask==5)).flatten()
+            for i in range(FinalMask.shape[0]):
+                for j in range(FinalMask.shape[1]):
+                    Line=FinalMask[i,j,:Rloc[2]]
+                    bone = np.array(np.where((Line==2) | (Line==3))).flatten()
+                    if len(bone)>0:
+                        subline=Line[:bone.min()-1]
+                        subline[subline==4]=1
+                        FinalMask[i,j,:len(subline)]=subline
+            
+            FinalMask=np.flip(FinalMask,axis=2)
+
+
+
     mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)    
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
