@@ -1,6 +1,7 @@
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
 #include <metal_stdlib>
 #include <metal_atomic>
+using namespace metal;
 #endif
 #ifdef _CUDA
 #include <helper_math.h>
@@ -17,7 +18,7 @@ inline void setBitXor(__global unsigned int* voxel_table, size_t index)
 #ifdef _CUDA
 __device__ inline void setBitXor(unsigned int* voxel_table, size_t index) 
 #endif
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
 inline void setBitXor( device atomic_uint * voxel_table, size_t index) 
 #endif
 {
@@ -30,7 +31,7 @@ inline void setBitXor( device atomic_uint * voxel_table, size_t index)
 #if defined(_CUDA) 
     atomicXor(&(voxel_table[int_location]), mask);
 #endif
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
     atomic_fetch_xor_explicit(&(voxel_table[int_location]), mask,memory_order_relaxed);
 #endif
 }
@@ -103,7 +104,7 @@ inline bool checkVoxelInd(const size_t index, __global const unsigned int * vtab
 #ifdef _CUDA
 __device__ inline bool checkVoxelInd(const size_t index,const unsigned int * vtable)
 #endif
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
 inline bool checkVoxelInd(const size_t index, device const unsigned int * vtable)
 #endif
 {

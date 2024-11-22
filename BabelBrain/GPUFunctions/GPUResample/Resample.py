@@ -17,9 +17,9 @@ from scipy.ndimage._interpolation import spline_filter, _prepad_for_spline_filte
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -76,8 +76,17 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         # Create kernels from program function
         knl_at=prgcl.affine_transform
         # knl_sf=prgcl.spline_filter_3d
-
     elif GPUBackend == 'Metal':
+        import metalcomputebabel as mc
+        clp = mc
+        
+        preamble = '#define _METAL'
+        prgcl, sel_device, ctx = InitMetal(preamble=preamble+header,kernel_files=kernel_files,DeviceName=DeviceName)
+       
+        # Create kernels from program function
+        knl_at=prgcl.function('affine_transform')
+        # knl_sf=prgcl.function('spline_filter_3d')
+    elif GPUBackend == 'MLX':
         import mlx.core as mx
         clp = mx
         
@@ -86,8 +95,8 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
                              'input_names': ["x", "mat", "int_params", "float_params"],
                              'output_names': ["y"],
                              'atomic_outputs': False}]
-        preamble = '#define _METAL\n'
-        kernels, sel_device = InitMetal(kernel_functions,header=preamble+header,device_name=DeviceName)
+        preamble = '#define _MLX\n'
+        kernels, sel_device = InitMLX(kernel_functions,header=preamble+header,device_name=DeviceName)
         
         knl_at = kernels['affine_transform']
 
@@ -420,6 +429,27 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
             queue.finish()
 
         elif GPUBackend == 'Metal':
+
+            # Move input data from host to device memory
+            filtered_gpu = ctx.buffer(filtered)
+            m_gpu = ctx.buffer(m) 
+            output_section_gpu = ctx.buffer(output_section)
+            float_params_gpu = ctx.buffer(float_params)
+            int_params_gpu = ctx.buffer(int_params)
+
+            # Deploy affine transform kernel
+            ctx.init_command_buffer()
+            handle=knl_at(output_section.size,filtered_gpu,m_gpu,output_section_gpu,float_params_gpu,int_params_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((output_section_gpu,float_params_gpu))
+
+            # Move kernel output data back to host memory
+            output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+            
+        elif GPUBackend == 'MLX':
 
             # Change to mlx arrays
             filtered_mlx = clp.array(filtered)

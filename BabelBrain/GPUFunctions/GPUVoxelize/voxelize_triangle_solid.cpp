@@ -12,7 +12,15 @@ __kernel void voxelize_triangle_solid(__global const float* triangle_data,
     size_t thread_id = (size_t)(blockIdx.x*blockDim.x + threadIdx.x);
 #endif
 #ifdef _METAL
+kernel void voxelize_triangle_solid(const device float* triangle_data [[ buffer(0) ]], 
+                                    device atomic_uint* voxel_table [[ buffer(1) ]],
+                                    uint gid[[thread_position_in_grid]])
+{
+#endif
+#if defined(_METAL) || defined(_MLX)
+    #ifdef _MLX
     uint gid = thread_position_in_grid.x;
+    #endif
     size_t thread_id = gid;
 #endif
 
@@ -27,7 +35,7 @@ __kernel void voxelize_triangle_solid(__global const float* triangle_data,
         float3 v1 = (float3)(triangle_data[t + 3], triangle_data[t + 4], triangle_data[t + 5]) - info_min;
         float3 v2 = (float3)(triangle_data[t + 6], triangle_data[t + 7], triangle_data[t + 8]) - info_min;
         #endif
-        #if defined(_METAL) || defined(_CUDA)
+        #if defined(_METAL) || defined(_MLX) || defined(_CUDA)
         float3 v0 = {triangle_data[t], triangle_data[t + 1], triangle_data[t + 2]};
         v0-=info_min;
         float3 v1 = {triangle_data[t + 3], triangle_data[t + 4], triangle_data[t + 5]};
@@ -50,7 +58,7 @@ __kernel void voxelize_triangle_solid(__global const float* triangle_data,
         float2 v1_yz = (float2)(v1.y, v1.z);
         float2 v2_yz = (float2)(v2.y, v2.z);
         #endif
-        #if defined(_METAL) || defined(_CUDA)
+        #if defined(_METAL) || defined(_MLX)  || defined(_CUDA)
         float2 v0_yz = {v0.y, v0.z};
         float2 v1_yz = {v1.y, v1.z};
         float2 v2_yz = {v2.y, v2.z};
@@ -77,10 +85,9 @@ __kernel void voxelize_triangle_solid(__global const float* triangle_data,
         float2 bbox_max_grid = (float2)(floor(bbox_max.x / info_unit.y - 0.5), floor(bbox_max.y / info_unit.z - 0.5));
         float2 bbox_min_grid = (float2)(ceil(bbox_min.x / info_unit.y - 0.5), ceil(bbox_min.y / info_unit.z - 0.5));
         #endif
-        #if defined(_METAL) || defined(_CUDA)
+        #if defined(_METAL)|| defined(_MLX)  || defined(_CUDA)
         float2 bbox_max_grid = {floor(bbox_max.x / info_unit.y - (float)0.5), floor(bbox_max.y / info_unit.z - (float)0.5)};
         float2 bbox_min_grid = {ceil(bbox_min.x / info_unit.y - (float)0.5), ceil(bbox_min.y / info_unit.z -(float) 0.5)};
-
         #endif
         
         for (int y = bbox_min_grid.x; y <= bbox_max_grid.x; y++)
@@ -94,7 +101,7 @@ __kernel void voxelize_triangle_solid(__global const float* triangle_data,
                  #if defined(_OPENCL)
                 float2 point = (float2)((y + 0.5)*info_unit.y, (z + 0.5)*info_unit.z);
                 #endif
-                #if defined(_METAL) || defined(_CUDA)
+                #if defined(_METAL)|| defined(_MLX)  || defined(_CUDA)
                 float2 point = {(y + (float) 0.5)*info_unit.y, (z + (float) 0.5)*info_unit.z};
                 #endif
                 int checknum = check_point_triangle(v0_yz, v1_yz, v2_yz, point);

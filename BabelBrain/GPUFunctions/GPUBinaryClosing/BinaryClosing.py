@@ -13,9 +13,9 @@ from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -64,7 +64,17 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         
         # Create kernels from program function
         knl=prgcl.binary_erosion
+    
     elif GPUBackend == 'Metal':
+        import metalcomputebabel as mc
+        clp = mc
+        preamble = '#define _METAL\n'
+        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
+
+        # Create kernels from program function
+        knl=prgcl.function('binary_erosion')
+    
+    elif GPUBackend == 'MLX':
         import mlx.core as mx
         clp = mx
         
@@ -73,8 +83,8 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
                              'input_names': ["x","w","int_params"],
                              'output_names': ["y"],
                              'atomic_outputs': False}]
-        preamble = '#define _METAL\n#include <metal_stdlib>\nusing namespace metal;'
-        kernels, sel_device = InitMetal(kernel_functions,header=preamble,device_name=DeviceName)
+        preamble = '#define _MLX\n#include <metal_stdlib>\nusing namespace metal;'
+        kernels, sel_device = InitMLX(kernel_functions,header=preamble,device_name=DeviceName)
         
         knl = kernels['binary_erosion']
 
@@ -203,7 +213,28 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
             int_params_gpu.release()
             output_section_gpu.release()
             queue.finish()
+        
         elif GPUBackend=='Metal':
+            
+            # Move input data from host to device memory
+            input_section_gpu = ctx.buffer(input_section)
+            structure_gpu = ctx.buffer(structure)
+            int_params_gpu = ctx.buffer(int_params)
+            output_section_gpu = ctx.buffer(output_section)
+            
+            # Deploy kernel
+            ctx.init_command_buffer()
+            handle=knl(output_section.size,input_section_gpu,structure_gpu,int_params_gpu,output_section_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((int_params_gpu,output_section_gpu))
+
+            # Move kernel output data back to host memory
+            output_section = np.frombuffer(output_section_gpu,dtype=np.uint8).reshape(output_section.shape)
+            
+        elif GPUBackend=='MLX':
             
             # Change to mlx arrays
             input_section_mlx = clp.array(input_section)

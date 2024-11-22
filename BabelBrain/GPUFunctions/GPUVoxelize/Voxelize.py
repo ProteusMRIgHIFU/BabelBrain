@@ -10,9 +10,9 @@ from numba import jit,njit, prange
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -73,6 +73,12 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
         queue,kernel_code,sel_device,ctx,mf = InitOpenCL(preamble=header,kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
     elif GPUBackend == 'Metal':
+        import metalcomputebabel as mc
+        clp = mc
+
+        kernel_code,sel_device,ctx = InitMetal(preamble=header,kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        
+    elif GPUBackend == 'MLX':
         import mlx.core as mx
         clp = mx
 
@@ -87,7 +93,7 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
                              'output_names': ["globalcount","Points"],
                              'atomic_outputs': True}]
         
-        kernel_code, sel_device = InitMetal(kernel_functions,header=header,device_name=DeviceName,build_later=True)
+        kernel_code, sel_device = InitMLX(kernel_functions,header=header,device_name=DeviceName,build_later=True)
 
 def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx
@@ -180,11 +186,37 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         clp.enqueue_copy(queue, vtable,vtable_gpu)
         queue.finish()
         vtable=np.frombuffer(vtable,np.uint32)
-    else:
-        assert(GPUBackend=='Metal')
+    elif GPUBackend == 'Metal':
 
         metal_def='''
         #define _METAL
+        #define gx {gx}
+        #define gy {gy}
+        #define gz {gz}
+        '''.format(gx=gx,gy=gy,gz=gz)
+
+        # Build program from source code
+        prg = ctx.kernel(metal_def+constant_defs+kernel_code)
+
+        # Move input data from host to device memory
+        vtable_gpu=ctx.buffer(vtable.nbytes)
+        triangles_gpu=ctx.buffer(triangles)
+        ctx.init_command_buffer()
+
+        # Deploy kernel
+        handle = prg.function('voxelize_triangle_solid')(n_triangles,triangles_gpu,vtable_gpu)
+        ctx.commit_command_buffer()
+        ctx.wait_command_buffer()
+        del handle
+
+        # Move kernel output data back to host memory
+        if 'arm64' not in platform.platform():
+            ctx.sync_buffers((vtable_gpu,triangles_gpu))
+        vtable=np.frombuffer(vtable_gpu,dtype=np.uint32)
+    elif GPUBackend == 'MLX':
+
+        metal_def='''
+        #define _MLX
         #define gx {gx}
         #define gy {gy}
         #define gz {gz}
@@ -304,6 +336,26 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             queue.finish()
 
         elif GPUBackend=='Metal' :
+            # Move input data from host to device memory
+            points_section_gpu=ctx.buffer(points_section.nbytes)
+            globalcount_gpu=ctx.buffer(globalcount)
+            int_params_gpu = ctx.buffer(int_params)
+
+            # Deploy kernel
+            ctx.init_command_buffer()
+            handle = prg.function('ExtractPoints')(ntotal,vtable_gpu,globalcount_gpu,int_params_gpu,points_section_gpu)
+            ctx.commit_command_buffer()
+            ctx.wait_command_buffer()
+            del handle
+            if 'arm64' not in platform.platform():
+                ctx.sync_buffers((points_section_gpu,globalcount_gpu))
+
+            # Move kernel output data back to host memory
+            points_section=np.frombuffer(points_section_gpu,dtype=np.float32).reshape(points_section.shape)
+            globalcount=np.frombuffer(globalcount_gpu,dtype=np.uint32)
+            logger.info(f"globalcount: {globalcount}")
+            
+        elif GPUBackend=='MLX' :
         
             # Change to mlx arrays
             points_section_mlx = clp.array(points_section)

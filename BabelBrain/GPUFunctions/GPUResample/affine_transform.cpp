@@ -77,7 +77,18 @@ __kernel void affine_transform(__global const float * x,
 #endif
 
 #ifdef _METAL
+kernel void affine_transform(const device float * x [[ buffer(0) ]], 
+                            const device float * mat [[ buffer(1) ]],
+                            device float * y [[ buffer(2) ]],
+                            const device float * float_params [[ buffer(3) ]],
+                            device unsigned int * int_params [[ buffer(4) ]],
+                            uint gid[[thread_position_in_grid]]) 
+{
+#endif
+#if defined(_METAL) || defined(_MLX)
+    #ifdef _MLX
     uint gid = thread_position_in_grid.x;
+    #endif
     const float cval = float_params[0];
     const unsigned int order = int_params[0];
     const unsigned int in_dims_0 = int_params[1];
@@ -191,7 +202,7 @@ __kernel void affine_transform(__global const float * x,
                     ci_0[0] = -ci_0[0];
                 }
                 ci_0[0] = 1 + (ci_0[0] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[0] = ptrdiff_t_min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
                 #endif
                 #if defined(_OPENCL) || defined(_CUDA)
@@ -210,7 +221,7 @@ __kernel void affine_transform(__global const float * x,
                     ci_0[1] = -ci_0[1];
                 }
                 ci_0[1] = 1 + (ci_0[1] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[1] = ptrdiff_t_min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
                 #endif
                 #if defined(_OPENCL) || defined(_CUDA)
@@ -229,7 +240,7 @@ __kernel void affine_transform(__global const float * x,
                     ci_0[2] = -ci_0[2];
                 }
                 ci_0[2] = 1 + (ci_0[2] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[2] = ptrdiff_t_min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
                 #endif
                 #if defined(_OPENCL) || defined(_CUDA)
@@ -248,7 +259,7 @@ __kernel void affine_transform(__global const float * x,
                     ci_0[3] = -ci_0[3];
                 }
                 ci_0[3] = 1 + (ci_0[3] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[3] = ptrdiff_t_min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
                 #endif
                 #if defined(_OPENCL) || defined(_CUDA)
@@ -289,7 +300,7 @@ __kernel void affine_transform(__global const float * x,
                         ci_1[0] = -ci_1[0];
                     }
                     ci_1[0] = 1 + (ci_1[0] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[0] = ptrdiff_t_min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
                     #endif
                     #if defined(_OPENCL) || defined(_CUDA)
@@ -308,7 +319,7 @@ __kernel void affine_transform(__global const float * x,
                         ci_1[1] = -ci_1[1];
                     }
                     ci_1[1] = 1 + (ci_1[1] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[1] = ptrdiff_t_min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
                     #endif
                     #if defined(_OPENCL) || defined(_CUDA)
@@ -327,7 +338,7 @@ __kernel void affine_transform(__global const float * x,
                         ci_1[2] = -ci_1[2];
                     }
                     ci_1[2] = 1 + (ci_1[2] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[2] = ptrdiff_t_min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
                     #endif
                     #if defined(_OPENCL) || defined(_CUDA)
@@ -346,7 +357,7 @@ __kernel void affine_transform(__global const float * x,
                         ci_1[3] = -ci_1[3];
                     }
                     ci_1[3] = 1 + (ci_1[3] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[3] = ptrdiff_t_min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
                     #endif
                     #if defined(_OPENCL) || defined(_CUDA)
@@ -387,7 +398,7 @@ __kernel void affine_transform(__global const float * x,
                             ci_2[0] = -ci_2[0];
                         }
                         ci_2[0] = 1 + (ci_2[0] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[0] = ptrdiff_t_min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
                         #endif
                         #if defined(_OPENCL) || defined(_CUDA)
@@ -406,7 +417,7 @@ __kernel void affine_transform(__global const float * x,
                             ci_2[1] = -ci_2[1];
                         }
                         ci_2[1] = 1 + (ci_2[1] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[1] = ptrdiff_t_min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
                         #endif
                         #if defined(_OPENCL) || defined(_CUDA)
@@ -425,7 +436,7 @@ __kernel void affine_transform(__global const float * x,
                             ci_2[2] = -ci_2[2];
                         }
                         ci_2[2] = 1 + (ci_2[2] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[2] = ptrdiff_t_min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
                         #endif
                         #if defined(_OPENCL) || defined(_CUDA)
@@ -444,7 +455,7 @@ __kernel void affine_transform(__global const float * x,
                             ci_2[3] = -ci_2[3];
                         }
                         ci_2[3] = 1 + (ci_2[3] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[3] = ptrdiff_t_min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
                         #endif
                         #if defined(_OPENCL) || defined(_CUDA)

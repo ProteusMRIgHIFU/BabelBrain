@@ -51,6 +51,17 @@ __kernel void binary_erosion(__global const unsigned char * x,
 
 #endif
 #ifdef _METAL
+#include <metal_stdlib>
+using namespace metal;
+kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]], 
+                           const device unsigned char * w [[ buffer(1) ]], 
+                           const device int * int_params[[ buffer(2) ]],
+                           device unsigned char * y [[ buffer(3) ]],
+                           uint gid[[thread_position_in_grid]])
+{
+    ptrdiff_t section_gid = (ptrdiff_t) gid;   
+#endif
+#if defined(_METAL) || defined(_MLX)
 
     ptrdiff_t section_size = int_params[19];
 
@@ -59,7 +70,9 @@ __kernel void binary_erosion(__global const unsigned char * x,
     ptrdiff_t output_size_2 = int_params[2];
     ptrdiff_t output_size = output_size_2 * output_size_1 * output_size_0;
 
+    #ifdef _MLX
     ptrdiff_t section_gid = thread_position_in_grid.x;
+    #endif
 #endif
 
     ptrdiff_t input_size_0 = int_params[0];
@@ -72,7 +85,7 @@ __kernel void binary_erosion(__global const unsigned char * x,
     int false_val = int_params[7];
     int border_value = int_params[8];
     int center_is_true = int_params[9];
-    #ifndef _METAL
+    #ifndef _MLX
     const int w_shape[3] = {int_params[10],int_params[11],int_params[12]}; // MLX already creates w_shape automatically
     #endif
 
@@ -115,10 +128,10 @@ __kernel void binary_erosion(__global const unsigned char * x,
     #ifdef _OPENCL
     __global const unsigned char* data = (__global const unsigned char*)&x[0];
     #endif
-    // Used in old version, not working with MLX, removed for now
-    // #ifdef _METAL 
-    // device const unsigned char* data = (const device unsigned char*)&x[0];
-    // #endif
+    // not working with MLX
+    #ifdef _METAL 
+    device const unsigned char* data = (const device unsigned char*)&x[0];
+    #endif
 
     unsigned char _in = (unsigned char)x[section_gid];
     if (center_is_true && _in == (unsigned char)false_val)
@@ -182,11 +195,11 @@ __kernel void binary_erosion(__global const unsigned char * x,
                     #ifdef _OPENCL
                     unsigned char nn = (*(__global unsigned char*)&data[input_idx]) ? true_val : false_val;
                     #endif
-                    // Used in old version, not working with MLX, removed for now
-                    // #ifdef _METAL
-                    // unsigned char nn = (*(device unsigned char*)&data[input_idx]) ? true_val : false_val;
-                    // #endif
+                    // not working with MLX
                     #ifdef _METAL
+                    unsigned char nn = (*(device unsigned char*)&data[input_idx]) ? true_val : false_val;
+                    #endif
+                    #ifdef _MLX
                     unsigned char nn = x[input_idx] ? true_val : false_val;
                     #endif
                     if (!nn) 

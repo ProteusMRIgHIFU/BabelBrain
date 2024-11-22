@@ -62,6 +62,11 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
 
     elif GPUBackend == 'Metal':
         
+        logger.info(f"Step size: {step}")
+        return step
+    
+    elif GPUBackend == 'MLX':
+        
         # import mlx.core as mx
         
         # # Get available memory
@@ -187,8 +192,40 @@ def InitOpenCL(preamble='',kernel_files='',DeviceName='A6000',build_later=False)
 
     return queue, prgcl, SelDevice, ctx, mf
 
+def InitMetal(preamble='',kernel_files='',DeviceName='A6000',build_later=False):
+    import metalcomputebabel as mc
 
-def InitMetal(kernel_functions,preamble='',header='',device_name='A6000',build_later=False):
+    devices = mc.get_devices()
+    SelDevice=None
+    for n,dev in enumerate(devices):
+        if DeviceName in dev.deviceName:
+            SelDevice=dev
+            break
+    if SelDevice is None:
+        raise SystemError("No Metal device containing name [%s]" %(DeviceName))
+    else:
+        print('Selecting device: ', dev.deviceName)
+    
+    ctx = mc.Device(n)
+    if 'arm64' not in platform.platform():
+        ctx.set_external_gpu(1) 
+
+    # Build program from source code
+    kernel_codes = [preamble]
+    for k_file in kernel_files:
+        with open(k_file, 'r') as f:
+            kernel_code = f.read()
+            kernel_codes.append(kernel_code)
+
+    complete_kernel = '\n'.join(kernel_codes)
+    if build_later:
+        prgcl = complete_kernel
+    else:
+        prgcl = ctx.kernel(complete_kernel)
+
+    return prgcl, SelDevice, ctx
+
+def InitMLX(kernel_functions,preamble='',header='',device_name='A6000',build_later=False):
     import mlx.core as mx
 
     dev = mx.default_device()

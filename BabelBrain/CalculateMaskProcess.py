@@ -1,5 +1,6 @@
 import sys
 import traceback
+import platform
 
 def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     
@@ -55,7 +56,12 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         elif COMPUTING_BACKEND == 2:
             gpu_backend = 'OpenCL'
         elif COMPUTING_BACKEND == 3:
-            gpu_backend = 'Metal'
+            if 'arm64' not in platform.platform():
+                gpu_backend = 'Metal'
+                print("Using metalcomputebabel for GPU backend calculations")
+            else:
+                gpu_backend = 'MLX'
+                print("Using MLX for GPU backend calculations")
         else:
             raise ValueError('Non valid computing backend was given')
 
@@ -65,14 +71,14 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         Resample.InitResample(DeviceName=devicename,GPUBackend=gpu_backend)
         BinaryClosing.InitBinaryClosing(DeviceName=devicename,GPUBackend=gpu_backend)
         
-        DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
-        DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
-        DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
-        DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
-        DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
+        DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND=gpu_backend)
+        DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND=gpu_backend)
+        DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND=gpu_backend)
+        DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND=gpu_backend)
+        DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND=gpu_backend)
 
         # Metal version not ready
-        if gpu_backend != 'Metal':
+        if not (gpu_backend == 'Metal' or gpu_backend == 'MLX'):
             LabelImage.InitLabel(DeviceName=devicename,GPUBackend=gpu_backend)
             DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
                     

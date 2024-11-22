@@ -5,7 +5,9 @@ typedef float W;
 typedef float X;
 typedef short Y;
 
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
+#include <metal_stdlib>
+using namespace metal;
 ptrdiff_t ptrdiff_t_min(ptrdiff_t a, ptrdiff_t b)
 {
     if (a < b)

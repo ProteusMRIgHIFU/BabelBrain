@@ -42,7 +42,19 @@ extern "C" __global__ void mapfilter(const float * HUMap,
     if (section_gid >= section_size) return;
 #endif
 #ifdef _METAL
+#include <metal_stdlib>
+using namespace metal;
+kernel void mapfilter(const device  float * HUMap [[ buffer(0) ]],
+                      const device unsigned char * IsBone [[ buffer(1) ]],
+                      const device float * UniqueHU [[ buffer(2) ]],
+                      unsigned device int * CtMap [[ buffer(3) ]],
+                      const unsigned device int * int_params [[ buffer(4) ]],
+                      uint section_gid[[thread_position_in_grid]]) {
+#endif
+#if defined(_METAL) || defined(_MLX)
+    #ifdef _MLX
     ptrdiff_t section_gid = thread_position_in_grid.x;
+    #endif
     const unsigned int dimUnique = int_params[0];
 #endif
 
