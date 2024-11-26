@@ -31,6 +31,8 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
+from trimesh import creation
+
 from .Babel_SingleTx import SingleTx,RunAcousticSim
 
 import platform
@@ -111,8 +113,9 @@ class BSonix(SingleTx):
         model=self.GetTxModel()
         FocalLength = self.Config[model]['TxFoc']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
-        self._FullSolName=self._MainApp._prefix_path+model+'_DataForSim.h5' 
-        self._WaterSolName=self._MainApp._prefix_path+model+'_Water_DataForSim.h5' 
+        self._prefix=self._MainApp._prefix_path+model
+        self._FullSolName=self._prefix+'_DataForSim.h5' 
+        self._WaterSolName=self._prefix+'_Water_DataForSim.h5' 
         print('FullSolName',self._FullSolName)
         print('WaterSolName',self._WaterSolName)
         bCalcFields=False
@@ -146,7 +149,7 @@ class BSonix(SingleTx):
                                         extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self.DoneAcSim)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
@@ -158,6 +161,27 @@ class BSonix(SingleTx):
             self.thread.start()
             self._MainApp.showClockDialog()
         else:
-            self.UpdateAcResults()
+            self.DoneAcSim()
+    
+    def DoneAcSim(self):
+        RADIUS = self.Config['CaseDiameter']/2/1e3 # m dimension of "puck"
+        HEIGHT = self.Config['CaseHeight']/1e3 # m
+        InitTrans=np.eye(4)
+        LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask,axis=2)==5.0)).flatten()
+        SpatialStep=np.mean(self._MainApp._MaskData.header.get_zooms())/1e3
+        InitTrans[0,3]=LocSpot[0]
+        InitTrans[1,3]=LocSpot[1]
+        InitTrans[2,3]=LocSpot[2]+HEIGHT/2/SpatialStep+(self.Widget.DistanceSkinLabel.property('UserData')+self.Widget.SkinDistanceSpinBox.value())/1e3/SpatialStep
+        #we create first a cylinder in voxel dimensions
+        cylinder = creation.cylinder(radius=RADIUS/SpatialStep,height=HEIGHT/SpatialStep,sections=20,transform=InitTrans)
+        
+        affine=self._MainApp._MaskData.affine.copy()
+        
+        #and we apply the conversion from voxel space to subject space in mm
+        cylinder.apply_transform(affine)
+
+        cylinder.export(self._prefix+'_BSonixCase.stl')
+        self.UpdateAcResults()
+        
 
 
