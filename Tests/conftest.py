@@ -99,6 +99,7 @@ transducers = [
     {'name': 'REMOPD', 'dropdown_index': 7, 'diameter': 0},
     {'name': 'I12378', 'dropdown_index': 8, 'diameter': 0},
     {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0}
+    {'name': 'R15148', 'dropdown_index': 10, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -321,30 +322,28 @@ def compare_data(get_rmse):
         
         return array_length_same, array_norm_rmse
     
-    def bhattacharyya_distance(arr1,arr2,num_bins):
-
+    def bhattacharyya_coefficient(arr1,arr2,num_bins=None):
+        logging.info("Calculating Bhatt Coefficient")
+        logging.info(f"Array 1 min value: {arr1.min()}")
+        logging.info(f"Array 2 min value: {arr2.min()}")
+        logging.info(f"Array 1 max value: {arr1.max()}")
+        logging.info(f"Array 2 max value: {arr2.max()}")
         min_val = int(np.floor(min(arr1.min(),arr2.min())))
         max_val = int(np.ceil(max(arr1.max(),arr2.max())))
-        hist1,_ = np.histogram(arr1,bins=num_bins,range=(min_val,max_val))
-        hist2,_ = np.histogram(arr2,bins=num_bins,range=(min_val,max_val))
+        if num_bins is None:
+            num_bins = int((max_val - min_val))
+        logging.info(f"Number of bins used: {num_bins}")
+
+        hist1,bins1 = np.histogram(arr1,bins=num_bins+1,range=(min_val-0.5,max_val+0.5),density=True)
+        hist2,bins2 = np.histogram(arr2,bins=num_bins+1,range=(min_val-0.5,max_val+0.5),density=True)
         norm_hist1 = hist1 / np.sum(hist1)
         norm_hist2 = hist2 / np.sum(hist2)
 
-        logging.info('Calculating Bhattacharyya Distance')
-        s1 = np.sum(norm_hist1)
-        s2 = np.sum(norm_hist2)
-        s1 *= s2
-        result = np.sum(np.sqrt(norm_hist1*norm_hist2))
+        # Calculate Bhattacharyya coefficient
+        bhatt_coeff = np.sum(np.sqrt(norm_hist1 * norm_hist2))
+        logging.info(f"Bhatt Coefficient: {bhatt_coeff}")
 
-        if abs(s1) > np.finfo(np.float32).tiny:
-            s1 = 1/np.sqrt(s1)
-        else:
-            s1 = 1
-
-        bhatt_distance = np.sqrt(np.max(1-(s1*result),0))
-        logging.info(f"Bhattacharyya distance : {bhatt_distance}")
-
-        return bhatt_distance
+        return bhatt_coeff
 
     def dice_coefficient(output_array,truth_array,abs_tolerance=1e-6,rel_tolerance=0):
         logging.info('Calculating dice coefficient')
@@ -402,7 +401,7 @@ def compare_data(get_rmse):
         return percent_error_area
 
     # Return the fixture object with the specified attribute
-    return {'array_data': array_data,'bhatt_distance': bhattacharyya_distance,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
+    return {'array_data': array_data,'bhatt_coeff': bhattacharyya_coefficient,'dice_coefficient': dice_coefficient,'mse': mse,'ssim': ssim,'stl_area': stl_area}
 
 @pytest.fixture()
 def extract_nib_info():
@@ -570,7 +569,7 @@ def get_freq():
     def _get_freq(tx):
         if tx == 'Single':
             freq = '400'
-        elif tx in ['CTX_500','DPX_500','H246']:
+        elif tx in ['CTX_500','DPX_500','H246','R15148']:
             freq = '500'
         elif tx == 'CTX_250':
             freq = '250'
@@ -831,3 +830,14 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     report_name = f"report_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
     os.rename('PyTest_Reports' + os.sep + 'report.html', 'PyTest_Reports' + os.sep + report_name)
     print(f"Report saved as {report_name}")
+    
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "0_919" in item.nodeid:
+            item.add_marker(pytest.mark.low_res)
+        elif "0_306" in item.nodeid:
+            item.add_marker(pytest.mark.med_res)
+        elif "0_184" in item.nodeid:
+            item.add_marker(pytest.mark.high_res)
+        elif "0_092" in item.nodeid:
+            item.add_marker(pytest.mark.stress)

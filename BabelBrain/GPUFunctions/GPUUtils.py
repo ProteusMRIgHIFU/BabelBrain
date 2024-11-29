@@ -61,18 +61,26 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
         return step
 
     elif GPUBackend == 'Metal':
-        ''' 
-        Need a way to determine max buffer size using metalcompute, default to 240000000 for now
         
-        * Note that step can't be too large as issues arise with metalcompute where longer
-        GPU calls can return incomplete data. Furthermore, systems where AMD GPU is used for both display and
-        calculation can also run into watchdog timeout issues and cause the system to crash.
-        '''
+        logger.info(f"Step size: {step}")
+        return step
+    
+    elif GPUBackend == 'MLX':
         
+        # import mlx.core as mx
+        
+        # # Get available memory
+        # gpu_available_memory = mx.metal.device_info()['memory_size'] - mx.metal.get_active_memory()
+        # logger.info(f"GPU available memory: {gpu_available_memory} bytes")
+
+        # # Get GPU max buffer size
+        # max_buffer_size = mx.metal.device_info()['max_buffer_length'] // num_large_buffers
+        # logger.info(f"GPU max buffer size for {num_large_buffers} array(s): {max_buffer_size} bytes")
+        logger.info(f"Step size: {step}")
         return step
     
     # Determine largest safe buffer size
-    max_buffer_size = int(max_buffer_size * 0.8)  # Use 80% to be safe
+    max_buffer_size = int(max_buffer_size * 0.75)  # Use 80% to be safe
     logger.info(f"GPU max safe buffer size: {max_buffer_size} bytes")
 
     # Determine appropriate step size
@@ -82,14 +90,8 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
     return step
 
 
-def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def InitCUDA(preamble='',kernel_files='',DeviceName='A6000',build_later=False):
     import cupy as cp
-
-    if preamble is None:
-        preamble = ''
-
-    if kernel_files is None:
-        kernel_files = ''
 
     # Obtain list of gpu devices
     devCount = cp.cuda.runtime.getDeviceCount()
@@ -136,15 +138,9 @@ def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fals
     return ctx,prgcl,selDevice
 
 
-def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def InitOpenCL(preamble='',kernel_files='',DeviceName='A6000',build_later=False):
     import pyopencl as pocl
     
-    if preamble is None:
-        preamble = ''
-
-    if kernel_files is None:
-        kernel_files = ''
-
     # Obtain list of openCL platforms
     Platforms=pocl.get_platforms()
     if len(Platforms)==0:
@@ -196,15 +192,8 @@ def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fa
 
     return queue, prgcl, SelDevice, ctx, mf
 
-
-def InitMetal(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def InitMetal(preamble='',kernel_files='',DeviceName='A6000',build_later=False):
     import metalcomputebabel as mc
-
-    if preamble is None:
-        preamble = ''
-
-    if kernel_files is None:
-        kernel_files = ''
 
     devices = mc.get_devices()
     SelDevice=None
@@ -235,3 +224,32 @@ def InitMetal(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fal
         prgcl = ctx.kernel(complete_kernel)
 
     return prgcl, SelDevice, ctx
+
+def InitMLX(kernel_functions,preamble='',header='',device_name='A6000',build_later=False):
+    import mlx.core as mx
+
+    dev = mx.default_device()
+    print('Selecting device: ', dev)
+    
+    kernels = {}
+    for kf in kernel_functions:
+        with open(kf['file'], 'r') as f:
+            lines = f.readlines()
+        kernel_code = ''.join(lines[:-1]) # Remove last bracket
+        
+        if build_later:
+            kf['header'] = preamble+header
+            kf['source'] = kernel_code
+            kernels[kf['name']] = kf
+        else:
+            kernel = mx.fast.metal_kernel(name = kf['name'],
+                                          input_names = kf['input_names'],
+                                          output_names = kf['output_names'],
+                                          atomic_outputs = kf['atomic_outputs'],
+                                          header = preamble + header,
+                                          source = kernel_code)
+            
+            # kernels.append(kernel)
+            kernels[kf['name']] = kernel
+        
+    return kernels, dev

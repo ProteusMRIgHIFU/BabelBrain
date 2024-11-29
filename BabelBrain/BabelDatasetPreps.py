@@ -99,82 +99,52 @@ def MaskToStl(binmask,affine):
 
 MedianFilter=None
 MedianCOMPUTING_BACKEND=''
-def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global MedianFilter
     global MedianCOMPUTING_BACKEND
     MedianFilter = Callback
-    if COMPUTING_BACKEND==1:
-        MedianCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        MedianCOMPUTING_BACKEND='OpenCL'
-    else:
-        MedianCOMPUTING_BACKEND='Metal'
+    MedianCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
 
-def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global VoxelizeFilter
     global VoxelizeCOMPUTING_BACKEND
     VoxelizeFilter = Callback
-    if COMPUTING_BACKEND==1:
-        VoxelizeCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        VoxelizeCOMPUTING_BACKEND='OpenCL'
-    else:
-        VoxelizeCOMPUTING_BACKEND='Metal'
+    VoxelizeCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 MapFilter=None
 MapFilterCOMPUTING_BACKEND=''
-def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global MapFilter
     global MapFilterCOMPUTING_BACKEND
     MapFilter = Callback
-    if COMPUTING_BACKEND==1:
-        MapFilterCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        MapFilterCOMPUTING_BACKEND='OpenCL'
-    else:
-        MapFilterCOMPUTING_BACKEND='Metal'
+    MapFilterCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 ResampleFilter=None
 ResampleFilterCOMPUTING_BACKEND=''
-def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global ResampleFilter
     global ResampleFilterCOMPUTING_BACKEND
     ResampleFilter = Callback
-    if COMPUTING_BACKEND==1:
-        ResampleFilterCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        ResampleFilterCOMPUTING_BACKEND='OpenCL'
-    else:
-        ResampleFilterCOMPUTING_BACKEND='Metal'
+    ResampleFilterCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 BinaryClosingFilter=None
 BinaryClosingFilterCOMPUTING_BACKEND=''
-def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global BinaryClosingFilter
     global BinaryClosingFilterCOMPUTING_BACKEND
     BinaryClosingFilter = Callback
-    if COMPUTING_BACKEND==1:
-        BinaryClosingFilterCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        BinaryClosingFilterCOMPUTING_BACKEND='OpenCL'
-    else:
-        BinaryClosingFilterCOMPUTING_BACKEND='Metal'
+    BinaryClosingFilterCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 LabelImage=None
 LabelImageCOMPUTING_BACKEND=''
-def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND='OpenCL'):
     global LabelImage
     global LabelImageCOMPUTING_BACKEND
     LabelImage = Callback
-    if COMPUTING_BACKEND==1:
-        LabelImageCOMPUTING_BACKEND='CUDA'
-    elif COMPUTING_BACKEND==2:
-        LabelImageCOMPUTING_BACKEND='OpenCL'
-    else:
-        LabelImageCOMPUTING_BACKEND='Metal'
+    LabelImageCOMPUTING_BACKEND = COMPUTING_BACKEND
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''

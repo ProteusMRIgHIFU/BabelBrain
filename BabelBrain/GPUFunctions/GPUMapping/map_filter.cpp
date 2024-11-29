@@ -50,7 +50,11 @@ kernel void mapfilter(const device  float * HUMap [[ buffer(0) ]],
                       unsigned device int * CtMap [[ buffer(3) ]],
                       const unsigned device int * int_params [[ buffer(4) ]],
                       uint section_gid[[thread_position_in_grid]]) {
- 
+#endif
+#if defined(_METAL) || defined(_MLX)
+    #ifdef _MLX
+    ptrdiff_t section_gid = thread_position_in_grid.x;
+    #endif
     const unsigned int dimUnique = int_params[0];
 #endif
 

@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import operator
@@ -12,9 +13,9 @@ from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -63,14 +64,29 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         
         # Create kernels from program function
         knl=prgcl.binary_erosion
+    
     elif GPUBackend == 'Metal':
         import metalcomputebabel as mc
         clp = mc
-        preamble = '#define _METAL'
+        preamble = '#define _METAL\n'
         prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl=prgcl.function('binary_erosion')
+    
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+        
+        kernel_functions = [{'name': 'binary_erosion',
+                             'file': kernel_files[0],
+                             'input_names': ["x","w","int_params"],
+                             'output_names': ["y"],
+                             'atomic_outputs': False}]
+        preamble = '#define _MLX\n#include <metal_stdlib>\nusing namespace metal;'
+        kernels, sel_device = InitMLX(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['binary_erosion']
 
 def erode_kernel(input, structure, output, offsets, border_value, center_is_true, invert, GPUBackend='OpenCL'):
 
@@ -197,6 +213,7 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
             int_params_gpu.release()
             output_section_gpu.release()
             queue.finish()
+        
         elif GPUBackend=='Metal':
             
             # Move input data from host to device memory
@@ -216,6 +233,35 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
 
             # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=np.uint8).reshape(output_section.shape)
+            
+        elif GPUBackend=='MLX':
+            
+            # Change to mlx arrays
+            input_section_mlx = clp.array(input_section)
+            structure_mlx = clp.array(structure)
+            int_params_mlx = clp.array(int_params)
+            output_section_mlx = clp.array(output_section)
+            
+            # Deploy kernel
+            output_section_mlx = knl(inputs=[input_section_mlx,structure_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
+
+            # Change back to numpy array
+            output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del input_section_mlx
+            del structure_mlx
+            del int_params_mlx
+            del output_section_mlx
+            gc.collect()
+            
         else:
             raise ValueError("Unknown gpu backend was selected")
         

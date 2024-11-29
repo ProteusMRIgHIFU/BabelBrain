@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -9,9 +10,9 @@ import numpy as np
 from pathlib import Path
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -65,7 +66,20 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
        
         # Create kernel from program function
         knl=prgcl.function('median_reflect')
-    
+        
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+
+        kernel_functions = [{'name': 'median_reflect',
+                             'file': kernel_files[0],
+                             'input_names': ["input", "int_params"],
+                             'output_names': ["output"],
+                             'atomic_outputs': False}]
+        preamble = '#define _MLX\ntypedef unsigned char PixelType;\n'
+        kernels, sel_device = InitMLX(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['median_reflect']
     
 def MedianFilter(data,size,GPUBackend='OpenCL'):
 
@@ -166,6 +180,39 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
                 ctx.sync_buffers((data_section_pr,output_section_pr))
             
             output_section = np.frombuffer(output_section_pr,dtype=np.uint8).reshape(output_section.shape)
+            
+        elif GPUBackend == 'MLX':
+            int_params=np.zeros(6,np.int32)
+            int_params[0] = output_section.shape[0]
+            int_params[1] = output_section.shape[1]
+            int_params[2] = data_section.shape[2]
+            int_params[3] = footprint.shape[0]
+            int_params[4] = footprint.shape[1]
+            int_params[5] = footprint.shape[2]
+            
+            # Change to mlx arrays
+            data_section_mlx = clp.array(data_section)
+            output_section_mlx = clp.array(output_section)
+            int_params_mlx = clp.array(int_params)
+            
+            # Deploy kernel
+            output_section_mlx = knl(inputs=[data_section_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
+            
+            # Change back to numpy array
+            output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del data_section_mlx
+            del int_params_mlx
+            del output_section_mlx
+            gc.collect()
 
         # Record results in output array
         if slice_end == output.shape[2]:

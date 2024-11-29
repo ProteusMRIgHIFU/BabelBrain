@@ -22,14 +22,18 @@ kernel void median_reflect(
                            device PixelType * output [[ buffer(1) ]],
                            const device int * int_params [[ buffer(2)]], 
                            uint gid[[thread_position_in_grid]]) {
-    
+#endif
+#if defined(_METAL) || defined(_MLX)
     const int dims_0 = int_params[0];
     const int dims_1 = int_params[1];
     const int dims_2 = int_params[2];
     const int filter_size_0 = int_params[3];
     const int filter_size_1 = int_params[4];
     const int filter_size_2 = int_params[5];
-
+    #ifdef _MLX
+    uint gid = thread_position_in_grid.x;
+    #endif
+    
     const int x = gid/(dims_1*dims_2);
     const int y = (gid-x*dims_1*dims_2)/dims_2;
     const int z = gid -x*dims_1*dims_2 - y * dims_2;
@@ -105,4 +109,4 @@ kernel void median_reflect(
     // Return median value
     output[_i]=values[midpoint];
 
-    }
+}

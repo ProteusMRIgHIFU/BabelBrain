@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -8,9 +9,9 @@ import sys
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -63,11 +64,25 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         import metalcomputebabel as mc
         clp = mc
 
-        preamble = '#define _METAL'
+        preamble = '#define _METAL\n'
         prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl=prgcl.function('mapfilter')
+        
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+        
+        kernel_functions = [{'name': 'mapfilter',
+                             'file': kernel_files[0],
+                             'input_names': ["HUMap","IsBone","UniqueHU","int_params"],
+                             'output_names': ["CtMap"],
+                             'atomic_outputs': False}]
+        preamble = '#define _MLX\n#include <metal_stdlib>\nusing namespace metal;\n'
+        kernels, sel_device = InitMLX(kernel_functions,header=preamble,device_name=DeviceName)
+        
+        knl = kernels['mapfilter']
 
     
 def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
@@ -156,7 +171,7 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
             output_section_gpu.release()
             queue.finish()
 
-        else:
+        elif GPUBackend == 'Metal':
             # Move input data from host to device memory
             HUMap_section_gpu = ctx.buffer(HUMap_section) 
             UniqueHU_gpu = ctx.buffer(UniqueHU)
@@ -175,6 +190,35 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
 
             # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=output.dtype).reshape(output_section.shape)
+            
+        elif GPUBackend == 'MLX':
+            # Change to mlx arrays
+            HUMap_section_mlx = clp.array(HUMap_section) 
+            UniqueHU_mlx = clp.array(UniqueHU)
+            SelBone_section_mlx = clp.array(SelBone_section)
+            output_section_mlx = clp.array(output_section)
+            int_params_mlx = clp.array(int_params)
+
+            # Deploy map filter kernel
+            output_section_mlx = knl(inputs=[HUMap_section_mlx,SelBone_section_mlx,UniqueHU_mlx,int_params_mlx],
+                                     output_shapes=[output_section_mlx.shape],
+                                     output_dtypes=[output_section_mlx.dtype],
+                                     grid=(output_section_mlx.size,1,1),
+                                     threadgroup=(256, 1, 1),
+                                     verbose=False,
+                                     stream=sel_device)[0]
+            clp.synchronize()
+            
+            # Move kernel output data back to host memory
+            output_section = np.array(output_section_mlx)
+            
+            # Clean up mlx arrays
+            del HUMap_section_mlx
+            del UniqueHU_mlx
+            del SelBone_section_mlx
+            del output_section_mlx
+            del int_params_mlx
+            gc.collect()
   
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

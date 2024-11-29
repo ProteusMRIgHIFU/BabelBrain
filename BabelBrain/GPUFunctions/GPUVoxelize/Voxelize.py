@@ -1,3 +1,4 @@
+import gc
 import logging
 logger = logging.getLogger()
 import os
@@ -9,9 +10,9 @@ from numba import jit,njit, prange
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -54,26 +55,45 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global mf
     global clp
 
-    kernel_files = [os.path.join(resource_path(),'voxelize.cpp')]
+    kernel_files = [os.path.join(resource_path(),'voxelize_triangle_solid.cpp'),
+                    os.path.join(resource_path(),'extract_points.cpp')]
+    with open(os.path.join(resource_path(), 'voxelize.hpp'), 'r') as f:
+        header = f.read()
 
     if GPUBackend == 'CUDA':
         import cupy as cp
         clp = cp
 
-        ctx,kernel_code,sel_device = InitCUDA(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        ctx,kernel_code,sel_device = InitCUDA(preamble=header,kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
     elif GPUBackend == 'OpenCL':
         import pyopencl as pocl
         clp = pocl
 
-        queue,kernel_code,sel_device,ctx,mf = InitOpenCL(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        queue,kernel_code,sel_device,ctx,mf = InitOpenCL(preamble=header,kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
     elif GPUBackend == 'Metal':
         import metalcomputebabel as mc
         clp = mc
 
-        kernel_code,sel_device,ctx = InitMetal(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        kernel_code,sel_device,ctx = InitMetal(preamble=header,kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
 
+        kernel_functions = [{'name': 'voxelize_triangle_solid',
+                             'file': kernel_files[0],
+                             'input_names': ["triangle_data"],
+                             'output_names': ["voxel_table"],
+                             'atomic_outputs': True},
+                            {'name': 'extract_points',
+                             'file': kernel_files[1],
+                             'input_names': ["voxel_table","int_params"],
+                             'output_names': ["globalcount","Points"],
+                             'atomic_outputs': True}]
+        
+        kernel_code, sel_device = InitMLX(kernel_functions,header=header,device_name=DeviceName,build_later=True)
 
 def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx
@@ -101,7 +121,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
 
     # Create voxel table accounting for dtype
     vtable_size = int(np.ceil((gx*gy*gz) / 32.0) * 4)
-    vtable=np.zeros(vtable_size,np.uint8)
+    vtable=np.zeros(vtable_size,np.uint32)
     
     constant_defs='''
         constant float3 info_min = {{ {xmin:10.9f},{ymin:10.9f},{zmin:10.9f} }};
@@ -166,8 +186,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         clp.enqueue_copy(queue, vtable,vtable_gpu)
         queue.finish()
         vtable=np.frombuffer(vtable,np.uint32)
-    else:
-        assert(GPUBackend=='Metal')
+    elif GPUBackend == 'Metal':
 
         metal_def='''
         #define _METAL
@@ -194,6 +213,49 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         if 'arm64' not in platform.platform():
             ctx.sync_buffers((vtable_gpu,triangles_gpu))
         vtable=np.frombuffer(vtable_gpu,dtype=np.uint32)
+    elif GPUBackend == 'MLX':
+
+        metal_def='''
+        #define _MLX
+        #define gx {gx}
+        #define gy {gy}
+        #define gz {gz}
+        using namespace metal;
+        '''.format(gx=gx,gy=gy,gz=gz)
+
+        # Build program from source code
+        preamble = metal_def + '\n' + constant_defs + '\n'
+        knl_vts = clp.fast.metal_kernel(name = f"{kernel_code['voxelize_triangle_solid']['name']}_{gx}_{gy}_{gz}",
+                                        input_names = kernel_code['voxelize_triangle_solid']['input_names'],
+                                        output_names = kernel_code['voxelize_triangle_solid']['output_names'],
+                                        source = kernel_code['voxelize_triangle_solid']['source'],
+                                        header = preamble + kernel_code['voxelize_triangle_solid']['header'],
+                                        atomic_outputs = kernel_code['voxelize_triangle_solid']['atomic_outputs'],
+                                        )
+        knl_ep = clp.fast.metal_kernel(name = f"{kernel_code['extract_points']['name']}_{gx}_{gy}_{gz}",
+                                       input_names = kernel_code['extract_points']['input_names'],
+                                       output_names = kernel_code['extract_points']['output_names'],
+                                       source = kernel_code['extract_points']['source'],
+                                       header = preamble + kernel_code['extract_points']['header'],
+                                       atomic_outputs = kernel_code['extract_points']['atomic_outputs'],
+                                       )
+
+        # Change to mlx arrays
+        vtable_mlx = clp.array(vtable)
+        triangles_mlx = clp.array(triangles)
+
+        # Deploy kernel
+        vtable_mlx = knl_vts(inputs=[triangles_mlx],
+                             output_shapes=[vtable_mlx.shape],
+                             output_dtypes=[vtable_mlx.dtype],
+                             grid=(n_triangles,1,1),
+                             threadgroup=(256, 1, 1),
+                             verbose=False,
+                             stream=sel_device)[0]
+        clp.synchronize()
+
+        # Change back to numpy array
+        vtable = np.array(vtable_mlx,dtype=np.uint32)
 
     # Create points array 
     totalPoints=calctotalpoints((gx,gy,gz),vtable)[0]
@@ -292,6 +354,34 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             points_section=np.frombuffer(points_section_gpu,dtype=np.float32).reshape(points_section.shape)
             globalcount=np.frombuffer(globalcount_gpu,dtype=np.uint32)
             logger.info(f"globalcount: {globalcount}")
+            
+        elif GPUBackend=='MLX' :
+        
+            # Change to mlx arrays
+            points_section_mlx = clp.array(points_section)
+            globalcount_mlx = clp.array(globalcount)
+            int_params_mlx = clp.array(int_params)
+
+            # Deploy kernel
+            globalcount_mlx,points_section_mlx = knl_ep(inputs=[vtable_mlx,int_params_mlx],
+                                                         output_shapes=[globalcount_mlx.shape,points_section_mlx.shape],
+                                                         output_dtypes=[globalcount_mlx.dtype,points_section_mlx.dtype],
+                                                         grid=(ntotal,1,1),
+                                                         threadgroup=(256, 1, 1),
+                                                         verbose=False,
+                                                         stream=sel_device)
+            clp.synchronize()
+
+            # Change back to numpy arrays
+            points_section = np.array(points_section_mlx)
+            globalcount = np.array(globalcount_mlx)
+            logger.info(f"globalcount: {globalcount}")
+            
+            # Clean up mlx arrays
+            del points_section_mlx
+            del globalcount_mlx
+            del int_params_mlx
+            gc.collect()
 
         try:
             Points[prev_start_ind:int(globalcount[0]),:]=points_section[:int(globalcount[0])-prev_start_ind,:]
