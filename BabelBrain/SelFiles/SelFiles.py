@@ -115,7 +115,7 @@ def ValidThermalProfile(fProf):
         for k in entry:
             if k not in ['DC','PRF','Duration','DurationOff','Repetitions']:
                 msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', or 'Repetitions'" % (k,n)
-                return False,msgDetail
+                return False,msgDetails
     return True,msgDetails
 
 class SelFiles(QDialog):

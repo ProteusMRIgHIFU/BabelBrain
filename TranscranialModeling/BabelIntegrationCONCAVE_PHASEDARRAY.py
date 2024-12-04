@@ -163,7 +163,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxVert[2,:]=-TxVert[2,:]
         TxVert[0,:]+=LocSpot[0]
         TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep
+        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
 
         TxVert=np.dot(affine,TxVert)
 
@@ -284,7 +284,8 @@ class SimulationConditions(SimulationConditionsBASE):
       
         #we apply an homogeneous pressure 
        
-        
+        print('min,max Tx Z',self._Tx['center'][:,2].min(),self._Tx['center'][:,2].max())
+
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
@@ -323,6 +324,8 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
+        print('Z layer for forward propagation',self._ZDim[self._ZSourceLocation])
+
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
