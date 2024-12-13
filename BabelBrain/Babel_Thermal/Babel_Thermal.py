@@ -166,7 +166,15 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.removeItem(0)
 
             for c in self.Config['AllDC_PRF_Duration']:
-                stritem ='%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF'])
+                if c['Duration']<1.0:
+                    sOn = '%3.2fs-On' % (c['Duration'])
+                else:
+                    sOn = '%3.1fs-On' % (c['Duration'])
+                if c['DurationOff']<1.0:
+                    sOff = '%3.2fs-Off' % (c['DurationOff'])
+                else:
+                    sOff = '%3.1fs-Off' % (c['DurationOff'])
+                stritem = sOn + ' ' + sOff + ' %3.1f%% %3.1fHz' %(c['DC']*100,c['PRF'])
                 if c['Repetitions'] >1:
                     stritem += ' %iReps' %(c['Repetitions'])
                 self.Widget.SelCombinationDropDown.addItem(stritem)

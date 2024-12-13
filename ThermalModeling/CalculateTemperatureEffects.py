@@ -18,7 +18,10 @@ from platform import platform
 from os.path import isfile
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
-    suffix = '-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    if DurationUS>=1 and DurationOff>=1:
+        suffix = '-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
+    else:
+        suffix = '-ThermalField-Duration-%3.2f-DurationOff-%3.2f-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
     if Repetitions >1:
         suffix+='-%iReps' % (Repetitions)
     if '__Steer_X' in InputPData:
@@ -225,6 +228,8 @@ def CalculateTemperatureEffects(InputPData,
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
     TotalDurationSteps=int((DurationUS+.001)/dt)
     nStepsOn=int(DurationUS/dt) 
+    if nFactorMonitoring > TotalDurationSteps:
+        nFactorMonitoring=1 #in the weird case TotalDurationSteps is less than 50 ms
     TotalDurationStepsOff=int((DurationOff+.001)/dt)
 
     xf=Input['x_vec']
