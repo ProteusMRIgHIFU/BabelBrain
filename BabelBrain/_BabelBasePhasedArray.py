@@ -289,6 +289,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
             if 'DistanceConeToFocus' in Skull:
                 self._LastDistanceConeToFocus=Skull['DistanceConeToFocus']
+            else:
+                self._LastDistanceConeToFocus=0.0
 
             Water['z_vec']*=1e3
             Skull['z_vec']*=1e3
