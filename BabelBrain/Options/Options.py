@@ -69,8 +69,12 @@ class AdvancedOptions(QDialog):
                  bGeneratePETRAHistogram=False,
                  CTX_500_Correction='Original',
                  BaselineTemperature=37.0,
+                 PETRASlope=-2929.6,
+                 PETRAOffset=3274.9,
+                 ZTESlope=-2085.0,
+                 ZTEOffset=2329.0,
                  **kargs):
-        
+
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
         if sel==-1:
             raise ValueError('The elastix optimizer is not available in the GUI -'+ElastixOptimizer )
@@ -89,6 +93,10 @@ class AdvancedOptions(QDialog):
         self.ui.DisableCTMedianFiltercheckBox.setChecked(bDisableCTMedianFilter)
         self.ui.GeneratePETRAHistogramcheckBox.setChecked(bGeneratePETRAHistogram)
         self.ui.BaselineTemperatureSpinBox.setValue(BaselineTemperature)
+        self.ui.PETRASlopeSpinBox.setValue(PETRASlope)
+        self.ui.PETRAOffsetSpinBox.setValue(PETRAOffset)
+        self.ui.ZTESlopeSpinBox.setValue(ZTESlope)
+        self.ui.ZTEOffsetSpinBox.setValue(ZTEOffset)
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
         if sel==-1:

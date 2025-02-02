@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>409</height>
+    <height>455</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>579</x>
-     <y>370</y>
+     <y>420</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>275</x>
-     <y>372</y>
+     <y>422</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>5</x>
-     <y>370</y>
+     <y>420</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -58,11 +58,11 @@
      <x>5</x>
      <y>4</y>
      <width>644</width>
-     <height>354</height>
+     <height>407</height>
     </rect>
    </property>
    <property name="currentIndex">
-    <number>2</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -91,7 +91,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
      </property>
      <property name="styleSheet">
       <string notr="true"/>
@@ -122,7 +122,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
      </property>
      <property name="text">
       <string>Force using Blender for Constructive Solid Geometry   </string>
@@ -138,7 +138,7 @@
       </rect>
      </property>
      <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
      </property>
      <property name="decimals">
       <number>1</number>
@@ -194,7 +194,7 @@
        </rect>
       </property>
       <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
       </property>
       <property name="decimals">
        <number>1</number>
@@ -235,7 +235,7 @@
        </rect>
       </property>
       <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
       </property>
       <property name="decimals">
        <number>1</number>
@@ -277,7 +277,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
      </property>
      <property name="text">
       <string>Manual Subvolume  </string>
@@ -306,7 +306,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
      </property>
      <property name="text">
       <string>Invert ZTE</string>
@@ -322,7 +322,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
      </property>
      <property name="text">
       <string>Disable median filter in CT/ZTE/PETRA</string>
@@ -364,7 +364,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
      </property>
      <property name="text">
       <string>PETRA: Generate histogram plot </string>
@@ -418,6 +418,170 @@
       <number>50</number>
      </property>
     </widget>
+    <widget class="QDoubleSpinBox" name="ZTESlopeSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>309</x>
+       <y>318</y>
+       <width>86</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>-5000.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>5000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>-2000.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_8">
+     <property name="geometry">
+      <rect>
+       <x>53</x>
+       <y>318</y>
+       <width>255</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>ZTE Conversion  (m* ZTE   + c).  Slope m:</string>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="ZTEOffsetSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>479</x>
+       <y>318</y>
+       <width>86</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>-5000.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>5000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>-2000.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_9">
+     <property name="geometry">
+      <rect>
+       <x>419</x>
+       <y>318</y>
+       <width>70</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Offset c</string>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="PETRASlopeSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>309</x>
+       <y>342</y>
+       <width>86</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>-5000.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>5000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>-2000.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="PETRAOffsetSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>479</x>
+       <y>342</y>
+       <width>86</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>-5000.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>5000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>-2000.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_10">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>342</y>
+       <width>288</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>PETRA Conversion  (m* PETRA   + c).  Slope m:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_11">
+     <property name="geometry">
+      <rect>
+       <x>419</x>
+       <y>342</y>
+       <width>70</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Offset c</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QWidget" name="tab_2">
     <attribute name="title">
@@ -446,7 +610,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
      </property>
      <property name="styleSheet">
       <string notr="true"/>
@@ -477,7 +641,7 @@
       </rect>
      </property>
      <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
      </property>
      <property name="decimals">
       <number>1</number>

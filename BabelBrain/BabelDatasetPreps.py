@@ -309,6 +309,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 PetraNPeaks=2,
                                 bInvertZTE=False,
                                 bGeneratePETRAHistogram=False,
+                                PETRASlope=-2929.6,
+                                PETRAOffset=3274.9,
+                                ZTESlope=-2085.0,
+                                ZTEOffset=2329.0,
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -708,7 +712,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                                bIsPetra=bIsPetra,
                                                                PetraMRIPeakDistance=PetraMRIPeakDistance,
                                                                PetraNPeaks=PetraNPeaks,
-                                                               bGeneratePETRAHistogram=bGeneratePETRAHistogram)
+                                                               bGeneratePETRAHistogram=bGeneratePETRAHistogram,
+                                                               PETRASlope=PETRASlope,
+                                                               PETRAOffset=PETRAOffset,
+                                                               ZTESlope=ZTESlope,
+                                                               ZTEOffset=ZTEOffset)
             else:
                 with CodeTimer("Coregistration CT to T1",unit='s'):
                     rCT = CTZTEProcessing.CTCorreg(T1Conformal_nii,

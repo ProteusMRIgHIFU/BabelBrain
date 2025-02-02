@@ -348,7 +348,11 @@ def ConvertZTE_PETRA_pCT(InputT1,
                          bIsPetra=False,
                          PetraMRIPeakDistance=50,
                          PetraNPeaks=2,
-                         bGeneratePETRAHistogram=False):
+                         bGeneratePETRAHistogram=False,
+                         PETRASlope=-2929.6,
+                         PETRAOffset=3274.9,
+                         ZTESlope=-2085.0,
+                         ZTEOffset=2329.0):
     print('converting ZTE/PETRA to pCT with range',file_manager.pseudo_CT_range)
 
     SimbsPath = file_manager.simNIBS_dir
@@ -452,9 +456,11 @@ def ConvertZTE_PETRA_pCT(InputT1,
         arrCT[arrSkin!=0]=42.0 #soft tissue
 
         if bIsPetra:
-            arrCT[arr2!=0]=-2929.6*arrZTE[arr2!=0]+ 3274.9
+            print('PETRA conversion with slope and offset',PETRASlope,PETRAOffset)
+            arrCT[arr2!=0]=PETRASlope*arrZTE[arr2!=0]+ PETRAOffset
         else:
-            arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+            print('ZTE conversion with slope and offset',ZTESlope,ZTEOffset)
+            arrCT[arr2!=0]=ZTESlope*arrZTE[arr2!=0]+ ZTEOffset
 
         arrCT[arrCT<-1000]=-1000 #air
         arrCT[arrCT>3300]=-1000 #air 

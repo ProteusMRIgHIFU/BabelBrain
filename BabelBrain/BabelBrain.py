@@ -437,6 +437,10 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bDisableCTMedianFilter']=False
         self.DefaultAdvanced['bGeneratePETRAHistogram']=False
         self.DefaultAdvanced['BaselineTemperature']=37.0
+        self.DefaultAdvanced['PETRASlope']=-2929.6
+        self.DefaultAdvanced['PETRAOffset']=3274.9
+        self.DefaultAdvanced['ZTESlope']=-2085.0
+        self.DefaultAdvanced['ZTEOffset']=2329.0
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -705,6 +709,10 @@ class BabelBrain(QWidget):
             self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
             self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
             self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
+            self.Config['PETRASlope']=options.ui.PETRASlopeSpinBox.value()
+            self.Config['PETRAOffset']=options.ui.PETRAOffsetSpinBox.value()
+            self.Config['ZTESlope']=options.ui.ZTESlopeSpinBox.value()
+            self.Config['ZTEOffset']=options.ui.ZTEOffsetSpinBox.value()
             self.SaveLatestSelection()
 
     @Slot(float)
