@@ -1,4 +1,4 @@
-BabelBrain v0.4.1
+BabelBrain v0.4.2
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -78,6 +78,15 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.4.2 -  Jan 26th, 2025
+  - **New**: New transducer: **R15148**. This transducer has 128 elements, focal length of 80 mm, diameter of 103 mm, and operates at frequency of 500 kHz.
+  - **New**: Configurable parameters of slope and offset for ZTE and PETRA scans for conversion to pseudo CT. Parameter accessible in the Advance Parameter dialog.
+  - **New**: Configurable baseline temperature for thermal effects modelling. Parameter accessible in the Advance Parameter dialog.
+  - **New**: [Offline processing](OfflineBatchExamples/PETRA-ZTE PCA fit to pseudoCT) to calculate principal component analysis (PCA) fitting to convert ZTE/PETRA to pseudo CT. 
+  - **Fix**: Small corrections for Brainsonix focal spot dimensions for 65 mm- and 85 mm-focal lengths.
+  - **Fix**: Correct that some skin tissue voxels were still labelled as brain tissue.
+  - **Improvement**: Unit-testing expanded and improved.
+
 - 0.4.1 -  Sep 15th, 2024
   - **Fix** : Correcting Mechanical Index (MI) report in Step 3. We identified that a wrong mask was used to find the highest value of pressure used to report the MI. This error was only applicable to the MI. The fix now uses the same location as used for the maximal Isppa in the brain. Results from studies using versions of BabelBrain prior to 0.4.1 can retrospectively calculate the correct MI using the formula `MI=SQRT(Selected_Isppa * 1e4 * 2 * 1041 * 1562)/1e6/SQRT(Frequency_MHz)`, where `Selected_Isppa` is the intensity in W/cm2 as used in Step 3 and `Frequency_MHz` is the selected frequency in MHz.
   

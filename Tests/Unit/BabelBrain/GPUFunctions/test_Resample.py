@@ -17,10 +17,7 @@ def test_Resample(computing_backend,dataset,spatial_step,check_os,get_gpu_device
     # Parameters
     input_folder = dataset['folder_path']
     order = 3
-    input_files = {
-        # 'T1W': input_folder + 'T1W.nii.gz',
-        'CT': input_folder + 'CT.nii.gz',
-    }
+    input_files = {'CT': input_folder + 'CT.nii.gz',}
     spatial_step_text = re.sub("\.","_",str(spatial_step))
     output_fnames = {
         'Output_Truth': input_folder + f"CT_cpu_resampled_order_{order}_spatial_step_{spatial_step_text}.nii.gz",

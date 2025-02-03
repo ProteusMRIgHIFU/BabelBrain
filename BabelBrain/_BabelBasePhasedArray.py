@@ -211,6 +211,11 @@ class BabelBasePhaseArray(BabelBaseTx):
             if hasattr(self.Widget,k+'SpinBox'):
                 Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
+    
+    def GetExtraDataForThermal(self):
+        ExtraValues={}
+        ExtraValues['DistanceConeToFocus']=self._LastDistanceConeToFocus
+        return ExtraValues         
 
     @Slot()
     def EndSimulation(self,OutFiles):
@@ -282,6 +287,10 @@ class BabelBasePhaseArray(BabelBaseTx):
             print(LocTarget)
 
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
+            if 'DistanceConeToFocus' in Skull:
+                self._LastDistanceConeToFocus=Skull['DistanceConeToFocus']
+            else:
+                self._LastDistanceConeToFocus=0.0
 
             Water['z_vec']*=1e3
             Skull['z_vec']*=1e3

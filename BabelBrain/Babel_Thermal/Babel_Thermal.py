@@ -166,7 +166,15 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.removeItem(0)
 
             for c in self.Config['AllDC_PRF_Duration']:
-                stritem ='%3.1fs-On %3.1fs-Off %3.1f%% %3.1fHz' %(c['Duration'],c['DurationOff'],c['DC']*100,c['PRF'])
+                if c['Duration']<1.0:
+                    sOn = '%3.2fs-On' % (c['Duration'])
+                else:
+                    sOn = '%3.1fs-On' % (c['Duration'])
+                if c['DurationOff']<1.0:
+                    sOff = '%3.2fs-Off' % (c['DurationOff'])
+                else:
+                    sOff = '%3.1fs-Off' % (c['DurationOff'])
+                stritem = sOn + ' ' + sOff + ' %3.1f%% %3.1fHz' %(c['DC']*100,c['PRF'])
                 if c['Repetitions'] >1:
                     stritem += ' %iReps' %(c['Repetitions'])
                 self.Widget.SelCombinationDropDown.addItem(stritem)
@@ -312,6 +320,10 @@ class Babel_Thermal(QWidget):
             self._zf-=self._zf[SkinZ]
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
+        if 'BaselineTemperature' in DataThermal:
+            BaselineTemperature=DataThermal['BaselineTemperature']
+        else:
+            BaselineTemperature=37.0
 
         Loc=DataThermal['TargetLocation']
 
@@ -386,22 +398,22 @@ class Babel_Thermal(QWidget):
         self.Widget.tableWidget.setItem(4,1,NewItem(np.array2string(DataThermal['AdjustmentInRAS'],
                                                formatter={'float_kind':lambda x: "%3.2f" % x}),DataThermal['AdjustmentInRAS']))
 
-        AdjustedTemp=((DataThermal['TemperaturePoints']-37)*IsppaRatio+37)
+        AdjustedTemp=((DataThermal['TemperaturePoints']-BaselineTemperature)*IsppaRatio+BaselineTemperature)
         DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
-        MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-37.0)*IsppaRatio+37.0
+        MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-BaselineTemperature)*IsppaRatio+BaselineTemperature
         MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
         self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
 
-        MTB=DataThermal['TI']*IsppaRatio+37.0
+        MTB=DataThermal['TI']*IsppaRatio+BaselineTemperature
         MTBCEM=DoseUpdate[1]
         self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
         
-        MTS=DataThermal['TIS']*IsppaRatio+37.0
+        MTS=DataThermal['TIS']*IsppaRatio+BaselineTemperature
         MTSCEM=DoseUpdate[0]
         self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
 
-        MTC=DataThermal['TIC']*IsppaRatio+37.0
+        MTC=DataThermal['TIC']*IsppaRatio+BaselineTemperature
         MTCCEM=DoseUpdate[2]
         self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
@@ -428,7 +440,7 @@ class Babel_Thermal(QWidget):
                 IntensityMap[DataThermal['ZIntoSkinPixels'],:]=0
             else:
                 IntensityMap[0,:]=0
-            Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-37.0)*IsppaRatio+37.0
+            Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-BaselineTemperature)*IsppaRatio+BaselineTemperature
 
             if self._MainApp.Config['bUseCT']:
                 crlims=[0,1,2]
@@ -452,7 +464,7 @@ class Babel_Thermal(QWidget):
                     self._IntensityIm.set_data(IntensityMap)
                     self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
                     self._ThermalIm.set_data(Tmap.T)
-                    self._ThermalIm.set(clim=[37,Tmap.max()])
+                    self._ThermalIm.set(clim=[BaselineTemperature,Tmap.max()])
                     if hasattr(self,'_contour1'):
                         for c in [self._contour1,self._contour2]:
                             for coll in c.collections:
@@ -506,7 +518,7 @@ class Babel_Thermal(QWidget):
                     static_ax1.set_ylabel('Distance from skin (mm)')
 
                     self._ThermalIm=static_ax2.imshow(Tmap.T,
-                            extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=37)
+                            extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=BaselineTemperature)
                     static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
@@ -654,7 +666,12 @@ class Babel_Thermal(QWidget):
         BasePath+=suffix
         nidata = nibabel.load(BasePath)
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-        Tmap=(DataThermal['TempEndFUS']-37.0)*IsppaRatio+37.0
+        if 'BaselineTemperature' in DataThermal:
+            BaselineTemperature=DataThermal['BaselineTemperature']
+            print('Using BaselineTemperature from file',BaselineTemperature)
+        else:
+            BaselineTemperature=37.0
+        Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
         nii.to_filename(OutName)
@@ -732,6 +749,7 @@ class RunThermalSim(QObject):
         kargs['COMPUTING_BACKEND']=self._mainApp.Config['ComputingBackend']
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
         kargs['Frequency']=self._mainApp._Frequency
+        kargs['BaselineTemperature']=self._mainApp.Config['BaselineTemperature']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
@@ -745,8 +763,9 @@ class RunThermalSim(QObject):
 
         # Start mask generation as separate process.
         queue=Queue()
+        ExtraData=self._mainApp.AcSim.GetExtraDataForThermal()
         fieldWorkerProcess = Process(target=CalculateThermalProcess, 
-                                    args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration']),
+                                    args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration'],ExtraData),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
         # progress.

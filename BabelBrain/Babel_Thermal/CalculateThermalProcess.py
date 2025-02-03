@@ -49,7 +49,7 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
     queueResult.put(fname)
     
 
-def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
+def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
     try:
         Backend = ['CUDA','OpenCL','Metal'][kargs['COMPUTING_BACKEND']-1]
@@ -57,7 +57,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
         AllCases=[]
         #These fields will preseved individually per sonication regime
         lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','MonitorSlice','TI','TIC','TIS','TempProfileTarget',\
-            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff','DutyCycle','PRF']
+            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff','DutyCycle','PRF','BaselineTemperature']
         Index=[]
         for combination in AllDC_PRF_Duration:
             SubData={}
@@ -75,6 +75,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             kargsSub['Frequency']=kargs['Frequency']
+            kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)
@@ -96,6 +97,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,**kargs):
 
         Data['AllData']=AllCases
         Data['Index']=Index
+        for k in ExtraData:
+            Data[k]=ExtraData[k]
         ConsolodidateName=fname.split('-Duration-')[0]+'_AllCombinations'
         savemat(ConsolodidateName+'.mat',Data)
         SaveToH5py(Data,ConsolodidateName+'.h5')

@@ -11,11 +11,11 @@ from BabelBrain import BabelBrain
 def test_save_T1W_iso(dataset,load_files,check_data,get_mpl_plot,compare_data,tmp_path,request):
 
     # Load inputs
-    input_files = {'T1W': dataset['folder_path'] + 'T1W.nii.gz'}
+    input_files = {'T1W': dataset['T1_path']}
     input_data = load_files(input_files)
 
     # Run save_T1W_iso function
-    output_fname= str(tmp_path) + os.sep + 'T1W-isotropic.nii.gz'
+    output_fname= dataset['T1_iso_path']
     BabelBrain.save_T1W_iso(input_files['T1W'], output_fname)
 
     # Load output
