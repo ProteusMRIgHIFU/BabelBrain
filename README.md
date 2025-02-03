@@ -82,7 +82,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **New**: New transducer: **R15148**. This transducer has 128 elements, focal length of 80 mm, diameter of 103 mm, and operates at frequency of 500 kHz.
   - **New**: Configurable parameters of slope and offset for ZTE and PETRA scans for conversion to pseudo CT. Parameter accessible in the Advance Parameter dialog.
   - **New**: Configurable baseline temperature for thermal effects modelling. Parameter accessible in the Advance Parameter dialog.
-  - **New**: [Offline processing](OfflineBatchExamples/PETRA-ZTE PCA fit to pseudoCT) to calculate principal component analysis (PCA) fitting to convert ZTE/PETRA to pseudo CT. 
+  - **New**: Offline processing (**OfflineBatchExamples/PETRA-ZTE PCA fit to pseudoCT**) to calculate principal component analysis (PCA) fitting to convert ZTE/PETRA to pseudo CT. 
   - **Fix**: Small corrections for Brainsonix focal spot dimensions for 65 mm- and 85 mm-focal lengths.
   - **Fix**: Correct that some skin tissue voxels were still labelled as brain tissue.
   - **Improvement**: Unit-testing expanded and improved.
