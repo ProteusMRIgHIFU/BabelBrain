@@ -828,7 +828,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"Total failures: {len(terminalreporter.stats.get('failed', []))}")
     terminalreporter.write_line(f"Total passes: {len(terminalreporter.stats.get('passed', []))}")
 
+    if os.path.isfile(os.path.join('PyTest_Reports','report.html')):
     # Change report name to include time of completion
-    report_name = f"report_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
-    os.rename('PyTest_Reports' + os.sep + 'report.html', 'PyTest_Reports' + os.sep + report_name)
-    print(f"Report saved as {report_name}")
+        report_name = f"report_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html"
+        os.rename(os.path.join('PyTest_Reports','report.html'), os.path.join('PyTest_Reports',report_name))
+        print(f"Report saved as {report_name}")
