@@ -16,7 +16,8 @@ Follow the filename convention strictly.
     `charm ID_001 T1W.nii.gz T2W.nii.gz --forceqform`
 
 4.	In Brainsight, create a new project for the subject and create a dummy trajectory; any trajectory inside the brain will work.
-![alt text](image.png)
+<img width="1089" alt="image" src="https://github.com/user-attachments/assets/33ac9911-3b6d-41a1-8a7d-34bcce4e1701" />
+
 
 5.	Export the trajectory inside the ID subdir (i.e. DATA/ID_001) with the name **Target.txt**.
 
@@ -31,8 +32,8 @@ Follow the filename convention strictly.
     `jupyter lab`
 
 9.	Open the recently copied notebook (i.e., RunPCA_FIT_ID_001.ipynb) and follow the instructions there. If all works ok, the density plot with the new PCA fit should like this.
+<img width="1037" alt="image" src="https://github.com/user-attachments/assets/2c12b794-fc96-4da9-8e40-ec92b99e8a10" />
 
-![alt text](image-1.png)
 
 
 The **RunAllPCA.ipynb** Notebook can be used to run a batch of cases and calculate the PCA fit when considering all cases.
