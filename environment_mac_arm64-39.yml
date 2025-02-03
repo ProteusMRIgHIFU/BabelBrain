@@ -87,6 +87,7 @@ dependencies:
       - plotly==5.11.0
       - pooch==1.6.0
       - pybtex==0.24.0
+      - pycork @ git+https://github.com/drlukeparry/pycork.git@d9efcd1da212c685345f65503ba253373dcdece0
       - pygments==2.13.0
       - pyinstaller==6.1.0
       - pyinstaller-hooks-contrib==2022.13
