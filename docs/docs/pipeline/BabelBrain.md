@@ -175,7 +175,7 @@ The H246 transducer has a similar operation as the CTX_500. The steps presented 
 <img src="Simulation-9.png" height=450px>
 
 
-#### H317, I12378 and ATAC
+#### H317, I12378 and ATAC and R15148
 These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.
  
 <img src="Simulation-10.png" height=450px>

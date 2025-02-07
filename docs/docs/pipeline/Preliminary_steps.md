@@ -6,12 +6,15 @@
 <a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a> (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a>, both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult [MRI Sequences](../MRISequences/MRISequences.md) for GE and Siemens scan settings recomendations 
 
 ## Pre-processing 
-* Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x `charm` processing tool:
+* Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x `charm` processing tool with  settings optimized for skull segmentation
+* **New** (Feb 6th, 2024): Use new recommended charm settings for a better skull segmentation:
+    * Download all files for CHARM FAT Atlas Integration at this [location](https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings) 
+    * Copy the downloaded  custom atlas directory `charm_fat_atlas_mni` in: `<path_to_simnibs>/simnibs/segmentation/atlases/`
+    * Place `settings_fat.ini` and `shared_gmm_fat.txt` in a directory of your choice
+    * Run with Custom Atlas:
 
-    ```
-    charm <ID> <Path to T1W Nifti file> <Path to T2W Nifti file>
-    ```
-
+        `charm  <ID> T1.nii.gz T2.nii.gz --usesettings <path_to_settings_fat.ini> --noneck`
+    
     `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred to as the **SimNIBS output** directory in the following of this manual.
     
     **Note**: Sometimes, `charm` may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with `dcm2niix`. If `charm` complains, you can try passing the  `--forceqform` parameter when executing `charm`.  

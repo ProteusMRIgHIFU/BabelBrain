@@ -16,6 +16,7 @@ Currently, ten types of transducers are supported:
 * **I12378**. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.
 * **ATAC**. This is a 128-element device operating at 1 MHz with a focal length 53.2 mm and F#=0.9.
 * **REMOPD**. This is a 256-element flat 2D array commercialized by the company Fraunhofer IBMT capable to operate at 300 and 490 kHz with a diameter of 58 mm.
+* **R15148**. This is a 128 elements focused device with focal length of 80 mm, diameter of 103 mm, and operates at 500 kHz.
 
 The specific capabilities of each transducer are considered during the simulations. 
 
