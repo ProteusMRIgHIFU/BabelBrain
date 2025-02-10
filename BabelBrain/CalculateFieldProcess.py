@@ -61,6 +61,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
             stdout = InOutputWrapper(queue,True)
     else:
         stdout = InOutputWrapper(queue,True)
+    print('CalculateFieldProcess parameters',Target,TxSystem,kargs)
     try:
         R=RUN_SIM()
         FilesSkull=R.RunCases(targets=Target, 

@@ -384,6 +384,8 @@ class RUN_SIM_BASE(object):
                 bWaterOnly=False,
                 bDryRun=False,
                 bUseRayleighForWater=False,
+                bSaveStress=False,
+                bSaveDisplacement=False,
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -449,6 +451,8 @@ class RUN_SIM_BASE(object):
                                                     bDoRefocusing=bDoRefocusing,
                                                     CTFNAME=CTFNAME,
                                                     bDisplay=bDisplay,
+                                                    bSaveStress=bSaveStress,
+                                                    bSaveDisplacement=bSaveDisplacement,
                                                     **kargs)
                     print('  Step 1')
 
@@ -549,7 +553,9 @@ class BabelFTD_Simulations_BASE(object):
                  MappingMethod='Webb-Marsac',
                  CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
-                 CTFNAME=None):
+                 CTFNAME=None,
+                 bSaveStress=False,
+                 bSaveDisplacement=False):
         self._MASKFNAME=MASKFNAME
         
         if bNoShear:
@@ -581,6 +587,8 @@ class BabelFTD_Simulations_BASE(object):
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
         self._ExtraAdjustY = ExtraAdjustY
+        self._bSaveStress = bSaveStress
+        self._bSaveDisplacement = bSaveDisplacement
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -678,7 +686,9 @@ class BabelFTD_Simulations_BASE(object):
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
                                 ExtraDepthAdjust=self._ExtraDepthAdjust,
                                 ExtraAdjustX=self._ExtraAdjustX,
-                                ExtraAdjustY=self._ExtraAdjustY)
+                                ExtraAdjustY=self._ExtraAdjustY,
+                                bSaveStress=self._bSaveStress,
+                                bSaveDisplacement=self._bSaveDisplacement)
         if  self._CTFNAME is not None and not self._bWaterOnly:
             for k in ['Skin','Brain']:
                 SelM=MatFreq[self._Frequency][k]
@@ -732,6 +742,10 @@ class BabelFTD_Simulations_BASE(object):
 
     def Step4_Run_Simulation(self,GPUName='GP100',bApplyCorrectionForDispersion=True,COMPUTING_BACKEND=1):
         SelMapsRMSPeakList=['Pressure']
+        if self._bSaveStress:
+            SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
+        if self._bSaveDisplacement:
+            SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
         self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
                                           COMPUTING_BACKEND=COMPUTING_BACKEND,
@@ -752,6 +766,10 @@ class BabelFTD_Simulations_BASE(object):
         
     def Step7_Run_Simulation_Refocus(self,GPUName='GP100',COMPUTING_BACKEND=1,bApplyCorrectionForDispersion=True):
         SelMapsRMSPeakList=['Pressure']
+        if self._bSaveStress:
+            SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
+        if self._bSaveDisplacement:
+            SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
         self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,
                                           SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
@@ -960,6 +978,8 @@ class SimulationConditionsBASE(object):
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
                       ExtraAdjustX =[0.0],
                       ExtraAdjustY =[0.0],
+                      bSaveStress=False,
+                      bSaveDisplacement=False,
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
@@ -998,7 +1018,8 @@ class SimulationConditionsBASE(object):
         self._ExtraAdjustX =ExtraAdjustX
         self._ExtraAdjustY =ExtraAdjustY
         self._ZTxCorrecton=ZTxCorrecton
-
+        self._bSaveStress=bSaveStress
+        self._bSaveDisplacement=bSaveDisplacement
         
         
         
@@ -1374,7 +1395,7 @@ elif self._bTightNarrowBeamDomain:
                                                                  ReflectionLimit=self._ReflectionLimit,
                                                                  COMPUTING_BACKEND=COMPUTING_BACKEND,
                                                                  USE_SINGLE=True,
-                                                                 SelMapsRMSPeakList=SelMapsRMSPeakList,
+                                                                 SelMapsRMSPeakList=['Pressure'],
                                                                  SelMapsSensorsList=['Pressure'],
                                                                  SelRMSorPeak=1,
                                                                  DefaultGPUDeviceName=GPUName,
@@ -1414,6 +1435,8 @@ elif self._bTightNarrowBeamDomain:
                                                              SensorSubSampling=self._SensorSubSampling,
                                                              SensorStart=self._SensorStart)
             self._InputParamRefocus=InputParam['IndexSensorMap']
+
+        print('self._DictPeakValue keys',self._DictPeakValue.keys())
 
         if bApplyCorrectionForDispersion:
             CFLWater=self._TemporalStep/self.DominantMediumTemporalStep
@@ -1722,6 +1745,12 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['p_amp']=self._InPeakValue[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
+        if self._bSaveStress or self._bSaveDisplacement:
+            for k in self._DictPeakValue:
+                if k != 'Pressure':
+                    DataForSim[k] = self._DictPeakValue[k][self._XLOffset:-self._XROffset,
+                                            self._YLOffset:-self._YROffset,
+                                            self._ZLOffset:-self._ZROffset]
         DataForSim['p_complex']=self._PressMapFourier[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()

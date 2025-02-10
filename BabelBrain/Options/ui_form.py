@@ -193,6 +193,14 @@ class Ui_Dialog(object):
         self.CTX500CorrectioncomboBox.setGeometry(QRect(316, 11, 99, 30))
         self.CTX500CorrectioncomboBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.CTX500CorrectioncomboBox.setStyleSheet(u"")
+        self.SaveStresscheckBox = QCheckBox(self.tab_2)
+        self.SaveStresscheckBox.setObjectName(u"SaveStresscheckBox")
+        self.SaveStresscheckBox.setGeometry(QRect(192, 40, 149, 20))
+        self.SaveStresscheckBox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.SaveDisplacementcheckBox = QCheckBox(self.tab_2)
+        self.SaveDisplacementcheckBox.setObjectName(u"SaveDisplacementcheckBox")
+        self.SaveDisplacementcheckBox.setGeometry(QRect(113, 64, 228, 20))
+        self.SaveDisplacementcheckBox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
@@ -212,7 +220,7 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -250,6 +258,8 @@ class Ui_Dialog(object):
         self.CTX500CorrectioncomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Original", None))
         self.CTX500CorrectioncomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"July2024", None))
 
+        self.SaveStresscheckBox.setText(QCoreApplication.translate("Dialog", u"Save stress data  ", None))
+        self.SaveDisplacementcheckBox.setText(QCoreApplication.translate("Dialog", u"Save particle displacement data  ", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Transcranial Ultrasound", None))
         self.FocalLengthLabel_7.setText(QCoreApplication.translate("Dialog", u"Baseline temperature (\u00b0C)", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("Dialog", u"Thermal", None))

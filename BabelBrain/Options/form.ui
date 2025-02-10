@@ -62,7 +62,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -625,6 +625,38 @@
        <string>July2024</string>
       </property>
      </item>
+    </widget>
+    <widget class="QCheckBox" name="SaveStresscheckBox">
+     <property name="geometry">
+      <rect>
+       <x>192</x>
+       <y>40</y>
+       <width>149</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>Save stress data  </string>
+     </property>
+    </widget>
+    <widget class="QCheckBox" name="SaveDisplacementcheckBox">
+     <property name="geometry">
+      <rect>
+       <x>113</x>
+       <y>64</y>
+       <width>228</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string>Save particle displacement data  </string>
+     </property>
     </widget>
    </widget>
    <widget class="QWidget" name="tab_3">

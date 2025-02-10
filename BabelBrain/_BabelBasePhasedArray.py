@@ -520,16 +520,9 @@ class RunAcousticSim(QObject):
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
         kargs['DistanceConeToFocus']=DistanceConeToFocus
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo'] 
-        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
-        kargs['bPETRA'] = False
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
         kargs['bDryRun'] = self._bDryRun
-            
-        if kargs['bUseCT']:
-            if self._mainApp.Config['CTType']==3:
-                kargs['bPETRA']=True
+        kargs|=self._mainApp.CommomAcOptions()
 
         
         queue=Queue()

@@ -441,6 +441,8 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['PETRAOffset']=3274.9
         self.DefaultAdvanced['ZTESlope']=-2085.0
         self.DefaultAdvanced['ZTEOffset']=2329.0
+        self.DefaultAdvanced['bSaveStress']=False
+        self.DefaultAdvanced['bSaveDisplacement']=False
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -713,6 +715,8 @@ class BabelBrain(QWidget):
             self.Config['PETRAOffset']=options.ui.PETRAOffsetSpinBox.value()
             self.Config['ZTESlope']=options.ui.ZTESlopeSpinBox.value()
             self.Config['ZTEOffset']=options.ui.ZTEOffsetSpinBox.value()
+            self.Config['bSaveStress']=options.ui.SaveStresscheckBox.isChecked()
+            self.Config['bSaveDisplacement']=options.ui.SaveDisplacementcheckBox.isChecked()
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -1032,6 +1036,19 @@ class BabelBrain(QWidget):
         with open(self._trackingtimefile,'w') as f:
             yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
+    def CommomAcOptions(self):
+        kargs={}
+        kargs['bUseCT']=self.Config['bUseCT']
+        kargs['CTMapCombo']=self.Config['CTMapCombo']
+        kargs['bUseRayleighForWater']=self.Config['bUseRayleighForWater']
+        kargs['bSaveStress']=self.Config['bSaveStress']
+        kargs['bSaveDisplacement']=self.Config['bSaveDisplacement']
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self.Config['CTType']==3:
+                kargs['bPETRA']=True
+        return kargs
+
 def get_color_at(widget, x,y):
     pixmap = QPixmap(widget.size())
     widget.render(pixmap)
@@ -1095,7 +1112,7 @@ class RunMaskGeneration(QObject):
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
-            if '_Correction' not in k and 'BaselineTemperature' != k:
+            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress','bSaveDisplacement']:
                 return True
             else:
                 return False

@@ -73,6 +73,8 @@ class AdvancedOptions(QDialog):
                  PETRAOffset=3274.9,
                  ZTESlope=-2085.0,
                  ZTEOffset=2329.0,
+                 bSaveStress=False,
+                 bSaveDisplacemen=False,
                  **kargs):
 
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
@@ -97,6 +99,8 @@ class AdvancedOptions(QDialog):
         self.ui.PETRAOffsetSpinBox.setValue(PETRAOffset)
         self.ui.ZTESlopeSpinBox.setValue(ZTESlope)
         self.ui.ZTEOffsetSpinBox.setValue(ZTEOffset)
+        self.ui.SaveStresscheckBox.setChecked(bSaveStress)
+        self.ui.SaveDisplacementcheckBox.setChecked(bSaveDisplacemen)
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
         if sel==-1:
