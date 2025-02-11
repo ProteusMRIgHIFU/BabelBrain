@@ -182,9 +182,6 @@
     <property name="cursorPosition">
      <number>3</number>
     </property>
-    <property name="alignment">
-     <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
-    </property>
    </widget>
    <widget class="QLineEdit" name="T1WlineEdit">
     <property name="geometry">
@@ -234,6 +231,11 @@
       <string>PETRA</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>Density</string>
+     </property>
+    </item>
    </widget>
    <widget class="QPushButton" name="SelSimbNIBSpushButton">
     <property name="geometry">
@@ -257,14 +259,20 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>135</y>
+      <x>13</x>
+      <y>113</y>
       <width>58</width>
-      <height>16</height>
+      <height>69</height>
      </rect>
     </property>
     <property name="text">
-     <string>Use CT?</string>
+     <string>Use CT,
+ZTE,
+PETRA,
+Density?</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QPushButton" name="SelTrajectorypushButton">
@@ -617,9 +625,6 @@
     </property>
     <property name="cursorPosition">
      <number>3</number>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QPushButton" name="SelMultiPointProfilepushButton">

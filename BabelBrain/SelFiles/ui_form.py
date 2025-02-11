@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.1
+## Created by: Qt User Interface Compiler version 6.4.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -69,12 +69,12 @@ class Ui_Dialog(object):
         self.CTlineEdit.setGeometry(QRect(400, 132, 607, 21))
         self.CTlineEdit.setStyleSheet(u"")
         self.CTlineEdit.setCursorPosition(3)
-        self.CTlineEdit.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         self.T1WlineEdit = QLineEdit(self.groupBox)
         self.T1WlineEdit.setObjectName(u"T1WlineEdit")
         self.T1WlineEdit.setGeometry(QRect(401, 98, 607, 21))
         self.T1WlineEdit.setStyleSheet(u"")
         self.CTTypecomboBox = QComboBox(self.groupBox)
+        self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
         self.CTTypecomboBox.addItem("")
@@ -89,7 +89,8 @@ class Ui_Dialog(object):
         self.SelSimbNIBSpushButton.setAutoDefault(False)
         self.label = QLabel(self.groupBox)
         self.label.setObjectName(u"label")
-        self.label.setGeometry(QRect(10, 135, 58, 16))
+        self.label.setGeometry(QRect(13, 113, 58, 69))
+        self.label.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.SelTrajectorypushButton = QPushButton(self.groupBox)
         self.SelTrajectorypushButton.setObjectName(u"SelTrajectorypushButton")
         self.SelTrajectorypushButton.setGeometry(QRect(255, 40, 135, 32))
@@ -179,7 +180,6 @@ class Ui_Dialog(object):
         self.MultiPointlineEdit.setGeometry(QRect(400, 81, 607, 21))
         self.MultiPointlineEdit.setStyleSheet(u"")
         self.MultiPointlineEdit.setCursorPosition(3)
-        self.MultiPointlineEdit.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         self.SelMultiPointProfilepushButton = QPushButton(self.groupBox_2)
         self.SelMultiPointProfilepushButton.setObjectName(u"SelMultiPointProfilepushButton")
         self.SelMultiPointProfilepushButton.setEnabled(False)
@@ -212,9 +212,13 @@ class Ui_Dialog(object):
         self.CTTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"real CT", None))
         self.CTTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"ZTE", None))
         self.CTTypecomboBox.setItemText(3, QCoreApplication.translate("Dialog", u"PETRA", None))
+        self.CTTypecomboBox.setItemText(4, QCoreApplication.translate("Dialog", u"Density", None))
 
         self.SelSimbNIBSpushButton.setText(QCoreApplication.translate("Dialog", u"Select SimbNIBS ...", None))
-        self.label.setText(QCoreApplication.translate("Dialog", u"Use CT?", None))
+        self.label.setText(QCoreApplication.translate("Dialog", u"Use CT,\n"
+"ZTE,\n"
+"PETRA,\n"
+"Density?", None))
         self.SelTrajectorypushButton.setText(QCoreApplication.translate("Dialog", u"Select Trajectory ...", None))
         self.TrajectorylineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
         self.TrajectoryTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Brainsight", None))

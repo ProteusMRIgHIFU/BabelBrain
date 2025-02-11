@@ -66,8 +66,10 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
         savedCTType = f"CTType=CT,"
     elif CTType == 2:
         savedCTType = f"CTType=ZTE,"
-    else: #3
+    elif CTType == 3:
         savedCTType = f"CTType=PETRA,"
+    else: #4
+        savedCTType = f"CTType=Density,"
     
     # HU Threshold info to be saved
     if HUT is None:

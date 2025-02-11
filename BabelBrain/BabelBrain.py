@@ -601,9 +601,17 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.hide()
         elif self.Config['CTType'] not in [2,3]:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
-        elif self.Config['CTType']==3: #PETRA, we change the label
+        if self.Config['CTType']==3: #PETRA, we change the label
+            print('doing density selection')
             self.Widget.CTZTETabs.setTabText(0,"PETRA")
             ZTE.findChild(QLabel,"RangeLabel").setText("Normalized PETRA Range")
+        elif self.Config['CTType']==4: #Density, we change a little labels and limits
+            self.Widget.CTZTETabs.setTabText(1,"Density")
+            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText("Density threshold")
+            self.Widget.HUThresholdSpinBox.setMinimum(1050)
+            self.Widget.HUThresholdSpinBox.setMaximum(3000)
+            self.Widget.HUThresholdSpinBox.setValue(1200)
+            
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
 
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
@@ -1004,7 +1012,10 @@ class BabelBrain(QWidget):
         ExtraConfig['Frequency']=self._Frequency
         ExtraConfig['PPW']=self._BasePPW
         if self.Config['bUseCT']:
-            ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
+            if self.Config['CTType'] in [1,2,3]:
+                ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
+            else:
+                ExtraConfig['DensityThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
         with open(self._trackingtimefile,'r') as f:
@@ -1047,6 +1058,8 @@ class BabelBrain(QWidget):
         if kargs['bUseCT']:
             if self.Config['CTType']==3:
                 kargs['bPETRA']=True
+            elif self.Config['CTType']==4:
+                kargs['bDensity']=True
         return kargs
 
 def get_color_at(widget, x,y):
@@ -1108,7 +1121,10 @@ class RunMaskGeneration(QObject):
             kargs['CTType']=self._mainApp.Config['CTType']
             if kargs['CTType'] in [2,3]:
                 kargs['ZTERange']=Widget.ZTERangeSlider.value()
-            kargs['HUThreshold']=Widget.HUTreshold.value()
+            if kargs['CTType'] in [1,2,3]:
+                kargs['HUThreshold']=Widget.HUTreshold.value()
+            else:
+                kargs['DensityThreshold']=Widget.HUTreshold.value()
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1

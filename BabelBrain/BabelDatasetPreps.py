@@ -313,6 +313,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 PETRAOffset=3274.9,
                                 ZTESlope=-2085.0,
                                 ZTEOffset=2329.0,
+                                DensityThreshold=1200.0, #this is in case the input data is rather a density map
                                 DeviceName=''): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -326,6 +327,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     '''
     print('Starting Masking Process')
+    
+    if CTType==4:
+        TypeThresold=DensityThreshold
+    else:
+        TypeThresold=HUThreshold
 
     # Create file manager for step 1
     S1_file_manager = FileManager(simNIBS_dir = SimbNIBSDir,
@@ -336,7 +342,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                     prefix = prefix,
                                     current_CT_type = CTType,
                                     coreg = CoregCT_MRI,
-                                    current_HUT = HUThreshold,
+                                    current_HUT = TypeThresold,
                                     current_pCT_range = ZTERange)
 
     inputfilenames = S1_file_manager.input_files
@@ -725,12 +731,17 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                    ResampleFilter,
                                                    ResampleFilterCOMPUTING_BACKEND)
             rCTdata=rCT.get_fdata()
-            hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
+            hist = np.histogram(rCTdata[rCTdata>TypeThresold],bins=15)
             print('*'*40)
-            print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
-            rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
+            if CTType in [1,2,3]:
+                title = "CT HU"
+            else:
+                title= "Density"
+            print_hist(hist, title=title, symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
+            if CTType in [1,2,3]:
+                rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold #we threshold only CT-type data
 
-            fct=nibabel.Nifti1Image((rCTdata>HUThreshold).astype(np.float32), affine=rCT.affine)
+            fct=nibabel.Nifti1Image((rCTdata>TypeThresold).astype(np.float32), affine=rCT.affine)
 
             if CTType in [2,3]:
                 S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['pCTfname'])
@@ -753,20 +764,21 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-            ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
+            if CTType in [1,2,3]:
+                ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
             
             if not bDisableCTMedianFilter:
-                with CodeTimer("median filter CT",unit='s'):
-                    print('Theshold for bone',HUThreshold)
+                with CodeTimer("median filter CT/Density",unit='s'):
+                    print('Theshold for bone',TypeThresold)
                     if MedianFilter is None:
-                        fct=ndimage.median_filter(ndataCT>HUThreshold,7,mode='constant',cval=0)
+                        fct=ndimage.median_filter(ndataCT>TypeThresold,7,mode='constant',cval=0)
                     else:
-                        fct=MedianFilter(np.ascontiguousarray(ndataCT>HUThreshold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+                        fct=MedianFilter(np.ascontiguousarray(ndataCT>TypeThresold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
             else:
-                fct = ndataCT>HUThreshold
+                fct = ndataCT>TypeThresold
             sf2=np.round((np.ones(3)*5)/mask_nifti2.header.get_zooms()).astype(int)
-            with CodeTimer("binary closing CT",unit='s'):
+            with CodeTimer("binary closing CT/Density",unit='s'):
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             nfct=fct!=0
 
@@ -781,7 +793,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             ndataCT[nfct==False]=0
 
-        with CodeTimer("CT binary_dilation",unit='s'):
+        with CodeTimer("CT/Density binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
         with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
             FinalMask[BinMaskConformalCSFRot]=4  
@@ -812,7 +824,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         FinalMask[np.isin(label_img,np.array(AllLabels))]=4
             
         CTBone=ndataCT[nfct]
-        CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
+        CTBone[CTBone<TypeThresold]=TypeThresold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
@@ -823,7 +835,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
         ndataCT[nfct]=qx
         UniqueHU=np.unique(ndataCT[nfct])
-        print('Unique CT values',len(UniqueHU))
+        print('Unique CT/Density values',len(UniqueHU))
         CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
         S1_file_manager.save_file(file_data=None,filename=CTCalfname,UniqueHU=UniqueHU)
 

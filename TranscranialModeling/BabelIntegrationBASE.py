@@ -553,6 +553,7 @@ class BabelFTD_Simulations_BASE(object):
                  MappingMethod='Webb-Marsac',
                  CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
+                 bDensity = False, #Specify if a density map is directly passed
                  CTFNAME=None,
                  bSaveStress=False,
                  bSaveDisplacement=False):
@@ -584,6 +585,7 @@ class BabelFTD_Simulations_BASE(object):
         self._MappingMethod=MappingMethod
         self._CTMapCombo=CTMapCombo
         self._bPETRA = bPETRA
+        self._bDensity = bDensity
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
         self._ExtraAdjustY = ExtraAdjustY
@@ -612,42 +614,51 @@ class BabelFTD_Simulations_BASE(object):
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
             Porosity=HUtoPorosity(AllBoneHU)
+            if self._bDensity:
+                DensityCTIT= AllBoneHU
             if self._MappingMethod=='Webb-Marsac':
-                if self._bPETRA:
-                    print('Using PETRA to low energy 70 Kvp CT settings')
-                    DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
-                else:
-                    print('Using 120 Kvp CT settings')
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    if self._bPETRA:
+                        print('Using PETRA to low energy 70 Kvp CT settings')
+                        DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
+                    else:
+                        print('Using 120 Kvp CT settings')
+                        DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 print('Using CT combination', self._CTMapCombo)
                 LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
                 LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
-                DensityCTIT = PorositytoDensity(Porosity)
+                if self._bDensity == False:
+                    DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)
                 LAttIT = PorositytoLAtt(Porosity,self._Frequency)
             elif  self._MappingMethod=='Pichardo':
-                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
                 LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold':
-                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             #these are more experimental
             elif self._MappingMethod=='Marsac-Aubry':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
                 LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
             elif self._MappingMethod=='Pichardo-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             else:
