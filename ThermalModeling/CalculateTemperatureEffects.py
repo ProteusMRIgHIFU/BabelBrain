@@ -405,6 +405,7 @@ def CalculateTemperatureEffects(InputPData,
         SaveDict['p_map_central']=InputsBHTE.max(axis=0)[:,cy,:]
     SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
     SaveDict['MaterialMap']=MaterialMap
+    SaveDict['PressureRatio']=PressureRatio
 
     TI=ResTemp[SelBrain].max()
     
