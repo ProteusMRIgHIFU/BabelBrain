@@ -8,6 +8,7 @@ jobs:
   build:
     macos:
       xcode: 16.2.0
+    resource_class: m2pro.medium
     steps:
       - checkout
       - run:
@@ -20,7 +21,7 @@ jobs:
       - run:
           name : "creae environment"
           command: |
-            miniconda3/bin/conda init zsh
+            conda init zsh
             source ~/.zshrc
             conda env create -f environment_mac_arm64-39
             conda activate BabelBrain
