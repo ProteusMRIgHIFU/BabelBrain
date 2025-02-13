@@ -23,6 +23,7 @@ jobs:
           command: |
             ~/miniconda3/bin/conda init zsh
             source ~/.zshrc
+            brew install cmake
             conda env create -f environment_mac_arm64-39.yml
             conda activate BabelBrain
             python -c "import sys;print('testing');print(sys.path)"
