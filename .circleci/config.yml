@@ -8,7 +8,7 @@ jobs:
   build:
     macos:
       xcode: 16.2.0
-    resource_class: m2pro.medium
+    #resource_class: m2pro.medium
     steps:
       - checkout
       - run:
