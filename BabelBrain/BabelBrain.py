@@ -443,6 +443,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['ZTEOffset']=2329.0
         self.DefaultAdvanced['bSaveStress']=False
         self.DefaultAdvanced['bSaveDisplacement']=False
+        self.DefaultAdvanced['bSegmentBrainTissue']=False
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -717,6 +718,7 @@ class BabelBrain(QWidget):
             self.Config['ZTEOffset']=options.ui.ZTEOffsetSpinBox.value()
             self.Config['bSaveStress']=options.ui.SaveStresscheckBox.isChecked()
             self.Config['bSaveDisplacement']=options.ui.SaveDisplacementcheckBox.isChecked()
+            self.Config['bSegmentBrainTissue']=options.ui.SegmentBrainTissuecheckBox.isChecked()
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -868,6 +870,7 @@ class BabelBrain(QWidget):
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
+        bDetailedInnerMask= np.max(FinalMask)>5
         T1W=nibabel.load(self._T1W_resampled_fname)
         T1WData=T1W.get_fdata()
         T1WData=np.flip(T1WData,axis=2)
@@ -948,8 +951,11 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-
-            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=5,extent=extent,interpolation='none',aspect='equal'))
+            if bDetailedInnerMask:
+                vmaxMask=8
+            else:
+                vmaxMask=5
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=vmaxMask,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                 self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
@@ -959,15 +965,42 @@ class BabelBrain(QWidget):
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
         if self.Config['bUseCT']:
-            values =[1,4]
-            legends  = ['scalp','brain']
+            if bDetailedInnerMask:
+                values =[1,4,6,7,8]
+                legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+            else:
+                values =[1,4]
+                legends  = ['scalp','brain']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                     (1.0, 0.40740740740740755,0.0, 1.0)]
             #we use manual color asignation 
-            colors =[(0.0, 0.3, 1.0, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+            
         else:
-            values =[1,2,3,4]
-            legends  = ['scalp','cort.','trab.','brain']
+            if bDetailedInnerMask:
+                values =[1,2,3,4,6,7,8]
+                legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
+                colors = [(0.0, 0.3, 1.0, 1.0), 
+                        (0.0, 0.5020, 1.0, 1.0),
+                        (0.0824,  1.0,  0.8824, 1.0),
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+                
+            else:
+                values =[1,2,3,4]
+                legends  = ['scalp','cort.','trab.','brain']
+                colors = [(0.0, 0.0, 1.0, 1.0), 
+                      (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), 
+                      (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), 
+                      (1.0, 0.40740740740740755, 0.0, 1.0)]
             #we use manual color asignation 
-            colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+                
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
         leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
         self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255

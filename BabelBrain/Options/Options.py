@@ -74,7 +74,8 @@ class AdvancedOptions(QDialog):
                  ZTESlope=-2085.0,
                  ZTEOffset=2329.0,
                  bSaveStress=False,
-                 bSaveDisplacemen=False,
+                 bSaveDisplacement=False,
+                 bSegmentBrainTissue=False,
                  **kargs):
 
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
@@ -100,7 +101,8 @@ class AdvancedOptions(QDialog):
         self.ui.ZTESlopeSpinBox.setValue(ZTESlope)
         self.ui.ZTEOffsetSpinBox.setValue(ZTEOffset)
         self.ui.SaveStresscheckBox.setChecked(bSaveStress)
-        self.ui.SaveDisplacementcheckBox.setChecked(bSaveDisplacemen)
+        self.ui.SaveDisplacementcheckBox.setChecked(bSaveDisplacement)
+        self.ui.SegmentBrainTissuecheckBox.setChecked(bSegmentBrainTissue)
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
         if sel==-1:
