@@ -146,7 +146,7 @@ class BabelBaseTx(QWidget):
             self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
-            print(LocTarget)
+            print('LocTarget',LocTarget)
 
             for d in [Water,Skull]:
                 for t in ['p_amp','MaterialMap']:
@@ -159,20 +159,16 @@ class BabelBaseTx(QWidget):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
+            bBrainSegmentation=Skull['MaterialMap'].max()==7
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
             IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-
             ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
 
-            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
             
-            ISkull[Skull['MaterialMap']!=3]=0
+            ISkull[Skull['MaterialMap']<3]=0
             cxr,cyr,czr=np.where(ISkull==ISkull.max())
             cxr=cxr[0]
             cyr=cyr[0]
