@@ -199,7 +199,7 @@ class SingleTx(BabelBaseTx):
    
     def GetExport(self):
         Export=super(SingleTx,self).GetExport()
-        for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
+        for k in ['FocalLength','Diameter','XMechanic','YMechanic','SkinDistance']:
             if hasattr(self.Widget,k+'SpinBox'):
                 Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
