@@ -575,10 +575,14 @@ class Babel_Thermal(QWidget):
 
     @Slot()
     def ExportSummary(self):
-        DefaultPath=os.path.split(self._MainApp.Config['T1W'])[0]
-        outCSV=QFileDialog.getSaveFileName(self,"Select export CSV file",DefaultPath,"csv (*.csv)")[0]
-        if len(outCSV)==0:
-            return
+        if 'BABEL_PYTEST' not in os.environ:
+            DefaultPath=os.path.split(self._MainApp.Config['T1W'])[0]
+            outCSV=QFileDialog.getSaveFileName(self,"Select export CSV file",DefaultPath,"csv (*.csv)")[0]
+            if len(outCSV)==0:
+                return
+        else:
+            DefaultPath=self._MainApp.Config['OutputFilesPath']+os.sep
+            outCSV=DefaultPath+'Test_Export'
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         DataToExport={}
@@ -704,9 +708,9 @@ class Babel_Thermal(QWidget):
         txt += 'saved at:\n '+os.path.dirname(OutName)
 
         maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])
-        msgBox = DialogShowText(txt,"Saved maps")
-        msgBox.exec()
-
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = DialogShowText(txt,"Saved maps")
+            msgBox.exec()
 
 
 class DialogShowText(QDialog):
