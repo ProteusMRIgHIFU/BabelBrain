@@ -155,9 +155,13 @@ class Babel_Thermal(QWidget):
             config = yaml.safe_load(file)
             print("Thermal configuration:")
             for n in range(len(config['AllDC_PRF_Duration'])):
-                #if repetitions is not present in YAML (for all the old cases, we just assign a default of 1)
+                #if repetitions is not present in YAML (for all the old cases, we just assign a default value
                 if 'Repetitions' not in config['AllDC_PRF_Duration'][n]:
                     config['AllDC_PRF_Duration'][n]['Repetitions']=1
+                if 'NumberGroupedSonications' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['NumberGroupedSonications']=1
+                if 'PauseBetweenGroupedSonications' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['PauseBetweenGroupedSonications']=0.0
             print(config)
             self.Config=config
             self.bDisableUpdate=True

@@ -64,13 +64,12 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
             queueResult=Queue()
             kargsSub={}
-            kargsSub['DutyCycle']=combination['DC']
-            kargsSub['PRF']=combination['PRF']
-            kargsSub['DurationUS']=combination['Duration']
-            kargsSub['DurationOff']=combination['DurationOff']
-            kargsSub['Repetitions']=combination['Repetitions']
+            for k in ['PRF','DurationOff','Repetitions','NumberGroupedSonications','PauseBetweenGroupedSonications']:
+                kargsSub[k]=combination[k]
             kargsSub['Isppa']=kargs['Isppa']
             kargsSub['sel_p']=kargs['sel_p']
+            kargsSub['DutyCycle']=combination['DC']            
+            kargsSub['DurationUS']=combination['Duration']
             kargsSub['bPlot']=False
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
