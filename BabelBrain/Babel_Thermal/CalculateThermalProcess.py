@@ -45,7 +45,7 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
         InitOpenCL(deviceName)
     else:
         InitMetal(deviceName)
-    fname=CalculateTemperatureEffects(case,**kargs)
+    fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
     queueResult.put(fname)
     
 
@@ -70,7 +70,6 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['sel_p']=kargs['sel_p']
             kargsSub['DutyCycle']=combination['DC']            
             kargsSub['DurationUS']=combination['Duration']
-            kargsSub['bPlot']=False
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             kargsSub['Frequency']=kargs['Frequency']
