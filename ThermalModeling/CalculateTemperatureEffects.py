@@ -272,13 +272,16 @@ def CalculateTemperatureEffects(InputPData,
                                 NumberGroupedSonications=1,
                                 PauseBetweenGroupedSonications=0.0,
                                 Backend='CUDA',
-                                LimitBHTEIterationsPerProcess=100):
+                                LimitBHTEIterationsPerProcess=40):
 
 
     if type(InputPData) is str:    
         outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
     else:
         outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
+        if len(InputPData)==1:
+            #we simplify if we only have a single file in the list
+            InputPData=InputPData[0]
     print('InputPData',InputPData)
     print(outfname)
 
@@ -388,12 +391,15 @@ def CalculateTemperatureEffects(InputPData,
 
     
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
+    if nFactorMonitoring==0:
+        nFactorMonitoring=1
     TotalDurationSteps=int((DurationUS+.001)/dt)
     nStepsOn=int(DurationUS/dt) 
     if nFactorMonitoring > TotalDurationSteps:
         nFactorMonitoring=1 #in the weird case TotalDurationSteps is less than 50 ms
     TotalDurationStepsOff=int((DurationOff+.001)/dt)
     TotalDurationBetweenGroups=int(PauseBetweenGroupedSonications/dt)
+    print('TotalDurationSteps,nStepsOn,nFactorMonitoring',TotalDurationSteps,nStepsOn,nFactorMonitoring)
 
     xf=Input['x_vec']
     yf=Input['y_vec']
