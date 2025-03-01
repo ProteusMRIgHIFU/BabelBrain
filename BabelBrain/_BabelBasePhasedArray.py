@@ -309,7 +309,7 @@ class BabelBasePhaseArray(BabelBaseTx):
             AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
             for n,entry in enumerate(self._AcResults):
                 ISkull=entry['Skull'][SelP]**2/2/DensityMap/SoSMap/1e4
-                ISkull[Skull['MaterialMap']!=3]=0
+                ISkull[Skull['MaterialMap']<3]=0
                 IWater=entry['Water']['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
                 
                 AllSkull[:,:,:,n]=ISkull
@@ -321,7 +321,6 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self._IWaterCol.append(IWater)
             #now we add the max projection of fields, we add it at the top
             AllSkull=AllSkull.max(axis=3)
-            AllSkull[Skull['MaterialMap']!=3]=0
             AllSkull/=AllSkull.max()
             AllWater=AllWater.max(axis=3)
             AllWater/=AllWater.max()

@@ -159,7 +159,6 @@ class BabelBaseTx(QWidget):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
-            bBrainSegmentation=Skull['MaterialMap'].max()==7
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 

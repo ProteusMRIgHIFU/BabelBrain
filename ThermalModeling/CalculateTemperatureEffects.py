@@ -432,9 +432,9 @@ def CalculateTemperatureEffects(InputPData,
         #     MaterialMap[MaterialMap==5]=4
         #     BrainID=[4,5,6,7]
         # else:
-        #     MaterialMap[MaterialMap>4]=4
-        #     BrainID=4
-        #     LimSoft=4
+            MaterialMap[MaterialMap>4]=4
+            BrainID=4
+            LimSoft=4
 
     cx=LocIJK[0]
     cy=LocIJK[1]
