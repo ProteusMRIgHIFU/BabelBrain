@@ -60,22 +60,16 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
     else:
         return InputPData.split('.h5')[0]+suffix
 
-def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,SaveDict,xf,yf,zf):
+def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                  MaterialList,pAmpWater,Isppa,
+                  xf,yf,zf,SelBrain):
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
     DensityMap=MaterialList['Density'][MaterialMap]
-    bSegmentedBrain = np.any(MaterialMap>5)
-    if 'MaterialMapCT' in Input:
-        if bSegmentedBrain:
-            pAmpBrain[np.isin(MaterialMap,np.array([2,3,4,5]))==False]=0
-        else:
-            pAmpBrain[MaterialMap!=2]=0.0
-        BrainID=2
-    else:
-        pAmpBrain[MaterialMap<4]=0.0
-        BrainID=4
 
+    pAmpBrain[SelBrain==False]=0.0
+    
     cz=LocIJK[2]
     
     PlanAtMaximum=pAmpBrain[:,:,cz]
@@ -103,13 +97,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,Sav
             xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
     
     pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
-    if 'MaterialMapCT' in Input:
-        if bSegmentedBrain:
-            pAmpTissue[np.isin(MaterialMap,np.array([2,3,4,5]))==False]=0
-        else:
-            pAmpTissue[MaterialMap!=2]=0.0
-    else:
-        pAmpTissue[MaterialMap<4]=0.0
+    pAmpTissue[SelBrain==False]=0.0
 
     cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
     cxr=cxr[0]
@@ -134,7 +122,9 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,Sav
     RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
     print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
 
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
+    SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
     PressureRatio=PressureAdjust/pAmpTissue.max()
     return PressureRatio,RatioLosses
 
@@ -355,6 +345,14 @@ def CalculateTemperatureEffects(InputPData,
         nStepsOnOffList[:,0]=NCyclesOn
         nStepsOnOffList[:,1]=NCyclesOff
         
+    if 'MaterialMapCT' in Input:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
+        OrigMaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+    else:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+        OrigMaterialMap=MaterialMap
+
+    bSegmentedBrain = np.any(OrigMaterialMap>5)
     
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
@@ -364,42 +362,67 @@ def CalculateTemperatureEffects(InputPData,
         #Water, Skin, Cortical, Trabecular, Brain
 
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-capacity/
-        MaterialList['SpecificHeat']=[4178,3391,1313,2274,3630] #(J/kg/°C)
+        MaterialList['SpecificHeat']=[4178.0,3391.0,1313.0,2274.0,3630.0] #(J/kg/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/thermal-conductivity/
         MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
-        MaterialList['Perfusion']=np.array([0,106,10,30,559])
+        MaterialList['Perfusion']=[0.0,106.0,10.0,30.0,559.0]
         
-        MaterialList['Absorption']=np.array([0,0.85,0.16,0.15,0.85])
+        MaterialList['Absorption']=[0,0.85,0.16,0.15,0.85]
 
         MaterialList['InitTemperature']=[BaselineTemperature,BaselineTemperature,
                                          BaselineTemperature,BaselineTemperature,BaselineTemperature]
+        if bSegmentedBrain:
+            #we add white matter, gray matter and CSF
+            MaterialList['Conductivity']+=[0.55, 0.48, 0.57]
+            MaterialList['SpecificHeat']+=[3583.0, 3696.0, 4096.0]
+            MaterialList['Perfusion']+=[764.0, 212.0, 0.0]
+            MaterialList['Absorption']+=[0.85, 0.85, 0.85]
+            MaterialList['InitTemperature']+=[BaselineTemperature,BaselineTemperature,BaselineTemperature]
+
+        for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
+            MaterialList[k]=np.array(MaterialList[k])
+
     else:
         #Water, Skin, Brain and skull material
         MaterialList['SpecificHeat']=np.zeros_like(MaterialList['SoS'])
         MaterialList['SpecificHeat'][0:3]=[4178,3391,3630]
-        MaterialList['SpecificHeat'][3:]=(1313+2274)/2
+        if bSegmentedBrain:
+             #we add white matter, gray matter and CSF
+            MaterialList['SpecificHeat'][3:6]=np.array([3583.0, 3696.0, 4096.0])
+            MaterialList['SpecificHeat'][6:]=(1313.0+2274.0)/2
+        else:
+            MaterialList['SpecificHeat'][3:]=(1313.0+2274.0)/2
 
         MaterialList['Conductivity']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Conductivity'][0:3]=[0.6,0.37,0.51]
-        MaterialList['Conductivity'][3:]=(0.32+0.31)/2
+        if bSegmentedBrain:
+            MaterialList['Conductivity'][3:6]=np.array([0.55, 0.48, 0.57])
+            MaterialList['Conductivity'][6:]=(0.31+0.32)/2
+        else:
+            MaterialList['Conductivity'][3:]=(0.31+0.32)/2
 
         MaterialList['Perfusion']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Perfusion'][0:3]=[0,106,559]
-        MaterialList['Perfusion'][3:]=(10+30)/2
+        if bSegmentedBrain:
+            MaterialList['Perfusion'][3:6]=np.array([764.0, 212.0, 0.0])
+            MaterialList['Perfusion'][6:]=(10.0+30.0)/2
+        else:
+            MaterialList['Perfusion'][3:]=(10.0+30.0)/2
 
         MaterialList['Absorption']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Absorption'][0:3]=[0,0.85,0.85]
-        MaterialList['Absorption'][3:]=(0.16+0.15)/2
+        if bSegmentedBrain:
+            MaterialList['Absorption'][3:6]=0.85
+            MaterialList['Absorption'][6:]=(0.16+0.15)/2
+        else:
+            MaterialList['Absorption'][3:]=(0.16+0.15)/2
 
-        MaterialList['InitTemperature']=np.zeros_like(MaterialList['SoS'])
-        MaterialList['InitTemperature'][0]=BaselineTemperature
-        MaterialList['InitTemperature'][1:]=BaselineTemperature
-    
+        MaterialList['InitTemperature']=np.ones_like(MaterialList['SoS'])*BaselineTemperature
+
 
     SaveDict={}
     SaveDict['MaterialList']=MaterialList
-
     
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
     if nFactorMonitoring==0:
@@ -415,34 +438,35 @@ def CalculateTemperatureEffects(InputPData,
     yf=Input['y_vec']
     zf=Input['z_vec']
 
-        
-    if 'MaterialMapCT' in Input:
-        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
-    else:
-        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
-
-    
     LocIJK=Input['TargetLocation'].flatten()
     if 'MaterialMapCT' in Input:
-        BrainID=2
-        LimSoft=3
+        if bSegmentedBrain:
+            BrainID=[2,3,4,5]
+            SelSkull =MaterialMap>=6
+            SelSkull =MaterialMap>=3
+        else:
+            BrainID=[2]
+            SelSkull =(MaterialMap>1) & (MaterialMap<4)
     else:
-        #Materal == 5 is the voxel of the desired target, we set it as brain
-        # if bSegmentedBrain:
-        #     MaterialMap[MaterialMap==5]=4
-        #     BrainID=[4,5,6,7]
-        # else:
-            MaterialMap[MaterialMap>4]=4
-            BrainID=4
-            LimSoft=4
+        if bSegmentedBrain:
+            BrainID=[4,5,6,7]
+        else:
+            BrainID=[4]
+
+        SelSkull =(MaterialMap>1) &\
+            (MaterialMap<4)
 
     cx=LocIJK[0]
     cy=LocIJK[1]
     cz=LocIJK[2]
 
-    
+    SelBrain=np.isin(MaterialMap,BrainID)
+    SelSkin=MaterialMap==1
+ 
     if type(InputPData) is str:   
-        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,SaveDict,xf,yf,zf)
+        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                MaterialList,pAmpWater,Isppa,
+                                                xf,yf,zf,SelBrain)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -451,24 +475,12 @@ def CalculateTemperatureEffects(InputPData,
             pAmpWater=AllInputsWater[n,:,:,:]
             print('*'*40)
             print('Calculating losses for spot ',n)
-            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,SaveDict,xf,yf,zf)
+            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                          MaterialList,pAmpWater,Isppa,
+                                                          xf,yf,zf,SelBrain)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
-
-
-    if 'MaterialMapCT' in Input:
-        SelBrain=MaterialMap==2
-    else:
-        SelBrain=MaterialMap>=4
-
-    SelSkin=MaterialMap==1
-    if 'MaterialMapCT' in Input:
-        SelSkull =MaterialMap>=3
-    else:
-        SelSkull =(MaterialMap>1) &\
-            (MaterialMap<4)
-
     
     if type(InputPData) is str:
         ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,

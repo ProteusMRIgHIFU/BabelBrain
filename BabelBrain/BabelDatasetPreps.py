@@ -987,9 +987,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
         
         FinalMask2=FinalMask.copy()
-        FinalMask2[upScaleMask==1]=6
-        FinalMask2[upScaleMask==2]=7
-        FinalMask2[upScaleMask==3]=8
+        FinalMask2[upScaleMask==1]=6 #white matter
+        FinalMask2[upScaleMask==2]=7 #gray matter
+        FinalMask2[upScaleMask==3]=8 #CSF
         for n in range(6):
             if n!=4:
                 FinalMask2[FinalMask==n]=n

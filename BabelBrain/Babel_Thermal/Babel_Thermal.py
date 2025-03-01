@@ -328,6 +328,7 @@ class Babel_Thermal(QWidget):
             BaselineTemperature=DataThermal['BaselineTemperature']
         else:
             BaselineTemperature=37.0
+     
 
         Loc=DataThermal['TargetLocation']
 
@@ -477,6 +478,7 @@ class Babel_Thermal(QWidget):
                         del self._contour2
                     self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
                     self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
                         obj.remove()
