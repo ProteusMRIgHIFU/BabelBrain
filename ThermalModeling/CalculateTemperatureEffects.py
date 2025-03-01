@@ -272,7 +272,7 @@ def CalculateTemperatureEffects(InputPData,
                                 NumberGroupedSonications=1,
                                 PauseBetweenGroupedSonications=0.0,
                                 Backend='CUDA',
-                                LimitBHTEIterationsPerProcess=40):
+                                LimitBHTEIterationsPerProcess=100):
 
 
     if type(InputPData) is str:    
@@ -399,7 +399,6 @@ def CalculateTemperatureEffects(InputPData,
         nFactorMonitoring=1 #in the weird case TotalDurationSteps is less than 50 ms
     TotalDurationStepsOff=int((DurationOff+.001)/dt)
     TotalDurationBetweenGroups=int(PauseBetweenGroupedSonications/dt)
-    print('TotalDurationSteps,nStepsOn,nFactorMonitoring',TotalDurationSteps,nStepsOn,nFactorMonitoring)
 
     xf=Input['x_vec']
     yf=Input['y_vec']

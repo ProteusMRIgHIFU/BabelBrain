@@ -1,4 +1,4 @@
-BaseIsppa: 5.0 # W/cm2
+BaseIsppa: 5000.0 # W/cm2
 AllDC_PRF_Duration: #All combinations of timing that will be considered
     -   DC: 0.5
         PRF: 10.0
