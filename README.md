@@ -1,4 +1,4 @@
-BabelBrain v0.4.2
+BabelBrain v0.4.3
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -78,6 +78,8 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.4.3 -  Feb 21st, 2025
+  - **Fix**: Export CSV for REMOPD and Single transducer was trying to export a wrong parameter.
 - 0.4.2 -  Jan 26th, 2025
   - **New**: New transducer: **R15148**. This transducer has 128 elements, focal length of 80 mm, diameter of 103 mm, and operates at frequency of 500 kHz.
   - **New**: Configurable parameters of slope and offset for ZTE and PETRA scans for conversion to pseudo CT. Parameter accessible in the Advance Parameter dialog.

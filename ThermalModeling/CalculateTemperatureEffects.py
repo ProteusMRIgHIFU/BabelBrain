@@ -16,6 +16,36 @@ from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
 from scipy.io import loadmat,savemat
 from platform import platform
 from os.path import isfile
+from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal
+from multiprocessing import Process,Queue
+import sys
+import time
+
+class InOutputWrapper(object):
+    def __init__(self, queue, stdout=True):
+        self.queue=queue
+        if stdout:
+            self._stream = sys.stdout
+            sys.stdout = self
+        else:
+            self._stream = sys.stderr
+            sys.stderr = self
+        self._stdout = stdout
+
+    def write(self, text):
+        self.queue.put(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+    def __del__(self):
+        try:
+            if self._stdout:
+                sys.stdout = self._stream
+            else:
+                sys.stderr = self._stream
+        except AttributeError:
+            pass
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
     if DurationUS>=1 and DurationOff>=1:
@@ -108,11 +138,140 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,pAmpWater,Isppa,Sav
     PressureRatio=PressureAdjust/pAmpTissue.max()
     return PressureRatio,RatioLosses
 
+def RunInProcess(queueResult,Backend,deviceName,queueMsg,
+                 LimitBHTEIterationsPerProcess,nCurrent,
+                 NumberGroupedSonications,Repetitions,
+                 InputPData,PMaps,MaterialMap,
+                 MaterialList,dx,TotalDurationSteps,
+                 TotalDurationStepsOff,
+                 nStepsOn,cy,nFactorMonitoring,dt,
+                 DutyCycle,MonitoringPointsMap,
+                 TemperaturePoints,stableTemp,
+                 FinalTemp,FinalDose,
+                 TotalDurationBetweenGroups):
+    stdout = InOutputWrapper(queueMsg,True)
+    
+    if Backend=='CUDA':
+        InitCuda(deviceName)
+    elif Backend=='OpenCL':
+        InitOpenCL(deviceName)
+    else:
+        InitMetal(deviceName)
+    
+    NGroupInit=nCurrent //Repetitions
+    NTotalRepInit = nCurrent % Repetitions
+    nSubStep=0
+    if type(InputPData) is str:
+        p0=PMaps*0
+    else:
+        p0=PMaps[0,:,:,:]*0
+    print('nCurrent,NGroupInit,NTotalRepInit',nCurrent,NGroupInit,NTotalRepInit)
+    TotalIterations=NumberGroupedSonications*Repetitions
+    for NGroup in range(NGroupInit,NumberGroupedSonications):
+        for NTotalRep in range(NTotalRepInit,Repetitions):
+            if NTotalRep >0 or NGroup >0:
+                initT0=FinalTemp
+                initDose=FinalDose
+            else:
+                initT0=None
+                initDose=None
+                
+            if type(InputPData) is str:
+                ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(PMaps,
+                                                                MaterialMap,
+                                                                MaterialList,
+                                                                dx,
+                                                                TotalDurationSteps,
+                                                                nStepsOn,
+                                                                cy,
+                                                                nFactorMonitoring=nFactorMonitoring,
+                                                                dt=dt,
+                                                                DutyCycle=DutyCycle,
+                                                                Backend=Backend,
+                                                                initT0=initT0,
+                                                                initDose=initDose,
+                                                                MonitoringPointsMap=MonitoringPointsMap,
+                                                                stableTemp=stableTemp)
+            else:
+                ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(PMaps,
+                                                                MaterialMap,
+                                                                MaterialList,
+                                                                dx,
+                                                                TotalDurationSteps,
+                                                                nStepsOn,
+                                                                cy,
+                                                                nFactorMonitoring=nFactorMonitoring,
+                                                                dt=dt,
+                                                                Backend=Backend,
+                                                                initT0=initT0,
+                                                                initDose=initDose,
+                                                                MonitoringPointsMap=MonitoringPointsMap,
+                                                                stableTemp=stableTemp)
+                
+            
+            #for cooling off, we do not need to do steering, just running with no energy
+            FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationStepsOff,
+                                                            0,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            DutyCycle=DutyCycle,
+                                                            Backend=Backend,
+                                                            initT0=ResTemp,
+                                                            initDose=ResDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp) 
+        
+            if NTotalRep==0 and NGroup==0:
+                TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+            else:
+                TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+            nCurrent+=1
+            nSubStep+=1
+            print('nCurrent,nSubStep,NTotalRep,NGroup',nCurrent,nSubStep,NTotalRep,NGroup)
+            if nSubStep == LimitBHTEIterationsPerProcess: 
+                if NTotalRep != Repetitions-1:
+                    queueResult.put([ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent])
+                    print('Finishing sub process with nCurrent',nCurrent)
+                break
+        if nSubStep == LimitBHTEIterationsPerProcess and NTotalRep != Repetitions-1:
+            break
+        NTotalRepInit=0 
+        if NumberGroupedSonications>1 and TotalDurationStepsOff>0:
+            #we ran the extra time off pause
+            FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationBetweenGroups,
+                                                            0,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            DutyCycle=DutyCycle,
+                                                            Backend=Backend,
+                                                            initT0=FinalTemp,
+                                                            initDose=FinalDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp)
+            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOff))
+            if nSubStep == LimitBHTEIterationsPerProcess or nCurrent==TotalIterations:
+                queueResult.put([ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent])
+                print('Finishing sub process with extra cooling step with nCurrent',nCurrent)
+                break
+    
+    
+
 def CalculateTemperatureEffects(InputPData,
+                                deviceName,
+                                queueMsg,
                                 DutyCycle=0.3,
                                 Isppa=5,
                                 sel_p='p_amp',
-                                bPlot=True,
                                 PRF=1500,
                                 DurationUS=40,
                                 DurationOff=40,
@@ -121,14 +280,20 @@ def CalculateTemperatureEffects(InputPData,
                                 BaselineTemperature=37,
                                 bGlobalDCMultipoint=False,
                                 Frequency=7e5,
-                                Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
+                                NumberGroupedSonications=1,
+                                PauseBetweenGroupedSonications=0.0,
+                                Backend='CUDA',
+                                LimitBHTEIterationsPerProcess=100):
 
 
     if type(InputPData) is str:    
         outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
     else:
         outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
-
+        if len(InputPData)==1:
+            #we simplify if we only have a single file in the list
+            InputPData=InputPData[0]
+    print('InputPData',InputPData)
     print(outfname)
 
     print('Thermal sim with Backend',Backend)
@@ -237,11 +402,14 @@ def CalculateTemperatureEffects(InputPData,
 
     
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
+    if nFactorMonitoring==0:
+        nFactorMonitoring=1
     TotalDurationSteps=int((DurationUS+.001)/dt)
     nStepsOn=int(DurationUS/dt) 
     if nFactorMonitoring > TotalDurationSteps:
         nFactorMonitoring=1 #in the weird case TotalDurationSteps is less than 50 ms
     TotalDurationStepsOff=int((DurationOff+.001)/dt)
+    TotalDurationBetweenGroups=int(PauseBetweenGroupedSonications/dt)
 
     xf=Input['x_vec']
     yf=Input['y_vec']
@@ -344,70 +512,140 @@ def CalculateTemperatureEffects(InputPData,
     MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
     if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
         MonitoringPointsMap[cx,cy,cz]=4
-    print('Total number of repetitions:',Repetitions)
-    for NTotalRep in range(Repetitions):
-        if NTotalRep >0:
-            initT0=FinalTemp
-            initDose=FinalDose
-        else:
-            initT0=None
-            initDose=None
+    print('Total # of grouped sonications :',NumberGroupedSonications)
+    print('Total # of repetitions in a single group:',Repetitions)
+    TOTAL_Iterations = NumberGroupedSonications * Repetitions
+    if TOTAL_Iterations <= LimitBHTEIterationsPerProcess:
+        for NGroup in range(NumberGroupedSonications):
+            for NTotalRep in range(Repetitions):
+                if NTotalRep >0 or NGroup >0:
+                    initT0=FinalTemp
+                    initDose=FinalDose
+                else:
+                    initT0=None
+                    initDose=None
+                    
+                if type(InputPData) is str:
+                    ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
+                                                                    MaterialMap,
+                                                                    MaterialList,
+                                                                    (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                                    TotalDurationSteps,
+                                                                    nStepsOn,
+                                                                    cy,
+                                                                    nFactorMonitoring=nFactorMonitoring,
+                                                                    dt=dt,
+                                                                    DutyCycle=DutyCycle,
+                                                                    Backend=Backend,
+                                                                    initT0=initT0,
+                                                                    initDose=initDose,
+                                                                    MonitoringPointsMap=MonitoringPointsMap,
+                                                                    stableTemp=BaselineTemperature)
+                else:
+                    ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(InputsBHTE,
+                                                                    MaterialMap,
+                                                                    MaterialList,
+                                                                    (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                                    TotalDurationSteps,
+                                                                    nStepsOnOffList,
+                                                                    cy,
+                                                                    nFactorMonitoring=nFactorMonitoring,
+                                                                    dt=dt,
+                                                                    Backend=Backend,
+                                                                    initT0=initT0,
+                                                                    initDose=initDose,
+                                                                    MonitoringPointsMap=MonitoringPointsMap,
+                                                                    stableTemp=BaselineTemperature)
+                    
+                
+                #for cooling off, we do not need to do steering, just running with no energy
+                FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
+                                                                MaterialMap,
+                                                                MaterialList,
+                                                                (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                                TotalDurationStepsOff,
+                                                                0,
+                                                                cy,
+                                                                nFactorMonitoring=nFactorMonitoring,
+                                                                dt=dt,
+                                                                DutyCycle=DutyCycle,
+                                                                Backend=Backend,
+                                                                initT0=ResTemp,
+                                                                initDose=ResDose,
+                                                                MonitoringPointsMap=MonitoringPointsMap,
+                                                                stableTemp=BaselineTemperature) 
             
+            
+                if NTotalRep==0 and NGroup==0:
+                    TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+                else:
+                    TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+            if NumberGroupedSonications>1 and PauseBetweenGroupedSonications>0.0:
+                #we ran the extra time off pause
+                FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
+                                                                MaterialMap,
+                                                                MaterialList,
+                                                                (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                                TotalDurationBetweenGroups,
+                                                                0,
+                                                                cy,
+                                                                nFactorMonitoring=nFactorMonitoring,
+                                                                dt=dt,
+                                                                DutyCycle=DutyCycle,
+                                                                Backend=Backend,
+                                                                initT0=FinalTemp,
+                                                                initDose=FinalDose,
+                                                                MonitoringPointsMap=MonitoringPointsMap,
+                                                                stableTemp=BaselineTemperature)
+                TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOff))
+    else:
+        queueResult=Queue()
+        nCurrent=0
+        FinalTemp=None
+        FinalDose=None
+        TemperaturePoints=None
         if type(InputPData) is str:
-            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
-                                                            MaterialMap,
-                                                            MaterialList,
-                                                            (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                            TotalDurationSteps,
-                                                            nStepsOn,
-                                                            cy,
-                                                            nFactorMonitoring=nFactorMonitoring,
-                                                            dt=dt,
-                                                            DutyCycle=DutyCycle,
-                                                            Backend=Backend,
-                                                            initT0=initT0,
-                                                            initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap,
-                                                            stableTemp=BaselineTemperature)
+            PMaps=pAmp*PressureRatio
+            nStepsOnIn=nStepsOn
         else:
-            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(InputsBHTE,
-                                                            MaterialMap,
-                                                            MaterialList,
-                                                            (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                            TotalDurationSteps,
-                                                            nStepsOnOffList,
-                                                            cy,
-                                                            nFactorMonitoring=nFactorMonitoring,
-                                                            dt=dt,
-                                                            Backend=Backend,
-                                                            initT0=initT0,
-                                                            initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap,
-                                                            stableTemp=BaselineTemperature)
+            PMaps=InputsBHTE
+            nStepsOnIn=nStepsOnOffList
             
+        while(nCurrent<TOTAL_Iterations):
+            fieldWorkerProcess = Process(target=RunInProcess, 
+                                        args=(queueResult,Backend,deviceName,queueMsg,
+                                                LimitBHTEIterationsPerProcess,nCurrent,
+                                                NumberGroupedSonications,
+                                                Repetitions,
+                                                InputPData,
+                                                PMaps
+                                                ,MaterialMap,
+                                                MaterialList,
+                                                (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                TotalDurationSteps,
+                                                TotalDurationStepsOff,
+                                                nStepsOnIn,cy,nFactorMonitoring,dt,
+                                                DutyCycle,MonitoringPointsMap,
+                                                TemperaturePoints,BaselineTemperature,
+                                                FinalTemp,FinalDose,
+                                                TotalDurationBetweenGroups))
+
+            fieldWorkerProcess.start()
+            while(True):
+                time.sleep(0.1)
+                if not queueResult.empty():
+                    break
+            ProcResults=queueResult.get()
+            ResTemp=ProcResults[0]
+            ResDose=ProcResults[1]
+            FinalTemp=ProcResults[2]
+            FinalDose=ProcResults[3]
+            TemperaturePoints=ProcResults[4]
+            nCurrent=ProcResults[5]
+            fieldWorkerProcess.terminate()
+            print('process terminated')
         
-        #for cooling off, we do not need to do steering, just running with no energy
-        FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
-                                                        MaterialMap,
-                                                        MaterialList,
-                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                        TotalDurationStepsOff,
-                                                        0,
-                                                        cy,
-                                                        nFactorMonitoring=nFactorMonitoring,
-                                                        dt=dt,
-                                                        DutyCycle=DutyCycle,
-                                                        Backend=Backend,
-                                                        initT0=ResTemp,
-                                                        initDose=ResDose,
-                                                        MonitoringPointsMap=MonitoringPointsMap,
-                                                        stableTemp=BaselineTemperature) 
-    
-    
-        if NTotalRep==0:
-            TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
-        else:
-            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+
 
     SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)

@@ -206,7 +206,7 @@ class REMOPD(BabelBasePhaseArray):
         # else:
         #     self._MultiPoint ='N/A'
          
-        for k in ['XSteering','YSteering','ZSteering','ZRotation','XMechanic','YMechanic','ZMechanic']:
+        for k in ['XSteering','YSteering','ZSteering','ZRotation','XMechanic','YMechanic','SkinDistance']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
     

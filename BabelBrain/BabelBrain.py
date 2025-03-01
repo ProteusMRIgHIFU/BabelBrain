@@ -1168,11 +1168,11 @@ class RunMaskGeneration(QObject):
                         break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if ValidParam(k): 
-                        if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
-                            print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
-                            bForceFullRecalculation=True
-                            break
+                    if ValidParam(k) and k in kargs: 
+                       if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                                print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
+                                bForceFullRecalculation=True
+                                break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
             for k in self._mainApp.DefaultAdvanced:

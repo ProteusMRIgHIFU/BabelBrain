@@ -107,14 +107,34 @@ def ValidThermalProfile(fProf):
                 return False,msgDetails
         if 'Repetitions' in entry:
             if type(entry['Repetitions']) is not int:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be integer" % (k,n)
+                msgDetails = "key Repetitions in entry %i of AllDC_PRF_Duration must be integer" % (n)
                 return False,msgDetails
             if entry['Repetitions'] <1:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be larger than 1" % (k,n)
+                msgDetails = "key Repetitions in entry %i of AllDC_PRF_Duration must be larger or equal than 1" % (n)
+                return False,msgDetails
+        if 'NumberGroupedSonications' in entry:
+            if type(entry['NumberGroupedSonications']) is not int:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be integer" % (n)
+                return False,msgDetails
+            if entry['NumberGroupedSonications'] <1:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be larger than 1" % (n)
+                return False,msgDetails
+            if 'PauseBetweenGroupedSonications' not in entry:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be present if NumberGroupedSonications is specified" % (n)
+                return False,msgDetails
+        if 'PauseBetweenGroupedSonications' in entry:
+            if type(entry['PauseBetweenGroupedSonications']) is not float:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be float" % (n)
+                return False,msgDetails
+            if entry['PauseBetweenGroupedSonications'] <0.0:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be larger than 0.0" % (n)
+                return False,msgDetails
+            if 'NumberGroupedSonications' not in entry:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be present if PauseBetweenGroupedSonications is specified" % (n)
                 return False,msgDetails
         for k in entry:
-            if k not in ['DC','PRF','Duration','DurationOff','Repetitions']:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', or 'Repetitions'" % (k,n)
+            if k not in ['DC','PRF','Duration','DurationOff','Repetitions','NumberGroupedSonications','PauseBetweenGroupedSonications']:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', 'Repetitions', 'NumberGroupedSonications' or 'PauseBetweenGroupedSonications'" % (k,n)
                 return False,msgDetails
     return True,msgDetails
 

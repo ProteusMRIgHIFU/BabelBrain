@@ -55,6 +55,16 @@ class TestSteps:
 
         if babelbrain_widget.testing_error == True:
             pytest.fail(f"Test failed due to error in execution")
+        
+        with qtbot.captureExceptions() as exceptions:
+            # Run Export CSV Command
+            babelbrain_widget.ThermalSim.Widget.ExportSummary.click()
+            
+            # Run Export Maps Command
+            babelbrain_widget.ThermalSim.Widget.ExportMaps.click()
+            
+        if len(exceptions) > 0:
+            pytest.fail(f"Test failed due to error in execution: {exceptions}")
 
 
     def test_step1_valid_case(self,qtbot,trajectory,
