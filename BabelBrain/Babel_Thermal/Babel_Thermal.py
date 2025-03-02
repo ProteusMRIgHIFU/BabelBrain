@@ -315,8 +315,6 @@ class Babel_Thermal(QWidget):
                                                         combination['Repetitions'])+'.h5'
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
-                if self._MainApp.Config['bUseCT']:
-                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
             DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
             self._xf=DataThermal['x_vec']
             self._zf=DataThermal['z_vec']
@@ -328,8 +326,7 @@ class Babel_Thermal(QWidget):
             BaselineTemperature=DataThermal['BaselineTemperature']
         else:
             BaselineTemperature=37.0
-     
-
+        
         Loc=DataThermal['TargetLocation']
 
         if self._LastTMap==-1:
@@ -380,9 +377,19 @@ class Babel_Thermal(QWidget):
         ImpedanceTarget = DensityMap[Loc[0],Loc[1],Loc[2]]*SoSMap[Loc[0],Loc[1],Loc[2]]
         
         if self._MainApp.Config['bUseCT']:
-            SelBrain=DataThermal['MaterialMap']==2
+            if self._MainApp._bSegmentedBrain:
+                BrainID=[2,3,4,5]
+            else:
+                BrainID=[2]
         else:
-            SelBrain=DataThermal['MaterialMap']>=4
+            if self._MainApp._bSegmentedBrain:
+                BrainID=[4,5,6,7]
+            else:
+                BrainID=[4]
+
+        SelBrain=np.isin(DataThermal['MaterialMap'],BrainID)
+
+        AcSimMask=self._MainApp.AcSim._Skull['MaterialMap']
 
         IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
         
@@ -447,10 +454,7 @@ class Babel_Thermal(QWidget):
                 IntensityMap[0,:]=0
             Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-BaselineTemperature)*IsppaRatio+BaselineTemperature
 
-            if self._MainApp.Config['bUseCT']:
-                crlims=[0,1,2]
-            else:
-                crlims=[0,1,2,3]
+            crlims=[0,1,2]
 
             if (self._bRecalculated or self._prevDisplay != WhatDisplay) and hasattr(self,'_figIntThermalFields'):
                 children = []
@@ -476,8 +480,8 @@ class Babel_Thermal(QWidget):
                                 coll.remove()
                         del self._contour1
                         del self._contour2
-                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
 
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
@@ -519,7 +523,7 @@ class Babel_Thermal(QWidget):
                     static_ax1.set_title('Isppa (W/cm$^2$)')
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
 
-                    self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    self._contour1=static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims,colors ='y',linestyles = ':')
 
                     static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -528,7 +532,7 @@ class Babel_Thermal(QWidget):
                     static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
-                    self._contour2=static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
 
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:

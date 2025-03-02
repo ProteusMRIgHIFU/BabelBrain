@@ -870,7 +870,8 @@ class BabelBrain(QWidget):
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
-        bDetailedInnerMask= np.max(FinalMask)>5
+        bSegmentedBrain= np.max(FinalMask)>5
+        self._bSegmentedBrain = bSegmentedBrain
         T1W=nibabel.load(self._T1W_resampled_fname)
         T1WData=T1W.get_fdata()
         T1WData=np.flip(T1WData,axis=2)
@@ -951,7 +952,7 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-            if bDetailedInnerMask:
+            if bSegmentedBrain:
                 vmaxMask=8
             else:
                 vmaxMask=5
@@ -965,7 +966,7 @@ class BabelBrain(QWidget):
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
         if self.Config['bUseCT']:
-            if bDetailedInnerMask:
+            if bSegmentedBrain:
                 values =[1,4,6,7,8]
                 legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
                 colors =[(0.0, 0.3, 1.0, 1.0), 
@@ -981,7 +982,7 @@ class BabelBrain(QWidget):
             #we use manual color asignation 
             
         else:
-            if bDetailedInnerMask:
+            if bSegmentedBrain:
                 values =[1,2,3,4,6,7,8]
                 legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
                 colors = [(0.0, 0.3, 1.0, 1.0), 

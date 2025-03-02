@@ -377,7 +377,7 @@ def CalculateTemperatureEffects(InputPData,
             MaterialList['Conductivity']+=[0.55, 0.48, 0.57]
             MaterialList['SpecificHeat']+=[3583.0, 3696.0, 4096.0]
             MaterialList['Perfusion']+=[764.0, 212.0, 0.0]
-            MaterialList['Absorption']+=[0.85, 0.85, 0.85]
+            MaterialList['Absorption']+=[0.85, 0.85, 0.0]
             MaterialList['InitTemperature']+=[BaselineTemperature,BaselineTemperature,BaselineTemperature]
 
         for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
@@ -413,7 +413,7 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Absorption']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Absorption'][0:3]=[0,0.85,0.85]
         if bSegmentedBrain:
-            MaterialList['Absorption'][3:6]=0.85
+            MaterialList['Absorption'][3:5]=0.85
             MaterialList['Absorption'][6:]=(0.16+0.15)/2
         else:
             MaterialList['Absorption'][3:]=(0.16+0.15)/2
