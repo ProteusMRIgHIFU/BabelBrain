@@ -220,11 +220,21 @@ class Ui_Dialog(object):
         self.FocalLengthLabel_7 = QLabel(self.tab_3)
         self.FocalLengthLabel_7.setObjectName(u"FocalLengthLabel_7")
         self.FocalLengthLabel_7.setGeometry(QRect(170, 30, 171, 20))
+        self.LimitBHTEIterationsPerProcessSpinBox = QSpinBox(self.tab_3)
+        self.LimitBHTEIterationsPerProcessSpinBox.setObjectName(u"LimitBHTEIterationsPerProcessSpinBox")
+        self.LimitBHTEIterationsPerProcessSpinBox.setGeometry(QRect(346, 61, 59, 22))
+        self.LimitBHTEIterationsPerProcessSpinBox.setMinimum(5)
+        self.LimitBHTEIterationsPerProcessSpinBox.setMaximum(200)
+        self.LimitBHTEIterationsPerProcessSpinBox.setValue(100)
+        self.FocalLengthLabel_12 = QLabel(self.tab_3)
+        self.FocalLengthLabel_12.setObjectName(u"FocalLengthLabel_12")
+        self.FocalLengthLabel_12.setGeometry(QRect(81, 59, 248, 28))
+        self.FocalLengthLabel_12.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.tabWidget.addTab(self.tab_3, "")
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -267,6 +277,8 @@ class Ui_Dialog(object):
         self.SaveDisplacementcheckBox.setText(QCoreApplication.translate("Dialog", u"Save particle displacement data  ", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Transcranial Ultrasound", None))
         self.FocalLengthLabel_7.setText(QCoreApplication.translate("Dialog", u"Baseline temperature (\u00b0C)", None))
+        self.FocalLengthLabel_12.setText(QCoreApplication.translate("Dialog", u"Threshold for # of process\n"
+"for large thermal simulation", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("Dialog", u"Thermal", None))
     # retranslateUi
 

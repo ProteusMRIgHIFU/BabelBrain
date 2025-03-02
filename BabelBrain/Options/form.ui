@@ -62,7 +62,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -718,6 +718,42 @@
      </property>
      <property name="text">
       <string>Baseline temperature (°C)</string>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="LimitBHTEIterationsPerProcessSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>346</x>
+       <y>61</y>
+       <width>59</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="minimum">
+      <number>5</number>
+     </property>
+     <property name="maximum">
+      <number>200</number>
+     </property>
+     <property name="value">
+      <number>100</number>
+     </property>
+    </widget>
+    <widget class="QLabel" name="FocalLengthLabel_12">
+     <property name="geometry">
+      <rect>
+       <x>81</x>
+       <y>59</y>
+       <width>248</width>
+       <height>28</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Threshold for # of process
+for large thermal simulation</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
      </property>
     </widget>
    </widget>

@@ -444,6 +444,7 @@ class BabelBrain(QWidget):
         self.DefaultAdvanced['bSaveStress']=False
         self.DefaultAdvanced['bSaveDisplacement']=False
         self.DefaultAdvanced['bSegmentBrainTissue']=False
+        self.DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
                 
         for k in self.DefaultAdvanced:
             if k not in self.Config:
@@ -712,6 +713,7 @@ class BabelBrain(QWidget):
             self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
             self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
             self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
+            self.Config['LimitBHTEIterationsPerProcess']=options.ui.LimitBHTEIterationsPerProcessSpinBox.value()
             self.Config['PETRASlope']=options.ui.PETRASlopeSpinBox.value()
             self.Config['PETRAOffset']=options.ui.PETRAOffsetSpinBox.value()
             self.Config['ZTESlope']=options.ui.ZTESlopeSpinBox.value()
@@ -1146,7 +1148,8 @@ class RunMaskGeneration(QObject):
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
-            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress','bSaveDisplacement']:
+            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
+                                                    'bSaveDisplacement','LimitBHTEIterationsPerProcess']:
                 return True
             else:
                 return False

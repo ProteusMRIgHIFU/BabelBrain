@@ -76,6 +76,7 @@ class AdvancedOptions(QDialog):
                  bSaveStress=False,
                  bSaveDisplacement=False,
                  bSegmentBrainTissue=False,
+                 LimitBHTEIterationsPerProcess=100,
                  **kargs):
 
         sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
@@ -96,6 +97,7 @@ class AdvancedOptions(QDialog):
         self.ui.DisableCTMedianFiltercheckBox.setChecked(bDisableCTMedianFilter)
         self.ui.GeneratePETRAHistogramcheckBox.setChecked(bGeneratePETRAHistogram)
         self.ui.BaselineTemperatureSpinBox.setValue(BaselineTemperature)
+        self.ui.LimitBHTEIterationsPerProcessSpinBox.setValue(LimitBHTEIterationsPerProcess)
         self.ui.PETRASlopeSpinBox.setValue(PETRASlope)
         self.ui.PETRAOffsetSpinBox.setValue(PETRAOffset)
         self.ui.ZTESlopeSpinBox.setValue(ZTESlope)

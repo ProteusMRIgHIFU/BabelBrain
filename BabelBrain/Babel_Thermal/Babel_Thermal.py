@@ -682,7 +682,6 @@ class Babel_Thermal(QWidget):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         if 'BaselineTemperature' in DataThermal:
             BaselineTemperature=DataThermal['BaselineTemperature']
-            print('Using BaselineTemperature from file',BaselineTemperature)
         else:
             BaselineTemperature=37.0
         Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
@@ -764,6 +763,7 @@ class RunThermalSim(QObject):
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
         kargs['Frequency']=self._mainApp._Frequency
         kargs['BaselineTemperature']=self._mainApp.Config['BaselineTemperature']
+        kargs['LimitBHTEIterationsPerProcess']=self._mainApp.Config['LimitBHTEIterationsPerProcess']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
