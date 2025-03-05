@@ -1,4 +1,4 @@
-BabelBrain v0.4.3
+BabelBrain v0.4.4
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -78,6 +78,8 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.4.4 - March 5th, 2025
+   - **Fix** : Correction in the underlying library BabelViscoFDTD (1.0.9) for the BHTE calculation, which had an error in the formula to convert perfusion from ml/min/kg to kg/s/m^3.
 - 0.4.3 -  Feb 21st, 2025
   - **Fix**: Export CSV for REMOPD and Single transducer was trying to export a wrong parameter.
 - 0.4.2 -  Jan 26th, 2025
