@@ -62,7 +62,7 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
 
 def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   MaterialList,pAmpWater,Isppa,
-                  xf,yf,zf,SelBrain):
+                  xf,yf,zf,SelBrain,bForceHomogenousMedium):
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
@@ -85,10 +85,11 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     PlanAtMaximumWater=pAmpWater[:,:,2] 
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
-    if 'MaterialMapCT' in Input:
-        pAmpWater[MaterialMap!=2]=0.0
-    else:
-        pAmpWater[MaterialMap!=4]=0.0
+    if not bForceHomogenousMedium:
+        if 'MaterialMapCT' in Input:
+            pAmpWater[MaterialMap!=2]=0.0
+        else:
+            pAmpWater[MaterialMap!=4]=0.0
     cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
     cxw=cxw[0]
     cyw=cyw[0]
@@ -230,6 +231,10 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                 break
         if nSubStep == LimitBHTEIterationsPerProcess and NTotalRep != Repetitions-1:
             break
+        if nSubStep == LimitBHTEIterationsPerProcess and NTotalRep == Repetitions-1 and NumberGroupedSonications ==1:
+            queueResult.put([ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent])
+            print('Finishing sub process with nCurrent',nCurrent)
+            break
         NTotalRepInit=0 
         if NumberGroupedSonications>1 and TotalDurationStepsOff>0:
             #we ran the extra time off pause
@@ -273,7 +278,14 @@ def CalculateTemperatureEffects(InputPData,
                                 NumberGroupedSonications=1,
                                 PauseBetweenGroupedSonications=0.0,
                                 Backend='CUDA',
-                                LimitBHTEIterationsPerProcess=100):
+                                LimitBHTEIterationsPerProcess=100,
+                                bForceHomogenousMedium=False,
+                                HomogenousMediumValues={'ThermalConductivity':0.5,  
+                                    'SpecificHeat':3583.0,
+                                    'Perfusion':55.0,
+                                    'Absorption':0.85, #m/s
+                                    'InitTemperature':37.0}, #Np/m
+                                ):
 
 
     if type(InputPData) is str:    
@@ -358,7 +370,16 @@ def CalculateTemperatureEffects(InputPData,
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
     MaterialList['Attenuation']=Input['Material'][:,3]
-    if 'MaterialMapCT' not in Input:
+    if bForceHomogenousMedium:
+        print('Running BHTE with homogenous medium with ',HomogenousMediumValues)
+        MaterialList['SpecificHeat']=np.array([4178.0,HomogenousMediumValues['SpecificHeat']]) #(J/kg/°C)
+        MaterialList['Conductivity']=np.array([0.6,HomogenousMediumValues['ThermalConductivity']]) # (W/m/°C)
+        MaterialList['Perfusion']=np.array([0.0,HomogenousMediumValues['Perfusion']])
+        MaterialList['Absorption']=np.array([0,HomogenousMediumValues['Absorption']])
+        MaterialList['InitTemperature']=np.array([HomogenousMediumValues['InitTemperature'],HomogenousMediumValues['InitTemperature']])
+        BaselineTemperature=HomogenousMediumValues['InitTemperature']
+    
+    elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-capacity/
@@ -439,7 +460,10 @@ def CalculateTemperatureEffects(InputPData,
     zf=Input['z_vec']
 
     LocIJK=Input['TargetLocation'].flatten()
-    if 'MaterialMapCT' in Input:
+    if bForceHomogenousMedium:
+        SelSkull = MaterialMap >0 # we select all material 
+        BrainID =[1]
+    elif 'MaterialMapCT' in Input:
         if bSegmentedBrain:
             BrainID=[2,3,4,5]
             SelSkull =MaterialMap>=6
@@ -466,7 +490,7 @@ def CalculateTemperatureEffects(InputPData,
     if type(InputPData) is str:   
         PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
-                                                xf,yf,zf,SelBrain)
+                                                xf,yf,zf,SelBrain,bForceHomogenousMedium)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -477,7 +501,7 @@ def CalculateTemperatureEffects(InputPData,
             print('Calculating losses for spot ',n)
             PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                           MaterialList,pAmpWater,Isppa,
-                                                          xf,yf,zf,SelBrain)
+                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
@@ -519,11 +543,14 @@ def CalculateTemperatureEffects(InputPData,
     mxSkull,mySkull,mzSkull=np.unravel_index(np.argmax(ResTempSkull, axis=None), ResTempSkull.shape)
 
     MonitoringPointsMap=np.zeros(MaterialMap.shape,np.uint32)
-    MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
-    MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
-    MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
-    if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
-        MonitoringPointsMap[cx,cy,cz]=4
+    if bForceHomogenousMedium==1:
+        MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+    else:
+        MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
+        MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
+        MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
+        if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
+            MonitoringPointsMap[cx,cy,cz]=4
     print('Total # of grouped sonications :',NumberGroupedSonications)
     print('Total # of repetitions in a single group:',Repetitions)
     TOTAL_Iterations = NumberGroupedSonications * Repetitions
@@ -702,7 +729,9 @@ def CalculateTemperatureEffects(InputPData,
     Ispta =DutyCycle*Isppa
 
     SaveDict['MaxBrainPressure']=MaxBrainPressure
-    if cx==mxBrain and cy==myBrain and cz==mzBrain:
+    if bForceHomogenousMedium:
+        IndTarget=0
+    elif (cx==mxBrain and cy==myBrain and cz==mzBrain):
         IndTarget=2
     else:
         IndTarget=3

@@ -375,8 +375,9 @@ class Babel_Thermal(QWidget):
         SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
 
         ImpedanceTarget = DensityMap[Loc[0],Loc[1],Loc[2]]*SoSMap[Loc[0],Loc[1],Loc[2]]
-        
-        if self._MainApp.Config['bUseCT']:
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            BrainID=[1]
+        elif self._MainApp.Config['bUseCT']:
             if self._MainApp._bSegmentedBrain:
                 BrainID=[2,3,4,5]
             else:
@@ -414,11 +415,17 @@ class Babel_Thermal(QWidget):
         DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
         MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-BaselineTemperature)*IsppaRatio+BaselineTemperature
-        MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTTCEM=DoseUpdate[0]
+        else:
+            MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
         self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
 
         MTB=DataThermal['TI']*IsppaRatio+BaselineTemperature
-        MTBCEM=DoseUpdate[1]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTBCEM=DoseUpdate[0]
+        else:
+            MTBCEM=DoseUpdate[1]
         self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
         
         MTS=DataThermal['TIS']*IsppaRatio+BaselineTemperature
@@ -426,7 +433,10 @@ class Babel_Thermal(QWidget):
         self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
 
         MTC=DataThermal['TIC']*IsppaRatio+BaselineTemperature
-        MTCCEM=DoseUpdate[2]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTCCEM=DoseUpdate[0]
+        else:
+            MTCCEM=DoseUpdate[2]
         self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
         MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
@@ -474,14 +484,15 @@ class Babel_Thermal(QWidget):
                     self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
                     self._ThermalIm.set_data(Tmap.T)
                     self._ThermalIm.set(clim=[BaselineTemperature,Tmap.max()])
-                    if hasattr(self,'_contour1'):
-                        for c in [self._contour1,self._contour2]:
-                            for coll in c.collections:
-                                coll.remove()
-                        del self._contour1
-                        del self._contour2
-                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
-                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        if hasattr(self,'_contour1'):
+                            for c in [self._contour1,self._contour2]:
+                                for coll in c.collections:
+                                    coll.remove()
+                            del self._contour1
+                            del self._contour2
+                            self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                            self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
 
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
@@ -522,8 +533,8 @@ class Babel_Thermal(QWidget):
                             cmap=plt.cm.jet)
                     static_ax1.set_title('Isppa (W/cm$^2$)')
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
-
-                    self._contour1=static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims,colors ='y',linestyles = ':')
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        self._contour1=static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims,colors ='y',linestyles = ':')
 
                     static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -532,7 +543,8 @@ class Babel_Thermal(QWidget):
                     static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
-                    self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
 
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:
@@ -764,6 +776,8 @@ class RunThermalSim(QObject):
         kargs['Frequency']=self._mainApp._Frequency
         kargs['BaselineTemperature']=self._mainApp.Config['BaselineTemperature']
         kargs['LimitBHTEIterationsPerProcess']=self._mainApp.Config['LimitBHTEIterationsPerProcess']
+        kargs['bForceHomogenousMedium']=self._mainApp.Config['bForceHomogenousMedium']
+        kargs['HomogenousMediumValues']=self._mainApp.Config['HomogenousMediumValues']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:

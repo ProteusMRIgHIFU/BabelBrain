@@ -159,12 +159,15 @@ class BabelBaseTx(QWidget):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
+            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
+            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
             IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-            ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
+            ISkull=Skull['p_amp']**2/2/DensityMap/SoSMap
 
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 ISkull[Skull['MaterialMap']<3]=0

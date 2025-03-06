@@ -297,12 +297,12 @@ class BabelBasePhaseArray(BabelBaseTx):
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
             
-            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
-
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
             
+            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
+            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
+
             self._ISkullCol=[]
             self._IWaterCol=[]
             sz=self._AcResults[0]['Water']['p_amp'].shape
