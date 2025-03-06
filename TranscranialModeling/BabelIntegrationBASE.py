@@ -389,6 +389,12 @@ class RUN_SIM_BASE(object):
                 bUseRayleighForWater=False,
                 bSaveStress=False,
                 bSaveDisplacement=False,
+                bForceHomogenousMedium=False,
+                MaterialHomogenous={'Density':1000.0, #kg/m3 
+                                    'LSoS':1500.0, #m/s
+                                    'LAtt':25.0,
+                                    'SSoS':0.0, #m/s
+                                    'SAtt':5.0}, #Np/m
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -456,6 +462,8 @@ class RUN_SIM_BASE(object):
                                                     bDisplay=bDisplay,
                                                     bSaveStress=bSaveStress,
                                                     bSaveDisplacement=bSaveDisplacement,
+                                                    bForceHomogenousMedium=bForceHomogenousMedium,
+                                                    MaterialHomogenous=MaterialHomogenous,
                                                     **kargs)
                     print('  Step 1')
 
@@ -558,7 +566,14 @@ class BabelFTD_Simulations_BASE(object):
                  bPETRA = False, #Specify if CT is derived from PETRA
                  CTFNAME=None,
                  bSaveStress=False,
-                 bSaveDisplacement=False):
+                 bSaveDisplacement=False,
+                 bForceHomogenousMedium=False,
+                 MaterialHomogenous={'Density':1000.0, #kg/m3 
+                                    'LSoS':1500.0, #m/s
+                                    'LAtt':25.0, #Np/m
+                                    'SSoS':0.0, #m/s
+                                    'SAtt':5.0}, #Np/m
+                 ):
         self._MASKFNAME=MASKFNAME
         
         if bNoShear:
@@ -592,6 +607,8 @@ class BabelFTD_Simulations_BASE(object):
         self._ExtraAdjustY = ExtraAdjustY
         self._bSaveStress = bSaveStress
         self._bSaveDisplacement = bSaveDisplacement
+        self._bForceHomogenousMedium=bForceHomogenousMedium
+        self._MaterialHomogenous =MaterialHomogenous
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -613,7 +630,7 @@ class BabelFTD_Simulations_BASE(object):
         self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
-        if self._CTFNAME is not None and not self._bWaterOnly:
+        if self._CTFNAME is not None and not self._bWaterOnly and not self._bForceHomogenousMedium:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
@@ -670,6 +687,8 @@ class BabelFTD_Simulations_BASE(object):
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
             QCorrArr =1.0
+        elif self._bForceHomogenousMedium:
+            QCorrArr = np.ones(2)
         elif  self._CTFNAME is None:
             if bBrainSegmentation:
                 QCorrArr = np.ones(8)
@@ -706,7 +725,14 @@ class BabelFTD_Simulations_BASE(object):
                                 ExtraAdjustY=self._ExtraAdjustY,
                                 bSaveStress=self._bSaveStress,
                                 bSaveDisplacement=self._bSaveDisplacement)
-        if  self._CTFNAME is not None and not self._bWaterOnly:
+        if self._bForceHomogenousMedium and not self._bWaterOnly:
+            print('Forcing using homogenous material with', self._MaterialHomogenous)
+            self._SIM_SETTINGS.AddMaterial(self._MaterialHomogenous['Density'], #den
+                                           self._MaterialHomogenous['LSoS'],
+                                           self._MaterialHomogenous['SSoS'],
+                                           self._MaterialHomogenous['LAtt'],
+                                           self._MaterialHomogenous['SAtt']) 
+        elif self._CTFNAME is not None and not self._bWaterOnly:
             lMaterials =['Skin','Brain']
             if bBrainSegmentation:
                 lMaterials+=['WhiteMatter','GrayMatter','CSF']
@@ -743,7 +769,10 @@ class BabelFTD_Simulations_BASE(object):
                                             SelM[2]*self._Shear,
                                             SelM[3],
                                             SelM[4]*self._Shear)
-        self._SIM_SETTINGS.UpdateConditions(self._SkullMask,AlphaCFL=self._AlphaCFL,bWaterOnly=self._bWaterOnly)
+        self._SIM_SETTINGS.UpdateConditions(self._SkullMask,
+                                            AlphaCFL=self._AlphaCFL,
+                                            bWaterOnly=self._bWaterOnly,
+                                            bForceHomogenousMedium=self._bForceHomogenousMedium)
         gc.collect()
 
     def GenerateSTLTx(self,prefix):
@@ -1059,7 +1088,7 @@ class SimulationConditionsBASE(object):
     def SpatialStep(self):
         return self._SpatialStep
         
-    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False):
+    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,bForceHomogenousMedium=False):
         '''
         Update simulation conditions
         '''
@@ -1283,7 +1312,7 @@ elif self._bTightNarrowBeamDomain:
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
         self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
-        if bWaterOnly==False:
+        if bWaterOnly==False and bForceHomogenousMedium == False:
             if self._XShrink_R==0:
                 upperXR=self._SkullMaskDataOrig.shape[0]
             else:
@@ -1335,6 +1364,9 @@ elif self._bTightNarrowBeamDomain:
             #We remove tissue layers
             self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
         
+        if bForceHomogenousMedium:
+            self._MaterialMap[:,:,:]=1
+            
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
         print('Number of steps sensor',np.floor(self._TimeSimulation/self._TemporalStep/self._SensorSubSampling)-self._SensorStart)
@@ -1802,6 +1834,7 @@ elif self._bTightNarrowBeamDomain:
                                    self._ZLOffset:-self._ZROffset].copy()
         else:
             MaterialMap=self._MaterialMap.copy()
+        OrigMaterialFocalSpot=MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]
         MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=500.0
         
         DataForSim['MaterialMap']=MaterialMap[self._XLOffset:-self._XROffset,
@@ -1809,7 +1842,7 @@ elif self._bTightNarrowBeamDomain:
                                    self._ZLOffset:-self._ZROffset].copy()
         
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==500.0)).flatten()
-        DataForSim['MaterialMap'][DataForSim['MaterialMap']==500.0]=4.0 #we switch it back to soft tissue
+        DataForSim['MaterialMap'][DataForSim['MaterialMap']==500.0]=OrigMaterialFocalSpot #we switch it back to soft tissue
         
         if bUseRayleighForWater:
             DataForSim['p_complex_water']=self._u2RayleighField[self._XLOffset:-self._XROffset,
@@ -1838,4 +1871,3 @@ elif self._bTightNarrowBeamDomain:
                 FullSolutionPhaseRefocus,\
                 RayleighWaterPhase
                 
-        
