@@ -66,7 +66,7 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
-from Options.Options import AdvancedOptions
+from Options.Options import AdvancedOptions, OptionalParams
 
 
 multiprocessing.freeze_support()
@@ -328,6 +328,7 @@ class ClockDialog(QDialog):
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 
 ######################
+
 class BabelBrain(QWidget):
     '''
     Main LIFU Control application
@@ -419,36 +420,12 @@ class BabelBrain(QWidget):
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
             
         #default values for advanced features 
+
+        self._DefaultOptions=OptionalParams()  
         
-        self.DefaultAdvanced={}
-        
-        self.DefaultAdvanced['bApplyBOXFOV']=False
-        self.DefaultAdvanced['FOVDiameter']=200.0
-        self.DefaultAdvanced['FOVLength']=400.0
-        self.DefaultAdvanced['bForceUseBlender']=False
-        self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
-        self.DefaultAdvanced['TrabecularProportion']=0.8
-        self.DefaultAdvanced['CTX_500_Correction']='Original'
-        self.DefaultAdvanced['CTX_250_Correction']='Original'
-        self.DefaultAdvanced['DPX_500_Correction']='Original'
-        self.DefaultAdvanced['PetraNPeaks']=2
-        self.DefaultAdvanced['PetraMRIPeakDistance']=50
-        self.DefaultAdvanced['bInvertZTE']=False
-        self.DefaultAdvanced['bDisableCTMedianFilter']=False
-        self.DefaultAdvanced['bGeneratePETRAHistogram']=False
-        self.DefaultAdvanced['BaselineTemperature']=37.0
-        self.DefaultAdvanced['PETRASlope']=-2929.6
-        self.DefaultAdvanced['PETRAOffset']=3274.9
-        self.DefaultAdvanced['ZTESlope']=-2085.0
-        self.DefaultAdvanced['ZTEOffset']=2329.0
-        self.DefaultAdvanced['bSaveStress']=False
-        self.DefaultAdvanced['bSaveDisplacement']=False
-        self.DefaultAdvanced['bSegmentBrainTissue']=False
-        self.DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
-                
-        for k in self.DefaultAdvanced:
+        for k in self._DefaultOptions.keys():
             if k not in self.Config:
-                self.Config[k]=self.DefaultAdvanced[k]
+                self.Config[k]=getattr(self._DefaultOptions,k)
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
             
@@ -696,31 +673,12 @@ class BabelBrain(QWidget):
     def ShowAdvancedOptions(self):
         
         options = AdvancedOptions(self.Config,
-                                 self.DefaultAdvanced,
+                                 self._DefaultOptions,
                                  parent=self)
         ret=options.exec()
         if ret !=-1:
-            self.Config['bApplyBOXFOV']=options.ui.ManualFOVcheckBox.isChecked()
-            self.Config['FOVDiameter']=options.ui.FOVDiameterSpinBox.value()
-            self.Config['FOVLength']=options.ui.FOVLengthSpinBox.value()
-            self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
-            self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
-            self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
-            self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
-            self.Config['PetraNPeaks']=options.ui.PetraNPeaksSpinBox.value()
-            self.Config['PetraMRIPeakDistance']=options.ui.PetraMRIPeakDistancespinBox.value()
-            self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
-            self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
-            self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
-            self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
-            self.Config['LimitBHTEIterationsPerProcess']=options.ui.LimitBHTEIterationsPerProcessSpinBox.value()
-            self.Config['PETRASlope']=options.ui.PETRASlopeSpinBox.value()
-            self.Config['PETRAOffset']=options.ui.PETRAOffsetSpinBox.value()
-            self.Config['ZTESlope']=options.ui.ZTESlopeSpinBox.value()
-            self.Config['ZTEOffset']=options.ui.ZTEOffsetSpinBox.value()
-            self.Config['bSaveStress']=options.ui.SaveStresscheckBox.isChecked()
-            self.Config['bSaveDisplacement']=options.ui.SaveDisplacementcheckBox.isChecked()
-            self.Config['bSegmentBrainTissue']=options.ui.SegmentBrainTissuecheckBox.isChecked()
+            for k in options.NewValues.keys():
+                self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -1149,12 +1107,13 @@ class RunMaskGeneration(QObject):
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
             if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
-                                                    'bSaveDisplacement','LimitBHTEIterationsPerProcess']:
+                                                    'bSaveDisplacement','LimitBHTEIterationsPerProcess',
+                                                    'bForceHomogenousMediumcheckBox','HomogenousMediumValues']:
                 return True
             else:
                 return False
         #advanced parameters
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 kargs[k]=self._mainApp.Config[k] 
         
@@ -1164,7 +1123,7 @@ class RunMaskGeneration(QObject):
             with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k): 
                     if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
                         bForceFullRecalculation=True
@@ -1179,17 +1138,17 @@ class RunMaskGeneration(QObject):
                                 break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k):
-                    if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
+                    if kargs[k] != getattr(self._mainApp._DefaultOptions,k): #if a parameter is different from default, we force recalculations
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],getattr(self._mainApp._DefaultOptions,k))
                         bForceFullRecalculation=True
                         break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
             
         # now we save the parameters for future comparison
         NewParams={}
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 NewParams[k]=kargs[k]
             
