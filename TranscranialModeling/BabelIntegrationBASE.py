@@ -390,11 +390,11 @@ class RUN_SIM_BASE(object):
                 bSaveStress=False,
                 bSaveDisplacement=False,
                 bForceHomogenousMedium=False,
-                MaterialHomogenous={'Density':1000.0, #kg/m3 
-                                    'LSoS':1500.0, #m/s
-                                    'LAtt':25.0,
-                                    'SSoS':0.0, #m/s
-                                    'SAtt':5.0}, #Np/m
+                HomogenousMediumValues={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':25.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':5.0}, #Np/m
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -463,7 +463,7 @@ class RUN_SIM_BASE(object):
                                                     bSaveStress=bSaveStress,
                                                     bSaveDisplacement=bSaveDisplacement,
                                                     bForceHomogenousMedium=bForceHomogenousMedium,
-                                                    MaterialHomogenous=MaterialHomogenous,
+                                                    HomogenousMediumValues=HomogenousMediumValues,
                                                     **kargs)
                     print('  Step 1')
 
@@ -568,11 +568,11 @@ class BabelFTD_Simulations_BASE(object):
                  bSaveStress=False,
                  bSaveDisplacement=False,
                  bForceHomogenousMedium=False,
-                 MaterialHomogenous={'Density':1000.0, #kg/m3 
-                                    'LSoS':1500.0, #m/s
-                                    'LAtt':25.0, #Np/m
-                                    'SSoS':0.0, #m/s
-                                    'SAtt':5.0}, #Np/m
+                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':25.0, #Np/m
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':5.0}, #Np/m
                  ):
         self._MASKFNAME=MASKFNAME
         
@@ -608,7 +608,7 @@ class BabelFTD_Simulations_BASE(object):
         self._bSaveStress = bSaveStress
         self._bSaveDisplacement = bSaveDisplacement
         self._bForceHomogenousMedium=bForceHomogenousMedium
-        self._MaterialHomogenous =MaterialHomogenous
+        self._HomogenousMediumValues =HomogenousMediumValues
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -726,12 +726,12 @@ class BabelFTD_Simulations_BASE(object):
                                 bSaveStress=self._bSaveStress,
                                 bSaveDisplacement=self._bSaveDisplacement)
         if self._bForceHomogenousMedium and not self._bWaterOnly:
-            print('Forcing using homogenous material with', self._MaterialHomogenous)
-            self._SIM_SETTINGS.AddMaterial(self._MaterialHomogenous['Density'], #den
-                                           self._MaterialHomogenous['LSoS'],
-                                           self._MaterialHomogenous['SSoS'],
-                                           self._MaterialHomogenous['LAtt'],
-                                           self._MaterialHomogenous['SAtt']) 
+            print('Forcing using homogenous material with', self._HomogenousMediumValues)
+            self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
+                                           self._HomogenousMediumValues['LongSoS'],
+                                           self._HomogenousMediumValues['ShearSoS'],
+                                           self._HomogenousMediumValues['LongAtt'],
+                                           self._HomogenousMediumValues['ShearAtt']) 
         elif self._CTFNAME is not None and not self._bWaterOnly:
             lMaterials =['Skin','Brain']
             if bBrainSegmentation:

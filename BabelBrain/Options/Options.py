@@ -57,7 +57,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['bSaveDisplacement']=False
         self._DefaultAdvanced['bSegmentBrainTissue']=False
         self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
-        self._DefaultAdvanced['bForceHomogenousMediumcheckBox']=False
+        self._DefaultAdvanced['bForceHomogenousMedium']=False
         self._DefaultAdvanced['HomogenousMediumValues']={}
         self._DefaultAdvanced['HomogenousMediumValues']['Density']=1000.0
         self._DefaultAdvanced['HomogenousMediumValues']['LongSoS']=1500.0
@@ -133,7 +133,7 @@ class AdvancedOptions(QDialog):
             raise ValueError('The CTX 500 correction choice is not available in the GUI -'+values.CTX_500_Correction )
         self.ui.CTX500CorrectioncomboBox.setCurrentIndex(sel)
 
-        self.ui.bForceHomogenousMediumcheckBox.setChecked(values.bForceHomogenousMediumcheckBox)
+        self.ui.bForceHomogenousMediumcheckBox.setChecked(values.bForceHomogenousMedium)
         self.ui.HomogenousDensitySpinBox.setValue(values.HomogenousMediumValues['Density'])
         self.ui.HomogenousLSoSSpinBox.setValue(values.HomogenousMediumValues['LongSoS'])
         self.ui.HomogenousLAttSpinBox.setValue(values.HomogenousMediumValues['LongAtt'])
@@ -177,18 +177,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.bSaveStress=self.ui.SaveStresscheckBox.isChecked()
         self.NewValues.bSaveDisplacement=self.ui.SaveDisplacementcheckBox.isChecked()
         self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
-        self.NewValues.bForceHomogenousMediumcheckBox=self.ui.bForceHomogenousMediumcheckBox.isChecked()
-
-        self.ui.HomogenousDensitySpinBox.value()   
-        self.ui.HomogenousLSoSSpinBox.value()      
-        self.ui.HomogenousLAttSpinBox.value()      
-        self.ui.HomogenousSSoSSpinBox.value()      
-        self.ui.HomogenousSAttSpinBox.value()      
-        self.ui.HomogenousThermCondSpinBox.value() 
-        self.ui.HomogenousSpecHeatSpinBox.value()  
-        self.ui.HomogenousPerfusionSpinBox.value() 
-        self.ui.HomogenousAbsorptionSpinBox.value()
-        self.ui.HomogenousInitTempSpinBox.value()  
+        self.NewValues.bForceHomogenousMedium=self.ui.bForceHomogenousMediumcheckBox.isChecked()
 
         self.NewValues.HomogenousMediumValues['Density']             = self.ui.HomogenousDensitySpinBox.value()        
         self.NewValues.HomogenousMediumValues['LongSoS']             = self.ui.HomogenousLSoSSpinBox.value()      

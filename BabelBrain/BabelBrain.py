@@ -1037,6 +1037,8 @@ class BabelBrain(QWidget):
         kargs['bUseRayleighForWater']=self.Config['bUseRayleighForWater']
         kargs['bSaveStress']=self.Config['bSaveStress']
         kargs['bSaveDisplacement']=self.Config['bSaveDisplacement']
+        kargs['bForceHomogenousMedium']=self.Config['bForceHomogenousMedium']
+        kargs['HomogenousMediumValues']=self.Config['HomogenousMediumValues']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
             if self.Config['CTType']==3:
@@ -1108,7 +1110,7 @@ class RunMaskGeneration(QObject):
             #here we screen out parameters that are irrelevant for Step 1
             if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
                                                     'bSaveDisplacement','LimitBHTEIterationsPerProcess',
-                                                    'bForceHomogenousMediumcheckBox','HomogenousMediumValues']:
+                                                    'bForceHomogenousMedium','HomogenousMediumValues']:
                 return True
             else:
                 return False
