@@ -44,7 +44,7 @@ dependencies:
     - appdirs==1.4.4
     - async-timeout==4.0.2
     - attrs==22.1.0
-    - babelviscofdtd==1.0.9
+    - babelviscofdtd==1.0.10
     - charset-normalizer==2.1.1
     - chart-studio==1.1.0
     - click==8.1.3
