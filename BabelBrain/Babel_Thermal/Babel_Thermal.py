@@ -781,7 +781,7 @@ class RunThermalSim(QObject):
         kargs['HomogenousMediumValues']=self._mainApp.Config['HomogenousMediumValues']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
-        if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
+        if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','R15287']:
             kargs['sel_p']='p_amp'
         else:
             bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()

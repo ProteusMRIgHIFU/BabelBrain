@@ -544,6 +544,8 @@ class BabelBrain(QWidget):
             from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
         elif self.Config['TxSystem'] =='R15148':
             from Babel_R15148.Babel_R15148 import R15148 as WidgetAcSim
+        elif self.Config['TxSystem'] =='R15287':
+            from Babel_R15287.Babel_R15287 import R15287 as WidgetAcSim
         else:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 

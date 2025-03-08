@@ -138,13 +138,16 @@ class CTX500(BabelBaseTx):
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
 
-            SelCorrection =self._MainApp.Config[self._KeyCorrection]
-            CoeffA = self.Config['Corrections'][SelCorrection][0]
-            CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0
-            CoeffC = self.Config['Corrections'][SelCorrection][2]-Skull['ZSteering']-self.Config['NaturalOutPlaneDistance']
-            
-            TPO=np.max(np.roots([CoeffA,CoeffB,CoeffC]))
-            
+            if self._KeyCorrection in self._MainApp.Config:
+                SelCorrection =self._MainApp.Config[self._KeyCorrection]
+                CoeffA = self.Config['Corrections'][SelCorrection][0]
+                CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0
+                CoeffC = self.Config['Corrections'][SelCorrection][2]-Skull['ZSteering']-self.Config['NaturalOutPlaneDistance']
+                
+                TPO=np.max(np.roots([CoeffA,CoeffB,CoeffC]))
+            else:
+                TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
+                
             DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
@@ -227,9 +230,12 @@ class RunAcousticSim(QObject):
         ##############
 
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
-        SelCorrection =self._mainApp.Config[self._mainApp.AcSim._KeyCorrection]
-        Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
-        print('Applying ZSteering correction: ',SelCorrection,Correction)
+        if self._mainApp.AcSim._KeyCorrection in self._mainApp.Config:
+            SelCorrection =self._mainApp.Config[self._mainApp.AcSim._KeyCorrection]
+            Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
+            print('Applying ZSteering correction: ',SelCorrection,Correction)
+        else:
+            Correction = 0.0
 
 
         ZSteering=TPODistance-self._mainApp.AcSim.Config['NaturalOutPlaneDistance']+Correction

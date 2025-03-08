@@ -53,6 +53,8 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         from TranscranialModeling.BabelIntegrationATAC import RUN_SIM
     elif TxSystem =='R15148':
         from TranscranialModeling.BabelIntegrationR15148 import RUN_SIM
+    elif TxSystem =='R15287':
+        from TranscranialModeling.BabelIntegrationR15287 import RUN_SIM
     else:
         raise ValueError("TX system " + TxSystem + " is not yet supported")
 

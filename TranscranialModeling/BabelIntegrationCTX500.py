@@ -200,7 +200,6 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxVert[1,:]+=LocSpot[1]
             TxVert[2,:]+=LocSpot[2]+(self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge)/self._SIM_SETTINGS.SpatialStep 
 
-
             TxVert=np.dot(affine,TxVert)
 
             TxStl = mesh.Mesh(np.zeros(FaceDisplay.shape[0]*2, dtype=mesh.Mesh.dtype))
@@ -372,10 +371,11 @@ class SimulationConditions(SimulationConditionsBASE):
             nBase+=self._TxRC['elemdims'][n][0]
 
         AllPhi=np.zeros(self._TxRC['NumberElems'])
-        for n in range(self._TxRC['NumberElems']):
-            self.BasePhasedArrayProgramming[n]=np.exp(-1j*np.angle(u2back[n]))
-            phi=-np.angle(u2back[n])
-            AllPhi[n]=phi
+        if 'BABEL_AVOID_PHASE_PROGRAMING' not in os.environ:
+            for n in range(self._TxRC['NumberElems']):
+                self.BasePhasedArrayProgramming[n]=np.exp(-1j*np.angle(u2back[n]))
+                phi=-np.angle(u2back[n])
+                AllPhi[n]=phi
 
         # AllPhi-=AllPhi[0] # we made all phases relative to elem 0
 
