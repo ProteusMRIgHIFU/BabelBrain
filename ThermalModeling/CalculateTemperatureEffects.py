@@ -229,9 +229,7 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                     queueResult.put([ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent])
                     print('Finishing sub process with nCurrent',nCurrent)
                 break
-        if nSubStep == LimitBHTEIterationsPerProcess and NTotalRep != Repetitions-1:
-            break
-        if nSubStep == LimitBHTEIterationsPerProcess and NTotalRep == Repetitions-1 and NumberGroupedSonications ==1:
+        if  NTotalRep == Repetitions-1 and NumberGroupedSonications ==1:
             queueResult.put([ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent])
             print('Finishing sub process with nCurrent',nCurrent)
             break
