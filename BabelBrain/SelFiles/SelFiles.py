@@ -347,46 +347,69 @@ class SelFiles(QDialog):
     
     @Slot()
     def SelectTrajectory(self):
+        curfile=self.ui.TrajectorylineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fTraj=QFileDialog.getOpenFileName(self,
-            "Select trajectory", os.getcwd(), "Trajectory (*.txt)")[0]
+            "Select trajectory", bdir, "Trajectory (*.txt)")[0]
         if len(fTraj)>0:
             self.ui.TrajectorylineEdit.setText(fTraj)
             self.ui.TrajectorylineEdit.setCursorPosition(len(fTraj))
 
     @Slot()
     def SelectT1W(self):
+        curfile=self.ui.T1WlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fT1W=QFileDialog.getOpenFileName(self,
-            "Select T1W", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
+            "Select T1W",bdir, "Nifti (*.nii *.nii.gz)")[0]
         if len(fT1W)>0:
             self.ui.T1WlineEdit.setText(fT1W)
             self.ui.T1WlineEdit.setCursorPosition(len(fT1W))
 
     @Slot()
     def SelectCT(self):
+        curfile=self.ui.CTlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fCT=QFileDialog.getOpenFileName(self,
-            "Select CT", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
+            "Select CT", bdir, "Nifti (*.nii *.nii.gz)")[0]
         if len(fCT)>0:
             self.ui.CTlineEdit.setText(fCT)
             self.ui.CTlineEdit.setCursorPosition(len(fCT))
 
     @Slot()
     def SelectThermalProfile(self):
-        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
+        curfile=self.ui.ThermalProfilelineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",bdir,"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
             print('fThermalProfile',fThermalProfile)
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
 
     @Slot()
     def SelectMultiPointProfile(self):
-        fMultiPointProfile=QFileDialog.getOpenFileName(self,"Select multi point profile",os.getcwd(),"yaml (*.yaml)")[0]
+        curfile=self.ui.MultiPointlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        fMultiPointProfile=QFileDialog.getOpenFileName(self,"Select multi point profile",bdir,"yaml (*.yaml)")[0]
         if len(fMultiPointProfile)>0:
             print('fMultiPointProfile',fMultiPointProfile)
             self.ui.MultiPointlineEdit.setText(fMultiPointProfile)
 
     @Slot()
     def SelectSimbNIBS(self):
+        bdir=self.ui.SimbNIBSlineEdit.text()
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fSimbNIBS=QFileDialog.getExistingDirectory(self,"Select SimbNIBS directory",
-                    os.getcwd())
+                    bdir)
         if len(fSimbNIBS)>0:
             self.ui.SimbNIBSlineEdit.setText(fSimbNIBS)
             self.ui.SimbNIBSlineEdit.setCursorPosition(len(fSimbNIBS))
