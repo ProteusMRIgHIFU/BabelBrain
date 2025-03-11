@@ -81,7 +81,7 @@ def GenerateI12378Tx(Frequency=650e3,RotationZ=0,FactorEnlarge=1):
     TxI12378['elemdims']=TxElem['ds'].size
     TxI12378['NumberElems']=len(theta)
     TxI12378['VertDisplay'] = np.zeros((0,3))
-    TxI12378['FaceDisplay'] = np.zeros((0,4),np.int)
+    TxI12378['FaceDisplay'] = np.zeros((0,4),int)
 
     for n in range(len(theta)):
         prevFaceLength=TxI12378['VertDisplay'].shape[0]

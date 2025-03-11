@@ -66,7 +66,7 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
-from Options.Options import AdvancedOptions
+from Options.Options import AdvancedOptions, OptionalParams
 
 
 multiprocessing.freeze_support()
@@ -328,6 +328,7 @@ class ClockDialog(QDialog):
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 
 ######################
+
 class BabelBrain(QWidget):
     '''
     Main LIFU Control application
@@ -419,34 +420,12 @@ class BabelBrain(QWidget):
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
             
         #default values for advanced features 
+
+        self._DefaultOptions=OptionalParams()  
         
-        self.DefaultAdvanced={}
-        
-        self.DefaultAdvanced['bApplyBOXFOV']=False
-        self.DefaultAdvanced['FOVDiameter']=200.0
-        self.DefaultAdvanced['FOVLength']=400.0
-        self.DefaultAdvanced['bForceUseBlender']=False
-        self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
-        self.DefaultAdvanced['TrabecularProportion']=0.8
-        self.DefaultAdvanced['CTX_500_Correction']='Original'
-        self.DefaultAdvanced['CTX_250_Correction']='Original'
-        self.DefaultAdvanced['DPX_500_Correction']='Original'
-        self.DefaultAdvanced['PetraNPeaks']=2
-        self.DefaultAdvanced['PetraMRIPeakDistance']=50
-        self.DefaultAdvanced['bInvertZTE']=False
-        self.DefaultAdvanced['bDisableCTMedianFilter']=False
-        self.DefaultAdvanced['bGeneratePETRAHistogram']=False
-        self.DefaultAdvanced['BaselineTemperature']=37.0
-        self.DefaultAdvanced['PETRASlope']=-2929.6
-        self.DefaultAdvanced['PETRAOffset']=3274.9
-        self.DefaultAdvanced['ZTESlope']=-2085.0
-        self.DefaultAdvanced['ZTEOffset']=2329.0
-        self.DefaultAdvanced['bSaveStress']=False
-        self.DefaultAdvanced['bSaveDisplacement']=False
-                
-        for k in self.DefaultAdvanced:
+        for k in self._DefaultOptions.keys():
             if k not in self.Config:
-                self.Config[k]=self.DefaultAdvanced[k]
+                self.Config[k]=getattr(self._DefaultOptions,k)
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
             
@@ -702,29 +681,12 @@ class BabelBrain(QWidget):
     def ShowAdvancedOptions(self):
         
         options = AdvancedOptions(self.Config,
-                                 self.DefaultAdvanced,
+                                 self._DefaultOptions,
                                  parent=self)
         ret=options.exec()
         if ret !=-1:
-            self.Config['bApplyBOXFOV']=options.ui.ManualFOVcheckBox.isChecked()
-            self.Config['FOVDiameter']=options.ui.FOVDiameterSpinBox.value()
-            self.Config['FOVLength']=options.ui.FOVLengthSpinBox.value()
-            self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
-            self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
-            self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
-            self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
-            self.Config['PetraNPeaks']=options.ui.PetraNPeaksSpinBox.value()
-            self.Config['PetraMRIPeakDistance']=options.ui.PetraMRIPeakDistancespinBox.value()
-            self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
-            self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
-            self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
-            self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
-            self.Config['PETRASlope']=options.ui.PETRASlopeSpinBox.value()
-            self.Config['PETRAOffset']=options.ui.PETRAOffsetSpinBox.value()
-            self.Config['ZTESlope']=options.ui.ZTESlopeSpinBox.value()
-            self.Config['ZTEOffset']=options.ui.ZTEOffsetSpinBox.value()
-            self.Config['bSaveStress']=options.ui.SaveStresscheckBox.isChecked()
-            self.Config['bSaveDisplacement']=options.ui.SaveDisplacementcheckBox.isChecked()
+            for k in options.NewValues.keys():
+                self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -876,6 +838,8 @@ class BabelBrain(QWidget):
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
+        bSegmentedBrain= np.max(FinalMask)>5
+        self._bSegmentedBrain = bSegmentedBrain
         T1W=nibabel.load(self._T1W_resampled_fname)
         T1WData=T1W.get_fdata()
         T1WData=np.flip(T1WData,axis=2)
@@ -956,8 +920,11 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-
-            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=5,extent=extent,interpolation='none',aspect='equal'))
+            if bSegmentedBrain:
+                vmaxMask=8
+            else:
+                vmaxMask=5
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=vmaxMask,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                 self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
@@ -967,15 +934,42 @@ class BabelBrain(QWidget):
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
         if self.Config['bUseCT']:
-            values =[1,4]
-            legends  = ['scalp','brain']
+            if bSegmentedBrain:
+                values =[1,4,6,7,8]
+                legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+            else:
+                values =[1,4]
+                legends  = ['scalp','brain']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                     (1.0, 0.40740740740740755,0.0, 1.0)]
             #we use manual color asignation 
-            colors =[(0.0, 0.3, 1.0, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+            
         else:
-            values =[1,2,3,4]
-            legends  = ['scalp','cort.','trab.','brain']
+            if bSegmentedBrain:
+                values =[1,2,3,4,6,7,8]
+                legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
+                colors = [(0.0, 0.3, 1.0, 1.0), 
+                        (0.0, 0.5020, 1.0, 1.0),
+                        (0.0824,  1.0,  0.8824, 1.0),
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+                
+            else:
+                values =[1,2,3,4]
+                legends  = ['scalp','cort.','trab.','brain']
+                colors = [(0.0, 0.0, 1.0, 1.0), 
+                      (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), 
+                      (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), 
+                      (1.0, 0.40740740740740755, 0.0, 1.0)]
             #we use manual color asignation 
-            colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+                
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
         leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
         self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
@@ -1054,6 +1048,8 @@ class BabelBrain(QWidget):
         kargs['bUseRayleighForWater']=self.Config['bUseRayleighForWater']
         kargs['bSaveStress']=self.Config['bSaveStress']
         kargs['bSaveDisplacement']=self.Config['bSaveDisplacement']
+        kargs['bForceHomogenousMedium']=self.Config['bForceHomogenousMedium']
+        kargs['HomogenousMediumValues']=self.Config['HomogenousMediumValues']
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
             if self.Config['CTType']==3:
@@ -1128,12 +1124,14 @@ class RunMaskGeneration(QObject):
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
-            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress','bSaveDisplacement']:
+            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
+                                                    'bSaveDisplacement','LimitBHTEIterationsPerProcess',
+                                                    'bForceHomogenousMedium','HomogenousMediumValues']:
                 return True
             else:
                 return False
         #advanced parameters
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 kargs[k]=self._mainApp.Config[k] 
         
@@ -1143,7 +1141,7 @@ class RunMaskGeneration(QObject):
             with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k): 
                     if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
                         bForceFullRecalculation=True
@@ -1151,24 +1149,24 @@ class RunMaskGeneration(QObject):
                         break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if ValidParam(k): 
-                        if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
-                            print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
-                            bForceFullRecalculation=True
-                            break
+                    if ValidParam(k) and k in kargs: 
+                       if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                                print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
+                                bForceFullRecalculation=True
+                                break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k):
-                    if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
+                    if kargs[k] != getattr(self._mainApp._DefaultOptions,k): #if a parameter is different from default, we force recalculations
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],getattr(self._mainApp._DefaultOptions,k))
                         bForceFullRecalculation=True
                         break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
             
         # now we save the parameters for future comparison
         NewParams={}
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 NewParams[k]=kargs[k]
             

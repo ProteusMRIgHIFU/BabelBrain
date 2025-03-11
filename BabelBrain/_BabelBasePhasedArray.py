@@ -296,12 +296,13 @@ class BabelBasePhaseArray(BabelBaseTx):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
-            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
-
+            
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
             
+            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
+            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
+
             self._ISkullCol=[]
             self._IWaterCol=[]
             sz=self._AcResults[0]['Water']['p_amp'].shape
@@ -309,7 +310,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
             for n,entry in enumerate(self._AcResults):
                 ISkull=entry['Skull'][SelP]**2/2/DensityMap/SoSMap/1e4
-                ISkull[Skull['MaterialMap']!=3]=0
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    ISkull[Skull['MaterialMap']<3]=0
                 IWater=entry['Water']['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
                 
                 AllSkull[:,:,:,n]=ISkull
@@ -321,7 +323,6 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self._IWaterCol.append(IWater)
             #now we add the max projection of fields, we add it at the top
             AllSkull=AllSkull.max(axis=3)
-            AllSkull[Skull['MaterialMap']!=3]=0
             AllSkull/=AllSkull.max()
             AllWater=AllWater.max(axis=3)
             AllWater/=AllWater.max()
@@ -381,19 +382,25 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
-                for c in [self._imContourf1,self._imContourf2,self._contour1,self._contour2]:
+                listObjects=[self._imContourf1,self._imContourf2]
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    listObjects+=[self._contour1,self._contour2]
+                for c in listObjects:
                     for coll in c.collections:
                         coll.remove()
                 del self._imContourf1
                 del self._imContourf2
-                del self._contour1
-                del self._contour2
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    del self._contour1
+                    del self._contour2
 
             self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,sliceXZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
 
             self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,sliceYZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
 
             self._figAcField.canvas.draw_idle()
         else:
@@ -413,7 +420,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,sliceXZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax1)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
             static_ax1.set_aspect('equal')
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
@@ -423,7 +431,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,sliceYZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
             static_ax2.set_aspect('equal')
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')

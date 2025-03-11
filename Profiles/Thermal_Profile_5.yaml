@@ -1,0 +1,9 @@
+BaseIsppa: 5000.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.5
+        PRF: 10.0
+        Duration: 0.03
+        DurationOff: 0.67
+        Repetitions: 254
+        NumberGroupedSonications: 4
+        PauseBetweenGroupedSonications: 360.0

@@ -16,6 +16,36 @@ from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
 from scipy.io import loadmat,savemat
 from platform import platform
 from os.path import isfile
+from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal
+from multiprocessing import Process,Queue
+import sys
+import time
+
+class InOutputWrapper(object):
+    def __init__(self, queue, stdout=True):
+        self.queue=queue
+        if stdout:
+            self._stream = sys.stdout
+            sys.stdout = self
+        else:
+            self._stream = sys.stderr
+            sys.stderr = self
+        self._stdout = stdout
+
+    def write(self, text):
+        self.queue.put(text)
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+    def __del__(self):
+        try:
+            if self._stdout:
+                sys.stdout = self._stream
+            else:
+                sys.stderr = self._stream
+        except AttributeError:
+            pass
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
     if DurationUS>=1 and DurationOff>=1:
@@ -30,21 +60,23 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
     else:
         return InputPData.split('.h5')[0]+suffix
 
-def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf):
+def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                  MaterialList,pAmpWater,Isppa,
+                  xf,yf,zf,SelBrain,bForceHomogenousMedium):
     pAmpBrain=pAmp.copy()
-    if 'MaterialMapCT' in Input:
-        pAmpBrain[MaterialMap!=2]=0.0
-    else:
-        pAmpBrain[MaterialMap<4]=0.0
 
+    SoSMap=MaterialList['SoS'][MaterialMap]
+    DensityMap=MaterialList['Density'][MaterialMap]
+
+    pAmpBrain[SelBrain==False]=0.0
+    
     cz=LocIJK[2]
     
     PlanAtMaximum=pAmpBrain[:,:,cz]
-    AcousticEnergy=(PlanAtMaximum**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
+    AcousticEnergy=(PlanAtMaximum**2/2/DensityMap[:,:,cz]/ SoSMap[:,:,cz]*((xf[1]-xf[0])**2)).sum()
     print('Acoustic Energy at maximum plane',AcousticEnergy)
     
-    
-    MateriaMapTissue=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+
     xfr=Input['x_vec']
     yfr=Input['y_vec']
     zfr=Input['z_vec']
@@ -53,10 +85,11 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,I
     PlanAtMaximumWater=pAmpWater[:,:,2] 
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
-    if 'MaterialMapCT' in Input:
-        pAmpWater[MaterialMap!=2]=0.0
-    else:
-        pAmpWater[MaterialMap!=4]=0.0
+    if not bForceHomogenousMedium:
+        if 'MaterialMapCT' in Input:
+            pAmpWater[MaterialMap!=2]=0.0
+        else:
+            pAmpWater[MaterialMap!=4]=0.0
     cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
     cxw=cxw[0]
     cyw=cyw[0]
@@ -65,10 +98,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,I
             xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
     
     pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
-    if 'MaterialMapCT' in Input:
-        pAmpTissue[MaterialMap!=2]=0.0
-    else:
-        pAmpTissue[MaterialMap!=4]=0.0
+    pAmpTissue[SelBrain==False]=0.0
 
     cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
     cxr=cxr[0]
@@ -87,21 +117,194 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,I
     print('Water Acoustic Energy at maximum plane tissue max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
     
     PlanAtMaximumTissue=pAmpTissue[:,:,czr] 
-    AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/MaterialList['Density'][BrainID]/ MaterialList['SoS'][BrainID]*((xf[1]-xf[0])**2)).sum()
+    AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/DensityMap[:,:,czr]/ SoSMap[:,:,czr]*((xf[1]-xf[0])**2)).sum()
     print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
     
     RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
     print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
-        
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
+
+    SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
     PressureRatio=PressureAdjust/pAmpTissue.max()
     return PressureRatio,RatioLosses
 
+
+def RunBHTECycles(nCurrent,
+                    Repetitions,
+                    TotalIterations,
+                    TotalDurationBetweenGroups,
+                    TotalDurationStepsOff,
+                    LimitBHTEIterationsPerProcess,
+                    InputPData,
+                    PMaps,
+                    MaterialMap,
+                    MaterialList,
+                    dx,
+                    TotalDurationSteps,
+                    nStepsOn,
+                    cy,
+                    nFactorMonitoring,
+                    dt,
+                    DutyCycle,
+                    Backend,
+                    MonitoringPointsMap,
+                    stableTemp,
+                    TemperaturePoints,
+                    FinalTemp,
+                    FinalDose,
+                    bRunInSubProcess=False,
+                    ):
+    if type(InputPData) is str:
+        p0=PMaps*0
+    else:
+        p0=PMaps[0,:,:,:]*0
+    for nCurrent in range(nCurrent,TotalIterations):
+        if nCurrent >0 :
+            initT0=FinalTemp
+            initDose=FinalDose
+        else:
+            initT0=None
+            initDose=None
+            
+        if type(InputPData) is str:
+            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(PMaps,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationSteps,
+                                                            nStepsOn,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            DutyCycle=DutyCycle,
+                                                            Backend=Backend,
+                                                            initT0=initT0,
+                                                            initDose=initDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp)
+        else:
+            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(PMaps,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationSteps,
+                                                            nStepsOn,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            Backend=Backend,
+                                                            initT0=initT0,
+                                                            initDose=initDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp)
+            
+        
+        #for cooling off, we do not need to do steering, just running with no energy
+        FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        dx,
+                                                        TotalDurationStepsOff,
+                                                        0,
+                                                        cy,
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        DutyCycle=DutyCycle,
+                                                        Backend=Backend,
+                                                        initT0=ResTemp,
+                                                        initDose=ResDose,
+                                                        MonitoringPointsMap=MonitoringPointsMap,
+                                                        stableTemp=stableTemp) 
+    
+        if nCurrent==0:
+            TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+        else:
+            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+
+        print('nCurrent,TotalIterations',nCurrent,TotalIterations)
+
+        if (nCurrent+1)%Repetitions == 0 and TotalDurationBetweenGroups>0.0:
+            #we ran the extra time off pause
+            FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationBetweenGroups,
+                                                            0,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            DutyCycle=DutyCycle,
+                                                            Backend=Backend,
+                                                            initT0=FinalTemp,
+                                                            initDose=FinalDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp)
+            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOff))
+        if (bRunInSubProcess) and\
+            ((nCurrent+1)% LimitBHTEIterationsPerProcess==0 or (nCurrent+1)==TotalIterations):
+            print('Finishing sub process')
+            break
+    return ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
+
+def RunInProcess(queueResult,Backend,deviceName,queueMsg,
+                 LimitBHTEIterationsPerProcess,nCurrent,
+                 NumberGroupedSonications,Repetitions,
+                 InputPData,PMaps,MaterialMap,
+                 MaterialList,dx,TotalDurationSteps,
+                 TotalDurationStepsOff,
+                 nStepsOn,cy,nFactorMonitoring,dt,
+                 DutyCycle,MonitoringPointsMap,
+                 TemperaturePoints,stableTemp,
+                 FinalTemp,FinalDose,
+                 TotalDurationBetweenGroups):
+    stdout = InOutputWrapper(queueMsg,True)
+    
+    if Backend=='CUDA':
+        InitCuda(deviceName)
+    elif Backend=='OpenCL':
+        InitOpenCL(deviceName)
+    else:
+        InitMetal(deviceName)
+
+    
+    TotalIterations=NumberGroupedSonications*Repetitions
+
+    Res=RunBHTECycles(nCurrent,
+                    Repetitions,
+                    TotalIterations,
+                    TotalDurationBetweenGroups,
+                    TotalDurationStepsOff,
+                    LimitBHTEIterationsPerProcess,
+                    InputPData,
+                    PMaps,
+                    MaterialMap,
+                    MaterialList,
+                    dx,
+                    TotalDurationSteps,
+                    nStepsOn,
+                    cy,
+                    nFactorMonitoring,
+                    dt,
+                    DutyCycle,
+                    Backend,
+                    MonitoringPointsMap,
+                    stableTemp,
+                    TemperaturePoints,
+                    FinalTemp,
+                    FinalDose,
+                    bRunInSubProcess=True,
+                    )
+    queueResult.put(Res)
+    
+
 def CalculateTemperatureEffects(InputPData,
+                                deviceName,
+                                queueMsg,
                                 DutyCycle=0.3,
                                 Isppa=5,
                                 sel_p='p_amp',
-                                bPlot=True,
                                 PRF=1500,
                                 DurationUS=40,
                                 DurationOff=40,
@@ -110,14 +313,27 @@ def CalculateTemperatureEffects(InputPData,
                                 BaselineTemperature=37,
                                 bGlobalDCMultipoint=False,
                                 Frequency=7e5,
-                                Backend='CUDA'):#this will help to calculate the final voltage to apply during experiments
+                                NumberGroupedSonications=1,
+                                PauseBetweenGroupedSonications=0.0,
+                                Backend='CUDA',
+                                LimitBHTEIterationsPerProcess=100,
+                                bForceHomogenousMedium=False,
+                                HomogenousMediumValues={'ThermalConductivity':0.5,  
+                                    'SpecificHeat':3583.0,
+                                    'Perfusion':55.0,
+                                    'Absorption':0.85, #m/s
+                                    'InitTemperature':37.0}, #Np/m
+                                ):
 
 
     if type(InputPData) is str:    
         outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
     else:
         outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
-
+        if len(InputPData)==1:
+            #we simplify if we only have a single file in the list
+            InputPData=InputPData[0]
+    print('InputPData',InputPData)
     print(outfname)
 
     print('Thermal sim with Backend',Backend)
@@ -179,85 +395,140 @@ def CalculateTemperatureEffects(InputPData,
         nStepsOnOffList[:,0]=NCyclesOn
         nStepsOnOffList[:,1]=NCyclesOff
         
+    if 'MaterialMapCT' in Input:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
+        OrigMaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+    else:
+        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
+        OrigMaterialMap=MaterialMap
+
+    bSegmentedBrain = np.any(OrigMaterialMap>5)
     
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
     MaterialList['Attenuation']=Input['Material'][:,3]
-    if 'MaterialMapCT' not in Input:
+    if bForceHomogenousMedium:
+        print('Running BHTE with homogenous medium with ',HomogenousMediumValues)
+        MaterialList['SpecificHeat']=np.array([4178.0,HomogenousMediumValues['SpecificHeat']]) #(J/kg/°C)
+        MaterialList['Conductivity']=np.array([0.6,HomogenousMediumValues['ThermalConductivity']]) # (W/m/°C)
+        MaterialList['Perfusion']=np.array([0.0,HomogenousMediumValues['Perfusion']])
+        MaterialList['Absorption']=np.array([0,HomogenousMediumValues['Absorption']])
+        MaterialList['InitTemperature']=np.array([HomogenousMediumValues['InitTemperature'],HomogenousMediumValues['InitTemperature']])
+        BaselineTemperature=HomogenousMediumValues['InitTemperature']
+    
+    elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-capacity/
-        MaterialList['SpecificHeat']=[4178,3391,1313,2274,3630] #(J/kg/°C)
+        MaterialList['SpecificHeat']=[4178.0,3391.0,1313.0,2274.0,3630.0] #(J/kg/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/thermal-conductivity/
         MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
-        MaterialList['Perfusion']=np.array([0,106,10,30,559])
+        MaterialList['Perfusion']=[0.0,106.0,10.0,30.0,559.0]
         
-        MaterialList['Absorption']=np.array([0,0.85,0.16,0.15,0.85])
+        MaterialList['Absorption']=[0,0.85,0.16,0.15,0.85]
 
         MaterialList['InitTemperature']=[BaselineTemperature,BaselineTemperature,
                                          BaselineTemperature,BaselineTemperature,BaselineTemperature]
+        if bSegmentedBrain:
+            #we add white matter, gray matter and CSF
+            MaterialList['Conductivity']+=[0.55, 0.48, 0.57]
+            MaterialList['SpecificHeat']+=[3583.0, 3696.0, 4096.0]
+            MaterialList['Perfusion']+=[764.0, 212.0, 0.0]
+            MaterialList['Absorption']+=[0.85, 0.85, 0.0]
+            MaterialList['InitTemperature']+=[BaselineTemperature,BaselineTemperature,BaselineTemperature]
+
+        for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
+            MaterialList[k]=np.array(MaterialList[k])
+
     else:
         #Water, Skin, Brain and skull material
         MaterialList['SpecificHeat']=np.zeros_like(MaterialList['SoS'])
         MaterialList['SpecificHeat'][0:3]=[4178,3391,3630]
-        MaterialList['SpecificHeat'][3:]=(1313+2274)/2
+        if bSegmentedBrain:
+             #we add white matter, gray matter and CSF
+            MaterialList['SpecificHeat'][3:6]=np.array([3583.0, 3696.0, 4096.0])
+            MaterialList['SpecificHeat'][6:]=(1313.0+2274.0)/2
+        else:
+            MaterialList['SpecificHeat'][3:]=(1313.0+2274.0)/2
 
         MaterialList['Conductivity']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Conductivity'][0:3]=[0.6,0.37,0.51]
-        MaterialList['Conductivity'][3:]=(0.32+0.31)/2
+        if bSegmentedBrain:
+            MaterialList['Conductivity'][3:6]=np.array([0.55, 0.48, 0.57])
+            MaterialList['Conductivity'][6:]=(0.31+0.32)/2
+        else:
+            MaterialList['Conductivity'][3:]=(0.31+0.32)/2
 
         MaterialList['Perfusion']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Perfusion'][0:3]=[0,106,559]
-        MaterialList['Perfusion'][3:]=(10+30)/2
+        if bSegmentedBrain:
+            MaterialList['Perfusion'][3:6]=np.array([764.0, 212.0, 0.0])
+            MaterialList['Perfusion'][6:]=(10.0+30.0)/2
+        else:
+            MaterialList['Perfusion'][3:]=(10.0+30.0)/2
 
         MaterialList['Absorption']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Absorption'][0:3]=[0,0.85,0.85]
-        MaterialList['Absorption'][3:]=(0.16+0.15)/2
+        if bSegmentedBrain:
+            MaterialList['Absorption'][3:5]=0.85
+            MaterialList['Absorption'][6:]=(0.16+0.15)/2
+        else:
+            MaterialList['Absorption'][3:]=(0.16+0.15)/2
 
-        MaterialList['InitTemperature']=np.zeros_like(MaterialList['SoS'])
-        MaterialList['InitTemperature'][0]=BaselineTemperature
-        MaterialList['InitTemperature'][1:]=BaselineTemperature
-    
+        MaterialList['InitTemperature']=np.ones_like(MaterialList['SoS'])*BaselineTemperature
+
 
     SaveDict={}
     SaveDict['MaterialList']=MaterialList
-
     
     nFactorMonitoring=int(50e-3/dt) # we just track every 50 ms
+    if nFactorMonitoring==0:
+        nFactorMonitoring=1
     TotalDurationSteps=int((DurationUS+.001)/dt)
     nStepsOn=int(DurationUS/dt) 
     if nFactorMonitoring > TotalDurationSteps:
         nFactorMonitoring=1 #in the weird case TotalDurationSteps is less than 50 ms
     TotalDurationStepsOff=int((DurationOff+.001)/dt)
+    TotalDurationBetweenGroups=int(PauseBetweenGroupedSonications/dt)
 
     xf=Input['x_vec']
     yf=Input['y_vec']
     zf=Input['z_vec']
 
-        
-    if 'MaterialMapCT' in Input:
-        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMapCT'],axis=2))
-    else:
-        MaterialMap=np.ascontiguousarray(np.flip(Input['MaterialMap'],axis=2))
-    
     LocIJK=Input['TargetLocation'].flatten()
-    if 'MaterialMapCT' in Input:
-        BrainID=2
-        LimSoft=3
+    if bForceHomogenousMedium:
+        SelSkull = MaterialMap >0 # we select all material 
+        BrainID =[1]
+    elif 'MaterialMapCT' in Input:
+        if bSegmentedBrain:
+            BrainID=[2,3,4,5]
+            SelSkull =MaterialMap>=6
+            SelSkull =MaterialMap>=3
+        else:
+            BrainID=[2]
+            SelSkull =(MaterialMap>1) & (MaterialMap<4)
     else:
-        #Materal == 5 is the voxel of the desired target, we set it as brain
-        MaterialMap[MaterialMap>4]=4
-        BrainID=4
-        LimSoft=4
+        if bSegmentedBrain:
+            BrainID=[4,5,6,7]
+        else:
+            BrainID=[4]
+
+        SelSkull =(MaterialMap>1) &\
+            (MaterialMap<4)
 
     cx=LocIJK[0]
     cy=LocIJK[1]
     cz=LocIJK[2]
-    
+
+    SelBrain=np.isin(MaterialMap,BrainID)
+    SelSkin=MaterialMap==1
+ 
     if type(InputPData) is str:   
-        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf)
+        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                MaterialList,pAmpWater,Isppa,
+                                                xf,yf,zf,SelBrain,bForceHomogenousMedium)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -266,24 +537,12 @@ def CalculateTemperatureEffects(InputPData,
             pAmpWater=AllInputsWater[n,:,:,:]
             print('*'*40)
             print('Calculating losses for spot ',n)
-            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,MaterialList,BrainID,pAmpWater,Isppa,SaveDict,xf,yf,zf)
+            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                          MaterialList,pAmpWater,Isppa,
+                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
-
-
-    if 'MaterialMapCT' in Input:
-        SelBrain=MaterialMap==2
-    else:
-        SelBrain=MaterialMap>=4
-
-    SelSkin=MaterialMap==1
-    if 'MaterialMapCT' in Input:
-        SelSkull =MaterialMap>=3
-    else:
-        SelSkull =(MaterialMap>1) &\
-            (MaterialMap<4)
-
     
     if type(InputPData) is str:
         ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
@@ -322,75 +581,91 @@ def CalculateTemperatureEffects(InputPData,
     mxSkull,mySkull,mzSkull=np.unravel_index(np.argmax(ResTempSkull, axis=None), ResTempSkull.shape)
 
     MonitoringPointsMap=np.zeros(MaterialMap.shape,np.uint32)
-    MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
-    MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
-    MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
-    if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
-        MonitoringPointsMap[cx,cy,cz]=4
-    print('Total number of repetitions:',Repetitions)
-    for NTotalRep in range(Repetitions):
-        if NTotalRep >0:
-            initT0=FinalTemp
-            initDose=FinalDose
-        else:
-            initT0=None
-            initDose=None
-            
-        if type(InputPData) is str:
-            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(pAmp*PressureRatio,
-                                                            MaterialMap,
-                                                            MaterialList,
-                                                            (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                            TotalDurationSteps,
-                                                            nStepsOn,
-                                                            cy,
-                                                            nFactorMonitoring=nFactorMonitoring,
-                                                            dt=dt,
-                                                            DutyCycle=DutyCycle,
-                                                            Backend=Backend,
-                                                            initT0=initT0,
-                                                            initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap,
-                                                            stableTemp=BaselineTemperature)
-        else:
-            ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTEMultiplePressureFields(InputsBHTE,
-                                                            MaterialMap,
-                                                            MaterialList,
-                                                            (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                            TotalDurationSteps,
-                                                            nStepsOnOffList,
-                                                            cy,
-                                                            nFactorMonitoring=nFactorMonitoring,
-                                                            dt=dt,
-                                                            Backend=Backend,
-                                                            initT0=initT0,
-                                                            initDose=initDose,
-                                                            MonitoringPointsMap=MonitoringPointsMap,
-                                                            stableTemp=BaselineTemperature)
-            
-        
-        #for cooling off, we do not need to do steering, just running with no energy
-        FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(pAmp*0,
-                                                        MaterialMap,
-                                                        MaterialList,
-                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                        TotalDurationStepsOff,
-                                                        0,
-                                                        cy,
-                                                        nFactorMonitoring=nFactorMonitoring,
-                                                        dt=dt,
-                                                        DutyCycle=DutyCycle,
-                                                        Backend=Backend,
-                                                        initT0=ResTemp,
-                                                        initDose=ResDose,
-                                                        MonitoringPointsMap=MonitoringPointsMap,
-                                                        stableTemp=BaselineTemperature) 
-    
-    
-        if NTotalRep==0:
-            TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
-        else:
-            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+    if bForceHomogenousMedium==1:
+        MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+    else:
+        MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
+        MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
+        MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
+        if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
+            MonitoringPointsMap[cx,cy,cz]=4
+    print('Total # of grouped sonications :',NumberGroupedSonications)
+    print('Total # of repetitions in a single group:',Repetitions)
+    TOTAL_Iterations = NumberGroupedSonications * Repetitions
+
+    if type(InputPData) is str:
+        PMaps=pAmp*PressureRatio
+        nStepsOnIn=nStepsOn
+    else:
+        PMaps=InputsBHTE
+        nStepsOnIn=nStepsOnOffList
+
+    FinalTemp=None
+    FinalDose=None
+    TemperaturePoints=None
+
+    if TOTAL_Iterations <= LimitBHTEIterationsPerProcess:
+        nCurrent=0
+        ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent=RunBHTECycles(nCurrent,
+                    Repetitions,
+                    TOTAL_Iterations,
+                    TotalDurationBetweenGroups,
+                    TotalDurationStepsOff,
+                    LimitBHTEIterationsPerProcess,
+                    InputPData,
+                    PMaps,
+                    MaterialMap,
+                    MaterialList,
+                     (Input['x_vec'][1]-Input['x_vec'][0]),
+                    TotalDurationSteps,
+                    nStepsOn,
+                    cy,
+                    nFactorMonitoring,
+                    dt,
+                    DutyCycle,
+                    Backend,
+                    MonitoringPointsMap,
+                    BaselineTemperature,
+                    TemperaturePoints,
+                    FinalTemp,
+                    FinalDose)
+
+    else:
+        queueResult=Queue()
+        nCurrent=0
+        while(nCurrent<TOTAL_Iterations):
+            fieldWorkerProcess = Process(target=RunInProcess, 
+                                        args=(queueResult,Backend,deviceName,queueMsg,
+                                                LimitBHTEIterationsPerProcess,nCurrent,
+                                                NumberGroupedSonications,
+                                                Repetitions,
+                                                InputPData,
+                                                PMaps
+                                                ,MaterialMap,
+                                                MaterialList,
+                                                (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                TotalDurationSteps,
+                                                TotalDurationStepsOff,
+                                                nStepsOnIn,cy,nFactorMonitoring,dt,
+                                                DutyCycle,MonitoringPointsMap,
+                                                TemperaturePoints,BaselineTemperature,
+                                                FinalTemp,FinalDose,
+                                                TotalDurationBetweenGroups))
+
+            fieldWorkerProcess.start()
+            while(True):
+                time.sleep(0.1)
+                if not queueResult.empty():
+                    break
+            ProcResults=queueResult.get()
+            ResTemp=ProcResults[0]
+            ResDose=ProcResults[1]
+            FinalTemp=ProcResults[2]
+            FinalDose=ProcResults[3]
+            TemperaturePoints=ProcResults[4]
+            nCurrent=ProcResults[5]
+            fieldWorkerProcess.terminate()
+            print('process terminated')
 
     SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
@@ -405,6 +680,7 @@ def CalculateTemperatureEffects(InputPData,
         SaveDict['p_map_central']=InputsBHTE.max(axis=0)[:,cy,:]
     SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
     SaveDict['MaterialMap']=MaterialMap
+    SaveDict['PressureRatio']=PressureRatio
 
     TI=ResTemp[SelBrain].max()
     
@@ -422,7 +698,9 @@ def CalculateTemperatureEffects(InputPData,
     
     print('CEMBrain,CEMSkin,CEMSkull',CEMBrain,CEMSkin,CEMSkull)
 
-    MaxBrainPressure = SaveDict['p_map'][SelBrain].max()
+    maxPressureLocation=SaveDict['p_map'][SelBrain].argmax()
+
+    MaxBrainPressure = SaveDict['p_map'][SelBrain][maxPressureLocation]
         
     MI=MaxBrainPressure/1e6/np.sqrt(Frequency/1e6)
     MaxIsppa=MaxBrainPressure**2/(2.0*SaveDict['MaterialList']['SoS'][BrainID]*SaveDict['MaterialList']['Density'][BrainID])
@@ -432,7 +710,9 @@ def CalculateTemperatureEffects(InputPData,
     Ispta =DutyCycle*Isppa
 
     SaveDict['MaxBrainPressure']=MaxBrainPressure
-    if cx==mxBrain and cy==myBrain and cz==mzBrain:
+    if bForceHomogenousMedium:
+        IndTarget=0
+    elif (cx==mxBrain and cy==myBrain and cz==mzBrain):
         IndTarget=2
     else:
         IndTarget=3

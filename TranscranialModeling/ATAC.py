@@ -80,7 +80,7 @@ def GenerateATACTx(Frequency=1e6,RotationZ=0,FactorEnlarge=1):
     TxATAC['elemdims']=TxElem['ds'].size
     TxATAC['NumberElems']=len(theta)
     TxATAC['VertDisplay'] = np.zeros((0,3))
-    TxATAC['FaceDisplay'] = np.zeros((0,4),np.int)
+    TxATAC['FaceDisplay'] = np.zeros((0,4),int)
 
     for n in range(len(theta)):
         prevFaceLength=TxATAC['VertDisplay'].shape[0]

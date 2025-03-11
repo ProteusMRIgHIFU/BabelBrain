@@ -56,7 +56,7 @@ def GenerateR15148Tx(Frequency=0.5e6,RotationZ=0,FactorEnlarge=1):
     TxR15148['elemdims']=TxElem['ds'].size
     TxR15148['NumberElems']=len(theta)
     TxR15148['VertDisplay'] = np.zeros((0,3))
-    TxR15148['FaceDisplay'] = np.zeros((0,4),np.int)
+    TxR15148['FaceDisplay'] = np.zeros((0,4),int)
 
     for n in range(len(theta)):
         prevFaceLength=TxR15148['VertDisplay'].shape[0]

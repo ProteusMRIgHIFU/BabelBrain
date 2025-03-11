@@ -30,7 +30,51 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+class OptionalParams(object):
+    def __init__(self):
+        self._DefaultAdvanced={}
+        
+        self._DefaultAdvanced['bApplyBOXFOV']=False
+        self._DefaultAdvanced['FOVDiameter']=200.0
+        self._DefaultAdvanced['FOVLength']=400.0
+        self._DefaultAdvanced['bForceUseBlender']=False
+        self._DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
+        self._DefaultAdvanced['TrabecularProportion']=0.8
+        self._DefaultAdvanced['CTX_500_Correction']='Original'
+        self._DefaultAdvanced['CTX_250_Correction']='Original'
+        self._DefaultAdvanced['DPX_500_Correction']='Original'
+        self._DefaultAdvanced['PetraNPeaks']=2
+        self._DefaultAdvanced['PetraMRIPeakDistance']=50
+        self._DefaultAdvanced['bInvertZTE']=False
+        self._DefaultAdvanced['bDisableCTMedianFilter']=False
+        self._DefaultAdvanced['bGeneratePETRAHistogram']=False
+        self._DefaultAdvanced['BaselineTemperature']=37.0
+        self._DefaultAdvanced['PETRASlope']=-2929.6
+        self._DefaultAdvanced['PETRAOffset']=3274.9
+        self._DefaultAdvanced['ZTESlope']=-2085.0
+        self._DefaultAdvanced['ZTEOffset']=2329.0
+        self._DefaultAdvanced['bSaveStress']=False
+        self._DefaultAdvanced['bSaveDisplacement']=False
+        self._DefaultAdvanced['bSegmentBrainTissue']=False
+        self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
+        self._DefaultAdvanced['bForceHomogenousMedium']=False
+        self._DefaultAdvanced['HomogenousMediumValues']={}
+        self._DefaultAdvanced['HomogenousMediumValues']['Density']=1000.0
+        self._DefaultAdvanced['HomogenousMediumValues']['LongSoS']=1500.0
+        self._DefaultAdvanced['HomogenousMediumValues']['LongAtt']= 5.0
+        self._DefaultAdvanced['HomogenousMediumValues']['ShearSoS'] = 0.0
+        self._DefaultAdvanced['HomogenousMediumValues']['ShearAtt'] = 0.0 
+        self._DefaultAdvanced['HomogenousMediumValues']['ThermalConductivity'] = 0.5
+        self._DefaultAdvanced['HomogenousMediumValues']['SpecificHeat'] = 3583.0
+        self._DefaultAdvanced['HomogenousMediumValues']['Perfusion'] = 555.0
+        self._DefaultAdvanced['HomogenousMediumValues']['Absorption'] = 0.85
+        self._DefaultAdvanced['HomogenousMediumValues']['InitTemperature'] = 37.0
 
+        for k,v in self._DefaultAdvanced.items():
+            setattr(self,k,v)
+
+    def keys(self):
+        return list(self._DefaultAdvanced.keys())
 class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,
@@ -46,70 +90,64 @@ class AdvancedOptions(QDialog):
         self.ui.tabWidget.setCurrentIndex(0)
 
         self.defaultValues = defaultValues
-        kargs={}
-        for k in defaultValues:
-            kargs[k]=currentConfig[k]
-        self.SetValues(**kargs)
+        curvalues = OptionalParams()
+        for k in defaultValues.keys():
+            setattr(curvalues,k,currentConfig[k])
+        self.SetValues(curvalues)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)   
         
-    def SetValues(self,
-                 ElastixOptimizer='AdaptiveStochasticGradientDescent',
-                 bForceUseBlender=False,
-                 bApplyBOXFOV=False,
-                 FOVDiameter=200.0,
-                 FOVLength=400.0,
-                 TrabecularProportion=0.8,
-                 PetraMRIPeakDistance=50,
-                 PetraNPeaks=2,
-                 bInvertZTE=False,
-                 bDisableCTMedianFilter=False,
-                 bGeneratePETRAHistogram=False,
-                 CTX_500_Correction='Original',
-                 BaselineTemperature=37.0,
-                 PETRASlope=-2929.6,
-                 PETRAOffset=3274.9,
-                 ZTESlope=-2085.0,
-                 ZTEOffset=2329.0,
-                 bSaveStress=False,
-                 bSaveDisplacemen=False,
-                 **kargs):
+    def SetValues(self,values):
 
-        sel=self.ui.ElastixOptimizercomboBox.findText(ElastixOptimizer)
+        sel=self.ui.ElastixOptimizercomboBox.findText(values.ElastixOptimizer)
         if sel==-1:
-            raise ValueError('The elastix optimizer is not available in the GUI -'+ElastixOptimizer )
+            raise ValueError('The elastix optimizer is not available in the GUI -'+values.ElastixOptimizer )
         
         self.ui.ManualFOVcheckBox.toggled.connect(self.EnableManualFOV)
         
         self.ui.ElastixOptimizercomboBox.setCurrentIndex(sel)
-        self.ui.ForceBlendercheckBox.setChecked(bForceUseBlender)
-        self.ui.ManualFOVcheckBox.setChecked(bApplyBOXFOV)
-        self.ui.FOVDiameterSpinBox.setValue(FOVDiameter)
-        self.ui.FOVLengthSpinBox.setValue(FOVLength)
-        self.ui.TrabecularProportionSpinBox.setValue(TrabecularProportion)
-        self.ui.PetraNPeaksSpinBox.setValue(PetraNPeaks)
-        self.ui.PetraMRIPeakDistancespinBox.setValue(PetraMRIPeakDistance)
-        self.ui.InvertZTEcheckBox.setChecked(bInvertZTE)
-        self.ui.DisableCTMedianFiltercheckBox.setChecked(bDisableCTMedianFilter)
-        self.ui.GeneratePETRAHistogramcheckBox.setChecked(bGeneratePETRAHistogram)
-        self.ui.BaselineTemperatureSpinBox.setValue(BaselineTemperature)
-        self.ui.PETRASlopeSpinBox.setValue(PETRASlope)
-        self.ui.PETRAOffsetSpinBox.setValue(PETRAOffset)
-        self.ui.ZTESlopeSpinBox.setValue(ZTESlope)
-        self.ui.ZTEOffsetSpinBox.setValue(ZTEOffset)
-        self.ui.SaveStresscheckBox.setChecked(bSaveStress)
-        self.ui.SaveDisplacementcheckBox.setChecked(bSaveDisplacemen)
+        self.ui.ForceBlendercheckBox.setChecked(values.bForceUseBlender)
+        self.ui.ManualFOVcheckBox.setChecked(values.bApplyBOXFOV)
+        self.ui.FOVDiameterSpinBox.setValue(values.FOVDiameter)
+        self.ui.FOVLengthSpinBox.setValue(values.FOVLength)
+        self.ui.TrabecularProportionSpinBox.setValue(values.TrabecularProportion)
+        self.ui.PetraNPeaksSpinBox.setValue(values.PetraNPeaks)
+        self.ui.PetraMRIPeakDistancespinBox.setValue(values.PetraMRIPeakDistance)
+        self.ui.InvertZTEcheckBox.setChecked(values.bInvertZTE)
+        self.ui.DisableCTMedianFiltercheckBox.setChecked(values.bDisableCTMedianFilter)
+        self.ui.GeneratePETRAHistogramcheckBox.setChecked(values.bGeneratePETRAHistogram)
+        self.ui.BaselineTemperatureSpinBox.setValue(values.BaselineTemperature)
+        self.ui.LimitBHTEIterationsPerProcessSpinBox.setValue(values.LimitBHTEIterationsPerProcess)
+        self.ui.PETRASlopeSpinBox.setValue(values.PETRASlope)
+        self.ui.PETRAOffsetSpinBox.setValue(values.PETRAOffset)
+        self.ui.ZTESlopeSpinBox.setValue(values.ZTESlope)
+        self.ui.ZTEOffsetSpinBox.setValue(values.ZTEOffset)
+        self.ui.SaveStresscheckBox.setChecked(values.bSaveStress)
+        self.ui.SaveDisplacementcheckBox.setChecked(values.bSaveDisplacement)
+        self.ui.SegmentBrainTissuecheckBox.setChecked(values.bSegmentBrainTissue)
         
-        sel=self.ui.CTX500CorrectioncomboBox.findText(CTX_500_Correction)
+        sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
         if sel==-1:
-            raise ValueError('The CTX 500 correction choice is not available in the GUI -'+CTX_500_Correction )
+            raise ValueError('The CTX 500 correction choice is not available in the GUI -'+values.CTX_500_Correction )
         self.ui.CTX500CorrectioncomboBox.setCurrentIndex(sel)
 
+        self.ui.bForceHomogenousMediumcheckBox.setChecked(values.bForceHomogenousMedium)
+        self.ui.HomogenousDensitySpinBox.setValue(values.HomogenousMediumValues['Density'])
+        self.ui.HomogenousLSoSSpinBox.setValue(values.HomogenousMediumValues['LongSoS'])
+        self.ui.HomogenousLAttSpinBox.setValue(values.HomogenousMediumValues['LongAtt'])
+        self.ui.HomogenousSSoSSpinBox.setValue(values.HomogenousMediumValues['ShearSoS'])
+        self.ui.HomogenousSAttSpinBox.setValue(values.HomogenousMediumValues['ShearAtt'])
+        self.ui.HomogenousThermCondSpinBox.setValue(values.HomogenousMediumValues['ThermalConductivity'])
+        self.ui.HomogenousSpecHeatSpinBox.setValue(values.HomogenousMediumValues['SpecificHeat'])
+        self.ui.HomogenousPerfusionSpinBox.setValue(values.HomogenousMediumValues['Perfusion'])
+        self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
+        self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
+        
     @Slot()
     def ResetToDefaults(self):
-        self.SetValues(**self.defaultValues)
+        self.SetValues(self.defaultValues)
 
     @Slot()
     def EnableManualFOV(self,value):
@@ -117,6 +155,41 @@ class AdvancedOptions(QDialog):
         
     @Slot()
     def Continue(self):
+        self.NewValues=OptionalParams()
+
+        self.NewValues.FOVDiameter=self.ui.FOVDiameterSpinBox.value()
+        self.NewValues.FOVLength=self.ui.FOVLengthSpinBox.value()
+        self.NewValues.bForceUseBlender=self.ui.ForceBlendercheckBox.isChecked()
+        self.NewValues.ElastixOptimizer=self.ui.ElastixOptimizercomboBox.currentText()
+        self.NewValues.TrabecularProportion=self.ui.TrabecularProportionSpinBox.value()
+        self.NewValues.CTX_500_Correction=self.ui.CTX500CorrectioncomboBox.currentText()
+        self.NewValues.PetraNPeaks=self.ui.PetraNPeaksSpinBox.value()
+        self.NewValues.PetraMRIPeakDistance=self.ui.PetraMRIPeakDistancespinBox.value()
+        self.NewValues.bInvertZTE=self.ui.InvertZTEcheckBox.isChecked()
+        self.NewValues.bDisableCTMedianFilter=self.ui.DisableCTMedianFiltercheckBox.isChecked()
+        self.NewValues.bGeneratePETRAHistogram=self.ui.GeneratePETRAHistogramcheckBox.isChecked()
+        self.NewValues.BaselineTemperature=self.ui.BaselineTemperatureSpinBox.value()
+        self.NewValues.LimitBHTEIterationsPerProcess=self.ui.LimitBHTEIterationsPerProcessSpinBox.value()
+        self.NewValues.PETRASlope=self.ui.PETRASlopeSpinBox.value()
+        self.NewValues.PETRAOffset=self.ui.PETRAOffsetSpinBox.value()
+        self.NewValues.ZTESlope=self.ui.ZTESlopeSpinBox.value()
+        self.NewValues.ZTEOffset=self.ui.ZTEOffsetSpinBox.value()
+        self.NewValues.bSaveStress=self.ui.SaveStresscheckBox.isChecked()
+        self.NewValues.bSaveDisplacement=self.ui.SaveDisplacementcheckBox.isChecked()
+        self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
+        self.NewValues.bForceHomogenousMedium=self.ui.bForceHomogenousMediumcheckBox.isChecked()
+
+        self.NewValues.HomogenousMediumValues['Density']             = self.ui.HomogenousDensitySpinBox.value()        
+        self.NewValues.HomogenousMediumValues['LongSoS']             = self.ui.HomogenousLSoSSpinBox.value()      
+        self.NewValues.HomogenousMediumValues['LongAtt']             = self.ui.HomogenousLAttSpinBox.value()      
+        self.NewValues.HomogenousMediumValues['ShearSoS']            = self.ui.HomogenousSSoSSpinBox.value()      
+        self.NewValues.HomogenousMediumValues['ShearAtt']            = self.ui.HomogenousSAttSpinBox.value()      
+        self.NewValues.HomogenousMediumValues['ThermalConductivity'] = self.ui.HomogenousThermCondSpinBox.value() 
+        self.NewValues.HomogenousMediumValues['SpecificHeat']        = self.ui.HomogenousSpecHeatSpinBox.value()  
+        self.NewValues.HomogenousMediumValues['Perfusion']           = self.ui.HomogenousPerfusionSpinBox.value() 
+        self.NewValues.HomogenousMediumValues['Absorption']          = self.ui.HomogenousAbsorptionSpinBox.value()
+        self.NewValues.HomogenousMediumValues['InitTemperature']     = self.ui.HomogenousInitTempSpinBox.value()  
+
         self.accept()
 
     @Slot()

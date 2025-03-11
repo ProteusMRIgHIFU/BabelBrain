@@ -45,7 +45,7 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
         InitOpenCL(deviceName)
     else:
         InitMetal(deviceName)
-    fname=CalculateTemperatureEffects(case,**kargs)
+    fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
     queueResult.put(fname)
     
 
@@ -64,18 +64,19 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
             queueResult=Queue()
             kargsSub={}
-            kargsSub['DutyCycle']=combination['DC']
-            kargsSub['PRF']=combination['PRF']
-            kargsSub['DurationUS']=combination['Duration']
-            kargsSub['DurationOff']=combination['DurationOff']
-            kargsSub['Repetitions']=combination['Repetitions']
+            for k in ['PRF','DurationOff','Repetitions','NumberGroupedSonications','PauseBetweenGroupedSonications']:
+                kargsSub[k]=combination[k]
             kargsSub['Isppa']=kargs['Isppa']
             kargsSub['sel_p']=kargs['sel_p']
-            kargsSub['bPlot']=False
+            kargsSub['DutyCycle']=combination['DC']            
+            kargsSub['DurationUS']=combination['Duration']
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             kargsSub['Frequency']=kargs['Frequency']
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
+            kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
+            kargsSub['bForceHomogenousMedium']=kargs['bForceHomogenousMedium']
+            kargsSub['HomogenousMediumValues']=kargs['HomogenousMediumValues']
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)

@@ -56,7 +56,7 @@
 [Duration, DC, PRF]</string>
    </property>
    <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
    </property>
   </widget>
   <widget class="QComboBox" name="SelCombinationDropDown">
@@ -82,7 +82,7 @@
     <string>Isppa (W/cm2)</string>
    </property>
    <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
    </property>
   </widget>
   <widget class="QDoubleSpinBox" name="IsppaSpinBox">
@@ -95,16 +95,16 @@
     </rect>
    </property>
    <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
    </property>
    <property name="decimals">
-    <number>1</number>
+    <number>2</number>
    </property>
    <property name="minimum">
     <double>0.100000000000000</double>
    </property>
    <property name="maximum">
-    <double>30.000000000000000</double>
+    <double>60.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.100000000000000</double>
@@ -126,7 +126,7 @@
     </rect>
    </property>
    <property name="orientation">
-    <enum>Qt::Horizontal</enum>
+    <enum>Qt::Orientation::Horizontal</enum>
    </property>
   </widget>
   <widget class="QLabel" name="SliceLabel">
@@ -354,7 +354,7 @@
     <string>Show</string>
    </property>
    <property name="alignment">
-    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
    </property>
   </widget>
  </widget>

@@ -25,7 +25,6 @@ from skimage.measure import label, regionprops
 import vtk
 import pycork
 import pyvista as pv
-import SimpleITK as sitk
 import time
 import gc
 import yaml
@@ -35,11 +34,16 @@ import platform
 import sys
 from linetimer import CodeTimer
 import re
+from glob import glob
+from pathlib import Path
+import tempfile
+import subprocess
+
 try:
     import CTZTEProcessing
 except:
     from . import CTZTEProcessing
-import tempfile
+
 
 try:
     from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
@@ -50,6 +54,20 @@ try:
     from FileManager import FileManager
 except:
     from .FileManager import FileManager
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -276,6 +294,48 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
+def RunMeshConv(reference,mesh,finalname):
+    if sys.platform == 'linux' or _IS_MAC:
+        if sys.platform == 'linux':
+            shell='bash'
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/linux/MeshConv")
+        elif _IS_MAC:
+            shell='zsh'
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/mac/MeshConv")
+        
+        print("Starting MeshConv")
+        if _IS_MAC:
+            cmd ='"'+path_script + '" "' + reference + '" "' + mesh +'" "' + finalname + '"'
+            print(cmd)
+            result = os.system(cmd)
+        else:
+            result = subprocess.run(
+                    [shell,
+                    path_script,
+                    reference,
+                    mesh,
+                    finalname], capture_output=True, text=True
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            result=result.returncode 
+    else:
+        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/win/MeshConv.exe")
+        
+        print("Starting MeshConv")
+        result = subprocess.run(
+                [path_script,
+                reference,
+                reference,
+                mesh,
+                finalname], capture_output=True, text=True,shell=True,
+        )
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        result=result.returncode 
+    print("MeshConv Finished")
+    
+        
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
@@ -309,6 +369,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 PetraNPeaks=2,
                                 bInvertZTE=False,
                                 bGeneratePETRAHistogram=False,
+                                bSegmentBrainTissue=False,
                                 PETRASlope=-2929.6,
                                 PETRAOffset=3274.9,
                                 ZTESlope=-2085.0,
@@ -347,6 +408,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     inputfilenames = S1_file_manager.input_files
     outputfilenames = S1_file_manager.output_files
+
+    mshfile = glob(os.path.join(SimbNIBSDir,'*.msh'))
+    if len(mshfile)!=1:
+        raise RuntimeError("There should be one (and only one) .msh file at " + SimbNIBSDir)
+    mshfile=mshfile[0]
 
     #load T1W
     T1Conformal = S1_file_manager.load_file(T1Conformal_nii)
@@ -919,9 +985,30 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             
             FinalMask=np.flip(FinalMask,axis=2)
 
+    if bSegmentBrainTissue:
 
+        # we just need an empty file to pass matrx size and affine
+        emptyNifti =   nibabel.Nifti1Image(FinalMask*0, affine=baseaffineRot)
 
-    mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)    
+        with CodeTimer("Upscaling final tissue to recover GM and WM masks",unit='s'):
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                ename=os.path.join(tmpdirname,'empty.nii.gz')
+                emptyNifti.to_filename(ename)
+                outname = os.path.join('/Users/spichardo/','out.nii.gz')
+                RunMeshConv(ename,mshfile,outname)
+                upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
+        
+        FinalMask2=FinalMask.copy()
+        FinalMask2[upScaleMask==1]=6 #white matter
+        FinalMask2[upScaleMask==2]=7 #gray matter
+        FinalMask2[upScaleMask==3]=8 #CSF
+        for n in range(6):
+            if n!=4:
+                FinalMask2[FinalMask==n]=n
+
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask2, affine=baseaffineRot) 
+    else:
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     S1_file_manager.save_file(file_data=mask_nifti2,filename=outname)
