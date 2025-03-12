@@ -23,7 +23,10 @@ import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
-import pycork
+try:
+    import pycork
+except:
+    print("UNABLE TO IMPORT PYCORK, NEED TO 'SELECT FORCE USING BLENDER' IN ADVANCED OPTIONS")
 import pyvista as pv
 import SimpleITK as sitk
 import time
@@ -248,15 +251,13 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     tris_1 = Mesh1.faces
     tris_2 = Mesh2.faces
 
-    pycork.isSolid(verts_1,tris_1)
-    pycork.isSolid(verts_2,tris_2)
-
     if not bForceUseBlender:
         try:
             verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
             Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
         except:
             #we use blender as backup if it  fails (but pycork does not trigger an easy to catch exception)
+            print('Pycork failed, defaulting to blender')
             Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
     else:
         Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
