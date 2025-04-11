@@ -28,6 +28,7 @@ import os
 import pandas as pd
 import h5py
 from linetimer import CodeTimer
+import pwlf
 
 try:
     import mkl_fft as fft
@@ -190,6 +191,20 @@ def primeCheck(n):
             if n%i == 0:
                 return False
         return True
+    
+
+def DensityToHUBony(CTIn):
+    CTtoDensity=np.array([[-9.47030278e+02,  1.22500000e+00],
+       [ 5.20388482e+01,  1.06000000e+03],
+       [ 2.02749650e+02,  1.16000000e+03],
+       [ 8.10468261e+02,  1.53000000e+03],
+       [ 1.00399419e+03,  1.66000000e+03],
+       [ 1.23490136e+03,  1.82000000e+03],
+       [ 1.41901214e+03,  1.99000000e+03],
+       [ 1.65990448e+03,  2.15000000e+03]])
+    pwf=pwlf.PiecewiseLinFit(CTtoDensity[:,1],CTtoDensity[:,0])
+    pwf.fit_with_breaks(CTtoDensity[:,1])
+    return pwf.predict(CTIn)
     
 
 def HUtoDensityKWave(HUin):
@@ -637,9 +652,15 @@ class BabelFTD_Simulations_BASE(object):
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
-            Porosity=HUtoPorosity(AllBoneHU)
+            
             if self._bDensity:
-                DensityCTIT= AllBoneHU
+                print('Density map specified, converting Density to HU')
+                DensityCTIT= AllBoneHU.copy()
+                print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
+                AllBoneHU = DensityToHUBony(DensityCTIT)
+                print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
+            
+            Porosity=HUtoPorosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
                 if self._bDensity == False:
                     if self._bPETRA:
