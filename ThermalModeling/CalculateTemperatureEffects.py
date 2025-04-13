@@ -79,7 +79,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
 
     xfr=Input['x_vec']
     yfr=Input['y_vec']
-    zfr=Input['z_vec']
+    zfr=Input['z_vec'].copy()
+    zfr-=zfr.min()
     
     
     PlanAtMaximumWater=pAmpWater[:,:,2] 
@@ -95,7 +96,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     cyw=cyw[0]
     czw=czw[0]
     print('Location Max Pessure Water',cxw,cyw,czw,'\n',
-            xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
+            xf[cxw],yf[cyw],zf[czw]-zf[0],pAmpWater.max()/1e6)
     
     pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
     pAmpTissue[SelBrain==False]=0.0
@@ -109,8 +110,12 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     
 
     PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
-    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    AcousticEnergyWaterMaxLocWat=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLocWat) #must be very close to AcousticEnergyWater
+
+    PlanAtMaximumTissue=pAmpTissue[:,:,czw] 
+    AcousticEnergyTissueMaxLocWat=(PlanAtMaximumTissue**2/2/DensityMap[:,:,czw]/SoSMap[:,:,czw]*((xf[1]-xf[0])**2)).sum()
+    print('Tissue Acoustic Energy at maximum plane water max loc',AcousticEnergyTissueMaxLocWat)
     
     PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
     AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
@@ -120,8 +125,15 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/DensityMap[:,:,czr]/ SoSMap[:,:,czr]*((xf[1]-xf[0])**2)).sum()
     print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
     
+    RatioLossesLoc=AcousticEnergyTissueMaxLocWat/AcousticEnergyWaterMaxLocWat
+    print('Total losses ratio using Water loc and in dB',RatioLossesLoc,np.log10(RatioLossesLoc)*10)
+
     RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
     print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
+
+    if RatioLosses > (RatioLossesLoc+0.2):
+        print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
+        RatioLosses=RatioLossesLoc
 
     SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
     DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
