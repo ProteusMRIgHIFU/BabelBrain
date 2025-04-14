@@ -979,7 +979,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     Line=FinalMask[i,j,:Rloc[2]]
                     bone = np.array(np.where((Line==2) | (Line==3))).flatten()
                     if len(bone)>0:
-                        subline=Line[:bone.min()-1]
+                        subline=Line[:bone.min()]
                         subline[subline==4]=1
                         FinalMask[i,j,:len(subline)]=subline
             
