@@ -63,9 +63,9 @@
    <widget class="QPushButton" name="SelT1WpushButton">
     <property name="geometry">
      <rect>
-      <x>256</x>
+      <x>238</x>
       <y>93</y>
-      <width>135</width>
+      <width>153</width>
       <height>32</height>
      </rect>
     </property>
@@ -88,9 +88,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>305</x>
+      <x>287</x>
       <y>127</y>
-      <width>84</width>
+      <width>102</width>
       <height>30</height>
      </rect>
     </property>
@@ -126,9 +126,9 @@
    <widget class="QPushButton" name="SelTProfilepushButton">
     <property name="geometry">
      <rect>
-      <x>216</x>
+      <x>204</x>
       <y>206</y>
-      <width>175</width>
+      <width>187</width>
       <height>42</height>
      </rect>
     </property>
@@ -240,9 +240,9 @@
    <widget class="QPushButton" name="SelSimbNIBSpushButton">
     <property name="geometry">
      <rect>
-      <x>255</x>
+      <x>238</x>
       <y>66</y>
-      <width>135</width>
+      <width>152</width>
       <height>32</height>
      </rect>
     </property>
@@ -278,9 +278,9 @@ Density?</string>
    <widget class="QPushButton" name="SelTrajectorypushButton">
     <property name="geometry">
      <rect>
-      <x>255</x>
+      <x>238</x>
       <y>40</y>
-      <width>135</width>
+      <width>152</width>
       <height>32</height>
      </rect>
     </property>
@@ -313,7 +313,7 @@ Density?</string>
    <widget class="QComboBox" name="TrajectoryTypecomboBox">
     <property name="geometry">
      <rect>
-      <x>140</x>
+      <x>100</x>
       <y>42</y>
       <width>110</width>
       <height>30</height>
@@ -341,7 +341,7 @@ Density?</string>
      <rect>
       <x>205</x>
       <y>129</y>
-      <width>97</width>
+      <width>77</width>
       <height>30</height>
      </rect>
     </property>
@@ -362,7 +362,7 @@ Density?</string>
    <widget class="QComboBox" name="SimbNIBSTypecomboBox">
     <property name="geometry">
      <rect>
-      <x>140</x>
+      <x>100</x>
       <y>67</y>
       <width>110</width>
       <height>30</height>
@@ -572,7 +572,7 @@ Density?</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>122</x>
+      <x>110</x>
       <y>77</y>
       <width>82</width>
       <height>30</height>
@@ -595,7 +595,7 @@ Density?</string>
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>8</x>
       <y>82</y>
       <width>102</width>
       <height>16</height>
@@ -633,9 +633,9 @@ Density?</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>215</x>
+      <x>198</x>
       <y>71</y>
-      <width>175</width>
+      <width>192</width>
       <height>42</height>
      </rect>
     </property>

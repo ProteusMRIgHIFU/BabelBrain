@@ -294,24 +294,26 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
-def RunMeshConv(reference,mesh,finalname):
+def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
+    scriptbase=os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/")
     if sys.platform == 'linux' or _IS_MAC:
         if sys.platform == 'linux':
             shell='bash'
-            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/linux/MeshConv")
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_linux.sh")
         elif _IS_MAC:
             shell='zsh'
-            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/mac/MeshConv")
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_mac.sh")
         
         print("Starting MeshConv")
         if _IS_MAC:
-            cmd ='"'+path_script + '" "' + reference + '" "' + mesh +'" "' + finalname + '"'
+            cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + scriptbase + '" "' + reference + '" "' + mesh +'" "' + finalname + '"'
             print(cmd)
             result = os.system(cmd)
         else:
             result = subprocess.run(
                     [shell,
                     path_script,
+                    SimbNINBSRoot,
                     reference,
                     mesh,
                     finalname], capture_output=True, text=True
@@ -320,12 +322,12 @@ def RunMeshConv(reference,mesh,finalname):
             print("stderr:", result.stderr)
             result=result.returncode 
     else:
-        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/win/MeshConv.exe")
+        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/win/run_win.bat")
         
         print("Starting MeshConv")
         result = subprocess.run(
                 [path_script,
-                reference,
+                SimbNINBSRoot,
                 reference,
                 mesh,
                 finalname], capture_output=True, text=True,shell=True,
@@ -370,6 +372,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 bInvertZTE=False,
                                 bGeneratePETRAHistogram=False,
                                 bSegmentBrainTissue=False,
+                                SimbNINBSRoot='',
                                 PETRASlope=-2929.6,
                                 PETRAOffset=3274.9,
                                 ZTESlope=-2085.0,
@@ -995,8 +998,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             with tempfile.TemporaryDirectory() as tmpdirname:
                 ename=os.path.join(tmpdirname,'empty.nii.gz')
                 emptyNifti.to_filename(ename)
-                outname = os.path.join('/Users/spichardo/','out.nii.gz')
-                RunMeshConv(ename,mshfile,outname)
+                outname = os.path.join(tmpdirname,'out.nii.gz')
+                RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
                 upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
         
         FinalMask2=FinalMask.copy()

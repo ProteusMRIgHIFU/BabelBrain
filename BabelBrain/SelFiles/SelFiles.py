@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QTableView,QVBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QStyle
 from PySide6.QtCore import Slot, Qt,QAbstractTableModel
 
 # Important:
@@ -162,6 +162,13 @@ class SelFiles(QDialog):
         self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.SelectTransducer)
         self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
+                
+        self.ui.SelTrajectorypushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelT1WpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelCTpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelTProfilepushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelSimbNIBSpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+                                        
 
         if len(Trajectory)>0:
             self.ui.TrajectorylineEdit.setText(Trajectory)
