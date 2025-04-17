@@ -409,10 +409,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     inputfilenames = S1_file_manager.input_files
     outputfilenames = S1_file_manager.output_files
 
-    mshfile = glob(os.path.join(SimbNIBSDir,'*.msh'))
-    if len(mshfile)!=1:
-        raise RuntimeError("There should be one (and only one) .msh file at " + SimbNIBSDir)
-    mshfile=mshfile[0]
+    if bSegmentBrainTissue:
+        mshfile = glob(os.path.join(SimbNIBSDir,'*.msh'))
+        if len(mshfile)!=1:
+            raise RuntimeError("There should be one (and only one) .msh file at " + SimbNIBSDir)
+        mshfile=mshfile[0]
 
     #load T1W
     T1Conformal = S1_file_manager.load_file(T1Conformal_nii)
