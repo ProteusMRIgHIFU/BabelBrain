@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -48,12 +48,12 @@ class Ui_Dialog(object):
         self.ElastixOptimizercomboBox.addItem("")
         self.ElastixOptimizercomboBox.setObjectName(u"ElastixOptimizercomboBox")
         self.ElastixOptimizercomboBox.setGeometry(QRect(208, 5, 281, 30))
-        self.ElastixOptimizercomboBox.setLayoutDirection(Qt.LeftToRight)
+        self.ElastixOptimizercomboBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.ElastixOptimizercomboBox.setStyleSheet(u"")
         self.ForceBlendercheckBox = QCheckBox(self.tab)
         self.ForceBlendercheckBox.setObjectName(u"ForceBlendercheckBox")
         self.ForceBlendercheckBox.setGeometry(QRect(9, 107, 349, 20))
-        self.ForceBlendercheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.ForceBlendercheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.TrabecularProportionSpinBox = QDoubleSpinBox(self.tab)
         self.TrabecularProportionSpinBox.setObjectName(u"TrabecularProportionSpinBox")
         self.TrabecularProportionSpinBox.setGeometry(QRect(201, 35, 61, 22))
@@ -94,18 +94,18 @@ class Ui_Dialog(object):
         self.ManualFOVcheckBox = QCheckBox(self.tab)
         self.ManualFOVcheckBox.setObjectName(u"ManualFOVcheckBox")
         self.ManualFOVcheckBox.setGeometry(QRect(9, 131, 150, 20))
-        self.ManualFOVcheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.ManualFOVcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.FocalLengthLabel_2 = QLabel(self.tab)
         self.FocalLengthLabel_2.setObjectName(u"FocalLengthLabel_2")
         self.FocalLengthLabel_2.setGeometry(QRect(15, 34, 181, 20))
         self.InvertZTEcheckBox = QCheckBox(self.tab)
         self.InvertZTEcheckBox.setObjectName(u"InvertZTEcheckBox")
         self.InvertZTEcheckBox.setGeometry(QRect(13, 233, 150, 20))
-        self.InvertZTEcheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.InvertZTEcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.DisableCTMedianFiltercheckBox = QCheckBox(self.tab)
         self.DisableCTMedianFiltercheckBox.setObjectName(u"DisableCTMedianFiltercheckBox")
         self.DisableCTMedianFiltercheckBox.setGeometry(QRect(13, 259, 251, 20))
-        self.DisableCTMedianFiltercheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.DisableCTMedianFiltercheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.FocalLengthLabel_4 = QLabel(self.tab)
         self.FocalLengthLabel_4.setObjectName(u"FocalLengthLabel_4")
         self.FocalLengthLabel_4.setGeometry(QRect(18, 282, 156, 20))
@@ -115,7 +115,7 @@ class Ui_Dialog(object):
         self.GeneratePETRAHistogramcheckBox = QCheckBox(self.tab)
         self.GeneratePETRAHistogramcheckBox.setObjectName(u"GeneratePETRAHistogramcheckBox")
         self.GeneratePETRAHistogramcheckBox.setGeometry(QRect(16, 334, 251, 20))
-        self.GeneratePETRAHistogramcheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.GeneratePETRAHistogramcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.FocalLengthLabel_6 = QLabel(self.tab)
         self.FocalLengthLabel_6.setObjectName(u"FocalLengthLabel_6")
         self.FocalLengthLabel_6.setGeometry(QRect(273, 334, 276, 20))
@@ -177,7 +177,7 @@ class Ui_Dialog(object):
         self.SegmentBrainTissuecheckBox = QCheckBox(self.tab)
         self.SegmentBrainTissuecheckBox.setObjectName(u"SegmentBrainTissuecheckBox")
         self.SegmentBrainTissuecheckBox.setGeometry(QRect(9, 56, 343, 20))
-        self.SegmentBrainTissuecheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.SegmentBrainTissuecheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.SimbNINBSRootlineEdit = QLineEdit(self.tab)
         self.SimbNINBSRootlineEdit.setObjectName(u"SimbNINBSRootlineEdit")
         self.SimbNINBSRootlineEdit.setGeometry(QRect(142, 80, 485, 21))
@@ -199,16 +199,16 @@ class Ui_Dialog(object):
         self.CTX500CorrectioncomboBox.addItem("")
         self.CTX500CorrectioncomboBox.setObjectName(u"CTX500CorrectioncomboBox")
         self.CTX500CorrectioncomboBox.setGeometry(QRect(316, 11, 99, 30))
-        self.CTX500CorrectioncomboBox.setLayoutDirection(Qt.LeftToRight)
+        self.CTX500CorrectioncomboBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.CTX500CorrectioncomboBox.setStyleSheet(u"")
         self.SaveStresscheckBox = QCheckBox(self.tab_2)
         self.SaveStresscheckBox.setObjectName(u"SaveStresscheckBox")
         self.SaveStresscheckBox.setGeometry(QRect(192, 40, 149, 20))
-        self.SaveStresscheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.SaveStresscheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.SaveDisplacementcheckBox = QCheckBox(self.tab_2)
         self.SaveDisplacementcheckBox.setObjectName(u"SaveDisplacementcheckBox")
         self.SaveDisplacementcheckBox.setGeometry(QRect(113, 64, 228, 20))
-        self.SaveDisplacementcheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.SaveDisplacementcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
@@ -238,7 +238,7 @@ class Ui_Dialog(object):
         self.bForceHomogenousMediumcheckBox = QCheckBox(self.tab_4)
         self.bForceHomogenousMediumcheckBox.setObjectName(u"bForceHomogenousMediumcheckBox")
         self.bForceHomogenousMediumcheckBox.setGeometry(QRect(176, 12, 192, 20))
-        self.bForceHomogenousMediumcheckBox.setLayoutDirection(Qt.LeftToRight)
+        self.bForceHomogenousMediumcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.FocalLengthLabel_13 = QLabel(self.tab_4)
         self.FocalLengthLabel_13.setObjectName(u"FocalLengthLabel_13")
         self.FocalLengthLabel_13.setGeometry(QRect(132, 39, 52, 28))
@@ -349,11 +349,15 @@ class Ui_Dialog(object):
         self.FocalLengthLabel_22 = QLabel(self.tab_4)
         self.FocalLengthLabel_22.setObjectName(u"FocalLengthLabel_22")
         self.FocalLengthLabel_22.setGeometry(QRect(427, 93, 63, 28))
+        self.bForceNoAbsorptionSkullScalpcheckBox = QCheckBox(self.tab_4)
+        self.bForceNoAbsorptionSkullScalpcheckBox.setObjectName(u"bForceNoAbsorptionSkullScalpcheckBox")
+        self.bForceNoAbsorptionSkullScalpcheckBox.setGeometry(QRect(177, 168, 264, 20))
+        self.bForceNoAbsorptionSkullScalpcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.tabWidget.addTab(self.tab_4, "")
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -412,6 +416,7 @@ class Ui_Dialog(object):
         self.FocalLengthLabel_20.setText(QCoreApplication.translate("Dialog", u"Absorp.", None))
         self.FocalLengthLabel_21.setText(QCoreApplication.translate("Dialog", u"T. cond.", None))
         self.FocalLengthLabel_22.setText(QCoreApplication.translate("Dialog", u"Int. Temp", None))
+        self.bForceNoAbsorptionSkullScalpcheckBox.setText(QCoreApplication.translate("Dialog", u"Force no absortpion in skull and scalp", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("Dialog", u"Development", None))
     # retranslateUi
 

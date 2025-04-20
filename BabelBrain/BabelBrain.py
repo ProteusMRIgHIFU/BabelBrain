@@ -1126,7 +1126,8 @@ class RunMaskGeneration(QObject):
             #here we screen out parameters that are irrelevant for Step 1
             if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
                                                     'bSaveDisplacement','LimitBHTEIterationsPerProcess',
-                                                    'bForceHomogenousMedium','HomogenousMediumValues']:
+                                                    'bForceHomogenousMedium','HomogenousMediumValues',
+                                                    'bForceNoAbsorptionSkullScalp']:
                 return True
             else:
                 return False

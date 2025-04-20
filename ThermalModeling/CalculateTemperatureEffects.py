@@ -330,6 +330,7 @@ def CalculateTemperatureEffects(InputPData,
                                 Backend='CUDA',
                                 LimitBHTEIterationsPerProcess=100,
                                 bForceHomogenousMedium=False,
+                                bForceNoAbsorptionSkullScalp=False,
                                 HomogenousMediumValues={'ThermalConductivity':0.5,  
                                     'SpecificHeat':3583.0,
                                     'Perfusion':55.0,
@@ -420,6 +421,8 @@ def CalculateTemperatureEffects(InputPData,
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
     MaterialList['Attenuation']=Input['Material'][:,3]
+    if bForceNoAbsorptionSkullScalp:
+        print('Forcing no absorption in Skull and Scalp')
     if bForceHomogenousMedium:
         print('Running BHTE with homogenous medium with ',HomogenousMediumValues)
         MaterialList['SpecificHeat']=np.array([4178.0,HomogenousMediumValues['SpecificHeat']]) #(J/kg/°C)
@@ -438,9 +441,12 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
         MaterialList['Perfusion']=[0.0,106.0,10.0,30.0,559.0]
-        
         MaterialList['Absorption']=[0,0.85,0.16,0.15,0.85]
-
+        if bForceNoAbsorptionSkullScalp:
+            MaterialList['Absorption'][1]=0.0
+            MaterialList['Absorption'][2]=0.0
+            MaterialList['Absorption'][3]=0.0
+            
         MaterialList['InitTemperature']=[BaselineTemperature,BaselineTemperature,
                                          BaselineTemperature,BaselineTemperature,BaselineTemperature]
         if bSegmentedBrain:
@@ -485,9 +491,11 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Absorption'][0:3]=[0,0.85,0.85]
         if bSegmentedBrain:
             MaterialList['Absorption'][3:5]=0.85
-            MaterialList['Absorption'][6:]=(0.16+0.15)/2
+            if not bForceNoAbsorptionSkullScalp:
+                MaterialList['Absorption'][6:]=(0.16+0.15)/2
         else:
-            MaterialList['Absorption'][3:]=(0.16+0.15)/2
+            if not bForceNoAbsorptionSkullScalp:
+                MaterialList['Absorption'][3:]=(0.16+0.15)/2
 
         MaterialList['InitTemperature']=np.ones_like(MaterialList['SoS'])*BaselineTemperature
 

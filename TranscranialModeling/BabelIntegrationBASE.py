@@ -146,8 +146,16 @@ for f in np.arange(100e3,1025e3,5e3):
                                              FitAttBoneShear(f)])
     Material['Skin']=           np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
     Material['Brain']=          np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
-    Material['WhiteMatter']=    np.array([1041.0, 1537.0, 0.0   ,  13.9306*f/1000e3 , 0])
-    Material['GrayMatter']=     np.array([1045.0, 1520.0, 0.0   ,  7.7137*f/1000e3 , 0])
+   
+    #for gm and wm attenuation, average of these 2 reports
+    # white matter	0.558	dB/cm/MHz	0.25-0.75				fit to line for ITIS Foundation from .25 to .75 MHz, intercept=0
+    # white matter	1.21	dB/cm/MHz 	3.5 to 10		20C		Labuda (2022) - From sectional 2D maps
+    # gray matter	0.094	dB/cm/MHz	0.25-0.75				fit to line for ITIS Foundation from .25 to .75 MHz, intercept=0
+    # gray matter	0.67	dB/cm/MHz 	3.5 to 10		20C		Labuda (2022) - From sectional 2D maps
+
+    #Labuda et al. 2022 for SoS and attenuation, ITIS for density 
+    Material['WhiteMatter']=    np.array([1041.0, 1537.0, 0.0   ,  10.1772968*f/1000e3 , 0])
+    Material['GrayMatter']=     np.array([1045.0, 1520.0, 0.0   ,  4.397881647*f/1000e3 , 0])
     Material['CSF']=            np.array([1007.0, 1507.0, 0.0   , 0.0990*f/1000e3 , 0])
 
     MatFreq[f]=Material

@@ -77,6 +77,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
             kargsSub['bForceHomogenousMedium']=kargs['bForceHomogenousMedium']
             kargsSub['HomogenousMediumValues']=kargs['HomogenousMediumValues']
+            kargsSub['bForceNoAbsorptionSkullScalp']=kargs['bForceNoAbsorptionSkullScalp']
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)

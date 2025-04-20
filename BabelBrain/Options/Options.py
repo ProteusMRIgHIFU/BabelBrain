@@ -70,6 +70,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['HomogenousMediumValues']['Perfusion'] = 555.0
         self._DefaultAdvanced['HomogenousMediumValues']['Absorption'] = 0.85
         self._DefaultAdvanced['HomogenousMediumValues']['InitTemperature'] = 37.0
+        self._DefaultAdvanced['bForceNoAbsorptionSkullScalp']=False
 
         for k,v in self._DefaultAdvanced.items():
             setattr(self,k,v)
@@ -150,7 +151,8 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousPerfusionSpinBox.setValue(values.HomogenousMediumValues['Perfusion'])
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
-        
+        self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
+
     @Slot()
     def SelectSimNIBSRoot(self):
         """Select the SimNIBS root folder"""
@@ -204,7 +206,7 @@ class AdvancedOptions(QDialog):
                 return
                 
         self.NewValues.bForceHomogenousMedium=self.ui.bForceHomogenousMediumcheckBox.isChecked()
-
+        
         self.NewValues.HomogenousMediumValues['Density']             = self.ui.HomogenousDensitySpinBox.value()        
         self.NewValues.HomogenousMediumValues['LongSoS']             = self.ui.HomogenousLSoSSpinBox.value()      
         self.NewValues.HomogenousMediumValues['LongAtt']             = self.ui.HomogenousLAttSpinBox.value()      
@@ -215,6 +217,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.HomogenousMediumValues['Perfusion']           = self.ui.HomogenousPerfusionSpinBox.value() 
         self.NewValues.HomogenousMediumValues['Absorption']          = self.ui.HomogenousAbsorptionSpinBox.value()
         self.NewValues.HomogenousMediumValues['InitTemperature']     = self.ui.HomogenousInitTempSpinBox.value()  
+        self.NewValues.bForceNoAbsorptionSkullScalp=self.ui.bForceNoAbsorptionSkullScalpcheckBox.isChecked()
 
         self.accept()
 
