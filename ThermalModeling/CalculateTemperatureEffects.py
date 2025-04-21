@@ -62,7 +62,7 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
 
 def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   MaterialList,pAmpWater,Isppa,
-                  xf,yf,zf,SelBrain,bForceHomogenousMedium):
+                  xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain):
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
@@ -87,10 +87,17 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
     if not bForceHomogenousMedium:
-        if 'MaterialMapCT' in Input:
-            pAmpWater[MaterialMap!=2]=0.0
+        if bSegmentedBrain:
+            if 'MaterialMapCT' in Input:
+                selregion = np.isin(MaterialMap,[2,3,4,5])==False
+            else:
+                selregion = np.isin(MaterialMap,[0,1,2,3])
         else:
-            pAmpWater[MaterialMap!=4]=0.0
+            if 'MaterialMapCT' in Input:
+                selregion=MaterialMap!=2
+            else:
+                selregion=MaterialMap!=4
+    pAmpWater[selregion]=0.0
     cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
     cxw=cxw[0]
     cyw=cyw[0]
@@ -135,8 +142,13 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
         print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
         RatioLosses=RatioLossesLoc
 
-    SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
-    DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    if bSegmentedBrain:
+        SoSTarget = SoSMap[cxr,cyr,czr]
+        DensityTarget = DensityMap[cxr,cyr,czr]
+    else:
+        SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+        DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+
     PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
     PressureRatio=PressureAdjust/pAmpTissue.max()
     return PressureRatio,RatioLosses
@@ -548,7 +560,7 @@ def CalculateTemperatureEffects(InputPData,
     if type(InputPData) is str:   
         PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
-                                                xf,yf,zf,SelBrain,bForceHomogenousMedium)
+                                                xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -559,7 +571,7 @@ def CalculateTemperatureEffects(InputPData,
             print('Calculating losses for spot ',n)
             PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                           MaterialList,pAmpWater,Isppa,
-                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium)
+                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
