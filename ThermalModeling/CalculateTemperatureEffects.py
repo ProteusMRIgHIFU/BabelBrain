@@ -62,7 +62,7 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
 
 def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   MaterialList,pAmpWater,Isppa,
-                  xf,yf,zf,SelBrain,bForceHomogenousMedium):
+                  xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain):
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
@@ -79,23 +79,31 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
 
     xfr=Input['x_vec']
     yfr=Input['y_vec']
-    zfr=Input['z_vec']
+    zfr=Input['z_vec'].copy()
+    zfr-=zfr.min()
     
     
     PlanAtMaximumWater=pAmpWater[:,:,2] 
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
     if not bForceHomogenousMedium:
-        if 'MaterialMapCT' in Input:
-            pAmpWater[MaterialMap!=2]=0.0
+        if bSegmentedBrain:
+            if 'MaterialMapCT' in Input:
+                selregion = np.isin(MaterialMap,[2,3,4,5])==False
+            else:
+                selregion = np.isin(MaterialMap,[0,1,2,3])
         else:
-            pAmpWater[MaterialMap!=4]=0.0
+            if 'MaterialMapCT' in Input:
+                selregion=MaterialMap!=2
+            else:
+                selregion=MaterialMap!=4
+    pAmpWater[selregion]=0.0
     cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
     cxw=cxw[0]
     cyw=cyw[0]
     czw=czw[0]
     print('Location Max Pessure Water',cxw,cyw,czw,'\n',
-            xf[cxw],yf[cyw],zf[czw],pAmpWater.max()/1e6)
+            xf[cxw],yf[cyw],zf[czw]-zf[0],pAmpWater.max()/1e6)
     
     pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
     pAmpTissue[SelBrain==False]=0.0
@@ -109,8 +117,12 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     
 
     PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czw]
-    AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
-    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLoc) #must be very close to AcousticEnergyWater
+    AcousticEnergyWaterMaxLocWat=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
+    print('Water Acoustic Energy at maximum plane water max loc',AcousticEnergyWaterMaxLocWat) #must be very close to AcousticEnergyWater
+
+    PlanAtMaximumTissue=pAmpTissue[:,:,czw] 
+    AcousticEnergyTissueMaxLocWat=(PlanAtMaximumTissue**2/2/DensityMap[:,:,czw]/SoSMap[:,:,czw]*((xf[1]-xf[0])**2)).sum()
+    print('Tissue Acoustic Energy at maximum plane water max loc',AcousticEnergyTissueMaxLocWat)
     
     PlanAtMaximumWaterMaxLoc=pAmpWater[:,:,czr]
     AcousticEnergyWaterMaxLoc=(PlanAtMaximumWaterMaxLoc**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
@@ -120,11 +132,23 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     AcousticEnergyTissue=(PlanAtMaximumTissue**2/2/DensityMap[:,:,czr]/ SoSMap[:,:,czr]*((xf[1]-xf[0])**2)).sum()
     print('Tissue Acoustic Energy at maximum plane tissue',AcousticEnergyTissue)
     
+    RatioLossesLoc=AcousticEnergyTissueMaxLocWat/AcousticEnergyWaterMaxLocWat
+    print('Total losses ratio using Water loc and in dB',RatioLossesLoc,np.log10(RatioLossesLoc)*10)
+
     RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
     print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
 
-    SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
-    DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+    if RatioLosses > (RatioLossesLoc+0.2):
+        print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
+        RatioLosses=RatioLossesLoc
+
+    if bSegmentedBrain:
+        SoSTarget = SoSMap[cxr,cyr,czr]
+        DensityTarget = DensityMap[cxr,cyr,czr]
+    else:
+        SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+        DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
+
     PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
     PressureRatio=PressureAdjust/pAmpTissue.max()
     return PressureRatio,RatioLosses
@@ -318,6 +342,7 @@ def CalculateTemperatureEffects(InputPData,
                                 Backend='CUDA',
                                 LimitBHTEIterationsPerProcess=100,
                                 bForceHomogenousMedium=False,
+                                bForceNoAbsorptionSkullScalp=False,
                                 HomogenousMediumValues={'ThermalConductivity':0.5,  
                                     'SpecificHeat':3583.0,
                                     'Perfusion':55.0,
@@ -408,6 +433,8 @@ def CalculateTemperatureEffects(InputPData,
     MaterialList['Density']=Input['Material'][:,0]
     MaterialList['SoS']=Input['Material'][:,1]
     MaterialList['Attenuation']=Input['Material'][:,3]
+    if bForceNoAbsorptionSkullScalp:
+        print('Forcing no absorption in Skull and Scalp')
     if bForceHomogenousMedium:
         print('Running BHTE with homogenous medium with ',HomogenousMediumValues)
         MaterialList['SpecificHeat']=np.array([4178.0,HomogenousMediumValues['SpecificHeat']]) #(J/kg/°C)
@@ -426,9 +453,12 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Conductivity']=[0.6,0.37,0.32,0.31,0.51] # (W/m/°C)
         #https://itis.swiss/virtual-population/tissue-properties/database/heat-transfer-rate/
         MaterialList['Perfusion']=[0.0,106.0,10.0,30.0,559.0]
-        
         MaterialList['Absorption']=[0,0.85,0.16,0.15,0.85]
-
+        if bForceNoAbsorptionSkullScalp:
+            MaterialList['Absorption'][1]=0.0
+            MaterialList['Absorption'][2]=0.0
+            MaterialList['Absorption'][3]=0.0
+            
         MaterialList['InitTemperature']=[BaselineTemperature,BaselineTemperature,
                                          BaselineTemperature,BaselineTemperature,BaselineTemperature]
         if bSegmentedBrain:
@@ -473,9 +503,11 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Absorption'][0:3]=[0,0.85,0.85]
         if bSegmentedBrain:
             MaterialList['Absorption'][3:5]=0.85
-            MaterialList['Absorption'][6:]=(0.16+0.15)/2
+            if not bForceNoAbsorptionSkullScalp:
+                MaterialList['Absorption'][6:]=(0.16+0.15)/2
         else:
-            MaterialList['Absorption'][3:]=(0.16+0.15)/2
+            if not bForceNoAbsorptionSkullScalp:
+                MaterialList['Absorption'][3:]=(0.16+0.15)/2
 
         MaterialList['InitTemperature']=np.ones_like(MaterialList['SoS'])*BaselineTemperature
 
@@ -528,7 +560,7 @@ def CalculateTemperatureEffects(InputPData,
     if type(InputPData) is str:   
         PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
-                                                xf,yf,zf,SelBrain,bForceHomogenousMedium)
+                                                xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -539,7 +571,7 @@ def CalculateTemperatureEffects(InputPData,
             print('Calculating losses for spot ',n)
             PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                           MaterialList,pAmpWater,Isppa,
-                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium)
+                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             

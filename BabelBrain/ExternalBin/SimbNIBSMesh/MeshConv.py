@@ -1,4 +1,4 @@
-from simnibs import mesh_io_min as mesh_io
+from simnibs import mesh_io
 import nibabel
 import numpy as np
 

@@ -779,6 +779,7 @@ class RunThermalSim(QObject):
         kargs['LimitBHTEIterationsPerProcess']=self._mainApp.Config['LimitBHTEIterationsPerProcess']
         kargs['bForceHomogenousMedium']=self._mainApp.Config['bForceHomogenousMedium']
         kargs['HomogenousMediumValues']=self._mainApp.Config['HomogenousMediumValues']
+        kargs['bForceNoAbsorptionSkullScalp']=self._mainApp.Config['bForceNoAbsorptionSkullScalp']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','R15287']:

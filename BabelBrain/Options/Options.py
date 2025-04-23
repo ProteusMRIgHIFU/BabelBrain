@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox
+from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QStyle,QMessageBox
 from PySide6.QtCore import Slot, Qt
 
 # Important:
@@ -56,6 +56,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['bSaveStress']=False
         self._DefaultAdvanced['bSaveDisplacement']=False
         self._DefaultAdvanced['bSegmentBrainTissue']=False
+        self._DefaultAdvanced['SimbNINBSRoot']='...'
         self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
         self._DefaultAdvanced['bForceHomogenousMedium']=False
         self._DefaultAdvanced['HomogenousMediumValues']={}
@@ -69,6 +70,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['HomogenousMediumValues']['Perfusion'] = 555.0
         self._DefaultAdvanced['HomogenousMediumValues']['Absorption'] = 0.85
         self._DefaultAdvanced['HomogenousMediumValues']['InitTemperature'] = 37.0
+        self._DefaultAdvanced['bForceNoAbsorptionSkullScalp']=False
 
         for k,v in self._DefaultAdvanced.items():
             setattr(self,k,v)
@@ -99,6 +101,9 @@ class AdvancedOptions(QDialog):
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)   
         
+        self.ui.SimNIBSRootpushButton.clicked.connect(self.SelectSimNIBSRoot)
+        self.ui.SimNIBSRootpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+        
     def SetValues(self,values):
 
         sel=self.ui.ElastixOptimizercomboBox.findText(values.ElastixOptimizer)
@@ -127,6 +132,8 @@ class AdvancedOptions(QDialog):
         self.ui.SaveStresscheckBox.setChecked(values.bSaveStress)
         self.ui.SaveDisplacementcheckBox.setChecked(values.bSaveDisplacement)
         self.ui.SegmentBrainTissuecheckBox.setChecked(values.bSegmentBrainTissue)
+        self.ui.SimbNINBSRootlineEdit.setText(values.SimbNINBSRoot)
+        self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(values.SimbNINBSRoot))
         
         sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
         if sel==-1:
@@ -144,6 +151,19 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousPerfusionSpinBox.setValue(values.HomogenousMediumValues['Perfusion'])
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
+        self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
+
+    @Slot()
+    def SelectSimNIBSRoot(self):
+        """Select the SimNIBS root folder"""
+        bdir=self.ui.SimbNINBSRootlineEdit.text()
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        folder = QFileDialog.getExistingDirectory(self, "Select SimNIBS Root Folder",bdir)    
+        
+        if folder:
+            self.ui.SimbNINBSRootlineEdit.setText(folder)
+            self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(folder))
         
     @Slot()
     def ResetToDefaults(self):
@@ -177,8 +197,16 @@ class AdvancedOptions(QDialog):
         self.NewValues.bSaveStress=self.ui.SaveStresscheckBox.isChecked()
         self.NewValues.bSaveDisplacement=self.ui.SaveDisplacementcheckBox.isChecked()
         self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
+        self.NewValues.SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
+        if self.NewValues.bSegmentBrainTissue:
+            if not os.path.isdir(self.NewValues.SimbNINBSRoot):
+                msgBox = QMessageBox()
+                msgBox.setDetailedText("'The SimNIBS root folder does not exist -'+self.NewValues.SimbNINBSRoot")
+                msgBox.exec()
+                return
+                
         self.NewValues.bForceHomogenousMedium=self.ui.bForceHomogenousMediumcheckBox.isChecked()
-
+        
         self.NewValues.HomogenousMediumValues['Density']             = self.ui.HomogenousDensitySpinBox.value()        
         self.NewValues.HomogenousMediumValues['LongSoS']             = self.ui.HomogenousLSoSSpinBox.value()      
         self.NewValues.HomogenousMediumValues['LongAtt']             = self.ui.HomogenousLAttSpinBox.value()      
@@ -189,6 +217,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.HomogenousMediumValues['Perfusion']           = self.ui.HomogenousPerfusionSpinBox.value() 
         self.NewValues.HomogenousMediumValues['Absorption']          = self.ui.HomogenousAbsorptionSpinBox.value()
         self.NewValues.HomogenousMediumValues['InitTemperature']     = self.ui.HomogenousInitTempSpinBox.value()  
+        self.NewValues.bForceNoAbsorptionSkullScalp=self.ui.bForceNoAbsorptionSkullScalpcheckBox.isChecked()
 
         self.accept()
 

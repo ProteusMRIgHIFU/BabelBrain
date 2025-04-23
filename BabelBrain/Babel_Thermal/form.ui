@@ -45,15 +45,14 @@
   <widget class="QLabel" name="label_20">
    <property name="geometry">
     <rect>
-     <x>4</x>
-     <y>50</y>
-     <width>143</width>
-     <height>46</height>
+     <x>17</x>
+     <y>49</y>
+     <width>127</width>
+     <height>25</height>
     </rect>
    </property>
    <property name="text">
-    <string>Combination timing
-[Duration, DC, PRF]</string>
+    <string>Combination timing</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -352,6 +351,22 @@
    </property>
    <property name="text">
     <string>Show</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_23">
+   <property name="geometry">
+    <rect>
+     <x>15</x>
+     <y>69</y>
+     <width>131</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>[Duration, DC, PRF]</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
