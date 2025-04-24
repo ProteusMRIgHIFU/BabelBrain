@@ -413,6 +413,7 @@ class RUN_SIM_BASE(object):
                 bSaveStress=False,
                 bSaveDisplacement=False,
                 bForceHomogenousMedium=False,
+                ForceBenchmarkTest=0,
                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
                                     'LongSoS':1500.0, #m/s
                                     'LongAtt':25.0,
@@ -487,6 +488,7 @@ class RUN_SIM_BASE(object):
                                                     bSaveDisplacement=bSaveDisplacement,
                                                     bForceHomogenousMedium=bForceHomogenousMedium,
                                                     HomogenousMediumValues=HomogenousMediumValues,
+                                                    ForceBenchmarkTest=ForceBenchmarkTest,
                                                     **kargs)
                     print('  Step 1')
 
@@ -597,6 +599,7 @@ class BabelFTD_Simulations_BASE(object):
                                     'LongAtt':25.0, #Np/m
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':5.0}, #Np/m
+                 ForceBenchmarkTest=0,
                  ):
         self._MASKFNAME=MASKFNAME
         
@@ -633,6 +636,7 @@ class BabelFTD_Simulations_BASE(object):
         self._bSaveStress = bSaveStress
         self._bSaveDisplacement = bSaveDisplacement
         self._bForceHomogenousMedium=bForceHomogenousMedium
+        self._ForceBenchmarkTest=ForceBenchmarkTest
         self._HomogenousMediumValues =HomogenousMediumValues
 
     def CreateSimConditions(self,**kargs):
@@ -727,7 +731,7 @@ class BabelFTD_Simulations_BASE(object):
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
             QCorrArr =1.0
-        elif self._bForceHomogenousMedium:
+        elif self._bForceHomogenousMedium or self._ForceBenchmarkTest==1:
             QCorrArr = np.ones(2)
         elif  self._CTFNAME is None:
             if bBrainSegmentation:
@@ -772,6 +776,12 @@ class BabelFTD_Simulations_BASE(object):
                                            self._HomogenousMediumValues['ShearSoS'],
                                            self._HomogenousMediumValues['LongAtt'],
                                            self._HomogenousMediumValues['ShearAtt']) 
+        elif self._ForceBenchmarkTest==1 and not self._bWaterOnly:
+            self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
+                                           self._HomogenousMediumValues['LongSoS'],
+                                           self._HomogenousMediumValues['ShearSoS'],
+                                           self._HomogenousMediumValues['LongAtt'],
+                                           self._HomogenousMediumValues['ShearAtt'])
         elif self._CTFNAME is not None and not self._bWaterOnly:
             lMaterials =['Skin','Brain']
             if bBrainSegmentation:
@@ -812,7 +822,8 @@ class BabelFTD_Simulations_BASE(object):
         self._SIM_SETTINGS.UpdateConditions(self._SkullMask,
                                             AlphaCFL=self._AlphaCFL,
                                             bWaterOnly=self._bWaterOnly,
-                                            bForceHomogenousMedium=self._bForceHomogenousMedium)
+                                            bForceHomogenousMedium=self._bForceHomogenousMedium,
+                                            ForceBenchmarkTest=self._ForceBenchmarkTest)
         gc.collect()
 
     def GenerateSTLTx(self,prefix):
@@ -1128,7 +1139,9 @@ class SimulationConditionsBASE(object):
     def SpatialStep(self):
         return self._SpatialStep
         
-    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,bForceHomogenousMedium=False):
+    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
+                         bForceHomogenousMedium=False,
+                         ForceBenchmarkTest=0):
         '''
         Update simulation conditions
         '''
@@ -1248,12 +1261,18 @@ class SimulationConditionsBASE(object):
             
             zfield+=self._FocalLength
             TopZ=zfield[self._PMLThickness]
+            
             if self._FocalLength!=0:
                 DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
                 Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
                 RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
             else:
                 RadiusFace=self._Aperture/2*1.10
+
+            if ForceBenchmarkTest==1:
+            #we adjust dimensions to benchmark 1
+                print('Forcing radiusface to fit benchmarl 1')
+                RadiusFace=35e-3
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
@@ -1310,7 +1329,9 @@ elif self._bTightNarrowBeamDomain:
                     bCompleteForShrinking=True
                 elif self._nCountShrink>=8:
                     bCompleteForShrinking=True
-        
+
+            #we overwrite the values if benchmark is being selected
+            
         self._XDim=xfield
         self._YDim=yfield
         self._ZDim=zfield
@@ -1406,6 +1427,10 @@ elif self._bTightNarrowBeamDomain:
         
         if bForceHomogenousMedium:
             self._MaterialMap[:,:,:]=1
+        if ForceBenchmarkTest==1:
+            self._MaterialMap[:,:,:]=1
+            nStepsWater=int(np.round(np.sqrt(64e-3**2-32e-3**2)/SpatialStep))
+            self._MaterialMap[:,:,:self._ZSourceLocation+1+nStepsWater]=0
             
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
