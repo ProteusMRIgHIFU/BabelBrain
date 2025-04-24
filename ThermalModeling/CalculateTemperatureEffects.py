@@ -463,9 +463,9 @@ def CalculateTemperatureEffects(InputPData,
                                          BaselineTemperature,BaselineTemperature,BaselineTemperature]
         if bSegmentedBrain:
             #we add white matter, gray matter and CSF
-            MaterialList['Conductivity']+=[0.55, 0.48, 0.57]
+            MaterialList['Conductivity']+=[0.48, 0.55, 0.57]
             MaterialList['SpecificHeat']+=[3583.0, 3696.0, 4096.0]
-            MaterialList['Perfusion']+=[764.0, 212.0, 0.0]
+            MaterialList['Perfusion']+=[212.0,764.0, 0.0]
             MaterialList['Absorption']+=[0.85, 0.85, 0.0]
             MaterialList['InitTemperature']+=[BaselineTemperature,BaselineTemperature,BaselineTemperature]
 
@@ -486,7 +486,7 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Conductivity']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Conductivity'][0:3]=[0.6,0.37,0.51]
         if bSegmentedBrain:
-            MaterialList['Conductivity'][3:6]=np.array([0.55, 0.48, 0.57])
+            MaterialList['Conductivity'][3:6]=np.array([0.48,0.55, 0.57])
             MaterialList['Conductivity'][6:]=(0.31+0.32)/2
         else:
             MaterialList['Conductivity'][3:]=(0.31+0.32)/2
@@ -494,7 +494,7 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Perfusion']=np.zeros_like(MaterialList['SoS'])
         MaterialList['Perfusion'][0:3]=[0,106,559]
         if bSegmentedBrain:
-            MaterialList['Perfusion'][3:6]=np.array([764.0, 212.0, 0.0])
+            MaterialList['Perfusion'][3:6]=np.array([212.0, 764.0, 0.0])
             MaterialList['Perfusion'][6:]=(10.0+30.0)/2
         else:
             MaterialList['Perfusion'][3:]=(10.0+30.0)/2
