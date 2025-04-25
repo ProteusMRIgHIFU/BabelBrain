@@ -416,9 +416,19 @@ class RUN_SIM_BASE(object):
                 ForceBenchmarkTest=0,
                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
                                     'LongSoS':1500.0, #m/s
-                                    'LongAtt':25.0,
+                                    'LongAtt':5.0,
                                     'ShearSoS':0.0, #m/s
-                                    'ShearAtt':5.0}, #Np/m
+                                    'ShearAtt':0.0}, #Np/m
+                BenchMarkMaterial1={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':5.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
+                BenchMarkMaterial2={'Density':1600.0, #kg/m3 
+                                    'LongSoS':2100.0, #m/s
+                                    'LongAtt':20.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -489,6 +499,8 @@ class RUN_SIM_BASE(object):
                                                     bForceHomogenousMedium=bForceHomogenousMedium,
                                                     HomogenousMediumValues=HomogenousMediumValues,
                                                     ForceBenchmarkTest=ForceBenchmarkTest,
+                                                    BenchMarkMaterial1=BenchMarkMaterial1,
+                                                    BenchMarkMaterial2=BenchMarkMaterial2,
                                                     **kargs)
                     print('  Step 1')
 
@@ -600,6 +612,16 @@ class BabelFTD_Simulations_BASE(object):
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':5.0}, #Np/m
                  ForceBenchmarkTest=0,
+                 BenchMarkMaterial1={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':5.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
+                 BenchMarkMaterial2={'Density':1600.0, #kg/m3 
+                                    'LongSoS':2100.0, #m/s
+                                    'LongAtt':20.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
                  ):
         self._MASKFNAME=MASKFNAME
         
@@ -638,6 +660,8 @@ class BabelFTD_Simulations_BASE(object):
         self._bForceHomogenousMedium=bForceHomogenousMedium
         self._ForceBenchmarkTest=ForceBenchmarkTest
         self._HomogenousMediumValues =HomogenousMediumValues
+        self._BenchMarkMaterial1 = BenchMarkMaterial1
+        self._BenchMarkMaterial2 = BenchMarkMaterial2
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -659,7 +683,9 @@ class BabelFTD_Simulations_BASE(object):
         self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
-        if self._CTFNAME is not None and not self._bWaterOnly and not self._bForceHomogenousMedium:
+        if self._CTFNAME is not None and not self._bWaterOnly\
+                                     and not self._bForceHomogenousMedium\
+                                     and self._ForceBenchmarkTest==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
@@ -733,6 +759,8 @@ class BabelFTD_Simulations_BASE(object):
             QCorrArr =1.0
         elif self._bForceHomogenousMedium or self._ForceBenchmarkTest==1:
             QCorrArr = np.ones(2)
+        elif self._ForceBenchmarkTest==2:
+            QCorrArr = np.ones(3)
         elif  self._CTFNAME is None:
             if bBrainSegmentation:
                 QCorrArr = np.ones(8)
@@ -776,12 +804,19 @@ class BabelFTD_Simulations_BASE(object):
                                            self._HomogenousMediumValues['ShearSoS'],
                                            self._HomogenousMediumValues['LongAtt'],
                                            self._HomogenousMediumValues['ShearAtt']) 
-        elif self._ForceBenchmarkTest==1 and not self._bWaterOnly:
-            self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
-                                           self._HomogenousMediumValues['LongSoS'],
-                                           self._HomogenousMediumValues['ShearSoS'],
-                                           self._HomogenousMediumValues['LongAtt'],
-                                           self._HomogenousMediumValues['ShearAtt'])
+        elif self._ForceBenchmarkTest > 0 and not self._bWaterOnly:
+            self._SIM_SETTINGS.AddMaterial(self._BenchMarkMaterial1['Density'], #den
+                                           self._BenchMarkMaterial1['LongSoS'],
+                                           self._BenchMarkMaterial1['ShearSoS'],
+                                           self._BenchMarkMaterial1['LongAtt'],
+                                           self._BenchMarkMaterial1['ShearAtt'])
+  
+            if self._ForceBenchmarkTest ==2:
+                self._SIM_SETTINGS.AddMaterial(self._BenchMarkMaterial2['Density'], #den
+                                           self._BenchMarkMaterial2['LongSoS'],
+                                           self._BenchMarkMaterial2['ShearSoS'],
+                                           self._BenchMarkMaterial2['LongAtt'],
+                                           self._BenchMarkMaterial2['ShearAtt'])
         elif self._CTFNAME is not None and not self._bWaterOnly:
             lMaterials =['Skin','Brain']
             if bBrainSegmentation:
@@ -1269,10 +1304,12 @@ class SimulationConditionsBASE(object):
             else:
                 RadiusFace=self._Aperture/2*1.10
 
-            if ForceBenchmarkTest==1:
+            if ForceBenchmarkTest>0:
             #we adjust dimensions to benchmark 1
-                print('Forcing radiusface to fit benchmarl 1')
-                RadiusFace=35e-3
+                print('Forcing radiusface to fit benchmark 1')
+                if RadiusFace>0.035:
+                    warnings.warn('RadiusFace too large, setting to 35 mm')
+                RadiusFace=np.max(35e-3,RadiusFace)
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
@@ -1373,7 +1410,8 @@ elif self._bTightNarrowBeamDomain:
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
         self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
-        if bWaterOnly==False and bForceHomogenousMedium == False:
+        if bWaterOnly==False and bForceHomogenousMedium == False and ForceBenchmarkTest==0:
+            #we add the material map
             if self._XShrink_R==0:
                 upperXR=self._SkullMaskDataOrig.shape[0]
             else:
@@ -1429,8 +1467,29 @@ elif self._bTightNarrowBeamDomain:
             self._MaterialMap[:,:,:]=1
         if ForceBenchmarkTest==1:
             self._MaterialMap[:,:,:]=1
-            nStepsWater=int(np.round(np.sqrt(64e-3**2-32e-3**2)/SpatialStep))
+            #we place a water layer in the top spaced out from the source outplane of 21.4 mm. Source must have a focal length of 64 mm and a radius of 32 mm
+            nStepsWater=int(np.round((30e-3 -(64e-3-np.sqrt(64e-3**2-32e-3**2)))/SpatialStep))
             self._MaterialMap[:,:,:self._ZSourceLocation+1+nStepsWater]=0
+        elif ForceBenchmarkTest==2:
+            #we use a simplified skull layer of 6.5mm of thickness and a spaced out with from the source outplane of 21.4 mm. Source must have a focal length of 64 mm and a radius of 32 mm
+            self._MaterialMap[:,:,:]=0
+            radius1Sphere=75e-3
+            radius2Sphere=68.5e-3
+            DistanceOutPlane=30e-3 -(64e-3-np.sqrt(64e-3**2-32e-3**2))
+            xc=np.arange(self._N1)*SpatialStep
+            yc=np.arange(self._N2)*SpatialStep
+            zc=np.arange(self._N3)*SpatialStep
+            xc-=np.mean(xc)
+            yc-=np.mean(yc)
+            zc=zc-DistanceOutPlane
+            xx,yy,zz=np.meshgrid(xc,yc,zc,indexing='ij')
+            zOrigin=radius1Sphere
+            sphere1=(xx**2+yy**2+(zz-zOrigin)**2)<=radius1Sphere**2
+            sphere2=(xx**2+yy**2+(zz-zOrigin)**2)<=radius2Sphere**2-SpatialStep**2
+            self._MaterialMap[sphere1]=2
+            self._MaterialMap[sphere2]=1
+            
+            
             
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
