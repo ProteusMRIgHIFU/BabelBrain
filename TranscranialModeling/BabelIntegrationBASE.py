@@ -797,6 +797,11 @@ class BabelFTD_Simulations_BASE(object):
                                 ExtraAdjustY=self._ExtraAdjustY,
                                 bSaveStress=self._bSaveStress,
                                 bSaveDisplacement=self._bSaveDisplacement)
+        
+        #####
+        ##### bForceHomogenousMedium and ForceBenchmarkTest are only for testing
+        #####
+        
         if self._bForceHomogenousMedium and not self._bWaterOnly:
             print('Forcing using homogenous material with', self._HomogenousMediumValues)
             self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
@@ -1306,10 +1311,10 @@ class SimulationConditionsBASE(object):
 
             if ForceBenchmarkTest>0:
             #we adjust dimensions to benchmark 1
-                print('Forcing radiusface to fit benchmark 1')
+                print('Forcing radiusface to fit benchmark 1, current value', RadiusFace)
                 if RadiusFace>0.035:
                     warnings.warn('RadiusFace too large, setting to 35 mm')
-                RadiusFace=np.max(35e-3,RadiusFace)
+                RadiusFace=0.035
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
@@ -1463,6 +1468,9 @@ elif self._bTightNarrowBeamDomain:
             #We remove tissue layers
             self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
         
+        #####
+        ##### bForceHomogenousMedium and ForceBenchmarkTest are only for testing
+        #####
         if bForceHomogenousMedium:
             self._MaterialMap[:,:,:]=1
         if ForceBenchmarkTest==1:
