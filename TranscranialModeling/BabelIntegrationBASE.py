@@ -429,6 +429,7 @@ class RUN_SIM_BASE(object):
                                     'LongAtt':20.0,
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':0.0}, #Np/m
+                InputFocusStart='',
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -501,6 +502,7 @@ class RUN_SIM_BASE(object):
                                                     ForceBenchmarkTest=ForceBenchmarkTest,
                                                     BenchMarkMaterial1=BenchMarkMaterial1,
                                                     BenchMarkMaterial2=BenchMarkMaterial2,
+                                                    InputFocusStart=InputFocusStart,
                                                     **kargs)
                     print('  Step 1')
 
@@ -622,6 +624,7 @@ class BabelFTD_Simulations_BASE(object):
                                     'LongAtt':20.0,
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':0.0}, #Np/m
+                 InputFocusStart=''
                  ):
         self._MASKFNAME=MASKFNAME
         
@@ -662,6 +665,7 @@ class BabelFTD_Simulations_BASE(object):
         self._HomogenousMediumValues =HomogenousMediumValues
         self._BenchMarkMaterial1 = BenchMarkMaterial1
         self._BenchMarkMaterial2 = BenchMarkMaterial2
+        self._InputFocusStart=InputFocusStart
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -796,7 +800,11 @@ class BabelFTD_Simulations_BASE(object):
                                 ExtraAdjustX=self._ExtraAdjustX,
                                 ExtraAdjustY=self._ExtraAdjustY,
                                 bSaveStress=self._bSaveStress,
-                                bSaveDisplacement=self._bSaveDisplacement)
+                                bSaveDisplacement=self._bSaveDisplacement,
+                                ForceBenchmarkTest=self._ForceBenchmarkTest,
+                                BenchMarkMaterial1=self._BenchMarkMaterial1,
+                                BenchMarkMaterial2=self._BenchMarkMaterial2,
+                                InputFocusStart=self._InputFocusStart)
         
         #####
         ##### bForceHomogenousMedium and ForceBenchmarkTest are only for testing
@@ -810,6 +818,7 @@ class BabelFTD_Simulations_BASE(object):
                                            self._HomogenousMediumValues['LongAtt'],
                                            self._HomogenousMediumValues['ShearAtt']) 
         elif self._ForceBenchmarkTest > 0 and not self._bWaterOnly:
+            print('Forcing using benchmark material 1', self._BenchMarkMaterial1)
             self._SIM_SETTINGS.AddMaterial(self._BenchMarkMaterial1['Density'], #den
                                            self._BenchMarkMaterial1['LongSoS'],
                                            self._BenchMarkMaterial1['ShearSoS'],
@@ -817,6 +826,7 @@ class BabelFTD_Simulations_BASE(object):
                                            self._BenchMarkMaterial1['ShearAtt'])
   
             if self._ForceBenchmarkTest ==2:
+                print('Forcing using benchmark material 2', self._BenchMarkMaterial2)
                 self._SIM_SETTINGS.AddMaterial(self._BenchMarkMaterial2['Density'], #den
                                            self._BenchMarkMaterial2['LongSoS'],
                                            self._BenchMarkMaterial2['ShearSoS'],
@@ -1123,7 +1133,19 @@ class SimulationConditionsBASE(object):
                       ExtraAdjustY =[0.0],
                       bSaveStress=False,
                       bSaveDisplacement=False,
-                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
+                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
+                      ForceBenchmarkTest=False,
+                      BenchMarkMaterial1={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':5.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
+                      BenchMarkMaterial2={'Density':1600.0, #kg/m3 
+                                    'LongSoS':2100.0, #m/s
+                                    'LongAtt':20.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0},
+                      InputFocusStart=''):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1163,6 +1185,10 @@ class SimulationConditionsBASE(object):
         self._ZTxCorrecton=ZTxCorrecton
         self._bSaveStress=bSaveStress
         self._bSaveDisplacement=bSaveDisplacement
+        self._ForceBenchmarkTest=ForceBenchmarkTest
+        self._BenchMarkMaterial1=BenchMarkMaterial1
+        self._BenchMarkMaterial2=BenchMarkMaterial2
+        self._InputFocusStart=InputFocusStart
         
         
         
@@ -1188,7 +1214,15 @@ class SimulationConditionsBASE(object):
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
+        if ForceBenchmarkTest==0:
+            SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
+        else:
+            AllBMat=[self._BenchMarkMaterial1,self._BenchMarkMaterial2]
+            SmallestSOS=1e6
+            for e in AllBMat:
+                SmallestSOS=np.min((SmallestSOS,e['LongSoS']))
+                if e['ShearSoS']!=0:
+                    SmallestSOS=np.min((SmallestSOS,e['ShearSoS']))
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
@@ -1476,14 +1510,14 @@ elif self._bTightNarrowBeamDomain:
         if ForceBenchmarkTest==1:
             self._MaterialMap[:,:,:]=1
             #we place a water layer in the top spaced out from the source outplane of 21.4 mm. Source must have a focal length of 64 mm and a radius of 32 mm
-            nStepsWater=int(np.round((30e-3 -(64e-3-np.sqrt(64e-3**2-32e-3**2)))/SpatialStep))
+            nStepsWater=int(np.round((30e-3 -8.5e-3)/SpatialStep))
             self._MaterialMap[:,:,:self._ZSourceLocation+1+nStepsWater]=0
         elif ForceBenchmarkTest==2:
             #we use a simplified skull layer of 6.5mm of thickness and a spaced out with from the source outplane of 21.4 mm. Source must have a focal length of 64 mm and a radius of 32 mm
             self._MaterialMap[:,:,:]=0
             radius1Sphere=75e-3
             radius2Sphere=68.5e-3
-            DistanceOutPlane=30e-3 -(64e-3-np.sqrt(64e-3**2-32e-3**2))
+            DistanceOutPlane=27.5e-3
             xc=np.arange(self._N1)*SpatialStep
             yc=np.arange(self._N2)*SpatialStep
             zc=np.arange(self._N3)*SpatialStep

@@ -19,6 +19,7 @@ import scipy
 from trimesh import creation 
 import trimesh
 import matplotlib.pyplot as plt
+from scipy.io import loadmat
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, SpeedofSoundWater
 
 ###########################################
@@ -296,7 +297,8 @@ class SimulationConditions(SimulationConditionsBASE):
             raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
-       
+        print('Location of back Tx in Z',  self._TxRC['center'][:,2].min())
+        print('Location of source layer Z',self._ZDim[self._ZSourceLocation])
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
@@ -311,31 +313,20 @@ class SimulationConditions(SimulationConditionsBASE):
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
                          self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        
+
         self._u2RayleighField=u2
-        
         self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
         self._SourceMapRayleigh[:,-self._PMLThickness:]=0
-        if self._bDisplay:
-            plt.figure(figsize=(6,3))
-            plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapRayleigh)/1e6,
-                       vmin=np.abs(self._SourceMapRayleigh[RegionMap]).min()/1e6,cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Incident map to be forwarded propagated (MPa)')
-
-            plt.subplot(1,2,2)
-            
-            plt.imshow((np.abs(u2[:,self._FocalSpotLocation[1],:]).T+
-                                       self._MaterialMap[self._FocalSpotLocation[0],:,:].T*
-                                       np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
-                                       extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
-                                       cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Acoustic field with Rayleigh with skull and brain (MPa)')
+        
+        if self._ForceBenchmarkTest and len(self._InputFocusStart)>0:
+            print('Loading input focus from',self._InputFocusStart)
+            #we load the input focus from the file
+            InputFocus=loadmat(self._InputFocusStart)
+            self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
+                                  self._PMLThickness:-self._PMLThickness]=InputFocus['sourceplane']
         
     def CreateSources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
