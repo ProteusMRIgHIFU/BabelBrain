@@ -222,6 +222,7 @@ def RunBHTECycles(nCurrent,
                                                             initDose=initDose,
                                                             MonitoringPointsMap=MonitoringPointsMap,
                                                             stableTemp=stableTemp)
+
             
         
         #for cooling off, we do not need to do steering, just running with no energy
@@ -650,7 +651,7 @@ def CalculateTemperatureEffects(InputPData,
                     MaterialList,
                      (Input['x_vec'][1]-Input['x_vec'][0]),
                     TotalDurationSteps,
-                    nStepsOn,
+                    nStepsOnIn,
                     cy,
                     nFactorMonitoring,
                     dt,
