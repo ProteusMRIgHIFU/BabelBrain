@@ -321,7 +321,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
         self._SourceMapRayleigh[:,-self._PMLThickness:]=0
         
-        if self._ForceBenchmarkTest and len(self._InputFocusStart)>0:
+        if len(self._BenchmarkTestFile)>0 and len(self._InputFocusStart)>0:
             print('Loading input focus from',self._InputFocusStart)
             #we load the input focus from the file
             InputFocus=loadmat(self._InputFocusStart)
