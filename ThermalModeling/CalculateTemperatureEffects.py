@@ -349,6 +349,7 @@ def CalculateTemperatureEffects(InputPData,
                                     'Perfusion':55.0,
                                     'Absorption':0.85, #m/s
                                     'InitTemperature':37.0}, #Np/m
+                                BenchmarkTestFile='',
                                 ):
 
 
@@ -444,7 +445,20 @@ def CalculateTemperatureEffects(InputPData,
         MaterialList['Absorption']=np.array([0,HomogenousMediumValues['Absorption']])
         MaterialList['InitTemperature']=np.array([HomogenousMediumValues['InitTemperature'],HomogenousMediumValues['InitTemperature']])
         BaselineTemperature=HomogenousMediumValues['InitTemperature']
-    
+    elif len(BenchmarkTestFile)>0:
+        print('Running BHTE with Benchmark Test File',BenchmarkTestFile)
+        BenchmarkInput=ReadFromH5py(BenchmarkTestFile)
+        for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
+            MaterialList[k]=np.zeros(1+len(BenchmarkInput['Materials']))
+            
+        MaterialList['SpecificHeat'][0]=4178.0
+        MaterialList['Conductivity'][0]=0.6
+        MaterialList['Perfusion'][0]=0.0
+        MaterialList['Absorption'][0]=0.0
+        MaterialList['InitTemperature'][:]=BaselineTemperature
+        for n,entry in enumerate(BenchmarkInput['Materials']):
+            for k in ['SpecificHeat','Conductivity','Perfusion','Absorption']:
+                MaterialList[k][n+1]=entry[k]
     elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
