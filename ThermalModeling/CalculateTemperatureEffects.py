@@ -62,7 +62,10 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
 
 def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   MaterialList,pAmpWater,Isppa,
-                  xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain):
+                  xf,yf,zf,SelBrain,
+                  bForceHomogenousMedium,
+                  bSegmentedBrain,
+                  IdRegionBenchmark=[]):
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
@@ -86,7 +89,11 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     PlanAtMaximumWater=pAmpWater[:,:,2] 
     AcousticEnergyWater=(PlanAtMaximumWater**2/2/MaterialList['Density'][0]/ MaterialList['SoS'][0]*((xf[1]-xf[0])**2)).sum()
     print('Water Acoustic Energy entering',AcousticEnergyWater)
-    if not bForceHomogenousMedium:
+    if bForceHomogenousMedium:
+        selregion = MaterialMap ==0
+    elif  len(IdRegionBenchmark)>=0:
+        selregion= np.isin(MaterialMap,IdRegionBenchmark)
+    else:
         if bSegmentedBrain:
             if 'MaterialMapCT' in Input:
                 selregion = np.isin(MaterialMap,[2,3,4,5])==False
@@ -97,6 +104,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                 selregion=MaterialMap!=2
             else:
                 selregion=MaterialMap!=4
+        
     pAmpWater[selregion]=0.0
     cxw,cyw,czw=np.where(pAmpWater==pAmpWater.max())
     cxw=cxw[0]
@@ -449,16 +457,12 @@ def CalculateTemperatureEffects(InputPData,
         print('Running BHTE with Benchmark Test File',BenchmarkTestFile)
         BenchmarkInput=ReadFromH5py(BenchmarkTestFile)
         for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
-            MaterialList[k]=np.zeros(1+len(BenchmarkInput['Materials']))
+            MaterialList[k]=np.zeros(len(BenchmarkInput['Materials']))
             
-        MaterialList['SpecificHeat'][0]=4178.0
-        MaterialList['Conductivity'][0]=0.6
-        MaterialList['Perfusion'][0]=0.0
-        MaterialList['Absorption'][0]=0.0
         MaterialList['InitTemperature'][:]=BaselineTemperature
         for n,entry in enumerate(BenchmarkInput['Materials']):
             for k in ['SpecificHeat','Conductivity','Perfusion','Absorption']:
-                MaterialList[k][n+1]=entry[k]
+                MaterialList[k][n]=entry[k]
     elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
@@ -545,9 +549,21 @@ def CalculateTemperatureEffects(InputPData,
     zf=Input['z_vec']
 
     LocIJK=Input['TargetLocation'].flatten()
+    IdRegionBenchmark=[]
     if bForceHomogenousMedium:
         SelSkull = MaterialMap >0 # we select all material 
         BrainID =[1]
+    elif len(BenchmarkTestFile)>0:
+        BrainID=[len(BenchmarkInput['Materials'])-1]
+        if BenchmarkInput['TestType']==1:
+            #this is a test for the skull, we select all materials
+            SelSkull = MaterialMap >0
+            IdRegionBenchmark=[0]
+        else:
+            assert(BenchmarkInput['TestType']==2)
+            SelSkull = MaterialMap ==1 
+            IdRegionBenchmark=[0,1]
+        
     elif 'MaterialMapCT' in Input:
         if bSegmentedBrain:
             BrainID=[2,3,4,5]
@@ -575,7 +591,7 @@ def CalculateTemperatureEffects(InputPData,
     if type(InputPData) is str:   
         PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
-                                                xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
+                                                xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain,IdRegionBenchmark)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -586,7 +602,7 @@ def CalculateTemperatureEffects(InputPData,
             print('Calculating losses for spot ',n)
             PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                           MaterialList,pAmpWater,Isppa,
-                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain)
+                                                          xf,yf,zf,SelBrain,bForceHomogenousMedium,bSegmentedBrain,IdRegionBenchmark)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             

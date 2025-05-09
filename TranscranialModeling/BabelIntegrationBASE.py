@@ -740,8 +740,8 @@ class BabelFTD_Simulations_BASE(object):
             QCorrArr = np.ones(2)
         elif len(self._BenchmarkTestFile)>0:
             InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
-            assert(len(InputDataBenchmark['Materials'])==np.max(InputDataBenchmark['MaterialMap']))
-            QCorrArr = np.ones(len(InputDataBenchmark['Materials'])+1)
+            assert(len(InputDataBenchmark['Materials'])==len(np.unique(InputDataBenchmark['MaterialMap'])))
+            QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
         elif  self._CTFNAME is None:
             if bBrainSegmentation:
                 QCorrArr = np.ones(8)
@@ -794,6 +794,7 @@ class BabelFTD_Simulations_BASE(object):
                                            self._HomogenousMediumValues['ShearAtt']) 
         elif len(self._BenchmarkTestFile) > 0 and not self._bWaterOnly:
             print('Forcing using benchmark materials', InputDataBenchmark['Materials'])
+            self._SIM_SETTINGS.ResetMaterial() #we remove the default water material
             for entry in InputDataBenchmark['Materials']:
                 self._SIM_SETTINGS.AddMaterial(entry['Density'], 
                                            entry['LongSoS'],
@@ -1151,6 +1152,9 @@ class SimulationConditionsBASE(object):
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
         
+    def ResetMaterial(self): #reset material list
+        self._Materials=[]
+        
         
     @property
     def Wavelength(self):
@@ -1463,7 +1467,7 @@ elif self._bTightNarrowBeamDomain:
         #####
         if bForceHomogenousMedium:
             self._MaterialMap[:,:,:]=1
-        if len(BenchmarkTestFile)>0:
+        if len(BenchmarkTestFile)>0 and not bWaterOnly:
             assert(np.all(np.array(self._MaterialMap.shape)==np.array(InputDataBenchmark['MaterialMap'].shape)))
             assert(self._MaterialMap.dtype==InputDataBenchmark['MaterialMap'].dtype)
             
