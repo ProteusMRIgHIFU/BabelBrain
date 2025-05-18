@@ -643,9 +643,17 @@ def CalculateTemperatureEffects(InputPData,
     mxBrain,myBrain,mzBrain=np.unravel_index(np.argmax(ResTempBrain, axis=None), ResTempBrain.shape)
     mxSkull,mySkull,mzSkull=np.unravel_index(np.argmax(ResTempSkull, axis=None), ResTempSkull.shape)
 
+
     MonitoringPointsMap=np.zeros(MaterialMap.shape,np.uint32)
     if bForceHomogenousMedium==1:
         MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+    elif len(BenchmarkTestFile)>0:
+        if BenchmarkInput['TestType']==1:
+            MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+        else:
+            assert(BenchmarkInput['TestType']==2)
+            MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+            MonitoringPointsMap[mxSkull,mySkull,mzSkull]=2
     else:
         MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
         MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
@@ -775,6 +783,11 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['MaxBrainPressure']=MaxBrainPressure
     if bForceHomogenousMedium:
         IndTarget=0
+    elif len(BenchmarkTestFile)>0:
+        if BenchmarkInput['TestType']==1:
+            IndTarget=0
+        else:
+            IndTarget=1
     elif (cx==mxBrain and cy==myBrain and cz==mzBrain):
         IndTarget=2
     else:
