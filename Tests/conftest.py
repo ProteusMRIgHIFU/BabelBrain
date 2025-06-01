@@ -99,7 +99,8 @@ transducers = [
     {'name': 'REMOPD', 'dropdown_index': 7, 'diameter': 0},
     {'name': 'I12378', 'dropdown_index': 8, 'diameter': 0},
     {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0},
-    {'name': 'R15148', 'dropdown_index': 10, 'diameter': 0}
+    {'name': 'R15148', 'dropdown_index': 10, 'diameter': 0},
+    {'name': 'R15646', 'dropdown_index': 11, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},

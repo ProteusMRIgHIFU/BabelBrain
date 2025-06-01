@@ -526,6 +526,11 @@ Density?</string>
       <string>R15148</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>R15646</string>
+     </property>
+    </item>
    </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
