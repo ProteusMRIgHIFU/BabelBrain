@@ -262,7 +262,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         
     
-    def GenTx(self,bOrigDimensions=False):
+    def GenTx(self,bOrigDimensions=False,PPWSurface=8):
         fScaling=1.0
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
@@ -270,7 +270,8 @@ class SimulationConditions(SimulationConditionsBASE):
         TxRC=GeneratedRingArrayTx(self._Frequency,self._FocalLength/fScaling, 
                              self._InDiameters/fScaling, 
                              self._OutDiameters/fScaling, 
-                             SpeedofSoundWater(20.0))
+                             SpeedofSoundWater(20.0),
+                             PPWSurface=PPWSurface)
         TxRC['Aperture']=self._Aperture/fScaling
         TxRC['NumberElems']=len(self._InDiameters)
         TxRC['center'][:,2]+=self._FocalLength/fScaling
@@ -311,6 +312,9 @@ class SimulationConditions(SimulationConditionsBASE):
             ax.set_ylabel('y (mm)')
             ax.set_zlabel('z (mm)')
             plt.show()
+
+        print('Tx z  min',self._TxRC['center'][:,2].min())
+        print('self._TxMechanicalAdjustmentZ',self._TxMechanicalAdjustmentZ)
         
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','RingVertDisplay','elemcenter']:
@@ -324,7 +328,7 @@ class SimulationConditions(SimulationConditionsBASE):
                     Tx[k][:,1]+=self._TxMechanicalAdjustmentY
                     Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
         
-      
+        print('Tx z  min',self._TxRC['center'][:,2].min())
         #we apply an homogeneous pressure 
         Correction=0.0
         while np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
@@ -344,6 +348,7 @@ class SimulationConditions(SimulationConditionsBASE):
             print("np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxRC['center'][:,2]),self._ZDim[self._ZSourceLocation])
             raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
+        print('Tx z  min',self._TxRC['center'][:,2].min())
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
@@ -359,6 +364,8 @@ class SimulationConditions(SimulationConditionsBASE):
         center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX
         center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY
         center[0,2]=self._ZDim[self._FocalSpotLocation[2]]+self._ZSteering+self._TxMechanicalAdjustmentZ
+        print('center',center)
+        print('Z location',self._ZDim[self._ZSourceLocation])
 
         u2back=np.zeros(self._TxRC['NumberElems'],np.complex64)
         nBase=0
