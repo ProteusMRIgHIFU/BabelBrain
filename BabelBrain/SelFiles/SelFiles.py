@@ -38,7 +38,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-ListTxSteering=['H317','I12378','ATAC','R15148']
+ListTxSteering=['H317','I12378','ATAC','R15148','R15646']
 
 class TableModel(QAbstractTableModel):
     def __init__(self, data):
