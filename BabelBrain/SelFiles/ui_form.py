@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'form.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -152,6 +152,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.addItem("")
+        self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.setObjectName(u"TransducerTypecomboBox")
         self.TransducerTypecomboBox.setGeometry(QRect(90, 34, 116, 30))
         self.TransducerTypecomboBox.setStyleSheet(u"")
@@ -247,7 +248,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.setItemText(9, QCoreApplication.translate("Dialog", u"ATAC", None))
         self.TransducerTypecomboBox.setItemText(10, QCoreApplication.translate("Dialog", u"R15148", None))
         self.TransducerTypecomboBox.setItemText(11, QCoreApplication.translate("Dialog", u"R15287", None))
-        self.TransducerTypecomboBox.setItemText(11, QCoreApplication.translate("Dialog", u"R15646", None))
+        self.TransducerTypecomboBox.setItemText(12, QCoreApplication.translate("Dialog", u"R15646", None))
 
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))
