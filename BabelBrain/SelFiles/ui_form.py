@@ -247,6 +247,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.setItemText(9, QCoreApplication.translate("Dialog", u"ATAC", None))
         self.TransducerTypecomboBox.setItemText(10, QCoreApplication.translate("Dialog", u"R15148", None))
         self.TransducerTypecomboBox.setItemText(11, QCoreApplication.translate("Dialog", u"R15287", None))
+        self.TransducerTypecomboBox.setItemText(11, QCoreApplication.translate("Dialog", u"R15646", None))
 
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))

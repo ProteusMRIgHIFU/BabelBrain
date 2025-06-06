@@ -320,8 +320,18 @@ def BiasCorrecAndCoreg(InputT1,
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:
-        img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
-        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        try:
+            print('Error: mask and image do not have the same spacing under tolerance, first attempt to fix')
+            img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        except:
+            print('Error: mask and image do not have the same spacing under tolerance, second attempt to fix')
+            imgnib=file_manager.sitk_to_nibabel(img)
+            img_mask=file_manager.sitk_to_nibabel(img_mask)
+            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(),affine=imgnib.affine)
+            img_mask=file_manager.nibabel_to_sitk(img_mask)
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+
     img_out_nib = file_manager.sitk_to_nibabel(img_out)
     file_manager.save_file(file_data=img_out_nib,
                            filename=T1fnameBiasCorrec,

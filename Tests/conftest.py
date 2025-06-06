@@ -101,6 +101,7 @@ transducers = [
     {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0},
     {'name': 'R15148', 'dropdown_index': 10, 'diameter': 0},
     {'name': 'R15287', 'dropdown_index': 11, 'diameter': 0}
+    {'name': 'R15646', 'dropdown_index': 11, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
