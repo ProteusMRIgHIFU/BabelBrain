@@ -174,14 +174,26 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,
                  ZSteering=0.0,
+                 Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
+                 FocalLength=63.2e-3,
+                 InDiameters= np.array([0.0    , 32.8e-3, 46e-3,   55.9e-3]), #inner diameter of rings
+                 OutDiameters=np.array([32.8e-3, 46e-3,   55.9e-3, 64e-3]), #outer diameter of rings
                  **kargs):
         self._ZSteering=ZSteering
+        self._Aperture=Aperture
+        self._FocalLength=FocalLength
+        self._InDiameters=InDiameters
+        self._OutDiameters=OutDiameters
+        print('BabelIntegrationANNULAR_ARRAY parameters (Aperture,FocalLength,InDiameters,OutDiameters):',
+              Aperture,FocalLength,InDiameters,OutDiameters)
         super().__init__(**kargs)
         
     def CreateSimConditions(self,**kargs):     
         return SimulationConditions(ZSteering=self._ZSteering,
-                                    Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
-                                    FocalLength=63.2e-3,
+                                    Aperture=self._Aperture, # m, aperture of the Tx, used to calculated cross section area entering the domain
+                                    FocalLength=self._FocalLength,
+                                    InDiameters=self._InDiameters, #inner diameter of rings
+                                    OutDiameters=self._OutDiameters, #outer diameter of rings
                                     **kargs)
     
     def GenerateSTLTx(self,prefix):
@@ -263,7 +275,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         
     
-    def GenTx(self,bOrigDimensions=False,PPWSurface=8):
+    def GenTx(self,bOrigDimensions=False,PPWSurface=4):
         fScaling=1.0
         if bOrigDimensions:
             fScaling=self._FactorEnlarge

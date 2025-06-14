@@ -488,6 +488,11 @@ Density?</string>
     </item>
     <item>
      <property name="text">
+      <string>CTX250_2ch</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
       <string>DPX_500</string>
      </property>
     </item>

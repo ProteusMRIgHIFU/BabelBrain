@@ -249,6 +249,10 @@ class RunAcousticSim(QObject):
         kargs['ZIntoSkin']=ZIntoSkin
         kargs['ZSteering']=ZSteering
         kargs['Frequencies']=Frequencies
+        kargs['Aperture']=self._mainApp.AcSim.Config['TxDiam']
+        kargs['FocalLength']=self._mainApp.AcSim.Config['FocalLength']
+        kargs['InDiameters']=np.array(self._mainApp.AcSim.Config['InDiameters'])
+        kargs['OutDiameters']=np.array(self._mainApp.AcSim.Config['OutDiameters'])
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs|=self._mainApp.CommomAcOptions()
        

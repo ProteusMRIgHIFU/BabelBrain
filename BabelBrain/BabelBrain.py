@@ -528,6 +528,8 @@ class BabelBrain(QWidget):
             from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='CTX_250':
             from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
+        elif self.Config['TxSystem'] =='CTX_250_2ch':
+            from Babel_CTX250_2ch.Babel_CTX250_2ch import CTX250_2ch as WidgetAcSim
         elif self.Config['TxSystem'] =='DPX_500':
             from Babel_DPX500.Babel_DPX500 import DPX500 as WidgetAcSim
         elif self.Config['TxSystem'] =='H317':
