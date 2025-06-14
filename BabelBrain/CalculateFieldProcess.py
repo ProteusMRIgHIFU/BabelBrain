@@ -35,7 +35,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
 
     if TxSystem in ['Single','BSonix']:
         from TranscranialModeling.BabelIntegrationSingle import RUN_SIM 
-    elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','R15287']:
+    elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','DPXPC_300','R15287']:
         from TranscranialModeling.BabelIntegrationANNULAR_ARRAY import RUN_SIM 
     elif TxSystem =='H317':
         from TranscranialModeling.BabelIntegrationH317 import RUN_SIM

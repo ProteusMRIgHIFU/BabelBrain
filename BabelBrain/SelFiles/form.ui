@@ -498,6 +498,11 @@ Density?</string>
     </item>
     <item>
      <property name="text">
+      <string>DPXPC_300</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
       <string>H317</string>
      </property>
     </item>
