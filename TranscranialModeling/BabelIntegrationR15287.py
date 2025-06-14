@@ -9,21 +9,21 @@ ABOUT:
 The R15287 is a 10-ring Tx from Imasonic with focal length of 75 mm and diameter of 65 mm
 '''
 import numpy as np
-from . import BabelIntegrationCTX500
+from . import BabelIntegrationANNULAR_ARRAY
 
-class RUN_SIM(BabelIntegrationCTX500.RUN_SIM):
+class RUN_SIM(BabelIntegrationANNULAR_ARRAY.RUN_SIM):
     def CreateSimObject(self,**kargs):
         return BabelFTD_Simulations(ZSteering=self._ZSteering,
                                      **kargs)
 
 
-class BabelFTD_Simulations(BabelIntegrationCTX500.BabelFTD_Simulations):
+class BabelFTD_Simulations(BabelIntegrationANNULAR_ARRAY.BabelFTD_Simulations):
     def CreateSimConditions(self,**kargs):  
         return SimulationConditions(ZSteering=self._ZSteering,
                                     Aperture=65e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                     FocalLength=75e-3,
                                     **kargs)
-class SimulationConditions(BabelIntegrationCTX500.SimulationConditions):
+class SimulationConditions(BabelIntegrationANNULAR_ARRAY.SimulationConditions):
     '''
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
