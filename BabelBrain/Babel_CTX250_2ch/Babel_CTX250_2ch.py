@@ -23,7 +23,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-class Babel_CTX250_2ch(RingTx):
+class CTX250_2ch(RingTx):
      def DefaultConfig(self):
         #Specific parameters for the CTX250 - to be configured later via a yaml
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
