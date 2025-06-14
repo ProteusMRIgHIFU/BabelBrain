@@ -5,8 +5,7 @@ from pathlib import Path
 import sys
 import yaml
 
-
-from Babel_CTX500.Babel_CTX500 import CTX500
+from _Babel_RingTx.Babel_RingTx import RingTx
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -23,7 +22,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-class R15287(CTX500):
+class R15287(RingTx):
      def load_ui(self):
         super(R15287, self).load_ui()
         self.Widget.labelTPORange.setText('Range steering (mm)')
@@ -36,10 +35,3 @@ class R15287(CTX500):
             config = yaml.safe_load(file)
 
         self.Config=config
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-    widget = R15287()
-    widget.show()
-    sys.exit(app.exec_())
