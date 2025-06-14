@@ -174,11 +174,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,
                  ZSteering=0.0,
-                 Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
-                 FocalLength=63.2e-3,
-                 InDiameters= np.array([0.0    , 32.8e-3, 46e-3,   55.9e-3]), #inner diameter of rings
-                 OutDiameters=np.array([32.8e-3, 46e-3,   55.9e-3, 64e-3]), #outer diameter of rings
+                 Aperture=-1.0, # m, aperture of the Tx, used to calculated cross section area entering the domain
+                 FocalLength=-1.0,
+                 InDiameters= None, #inner diameter of rings
+                 OutDiameters=None, #outer diameter of rings
                  **kargs):
+        if Aperture <= 0.0:
+            raise ValueError("Aperture must be a positive value, got %f" %(Aperture))
+        if FocalLength <= 0.0:
+            raise ValueError("FocalLength must be a positive value, got %f" %(FocalLength))
+        if len(InDiameters) == 0:
+            raise ValueError("InDiameters must be a list/array of positive values, got %s" %(InDiameters))
+        if len(OutDiameters) == 0:
+            raise ValueError("OutDiameters must be a list/array of positive values, got %s" %(OutDiameters))
         self._ZSteering=ZSteering
         self._Aperture=Aperture
         self._FocalLength=FocalLength
@@ -256,12 +264,21 @@ class SimulationConditions(SimulationConditionsBASE):
     Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     '''
     def __init__(self,FactorEnlarge = 1.0, #putting a Tx with same F# but just bigger helps to create a more coherent input field for FDTD
-                      Aperture=64e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
-                      FocalLength=63.2e-3,
+                      Aperture=-1, # m, aperture of the Tx, used to calculated cross section area entering the domain
+                      FocalLength=-1,
                       ZSteering=0.0,
-                      InDiameters= np.array([0.0    , 32.8e-3, 46e-3,   55.9e-3]), #inner diameter of rings
-                      OutDiameters=np.array([32.8e-3, 46e-3,   55.9e-3, 64e-3]), #outer diameter of rings
+                      InDiameters= [], #inner diameter of rings
+                      OutDiameters=[], #outer diameter of rings
                       **kargs): # steering
+        if Aperture <= 0.0:
+            raise ValueError("Aperture must be a positive value, got %f" %(Aperture))
+        if FocalLength <= 0.0:
+            raise ValueError("FocalLength must be a positive value, got %f" %(FocalLength))
+        if len(InDiameters) == 0:
+            raise ValueError("InDiameters must be a list/array of positive values, got %s" %(InDiameters))
+        if len(OutDiameters) == 0:
+            raise ValueError("OutDiameters must be a list/array of positive values, got %s" %(OutDiameters))
+    
         super().__init__(Aperture=Aperture*FactorEnlarge,FocalLength=FocalLength*FactorEnlarge,**kargs)
         self._FactorEnlarge=FactorEnlarge
         self._OrigAperture=Aperture
@@ -275,7 +292,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         
     
-    def GenTx(self,bOrigDimensions=False,PPWSurface=4):
+    def GenTx(self,bOrigDimensions=False,PPWSurface=8):
         fScaling=1.0
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
