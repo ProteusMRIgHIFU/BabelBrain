@@ -1,8 +1,8 @@
 TxDiam:                   65.0e-3    #in m
 FocalLength:              75.0e-3  #in m
-NaturalOutPlaneDistance:  67.0e-3  # in m needs to be confirmed
-MinimalTPODistance:       50.0e-3  # in m
-MaximalTPODistance:       82.0e-3  # in m
+NaturalOutPlaneDistance:  65.3e-3  # in m needs to be confirmed
+MinimalTPODistance:       8.0e-3  # in m
+MaximalTPODistance:       110.0e-3  # in m
 USFrequencies:
     - 300000.0
 MaxNegativeDistance:          10.0 #mm
