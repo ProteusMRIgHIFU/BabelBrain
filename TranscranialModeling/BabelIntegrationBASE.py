@@ -1102,9 +1102,10 @@ class SimulationConditionsBASE(object):
                       ExtraAdjustY =[0.0],
                       bSaveStress=False,
                       bSaveDisplacement=False,
-                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
+                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],#coefficients to correct for values lower of CFL =1.0 in water conditions.
                       BenchmarkTestFile='',
-                      InputFocusStart=''):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
+                      InputFocusStart='',
+                      OptimizedWeightsFile=None): #file with optimized weights for the Tx  
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1146,9 +1147,14 @@ class SimulationConditionsBASE(object):
         self._bSaveDisplacement=bSaveDisplacement
         self._BenchmarkTestFile=BenchmarkTestFile
         self._InputFocusStart=InputFocusStart
-        
-        
-        
+        self._OptimizedWeightsFile=None
+        self._OptimizedWeights=None
+        if OptimizedWeightsFile is not None:
+            if not os.path.isfile(OptimizedWeightsFile):
+                raise FileNotFoundError("OptimizedWeightsFile %s does not exist." %(OptimizedWeightsFile))
+            self._OptimizedWeightsFile=OptimizedWeightsFile
+            self._OptimizedWeights = np.load(OptimizedWeightsFile)['res'].x
+ 
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
         
@@ -1477,6 +1483,18 @@ elif self._bTightNarrowBeamDomain:
         
         print('Number of steps sensor',np.floor(self._TimeSimulation/self._TemporalStep/self._SensorSubSampling)-self._SensorStart)
         
+        
+    def AdjustWeightAmplitudes(self):
+        '''
+        Adjust the weight amplitudes to be used in the simulation
+        '''
+        if self._OptimizedWeights is not None:
+            print('Using optimized weights from file %s' %(self._OptimizedWeightsFile))
+            if self._OptimizedWeights.size != self._TxRC['center'].shape[0]:
+                raise ValueError("OptimizedWeightsFile %s has %i subelements, but the Tx has %i elements." %(self._OptimizedWeightsFile,self._OptimizedWeights.size,self._TxRC['center'].shape[0]))
+            return self._OptimizedWeights.reshape((self._TxRC['center'].shape[0],1)).astype(np.complex64)
+        else:
+            return 1.0
 
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         raise NotImplementedError("Need to implement this")

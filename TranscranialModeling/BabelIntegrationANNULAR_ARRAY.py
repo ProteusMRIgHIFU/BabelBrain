@@ -316,6 +316,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
+
         #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
         TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
         LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
@@ -430,6 +431,7 @@ class SimulationConditions(SimulationConditionsBASE):
         yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        u0*=self.AdjustWeightAmplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)

@@ -231,10 +231,10 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         self._DistanceConeToFocus=DistanceConeToFocus
         self._RotationZ=RotationZ
+        
 
     def GenTransducerGeom(self):
-        self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        raise NotImplementedError("This method should be implemented in the derived class.")
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
@@ -325,6 +325,8 @@ class SimulationConditions(SimulationConditionsBASE):
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
         print('Z layer for forward propagation',self._ZDim[self._ZSourceLocation])
+        
+        u0*= self.AdjustWeightAmplitudes()
 
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -451,6 +453,8 @@ class SimulationConditions(SimulationConditionsBASE):
         yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        
+        u0*=self.AdjustWeightAmplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
