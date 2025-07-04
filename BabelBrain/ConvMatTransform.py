@@ -28,20 +28,33 @@ templateBSight=\
 import re
 
 def read_itk_affine_transform(filename):
-    with open(filename) as f:
-        tfm_file_lines = f.readlines()
-    # parse the transform parameters
-    match = re.match("Transform: AffineTransform_[a-z]+_([0-9]+)_([0-9]+)", tfm_file_lines[2])
-    if not match or match.group(1) != '3' or match.group(2) != '3':
-        raise ValueError(f"{filename} is not an ITK 3D affine transform file")
-    p = np.array( tfm_file_lines[3].split()[1:], dtype=np.float64 )
-    # assemble 4x4 matrix from ITK transform parameters
-    itk_transform = np.array([
-        [p[0], p[1], p[2], p[9]],
-        [p[3], p[4], p[5], p[10]],
-        [p[6], p[7], p[8], p[11]],
-        [0, 0, 0, 1]])
-    return itk_transform
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+
+    # Extract Parameters
+    params_line = next(line for line in lines if line.startswith('Parameters:'))
+    params = list(map(float, params_line.replace('Parameters:', '').strip().split()))
+    matrix_values = params[:9]
+    translation = np.array(params[9:12])
+
+    # Extract FixedParameters (center of rotation)
+    fixed_line = next(line for line in lines if line.startswith('FixedParameters:'))
+    fixed_params = np.array(list(map(float, fixed_line.replace('FixedParameters:', '').strip().split())))
+
+    # Reshape matrix and compute adjusted translation
+    M = np.array(matrix_values).reshape((3, 3))
+    C = fixed_params
+    T = translation
+    
+    adjusted_translation =M @ (-C) + C + T
+
+    # Construct 4x4 matrix
+    transform = np.eye(4)
+    transform[:3, :3] = M
+    transform[:3, 3] = adjusted_translation
+
+    return transform
+
 
 def itk_to_BSight(itk_transform):
     # ITK transform: from parent, using LPS coordinate system
