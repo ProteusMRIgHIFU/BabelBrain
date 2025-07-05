@@ -16,9 +16,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-    QDoubleSpinBox, QGroupBox, QLabel, QLineEdit,
-    QPushButton, QSizePolicy, QSpinBox, QTabWidget,
-    QWidget)
+    QDoubleSpinBox, QFrame, QGroupBox, QLabel,
+    QLineEdit, QPushButton, QSizePolicy, QSpinBox,
+    QTabWidget, QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -207,8 +207,26 @@ class Ui_Dialog(object):
         self.SaveStresscheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.SaveDisplacementcheckBox = QCheckBox(self.tab_2)
         self.SaveDisplacementcheckBox.setObjectName(u"SaveDisplacementcheckBox")
-        self.SaveDisplacementcheckBox.setGeometry(QRect(113, 64, 228, 20))
+        self.SaveDisplacementcheckBox.setGeometry(QRect(193, 66, 228, 20))
         self.SaveDisplacementcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        self.frame = QFrame(self.tab_2)
+        self.frame.setObjectName(u"frame")
+        self.frame.setGeometry(QRect(11, 102, 615, 80))
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
+        self.TxOptimizedWeightspushButton = QPushButton(self.frame)
+        self.TxOptimizedWeightspushButton.setObjectName(u"TxOptimizedWeightspushButton")
+        self.TxOptimizedWeightspushButton.setGeometry(QRect(6, 30, 120, 32))
+        self.TxOptimizedWeightspushButton.setStyleSheet(u"")
+        self.TxOptimizedWeightspushButton.setAutoDefault(False)
+        self.TxOptimizedWeightspushButton.setFlat(False)
+        self.TxOptimizedWeightsLineEdit = QLineEdit(self.frame)
+        self.TxOptimizedWeightsLineEdit.setObjectName(u"TxOptimizedWeightsLineEdit")
+        self.TxOptimizedWeightsLineEdit.setGeometry(QRect(139, 35, 469, 21))
+        self.TxOptimizedWeightsLineEdit.setStyleSheet(u"")
+        self.TxWeightLabel = QLabel(self.frame)
+        self.TxWeightLabel.setObjectName(u"TxWeightLabel")
+        self.TxWeightLabel.setGeometry(QRect(226, 8, 158, 16))
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
@@ -357,7 +375,7 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -400,6 +418,9 @@ class Ui_Dialog(object):
 
         self.SaveStresscheckBox.setText(QCoreApplication.translate("Dialog", u"Save stress data  ", None))
         self.SaveDisplacementcheckBox.setText(QCoreApplication.translate("Dialog", u"Save particle displacement data  ", None))
+        self.TxOptimizedWeightspushButton.setText(QCoreApplication.translate("Dialog", u"Calibration file...", None))
+        self.TxOptimizedWeightsLineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
+        self.TxWeightLabel.setText(QCoreApplication.translate("Dialog", u"Transducer : ", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Transcranial Ultrasound", None))
         self.FocalLengthLabel_7.setText(QCoreApplication.translate("Dialog", u"Baseline temperature (\u00b0C)", None))
         self.FocalLengthLabel_12.setText(QCoreApplication.translate("Dialog", u"Threshold for # of process\n"

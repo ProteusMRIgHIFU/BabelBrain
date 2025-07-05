@@ -414,6 +414,7 @@ class RUN_SIM_BASE(object):
                 bSaveDisplacement=False,
                 bForceHomogenousMedium=False,
                 BenchmarkTestFile='',
+                OptimizedWeightsFile='',
                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
                                     'LongSoS':1500.0, #m/s
                                     'LongAtt':5.0,
@@ -491,6 +492,7 @@ class RUN_SIM_BASE(object):
                                                     HomogenousMediumValues=HomogenousMediumValues,
                                                     BenchmarkTestFile=BenchmarkTestFile,
                                                     InputFocusStart=InputFocusStart,
+                                                    OptimizedWeightsFile=OptimizedWeightsFile,
                                                     **kargs)
                     print('  Step 1')
 
@@ -602,7 +604,8 @@ class BabelFTD_Simulations_BASE(object):
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':5.0}, #Np/m
                  BenchmarkTestFile='',
-                 InputFocusStart=''):
+                 InputFocusStart='',
+                 OptimizedWeightsFile=''):
         self._MASKFNAME=MASKFNAME
         
         if bNoShear:
@@ -641,6 +644,7 @@ class BabelFTD_Simulations_BASE(object):
         self._HomogenousMediumValues =HomogenousMediumValues
         self._BenchmarkTestFile=BenchmarkTestFile
         self._InputFocusStart=InputFocusStart
+        self._OptimizedWeightsFile=OptimizedWeightsFile
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -779,7 +783,8 @@ class BabelFTD_Simulations_BASE(object):
                                 bSaveStress=self._bSaveStress,
                                 bSaveDisplacement=self._bSaveDisplacement,
                                 BenchmarkTestFile=self._BenchmarkTestFile,
-                                InputFocusStart=self._InputFocusStart)
+                                InputFocusStart=self._InputFocusStart,
+                                OptimizedWeightsFile=self._OptimizedWeightsFile)
         
         #####
         ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
@@ -1105,7 +1110,7 @@ class SimulationConditionsBASE(object):
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],#coefficients to correct for values lower of CFL =1.0 in water conditions.
                       BenchmarkTestFile='',
                       InputFocusStart='',
-                      OptimizedWeightsFile=None): #file with optimized weights for the Tx  
+                      OptimizedWeightsFile=''): #file with optimized weights for the Tx  
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1147,13 +1152,14 @@ class SimulationConditionsBASE(object):
         self._bSaveDisplacement=bSaveDisplacement
         self._BenchmarkTestFile=BenchmarkTestFile
         self._InputFocusStart=InputFocusStart
-        self._OptimizedWeightsFile=None
+        self._OptimizedWeightsFile=''
         self._OptimizedWeights=None
-        if OptimizedWeightsFile is not None:
+        if len(OptimizedWeightsFile)>0 :
+            print('Simulation Using OptimizedWeightsFile',OptimizedWeightsFile)
             if not os.path.isfile(OptimizedWeightsFile):
                 raise FileNotFoundError("OptimizedWeightsFile %s does not exist." %(OptimizedWeightsFile))
             self._OptimizedWeightsFile=OptimizedWeightsFile
-            self._OptimizedWeights = np.load(OptimizedWeightsFile)['res'].x
+            self._OptimizedWeights = np.load(OptimizedWeightsFile,allow_pickle=True)['res'].flatten()[0].x
  
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);

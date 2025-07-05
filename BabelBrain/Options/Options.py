@@ -31,7 +31,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 class OptionalParams(object):
-    def __init__(self):
+    def __init__(self,AllTransducers):
         self._DefaultAdvanced={}
         
         self._DefaultAdvanced['bApplyBOXFOV']=False
@@ -71,7 +71,9 @@ class OptionalParams(object):
         self._DefaultAdvanced['HomogenousMediumValues']['Absorption'] = 0.85
         self._DefaultAdvanced['HomogenousMediumValues']['InitTemperature'] = 37.0
         self._DefaultAdvanced['bForceNoAbsorptionSkullScalp']=False
-
+        self._DefaultAdvanced['TxOptimizedWeights']={}
+        for tx in AllTransducers:
+            self._DefaultAdvanced['TxOptimizedWeights'][tx]=''
         for k,v in self._DefaultAdvanced.items():
             setattr(self,k,v)
 
@@ -81,6 +83,7 @@ class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,
                  defaultValues,
+                 AllTransducers,
                 parent=None):
         super().__init__(parent)
         self.ui = Ui_Dialog()
@@ -92,7 +95,9 @@ class AdvancedOptions(QDialog):
         self.ui.tabWidget.setCurrentIndex(0)
 
         self.defaultValues = defaultValues
-        curvalues = OptionalParams()
+        curvalues = OptionalParams(AllTransducers)
+        self._AllTransducers = AllTransducers
+        self._TxSystem = currentConfig['TxSystem']
         for k in defaultValues.keys():
             setattr(curvalues,k,currentConfig[k])
         self.SetValues(curvalues)
@@ -103,6 +108,9 @@ class AdvancedOptions(QDialog):
         
         self.ui.SimNIBSRootpushButton.clicked.connect(self.SelectSimNIBSRoot)
         self.ui.SimNIBSRootpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+
+        self.ui.TxOptimizedWeightspushButton.clicked.connect(self.SelectTxOptimizedWeight)
+        self.ui.TxOptimizedWeightspushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
         
     def SetValues(self,values):
 
@@ -152,6 +160,8 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
+        self.ui.TxWeightLabel.setText("Optimized Weights for Transducer:" +  self._TxSystem)
+        self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
 
     @Slot()
     def SelectSimNIBSRoot(self):
@@ -164,6 +174,18 @@ class AdvancedOptions(QDialog):
         if folder:
             self.ui.SimbNINBSRootlineEdit.setText(folder)
             self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(folder))
+
+    @Slot()
+    def SelectTxOptimizedWeight(self):
+        curfile=self.ui.TxOptimizedWeightsLineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        fWeight=QFileDialog.getOpenFileName(self,
+            "Select Weight results",bdir, "Numpy (*.npz)")[0]
+        if len(fWeight)>0:
+            self.ui.TxOptimizedWeightsLineEdit.setText(fWeight)
+            self.ui.TxOptimizedWeightsLineEdit.setCursorPosition(len(fWeight))
         
     @Slot()
     def ResetToDefaults(self):
@@ -175,7 +197,7 @@ class AdvancedOptions(QDialog):
         
     @Slot()
     def Continue(self):
-        self.NewValues=OptionalParams()
+        self.NewValues=OptionalParams(self._AllTransducers)
 
         self.NewValues.FOVDiameter=self.ui.FOVDiameterSpinBox.value()
         self.NewValues.FOVLength=self.ui.FOVLengthSpinBox.value()
@@ -218,6 +240,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.HomogenousMediumValues['Absorption']          = self.ui.HomogenousAbsorptionSpinBox.value()
         self.NewValues.HomogenousMediumValues['InitTemperature']     = self.ui.HomogenousInitTempSpinBox.value()  
         self.NewValues.bForceNoAbsorptionSkullScalp=self.ui.bForceNoAbsorptionSkullScalpcheckBox.isChecked()
+        self.NewValues.TxOptimizedWeights[self._TxSystem] = self.ui.TxOptimizedWeightsLineEdit.text()
 
         self.accept()
 

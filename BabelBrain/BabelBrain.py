@@ -339,6 +339,8 @@ class BabelBrain(QWidget):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
+        self._AllTransducers = widget.GetAllTransducers()
+
         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
         T1W=widget.ui.T1WlineEdit.text()
         CT_or_ZTE_input=widget.ui.CTlineEdit.text()
@@ -421,7 +423,7 @@ class BabelBrain(QWidget):
             
         #default values for advanced features 
 
-        self._DefaultOptions=OptionalParams()  
+        self._DefaultOptions=OptionalParams(self._AllTransducers)  
         
         for k in self._DefaultOptions.keys():
             if k not in self.Config:
@@ -464,7 +466,13 @@ class BabelBrain(QWidget):
         self._TrackingTime={'Calculation time domain':0.0,
                             'Calculation time ultrasound':0.0,
                             'Calculation time thermal':0.0}
-
+        
+    def bHasTxWeights(self):
+        '''
+        Returns True if the current transducer has optimized weights
+        '''
+        return len(self.Config['TxOptimizedWeights'][self.Config['TxSystem']])>0
+        
     def showClockDialog(self):
         self.centerClockDialog()
         # Show the dialog
@@ -692,6 +700,7 @@ class BabelBrain(QWidget):
         
         options = AdvancedOptions(self.Config,
                                  self._DefaultOptions,
+                                 self._AllTransducers,
                                  parent=self)
         ret=options.exec()
         if ret !=-1:
@@ -1066,6 +1075,7 @@ class BabelBrain(QWidget):
                 kargs['bPETRA']=True
             elif self.Config['CTType']==4:
                 kargs['bDensity']=True
+        kargs['OptimizedWeightsFile']=self.Config['TxOptimizedWeights'][self.Config['TxSystem']]
         return kargs
 
 def get_color_at(widget, x,y):
@@ -1137,7 +1147,8 @@ class RunMaskGeneration(QObject):
             if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
                                                     'bSaveDisplacement','LimitBHTEIterationsPerProcess',
                                                     'bForceHomogenousMedium','HomogenousMediumValues',
-                                                    'bForceNoAbsorptionSkullScalp']:
+                                                    'bForceNoAbsorptionSkullScalp',
+                                                    'TxOptimizedWeights']:
                 return True
             else:
                 return False

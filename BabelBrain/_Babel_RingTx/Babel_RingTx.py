@@ -131,7 +131,8 @@ class RingTx(BabelBaseTx):
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
 
-            if self._KeyCorrection in self._MainApp.Config:
+            if self._KeyCorrection in self._MainApp.Config and\
+                not self._MainApp.bHasTxWeights():
                 SelCorrection =self._MainApp.Config[self._KeyCorrection]
                 CoeffA = self.Config['Corrections'][SelCorrection][0]
                 CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0

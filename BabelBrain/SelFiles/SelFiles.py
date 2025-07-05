@@ -214,6 +214,12 @@ class SelFiles(QDialog):
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
+    def GetAllTransducers(self):
+        """
+        Returns a list of all transducers available in BabelBrain
+        """
+        return [self.ui.TransducerTypecomboBox.itemText(i) for i in range(self.ui.TransducerTypecomboBox.count())]
+
     def SelectComputingEngine(self,GPU='CPU',Backend=''):
         for sel,dev in enumerate(self._GPUs):
             if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
