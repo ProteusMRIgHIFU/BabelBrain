@@ -180,6 +180,22 @@ def GetLatestSelection():
     return res
 
 def GetInputFromBrainsight():
+    '''
+    Reads and validates input files exported from Brainsight for use in BabelBrain.
+
+    Returns
+    -------
+    tuple
+        res : dict or None
+            Dictionary with paths and configuration if all files are valid, otherwise None.
+        header : dict
+            Header information from the Brainsight trajectory file.
+
+    Raises
+    ------
+    SystemError
+        If required input files are missing or invalid.
+    '''
     res=None
     PathMat4Trajectory  = _BrainsightSyncPath + os.sep +'Input_Target.txt'
     PathT1W             = _BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
@@ -281,13 +297,33 @@ def GetInputFromBrainsight():
     return res,header
 
 def EndWithError(msg):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText(msg)
-        msgBox.exec()
-        raise SystemError(msg)
+    '''
+    Display an error message and raise a SystemError.
+
+    Parameters
+    ----------
+    msg : str
+        The error message to display.
+    '''
+    msgBox = QMessageBox()
+    msgBox.setIcon(QMessageBox.Critical)
+    msgBox.setText(msg)
+    msgBox.exec()
+    raise SystemError(msg)
 
 def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
+    '''
+    Resample a T1-weighted MRI image to isotropic voxel spacing and save to file.
+
+    Parameters
+    ----------
+    T1W_fname : str
+        Path to the input T1-weighted image.
+    T1WIso_fname : str
+        Path to save the isotropic resampled image.
+    new_spacing : list of float, optional
+        Desired voxel spacing (default is [1.0, 1.0, 1.0]).
+    '''
     preT1=sitk.ReadImage(T1W_fname)
     getMin=sitk.MinimumMaximumImageFilter()
     getMin.Execute(preT1)
@@ -331,7 +367,7 @@ _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 
 class BabelBrain(QWidget):
     '''
-    Main LIFU Control application
+    Main TUS simulation application
 
     '''
 
@@ -1084,7 +1120,9 @@ def get_color_at(widget, x,y):
     return pixmap.toImage().pixelColor(x,y).getRgb()
         
 class RunMaskGeneration(QObject):
-
+    '''
+    Worker class for running mask generation in a separate process.
+    '''
     finished = Signal()
     endError = Signal()
 
@@ -1093,7 +1131,16 @@ class RunMaskGeneration(QObject):
         self._mainApp=mainApp
 
     def run(self):
-        """Long-running task."""
+        '''
+        Execute the mask generation process in a separate process.
+
+        Emits
+        -----
+        finished : Signal
+            Emitted when mask generation completes successfully.
+        endError : Signal
+            Emitted if an error occurs during mask generation.
+        '''
 
         print("*"*40)
         print("*"*5+" Calculating mask.. BE PATIENT... it can take a couple of minutes...")
@@ -1236,6 +1283,10 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             self.endError.emit()
 def main():
+    '''
+    Main entry point for the BabelBrain application.
+    Handles argument parsing, GUI initialization, and application execution.
+    '''
     global bINUSE_INSIDE_BRAINSIGHT
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR']='/usr/local/fsl'

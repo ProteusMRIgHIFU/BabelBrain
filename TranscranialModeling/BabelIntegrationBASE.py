@@ -1162,26 +1162,65 @@ class SimulationConditionsBASE(object):
             self._OptimizedWeights = np.load(OptimizedWeightsFile,allow_pickle=True)['res'].flatten()[0].x
  
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
+        '''
+        Add a material to the simulation.
+
+        Parameters
+        ----------
+        Density : float
+            Density of the material (kg/m3).
+        LSoS : float
+            Longitudinal speed of sound (m/s).
+        SSoS : float
+            Shear speed of sound (m/s).
+        LAtt : float
+            Longitudinal attenuation (Np/m).
+        SAtt : float
+            Shear attenuation (Np/m).
+        '''
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
         
-    def ResetMaterial(self): #reset material list
+    def ResetMaterial(self): 
+        '''
+        Reset the material list to empty.
+        '''
         self._Materials=[]
         
         
     @property
     def Wavelength(self):
+        '''
+        Get the current simulation wavelength.
+        '''
         return self._Wavelength
         
         
     @property
     def SpatialStep(self):
+        '''
+        Get the current spatial step size.
+        '''
         return self._SpatialStep
         
     def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
                          bForceHomogenousMedium=False,
                          BenchmarkTestFile=''):
         '''
-        Update simulation conditions
+        Update simulation conditions, including calculation of spatial/temporal steps,
+        domain size, and material maps.
+
+        Parameters
+        ----------
+        SkullMaskNii : nibabel.Nifti1Image
+            Nifti image containing the skull mask.
+        AlphaCFL : float, optional
+            CFL number for stability (default is 1.0).
+        bWaterOnly : bool, optional
+            If True, simulate water only (default is False).
+        bForceHomogenousMedium : bool, optional
+            If True, force a homogenous medium (default is False).
+        BenchmarkTestFile : str, optional
+            Path to a benchmark test file (default is '').
         '''
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
@@ -1503,16 +1542,52 @@ elif self._bTightNarrowBeamDomain:
             return 1.0
 
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
+        '''
+        Calculate the Rayleigh fields in the forward direction.
+
+        Parameters
+        ----------
+        deviceName : str, optional
+            Name of the device to use for computation (default is '6800').
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
            
     def ReturnArrayMaterial(self):
+        '''
+        Return the array of materials used in the simulation.
+
+        Returns
+        -------
+        np.ndarray
+            Array of material properties.
+        '''
         return np.array(self._Materials)
 
     def CreateSources(self,ramp_length=4):
+        '''
+        Create the source signals for the simulation.
+
+        Parameters
+        ----------
+        ramp_length : int, optional
+            Length of the ramp for the source signal (default is 4).
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
  
     def CreateSensorMap(self):
-        
+        '''
+        Create the sensor map and back-propagation sensor map for the simulation.
+        '''
         self._SensorMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         # for the back propagation, we only use the entering face
         self._SensorMapBackPropagation=np.zeros((self._N1,self._N2,self._N3),np.uint32)    
@@ -1532,6 +1607,24 @@ elif self._bTightNarrowBeamDomain:
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
                        COMPUTING_BACKEND=1,bDoRefocusing=True):
+        '''
+        Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
+
+        Parameters
+        ----------
+        GPUName : str, optional
+            Name of the GPU device to use (default is 'SUPER').
+        SelMapsRMSPeakList : list of str, optional
+            List of field names to extract RMS/peak values for (default is ['Pressure']).
+        bRefocused : bool, optional
+            If True, run the refocused simulation (default is False).
+        bApplyCorrectionForDispersion : bool, optional
+            If True, apply dispersion correction to results (default is True).
+        COMPUTING_BACKEND : int, optional
+            Backend to use for computation (default is 1).
+        bDoRefocusing : bool, optional
+            If True, perform backpropagation/refocusing (default is True).
+        '''
         MaterialList=self.ReturnArrayMaterial()
 
         TypeSource=0 #particle source
@@ -1661,6 +1754,16 @@ elif self._bTightNarrowBeamDomain:
         gc.collect()
     
     def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True):
+        '''
+        Calculate phase and amplitude maps from the simulated sensor data.
+
+        Parameters
+        ----------
+        bRefocused : bool, optional
+            If True, calculate for the refocused simulation (default is False).
+        bDoRefocusing : bool, optional
+            If True, also process backpropagation data (default is True).
+        '''
         
         t0=time.time()
         if bRefocused==False:
@@ -1745,17 +1848,43 @@ elif self._bTightNarrowBeamDomain:
             self._InPeakValueRefocus=self._DictPeakValueRefocus['Pressure']
             self._PressMapFourierRefocus*=2/self._SensorRefocus['time'].size
             print('Elapsed time doing phase and amp extraction from Fourier (s)',time.time()-t0)
-            
-        
-            
+             
     def BackPropagationRayleigh(self,deviceName='6800'):
+        '''
+        Perform Rayleigh backpropagation for refocusing.
+
+        Parameters
+        ----------
+        deviceName : str, optional
+            Name of the device to use for computation (default is '6800').
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this") 
         
     def CreateSourcesRefocus(self,ramp_length=4):
+        '''
+        Create the source signals for the refocused simulation.
+
+        Parameters
+        ----------
+        ramp_length : int, optional
+            Length of the ramp for the source signal (default is 4).
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
         
     def PlotResultsPlanePartial(self):
-  
+        '''
+        Plot partial results (peak, Fourier, and in-peak amplitude) for a central plane.
+        '''
         if self._bDisplay:
             plt.figure(figsize=(18,6))
             plt.subplot(1,3,1)
@@ -1779,7 +1908,14 @@ elif self._bTightNarrowBeamDomain:
             plt.title('BabelViscoFDTD InPeak amp. (MPa)')
             
     def PlotResultsPlane(self,bDoRefocusing=True):
-  
+        '''
+        Plot results for the main and (optionally) refocused simulations.
+
+        Parameters
+        ----------
+        bDoRefocusing : bool, optional
+            If True, plot refocused results as well (default is True).
+        '''
         if self._bDisplay:
             if bDoRefocusing:
                 plt.figure(figsize=(18,12))
@@ -1854,6 +1990,21 @@ elif self._bTightNarrowBeamDomain:
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
     def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False):
+        '''
+        Return simulation results including pressure, phase, overlays, and data for saving.
+
+        Parameters
+        ----------
+        bDoRefocusing : bool, optional
+            If True, include refocused results (default is True).
+        bUseRayleighForWater : bool, optional
+            If True, use Rayleigh field for water-only simulation (default is False).
+
+        Returns
+        -------
+        tuple
+            Contains Rayleigh field, overlays, pressure/phase maps, and simulation data.
+        '''
         if self._XShrink_R==0:
             upperXR=self._SkullMaskDataOrig.shape[0]
         else:

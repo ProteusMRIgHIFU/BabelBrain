@@ -22,6 +22,9 @@ import sys
 import time
 
 class InOutputWrapper(object):
+    '''
+    Wrapper class to redirect stdout or stderr to a multiprocessing queue.
+    '''
     def __init__(self, queue, stdout=True):
         self.queue=queue
         if stdout:
@@ -48,6 +51,31 @@ class InOutputWrapper(object):
             pass
 
 def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
+    '''
+    Generate a standardized output filename for thermal simulation results.
+
+    Parameters
+    ----------
+    InputPData : str
+        Path to the input pressure data file.
+    DurationUS : float
+        Sonication duration in microseconds.
+    DurationOff : float
+        Off duration in microseconds.
+    DutyCycle : float
+        Duty cycle (0-1).
+    Isppa : float
+        Spatial-peak pulse-average intensity (W/cm^2).
+    PRF : int
+        Pulse repetition frequency (Hz).
+    Repetitions : int
+        Number of repetitions.
+
+    Returns
+    -------
+    str
+        Output filename for thermal simulation results.
+    '''
     if DurationUS>=1 and DurationOff>=1:
         suffix = '-ThermalField-Duration-%i-DurationOff-%i-DC-%i-Isppa-%2.1fW-PRF-%iHz' % (DurationUS,DurationOff,DutyCycle*1000,Isppa,PRF)
     else:
@@ -66,6 +94,44 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   bForceHomogenousMedium,
                   bSegmentedBrain,
                   IdRegionBenchmark=[]):
+    '''
+    Analyze acoustic energy losses between water and tissue and compute pressure adjustment.
+
+    Parameters
+    ----------
+    pAmp : np.ndarray
+        Pressure amplitude map in tissue.
+    MaterialMap : np.ndarray
+        Material map of the simulation domain.
+    LocIJK : array-like
+        Target location indices.
+    Input : dict
+        Input simulation data.
+    MaterialList : dict
+        Dictionary of material properties.
+    pAmpWater : np.ndarray
+        Pressure amplitude map in water.
+    Isppa : float
+        Spatial-peak pulse-average intensity (W/cm^2).
+    xf, yf, zf : np.ndarray
+        Spatial coordinate vectors.
+    SelBrain : np.ndarray
+        Boolean mask for brain region.
+    bForceHomogenousMedium : bool
+        If True, use homogenous medium.
+    bSegmentedBrain : bool
+        If True, segmented brain is used.
+    IdRegionBenchmark : list, optional
+        List of region IDs for benchmarking.
+
+    Returns
+    -------
+    tuple
+        PressureRatio : float
+            Ratio to adjust pressure for target intensity.
+        RatioLosses : float
+            Ratio of acoustic energy losses.
+    '''
     pAmpBrain=pAmp.copy()
 
     SoSMap=MaterialList['SoS'][MaterialMap]
@@ -187,6 +253,65 @@ def RunBHTECycles(nCurrent,
                     FinalDose,
                     bRunInSubProcess=False,
                     ):
+    '''
+    Run multiple cycles of the Bio-Heat Transfer Equation (BHTE) simulation.
+
+    Parameters
+    ----------
+    nCurrent : int
+        Current iteration index.
+    Repetitions : int
+        Number of repetitions per group.
+    TotalIterations : int
+        Total number of iterations.
+    TotalDurationBetweenGroups : int
+        Duration between groups (steps).
+    TotalDurationStepsOff : int
+        Duration of off period (steps).
+    LimitBHTEIterationsPerProcess : int
+        Maximum BHTE iterations per process.
+    InputPData : str or np.ndarray
+        Input pressure data or filename.
+    PMaps : np.ndarray
+        Pressure maps.
+    MaterialMap : np.ndarray
+        Material map.
+    MaterialList : dict
+        Material properties.
+    dx : float
+        Spatial step size.
+    TotalDurationSteps : int
+        Total duration in steps.
+    nStepsOn : int or np.ndarray
+        Number of steps with sonication on.
+    cy : int
+        Central y-index.
+    nFactorMonitoring : int
+        Monitoring interval (steps).
+    dt : float
+        Time step size.
+    DutyCycle : float
+        Duty cycle (0-1).
+    Backend : str
+        Backend type ('CUDA', 'OpenCL', 'Metal').
+    MonitoringPointsMap : np.ndarray
+        Map of monitoring points.
+    stableTemp : float
+        Baseline temperature.
+    TemperaturePoints : np.ndarray
+        Array to store temperature points.
+    FinalTemp : np.ndarray
+        Final temperature array.
+    FinalDose : np.ndarray
+        Final dose array.
+    bRunInSubProcess : bool, optional
+        If True, run in subprocess.
+
+    Returns
+    -------
+    tuple
+        ResTemp, ResDose, FinalTemp, FinalDose, TemperaturePoints, nCurrent
+    '''
     if type(InputPData) is str:
         p0=PMaps*0
     else:
@@ -292,6 +417,64 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                  TemperaturePoints,stableTemp,
                  FinalTemp,FinalDose,
                  TotalDurationBetweenGroups):
+    '''
+    Run BHTE simulation cycles in a separate process for parallel computation.
+
+    Parameters
+    ----------
+    queueResult : multiprocessing.Queue
+        Queue to store results.
+    Backend : str
+        Backend type ('CUDA', 'OpenCL', 'Metal').
+    deviceName : str
+        Name of the device to use.
+    queueMsg : multiprocessing.Queue
+        Queue for output messages.
+    LimitBHTEIterationsPerProcess : int
+        Maximum BHTE iterations per process.
+    nCurrent : int
+        Current iteration index.
+    NumberGroupedSonications : int
+        Number of grouped sonications.
+    Repetitions : int
+        Number of repetitions per group.
+    InputPData : str or np.ndarray
+        Input pressure data or filename.
+    PMaps : np.ndarray
+        Pressure maps.
+    MaterialMap : np.ndarray
+        Material map.
+    MaterialList : dict
+        Material properties.
+    dx : float
+        Spatial step size.
+    TotalDurationSteps : int
+        Total duration in steps.
+    TotalDurationStepsOff : int
+        Duration of off period (steps).
+    nStepsOn : int or np.ndarray
+        Number of steps with sonication on.
+    cy : int
+        Central y-index.
+    nFactorMonitoring : int
+        Monitoring interval (steps).
+    dt : float
+        Time step size.
+    DutyCycle : float
+        Duty cycle (0-1).
+    MonitoringPointsMap : np.ndarray
+        Map of monitoring points.
+    TemperaturePoints : np.ndarray
+        Array to store temperature points.
+    stableTemp : float
+        Baseline temperature.
+    FinalTemp : np.ndarray
+        Final temperature array.
+    FinalDose : np.ndarray
+        Final dose array.
+    TotalDurationBetweenGroups : int
+        Duration between groups (steps).
+    '''
     stdout = InOutputWrapper(queueMsg,True)
     
     if Backend=='CUDA':
@@ -360,7 +543,61 @@ def CalculateTemperatureEffects(InputPData,
                                 BenchmarkTestFile='',
                                 ):
 
+    '''
+    Main function to calculate temperature effects for TUS experiments using BHTE.
 
+    Parameters
+    ----------
+    InputPData : str or list
+        Path(s) to input pressure data file(s).
+    deviceName : str
+        Name of the device to use for computation.
+    queueMsg : multiprocessing.Queue
+        Queue for output messages.
+    DutyCycle : float, optional
+        Duty cycle (default is 0.3).
+    Isppa : float, optional
+        Spatial-peak pulse-average intensity (W/cm^2, default is 5).
+    sel_p : str, optional
+        Key for pressure amplitude in input data (default is 'p_amp').
+    PRF : int, optional
+        Pulse repetition frequency (Hz, default is 1500).
+    DurationUS : float, optional
+        Sonication duration in microseconds (default is 40).
+    DurationOff : float, optional
+        Off duration in microseconds (default is 40).
+    Repetitions : int, optional
+        Number of repetitions (default is 1).
+    bForceRecalc : bool, optional
+        If True, force recalculation even if output exists (default is False).
+    BaselineTemperature : float, optional
+        Baseline temperature (default is 37).
+    bGlobalDCMultipoint : bool, optional
+        If True, use global duty cycle for multipoint (default is False).
+    Frequency : float, optional
+        Operating frequency (Hz, default is 7e5).
+    NumberGroupedSonications : int, optional
+        Number of grouped sonications (default is 1).
+    PauseBetweenGroupedSonications : float, optional
+        Pause duration between grouped sonications (default is 0.0).
+    Backend : str, optional
+        Backend type ('CUDA', 'OpenCL', 'Metal', default is 'CUDA').
+    LimitBHTEIterationsPerProcess : int, optional
+        Max BHTE iterations per process (default is 100).
+    bForceHomogenousMedium : bool, optional
+        If True, use homogenous medium (default is False).
+    bForceNoAbsorptionSkullScalp : bool, optional
+        If True, set skull/scalp absorption to zero (default is False).
+    HomogenousMediumValues : dict, optional
+        Properties for homogenous medium.
+    BenchmarkTestFile : str, optional
+        Path to benchmark test file.
+
+    Returns
+    -------
+    str
+        Output filename for saved results.
+    '''
     if type(InputPData) is str:    
         outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
     else:
