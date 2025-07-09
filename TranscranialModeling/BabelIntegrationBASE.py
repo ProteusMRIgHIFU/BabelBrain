@@ -32,7 +32,6 @@ from linetimer import CodeTimer
 try:
     import mkl_fft as fft
 except:
-    print('mkl_fft not available')
     from numpy import fft
     
 warnings.filterwarnings("ignore", category=DeprecationWarning)
