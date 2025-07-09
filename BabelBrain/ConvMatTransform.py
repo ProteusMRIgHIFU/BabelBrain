@@ -28,17 +28,20 @@ templateBSight=\
 import re
 
 def read_itk_affine_transform(filename):
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-
+    with open(filename) as f:
+        tfm_file_lines = f.readlines()
+    # parse the transform parameters
+    match = re.match("Transform: AffineTransform_[a-z]+_([0-9]+)_([0-9]+)", tfm_file_lines[2])
+    if not match or match.group(1) != '3' or match.group(2) != '3':
+         raise ValueError(f"{filename} is not an ITK 3D affine transform file")
     # Extract Parameters
-    params_line = next(line for line in lines if line.startswith('Parameters:'))
+    params_line = next(line for line in tfm_file_lines if line.startswith('Parameters:'))
     params = list(map(float, params_line.replace('Parameters:', '').strip().split()))
     matrix_values = params[:9]
     translation = np.array(params[9:12])
 
     # Extract FixedParameters (center of rotation)
-    fixed_line = next(line for line in lines if line.startswith('FixedParameters:'))
+    fixed_line = next(line for line in tfm_file_lines if line.startswith('FixedParameters:'))
     fixed_params = np.array(list(map(float, fixed_line.replace('FixedParameters:', '').strip().split())))
 
     # Reshape matrix and compute adjusted translation
