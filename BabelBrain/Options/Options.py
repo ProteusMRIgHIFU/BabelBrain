@@ -2,6 +2,7 @@
 import sys
 
 from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QStyle,QMessageBox
+from PySide6.QtGui import QValidator
 from PySide6.QtCore import Slot, Qt
 
 # Important:
@@ -29,6 +30,37 @@ def resource_path():  # needed for bundling
         bundle_dir = os.path.join(Path(__file__).parent,'..')
 
     return bundle_dir
+
+class ScientificDoubleValidator(QValidator):
+    def __init__(self, bottom=None, top=None, parent=None):
+        super().__init__(parent)
+        self.bottom = bottom
+        self.top = top
+        self.regex = re.compile(r'^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$')
+
+    def validate(self, input_str, pos):
+        input_str = input_str.strip()
+        if input_str in ('', '-', '.', '+'):
+            return QValidator.Intermediate, input_str, pos
+
+        if self.regex.fullmatch(input_str):
+            try:
+                value = float(input_str)
+                if (self.bottom is not None and value < self.bottom) or \
+                   (self.top is not None and value > self.top):
+                    return QValidator.Invalid, input_str, pos
+                return QValidator.Acceptable, input_str, pos
+            except ValueError:
+                return QValidator.Invalid, input_str, pos
+
+        return QValidator.Invalid, input_str, pos
+
+    def fixup(self, input_str):
+        try:
+            value = float(input_str)
+            return f"{value:.6e}"
+        except ValueError:
+            return ""
 
 class OptionalParams(object):
     def __init__(self,AllTransducers):
@@ -93,6 +125,8 @@ class AdvancedOptions(QDialog):
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
         self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
         self.ui.tabWidget.setCurrentIndex(0)
+        validator = ScientificDoubleValidator(1e-5, 1e-2)
+        self.ui.LambdaLineEdit.setValidator(validator)
 
         self.defaultValues = defaultValues
         curvalues = OptionalParams(AllTransducers)
@@ -143,10 +177,10 @@ class AdvancedOptions(QDialog):
         self.ui.SimbNINBSRootlineEdit.setText(values.SimbNINBSRoot)
         self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(values.SimbNINBSRoot))
         
-        sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
-        if sel==-1:
-            raise ValueError('The CTX 500 correction choice is not available in the GUI -'+values.CTX_500_Correction )
-        self.ui.CTX500CorrectioncomboBox.setCurrentIndex(sel)
+        # sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
+        # if sel==-1:
+        #     raise ValueError('The CTX 500 correction choice is not available in the GUI -'+values.CTX_500_Correction )
+        # self.ui.CTX500CorrectioncomboBox.setCurrentIndex(sel)
 
         self.ui.bForceHomogenousMediumcheckBox.setChecked(values.bForceHomogenousMedium)
         self.ui.HomogenousDensitySpinBox.setValue(values.HomogenousMediumValues['Density'])
@@ -160,7 +194,7 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
-        self.ui.TxWeightLabel.setText("Optimized Weights for Transducer:" +  self._TxSystem)
+        self.ui.TxWeightLabel.setText("Optimized Weights for Transducer: " +  self._TxSystem)
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
 
     @Slot()
@@ -204,7 +238,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.bForceUseBlender=self.ui.ForceBlendercheckBox.isChecked()
         self.NewValues.ElastixOptimizer=self.ui.ElastixOptimizercomboBox.currentText()
         self.NewValues.TrabecularProportion=self.ui.TrabecularProportionSpinBox.value()
-        self.NewValues.CTX_500_Correction=self.ui.CTX500CorrectioncomboBox.currentText()
+        # self.NewValues.CTX_500_Correction=self.ui.CTX500CorrectioncomboBox.currentText()
         self.NewValues.PetraNPeaks=self.ui.PetraNPeaksSpinBox.value()
         self.NewValues.PetraMRIPeakDistance=self.ui.PetraMRIPeakDistancespinBox.value()
         self.NewValues.bInvertZTE=self.ui.InvertZTEcheckBox.isChecked()
