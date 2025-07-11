@@ -28,19 +28,16 @@ import nibabel
 import numpy as np
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie, QPainter, QImage,QPixmap
+from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie,QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QDoubleSpinBox,
     QGridLayout,
-    QHBoxLayout,
     QInputDialog,
     QLineEdit,
     QMessageBox,
-    QProgressBar,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
     QLabel
@@ -67,6 +64,7 @@ from ConvMatTransform import (
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
 from Options.Options import AdvancedOptions, OptionalParams
+from ClockDialog import ClockDialog
 
 
 multiprocessing.freeze_support()
@@ -341,25 +339,7 @@ def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
                     minval,
                     preT1.GetPixelID())
     sitk.WriteImage(preT1, T1WIso_fname)
- 
-########################
-class ClockDialog(QDialog):
-    def __init__(self, parent=None):
-        super(ClockDialog,self).__init__(parent)
-        self.initUI()
 
-    def initUI(self):
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
-        self.setModal(False)
-
-        self.label = QLabel(self)
-        self.movie = QMovie( os.path.join(resource_path(),'icons8-hourglass.gif'))
-        self.label.setMovie(self.movie)
-        self.movie.start()
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        self.setLayout(layout)
 
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 
@@ -520,8 +500,6 @@ class BabelBrain(QWidget):
     def centerClockDialog(self):
         # Calculate and set the new position for the dialog
         mainWindowCenter = self.geometry().center()
-        dialogWidth = self._WorkingDialog.width()
-        dialogHeight = self._WorkingDialog.height()
         self._WorkingDialog.move(
             mainWindowCenter.x() - 50,
             mainWindowCenter.y() - 50

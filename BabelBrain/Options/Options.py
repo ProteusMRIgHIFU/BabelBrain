@@ -3,7 +3,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QStyle,QMessageBox
 from PySide6.QtGui import QValidator
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtCore import Slot, Qt,QTimer
 
 # Important:
 # You need to run the following command to generate the ui_form.py file
@@ -16,7 +16,12 @@ from pathlib import Path
 import re
 import yaml
 
-from Calibration.TxCalibration import RUN_FITTING_Parallel as RUN_FITTING
+from multiprocessing import Process,Queue
+import time
+
+
+from Calibration.TxCalibration import RUN_FITTING_Process 
+from ClockDialog import ClockDialog
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -125,6 +130,13 @@ class AdvancedOptions(QDialog):
 
         self.ui.ExecuteCalibrationButton.clicked.connect(self.ExecuteCalibration)
 
+        self.CalQueue = None
+        self.CalProcess = None
+        self.Caltimer = QTimer(self)
+        self.Caltimer.timeout.connect(self.check_queue)
+        self._WorkingDialog = ClockDialog(self)
+        
+
     @Slot()
     def ExecuteCalibration(self):
         """Execute the calibration with the current parameters"""
@@ -141,17 +153,92 @@ class AdvancedOptions(QDialog):
             self.ui.ExcelAcousticProfilesLineEdit.setFocus()
             return
         
-        MSENow, MSE_BFGS=RUN_FITTING(self._TxConfig,
+        self.RUN_FITTING_Parallel(self._TxConfig,
               self.ui.YAMLCalibrationLineEdit.text(),
               deviceName=self._currentConfig['ComputingDevice'],
               COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
+        
+        # MSENow, MSE_BFGS=self.RUN_FITTING(self._TxConfig,
+        #       self.ui.YAMLCalibrationLineEdit.text(),
+        #       deviceName=self._currentConfig['ComputingDevice'],
+        #       COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
 
-        msgBox = QMessageBox()
-        msgBox.setText("Calibration executed with the following results:\n"+
-                       "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
-                        "\n\nPLEASE check plots in output directory specied in YAML file")
-        msgBox.exec()
+        # msgBox = QMessageBox()
+        # msgBox.setText("Calibration executed with the following results:\n"+
+        #                "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
+        #                 "\n\nPLEASE check plots in output directory specied in YAML file")
+        # msgBox.exec()
 
+    def RUN_FITTING_Parallel(self,TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
+        """
+        Run the fitting process in parallel using multiprocessing.
+        """
+        queue=Queue()
+        self.CalQueue=queue
+        fieldWorkerProcess = Process(target=RUN_FITTING_Process, 
+                                            args=(queue,
+                                                TxConfig,
+                                                YAMLConfigFilename,
+                                                deviceName,
+                                                COMPUTING_BACKEND))
+        
+        self.CalProcess=fieldWorkerProcess
+        self.T0Cal=time.time()
+        fieldWorkerProcess.start()     
+        self.Caltimer.start(100)
+        mainWindowCenter = self.geometry().center()
+
+        self._WorkingDialog.move(
+            mainWindowCenter.x() - 50,
+            mainWindowCenter.y() - 50
+        )
+        self._WorkingDialog.show()
+        self.setEnabled(False)
+
+    def check_queue(self):
+            
+        # progress.
+        
+        bNoError=True
+        bDone=False
+        MSENow=None
+        while self.CalQueue and not self.CalQueue.empty():
+            cMsg=self.CalQueue.get()
+            if type(cMsg) is str:
+                print(cMsg,end='')
+                if '--Babel-Brain-Low-Error' in cMsg:
+                    bNoError=False
+                    self.Caltimer.stop()
+                    self.CalProcess.join()
+                    bDone=True
+            else:
+                assert(type(cMsg) is dict)
+                MSENow=cMsg['MSENow']
+                MSE_BFGS=cMsg['MSE_BFGS']
+                self.Caltimer.stop()
+                self.CalProcess.join()
+                bDone=True
+                
+        if bDone:
+            self.setEnabled(True)
+            if bNoError:
+                TEnd=time.time()
+                TotalTime = TEnd-self.T0Cal
+                print('Total time',TotalTime)
+                print("*"*40)
+                print("*"*5+" DONE Calibration.")
+                print("*"*40)
+                self._WorkingDialog.hide()
+                msgBox = QMessageBox()
+                msgBox.setText("Calibration executed with the following results:\n"+
+                            "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
+                                "\n\nPLEASE check plots in output directory specied in YAML file")
+                msgBox.exec()
+            else:
+                print("*"*40)
+                print("*"*5+" Error in execution of the calibration process.")
+                print("*"*40)
+            
     @Slot()
     def YAMLCalibration(self):
         """Select the YAMLS file with the acoustic profiles"""
