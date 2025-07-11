@@ -735,6 +735,7 @@ class BabelBrain(QWidget):
     def ShowAdvancedOptions(self):
         
         options = AdvancedOptions(self.Config,
+                                 self.AcSim.Config,
                                  self._DefaultOptions,
                                  self._AllTransducers,
                                  parent=self)

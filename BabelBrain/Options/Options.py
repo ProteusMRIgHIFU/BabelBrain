@@ -14,7 +14,9 @@ import platform
 import os
 from pathlib import Path
 import re
+import yaml
 
+from Calibration.TxCalibration import RUN_FITTING_Parallel as RUN_FITTING
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -30,85 +32,6 @@ def resource_path():  # needed for bundling
         bundle_dir = os.path.join(Path(__file__).parent,'..')
 
     return bundle_dir
-
-class ScientificDoubleValidator(QValidator):
-    def __init__(self, bottom=None, top=None, parent=None):
-        super().__init__(parent)
-        self.bottom = bottom
-        self.top = top
-        self.regex = re.compile(r'^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$')
-
-    def validate(self, input_str, pos):
-        input_str = input_str.strip()
-        if input_str in ('', '-', '.', '+'):
-            return QValidator.Intermediate, input_str, pos
-
-        if self.regex.fullmatch(input_str):
-            try:
-                value = float(input_str)
-                if (self.bottom is not None and value < self.bottom) or \
-                   (self.top is not None and value > self.top):
-                    return QValidator.Invalid, input_str, pos
-                return QValidator.Acceptable, input_str, pos
-            except ValueError:
-                return QValidator.Invalid, input_str, pos
-
-        return QValidator.Invalid, input_str, pos
-
-    def fixup(self, input_str):
-        try:
-            value = float(input_str)
-            return f"{value:.6e}"
-        except ValueError:
-            return ""
-        
-class ExcelRangeValidator(QValidator):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # Match Excel-style ranges like A1, AA10, B2:Z99
-        self.cell_regex = re.compile(r'^([A-Z]+)(\d+)$')
-        self.range_regex = re.compile(r'^([A-Z]+\d+):([A-Z]+\d+)$')
-
-    def column_to_number(self, col_str):
-        """Convert Excel-style column string (e.g., 'AA') to number (e.g., 27)."""
-        num = 0
-        for c in col_str:
-            num = num * 26 + (ord(c) - ord('A') + 1)
-        return num
-
-    def parse_cell(self, cell_str):
-        match = self.cell_regex.fullmatch(cell_str)
-        if not match:
-            return None
-        col_str, row_str = match.groups()
-        col = self.column_to_number(col_str)
-        row = int(row_str)
-        return (col, row)
-
-    def validate(self, input_str, pos):
-        input_str = input_str.strip().upper()
-        if not input_str:
-            return QValidator.Intermediate, input_str, pos
-
-        match = self.range_regex.fullmatch(input_str)
-        if not match:
-            return QValidator.Invalid, input_str, pos
-
-        cell1, cell2 = match.groups()
-        coord1 = self.parse_cell(cell1)
-        coord2 = self.parse_cell(cell2)
-
-        if not coord1 or not coord2:
-            return QValidator.Invalid, input_str, pos
-
-        # Ensure first cell is top-left of the range
-        if coord1[0] <= coord2[0] and coord1[1] <= coord2[1]:
-            return QValidator.Acceptable, input_str, pos
-        else:
-            return QValidator.Invalid, input_str, pos
-
-    def fixup(self, input_str):
-        return input_str.upper().strip()
 
 class OptionalParams(object):
     def __init__(self,AllTransducers):
@@ -162,6 +85,7 @@ class OptionalParams(object):
 class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,
+                 TxConfig,
                  defaultValues,
                  AllTransducers,
                 parent=None):
@@ -173,9 +97,8 @@ class AdvancedOptions(QDialog):
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
         self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
         self.ui.tabWidget.setCurrentIndex(0)
-        self.ui.LambdaLineEdit.setValidator(ScientificDoubleValidator(1e-5, 1e-2))
-        self.ui.ProfilesCellRangeLineEdit.setValidator(ExcelRangeValidator())
-        self.ui.PhaseCellRangeLineEdit.setValidator(ExcelRangeValidator())
+        self._TxConfig = TxConfig
+        self._currentConfig = currentConfig
 
 
         self.defaultValues = defaultValues
@@ -196,110 +119,51 @@ class AdvancedOptions(QDialog):
         self.ui.TxOptimizedWeightspushButton.clicked.connect(self.SelectTxOptimizedWeight)
         self.ui.TxOptimizedWeightspushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
 
-        self.ui.ExcelAcousticProfilespushButton.clicked.connect(self.ExcelAcousticProfiles)
-        self.ui.ExcelAcousticProfilespushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.YAMLCalibrationpushButton.clicked.connect(self.YAMLCalibration)
+        self.ui.YAMLCalibrationpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
 
-        self.ui.ExcelPhaseProgrammingpushButton.clicked.connect(self.ExcelPhaseProgramming)
-        self.ui.ExcelPhaseProgrammingpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
-
-        self.ui.OptimizationResultsPathpushButton.clicked.connect(self.OptimizationResultsPath)
-        self.ui.OptimizationResultsPathpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
 
         self.ui.ExecuteCalibrationButton.clicked.connect(self.ExecuteCalibration)
 
+    @Slot()
     def ExecuteCalibration(self):
         """Execute the calibration with the current parameters"""
-        if not self.ui.ExcelAcousticProfilesLineEdit.text():
+        if not self.ui.YAMLCalibrationLineEdit.text():
             msgBox = QMessageBox()
-            msgBox.setText("Please select the Excel file with the acoustic profiles.")
+            msgBox.setText("Please select the YAML file with calibration input fields.")
             msgBox.exec()
             self.ui.ExcelAcousticProfilesLineEdit.setFocus()
             return
-        if not os.path.isfile(self.ui.ExcelAcousticProfilesLineEdit.text()):
+        if not os.path.isfile(self.ui.YAMLCalibrationLineEdit.text()):
             msgBox = QMessageBox()
-            msgBox.setText("The selected Excel file with the acoustic profiles does not exist.")
+            msgBox.setText("The indicated YAML file with the with calibration input fields does not exist.")
             msgBox.exec()
             self.ui.ExcelAcousticProfilesLineEdit.setFocus()
             return
-        if not self.ui.ProfilesCellRangeLineEdit.hasAcceptableInput():
-            msgBox = QMessageBox()
-            msgBox.setText("Please enter a valid cell range for the acoustic profiles.")
-            msgBox.exec()
-            self.ui.ProfilesCellRangeLineEdit.setFocus()
-            return
-        ExcelProfiles = self.ui.ExcelAcousticProfilesLineEdit.text()
-        ExcelPhase=''
-        if self.ui.UsePhaseFilecheckBox.isChecked():
-            if not self.ui.ExcelPhaseProgrammingLineEdit.text():
-                msgBox = QMessageBox()
-                msgBox.setText("Please select the Excel file with the phase programming.")
-                msgBox.exec()
-                self.ui.ExcelPhaseProgrammingLineEdit.setFocus()
-                return
-            if not os.path.isfile(self.ui.ExcelPhaseProgrammingLineEdit.text()):
-                msgBox = QMessageBox()
-                msgBox.setText("The selected Excel file with the phase programming does not exist.")
-                msgBox.exec()
-                self.ui.ExcelPhaseProgrammingLineEdit.setFocus()
-                return
-            ExcelPhase = self.ui.ExcelPhaseProgrammingLineEdit.text()
-            if not self.ui.PhaseCellRangeLineEdit.hasAcceptableInput():
-                msgBox = QMessageBox()
-                msgBox.setText("Please enter a valid cell range for the phase programming.")
-                msgBox.exec()
-                self.ui.PhaseCellRangeLineEdit.setFocus()
-                return
         
-        if not os.path.isdir(self.ui.OptimizationResultsPathLineEdit.text()):
-            msgBox = QMessageBox()
-            msgBox.setText("The selected folder for the optimization results does not exist.")
-            msgBox.exec()
-            self.ui.OptimizationResultsPathLineEdit.setFocus()
-            return
-        
-        if not self.ui.LambdaLineEdit.hasAcceptableInput():
-            msgBox = QMessageBox()
-            msgBox.setText("Please enter a valid value for the lambda parameter.")
-            msgBox.exec()
-            self.ui.LambdaLineEdit.setFocus()
-            return
-        
+        MSENow, MSE_BFGS=RUN_FITTING(self._TxConfig,
+              self.ui.YAMLCalibrationLineEdit.text(),
+              deviceName=self._currentConfig['ComputingDevice'],
+              COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
+
         msgBox = QMessageBox()
-        msgBox.setText("Calibration executed with the current parameters.")
+        msgBox.setText("Calibration executed with the following results:\n"+
+                       "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
+                        "\n\nPLEASE check plots in output directory specied in YAML file")
         msgBox.exec()
 
-    def ExcelAcousticProfiles(self):
-        """Select the Excel file with the acoustic profiles"""
-        curfile=self.ui.ExcelAcousticProfilesLineEdit.text()
+    @Slot()
+    def YAMLCalibration(self):
+        """Select the YAMLS file with the acoustic profiles"""
+        curfile=self.ui.YAMLCalibrationLineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
             bdir=os.getcwd()
-        fname = QFileDialog.getOpenFileName(self, "Select Excel file with acoustic profiles",bdir, "Excel files (*.xlsx *.xls)")[0]
+        fname = QFileDialog.getOpenFileName(self, "Select YAML file with calibration input fields",bdir, "YAMKS files (*.yaml *.yml)")[0]
         if len(fname)>0:
-            self.ui.ExcelAcousticProfilesLineEdit.setText(fname)
-            self.ui.ExcelAcousticProfilesLineEdit.setCursorPosition(len(fname))
-
-    def ExcelPhaseProgramming(self):
-        """Select the Excel file with the phase programming"""
-        curfile=self.ui.ExcelAcousticProfilesLineEdit.text()
-        bdir=os.path.dirname(curfile)
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        fname = QFileDialog.getOpenFileName(self, "Select Excel file with phase programming",bdir, "Excel files (*.xlsx *.xls)")[0]
-        if len(fname)>0:
-            self.ui.ExcelPhaseProgrammingLineEdit.setText(fname)
-            self.ui.ExcelPhaseProgrammingLineEdit.setCursorPosition(len(fname))
+            self.ui.YAMLCalibrationLineEdit.setText(fname)
+            self.ui.YAMLCalibrationLineEdit.setCursorPosition(len(fname))
     
-    def OptimizationResultsPath(self):
-        """Select the folder for the optimization results"""
-        bdir=self.ui.OptimizationResultsPathLineEdit.text()
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        folder = QFileDialog.getExistingDirectory(self, "Select Optimization Results Folder",bdir)    
-        
-        if folder:
-            self.ui.OptimizationResultsPathLineEdit.setText(folder)
-            self.ui.OptimizationResultsPathLineEdit.setCursorPosition(len(folder))
         
     def SetValues(self,values):
 
@@ -371,7 +235,7 @@ class AdvancedOptions(QDialog):
         if not os.path.isdir(bdir):
             bdir=os.getcwd()
         fWeight=QFileDialog.getOpenFileName(self,
-            "Select Weight results",bdir, "Numpy (*.npz)")[0]
+            "Select Weight results",bdir, "HDF5 (*.h5 *.hdf5)")[0]
         if len(fWeight)>0:
             self.ui.TxOptimizedWeightsLineEdit.setText(fWeight)
             self.ui.TxOptimizedWeightsLineEdit.setCursorPosition(len(fWeight))

@@ -1158,7 +1158,8 @@ class SimulationConditionsBASE(object):
             if not os.path.isfile(OptimizedWeightsFile):
                 raise FileNotFoundError("OptimizedWeightsFile %s does not exist." %(OptimizedWeightsFile))
             self._OptimizedWeightsFile=OptimizedWeightsFile
-            self._OptimizedWeights = np.load(OptimizedWeightsFile,allow_pickle=True)['res'].flatten()[0].x
+            self._OptimizedWeights = ReadFromH5py(OptimizedWeightsFile)['CALIBRATION']
+
  
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         '''

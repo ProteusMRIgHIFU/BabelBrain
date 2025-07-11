@@ -11,10 +11,15 @@ from matplotlib.colors import TwoSlopeNorm
 from openpyxl.utils import column_index_from_string
 from openpyxl import load_workbook
 from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
-sys.path.append('/Users/spichardo/Documents/GitHub/BabelBrain/')
+
 from TranscranialModeling import BabelIntegrationANNULAR_ARRAY
 from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal,ForwardSimple
 from scipy.optimize import minimize
+
+from multiprocessing import Process,Queue
+import time
+
+import traceback
 
 
 def read_excel_range(file_path, range_str, sheet_name=0, **kwargs):
@@ -112,38 +117,21 @@ def read_excel_range_with_numeric_headers(file_path, range_str, sheet_name=0, **
     df.columns = headers
     return df
 
-def MakePlots(infname,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=None,
+def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=None,
               bUseRayleighPhase=True,dfPhase=None):
   
-    try:
-        x=np.load(infname+'.npz',allow_pickle=True)['res']
-        if type(x) is np.ndarray:
-            print('x is np.array')
-            if len(x.shape)==0:
-                x=x.flatten()[0]['x']
-    except:
-        print('exception loading x, trying to load res')
-        x=np.load(infname+'.npz',allow_pickle=True)['res'].flatten()[0].x
+    outdir=os.path.dirname(infname)
 
-
-    A=np.load(infname+'.npz',allow_pickle=True)['A']
-
-    outdir=infname+'-plots'
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    rootpath=outdir+os.sep+os.path.basename(infname)
+    rootpath=outdir+os.sep+'Plots-'
         
-    SSEnow=[]
-    SSEw=[]
+    MSENow=[]
+    MSEw=[]
 
     report={}
     maxp=0.0
     for l in Locations:
         report[l]=np.array(df[l])
         maxp=np.max([maxp,report[l].max()])
-    # for l in Locations:
-    #     report[l]/=maxp
 
     if len(Locations)>12:
         f,ax=plt.subplots(4,4,figsize=(22/3*2,14/3*2))
@@ -166,28 +154,31 @@ def MakePlots(infname,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=No
             ax[n].plot(ZDim*1e3,experimental)
             ax[n].plot(ZDim*1e3,corrected)
         try:
-            SSEnow+=((base-experimental)**2).to_list()
-            SSEw+=((corrected-experimental)**2).to_list()
+            MSENow+=((base-experimental)**2).to_list()
+            MSEw+=((corrected-experimental)**2).to_list()
         except:
-            SSEnow+=((base-experimental)**2).tolist()
-            SSEw+=((corrected-experimental)**2).tolist()
+            MSENow+=((base-experimental)**2).tolist()
+            MSEw+=((corrected-experimental)**2).tolist()
         
         ax[n].set_title('TPO = '+str(l) + ' mm',fontsize=10)
     # 
-    plt.suptitle('Comparison of corrected and uncorrected source')
+
+    MSENow=np.array(MSENow)
+    MSEw=np.array(MSEw)
+    MSENow=MSENow.sum()/len(MSENow)
+    MSEw=MSEw.sum()/len(MSEw)
+
+    plt.suptitle('Comparison of corrected and uncorrected source - MSE = %.4E (uncorrected) and %.4E (corrected)' %(MSENow,MSEw),fontsize=14)
     f.legend(loc='upper center',bbox_to_anchor=[1.055,0.94])
     f.supxlabel('Z (mm)')
     f.supylabel('Pressure (a.u.)')
     plt.tight_layout()
-    SSEnow=np.array(SSEnow)
-    SSEw=np.array(SSEw)
-    SSEnow=SSEnow.sum()/len(SSEnow)
-    SSEw=SSEw.sum()/len(SSEw)
+
     
-    print('SSE non corrected',SSEnow)
-    print('SSE corrected',SSEw)
-    print('SSE reduction',1.0 -SSEw/SSEnow)
-    plt.savefig(rootpath+'.pdf',bbox_inches='tight')
+    print('MSE non corrected',MSENow)
+    print('MSE corrected',MSEw)
+    print('MSE reduction',1.0 -MSEw/MSENow)
+    plt.savefig(rootpath+'AcProfiles.pdf',bbox_inches='tight')
  
     def PlotWeight(ax,xd,norm,cmap):
         
@@ -257,8 +248,7 @@ def MakePlots(infname,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=No
         PlotWeight(axs[1],x,norm,cmap)
 
 
-    plt.savefig(rootpath+'-weight.pdf',bbox_inches='tight')
-    # plt.savefig(rootpath+'-weight.png',dpi=300,bbox_inches='tight')
+    plt.savefig(rootpath+'weight.pdf',bbox_inches='tight')
 
     zf=np.array(df.index).astype(np.float32)*1e-3
     Step=1500/Frequency/6
@@ -266,8 +256,7 @@ def MakePlots(infname,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=No
     xf=np.arange(Tx['center'][:,0].min(),
                  Tx['center'][:,0].max()+Step,Step)
     
-    # xf=np.arange(-20e-3,
-    #              20e-3+Step,Step)
+
     yf=np.zeros(1)
     
     yp,xp,zp=np.meshgrid(yf,xf,zf)
@@ -346,40 +335,35 @@ def MakePlots(infname,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=No
 
     PlotXZ(AcPlanes)
         
-    plt.suptitle(infname+'- XZ planes')
+    plt.suptitle('XZ planes')
     
    
-    plt.savefig(rootpath+'-Acplanes.pdf',bbox_inches='tight')
-    # plt.savefig(rootpath+'-Acplanes.png',dpi=300,bbox_inches='tight')
-
+    plt.savefig(rootpath+'Acplanes.pdf',bbox_inches='tight')
     AcPlanesReal=[]
     if RealWeight is not None:
         AcPlanesReal=DoXZ(RealWeight)
         PlotXZ(AcPlanesReal)
         plt.suptitle('REAL - XZ planes')
-        plt.savefig(rootpath+'-REAL-Acplanes.pdf',bbox_inches='tight')
+        plt.savefig(rootpath+'REAL-Acplanes.pdf',bbox_inches='tight')
         
         DiffPlanes=[]
         for n in range(len(AcPlanes)):
             DiffPlanes.append(np.abs(AcPlanes[n]-AcPlanesReal[n]))
         PlotXZ(DiffPlanes)
         plt.suptitle('Diff - XZ planes')
-        plt.savefig(rootpath+'-diff-Acplanes.pdf',bbox_inches='tight')
-        # plt.savefig(rootpath+'-diff-Acplanes.png',dpi=300,bbox_inches='tight')
+        plt.savefig(rootpath+'diff-Acplanes.pdf',bbox_inches='tight')
         AllError=np.abs(np.hstack(AcPlanes)-np.hstack(AcPlanesReal))
         print('Mean error with real planes',np.mean(AllError))
         print('Std error with real planes',np.std(AllError))
         PlanesMeanError=np.mean(AllError)
         PlanesStdError=np.std(AllError)
-        PlanesSSE=np.sum(AllError**2)/len(AllError)
+        PlanesMSE=np.sum(AllError**2)/len(AllError)
     
     
-
-    SaveToH5py({'AcPlanes':AcPlanes},rootpath+'-planes.h5')
     if RealWeight is not None:
-        return SSEnow,SSEw,PlanesMeanError, PlanesStdError,PlanesSSE
+        return MSENow,MSEw,PlanesMeanError, PlanesStdError,PlanesMSE
     else:
-        return SSEnow,SSEw
+        return MSENow,MSEw
     
 def spherical_cap_area(A, R):
     """
@@ -707,22 +691,8 @@ def optimize_b_complex(A, e, b0, regularizer):
         method='L-BFGS-B',
         options=options)
 
-
-def RUN_FITTING(GeometricFocus,
-              FocalDepth,
-              Frequency,
-              Aperture,
-              InD,
-              OutD,
-              df,
-              rootname,
-              complex_fit=False,
-              regularizer='L2',
-              lam=1e-5,
-              config=1,
-              bUseRayleighPhase=True,
-              dfPhase=None,
-              InnerD=0.0,
+def RUN_FITTING(TxConfig,
+              YAMLConfigFilename,
               deviceName='M3',
               COMPUTING_BACKEND=3):
     #From Report
@@ -734,6 +704,50 @@ def RUN_FITTING(GeometricFocus,
     elif COMPUTING_BACKEND==3:
         InitMetal(deviceName)
 
+    with open(YAMLConfigFilename, 'r') as f:
+        INPUT_PARAMS = yaml.safe_load(f)
+
+    print('Calibration INPUT_PARAMS',INPUT_PARAMS)
+
+    # First we load the mandatory parameters
+    dffilename=INPUT_PARAMS['ExcelFileProfiles']
+    range_str=INPUT_PARAMS['ExcelRangeProfiles']
+    sheet = range_str.split('!')[0] if '!' in range_str else 0
+    range_str = range_str.split('!')[1] if '!' in range_str else range_str
+    rootnamepath=INPUT_PARAMS['OutputResultsPath']
+    lam = INPUT_PARAMS['Lambda']
+    Frequency=INPUT_PARAMS['Frequency']
+
+    # we load commonn optional parameters 
+    bUseRayleighPhase = INPUT_PARAMS['UseRayleighPhase']
+    dfPhasefilename = INPUT_PARAMS.get('ExcelFilePhase', None)
+    rangePhase_str = INPUT_PARAMS.get('ExcelRangePhase', None)
+    if rangePhase_str is not None:
+        sheetPhase_name = rangePhase_str.split('!')[0] if '!' in rangePhase_str else 0
+        rangePhase_str = rangePhase_str.split('!')[1] if '!' in rangePhase_str else rangePhase_str
+
+    # load more experimental parameters
+    complex_fit=INPUT_PARAMS.get('ComplexFit',True)
+    regularizer=INPUT_PARAMS.get('Regularizer','Grouped')
+    config = INPUT_PARAMS.get('Config',1)
+    InnerD = INPUT_PARAMS.get('InnerDiameter', 0.0)
+
+    GeometricFocus=TxConfig['FocalLength']
+    FocalDepth=TxConfig['NaturalOutPlaneDistance']
+    
+    Aperture=TxConfig['TxDiam']
+    InD=np.array(TxConfig['InDiameters'])
+    OutD=np.array(TxConfig['OutDiameters'])
+
+    if not os.path.isdir(rootnamepath):
+        os.makedirs(rootnamepath)
+    
+
+    df=read_excel_range_with_numeric_headers(dffilename,range_str,sheet_name=sheet,index_col=0)
+    dfPhase=None
+    if dfPhasefilename is not None:
+        dfPhase=read_excel_range_with_numeric_headers(dfPhasefilename,rangePhase_str,sheet_name=sheetPhase_name,index_col=0)
+    
     DistanceZ0Outplane= GeometricFocus-FocalDepth
     print('DistanceZ0Outplane',DistanceZ0Outplane)
 
@@ -937,63 +951,133 @@ def RUN_FITTING(GeometricFocus,
         res=optimize_b(A, E, x0, reg)
 
 
-    # options={'maxfun':160000,'disp':2}
-    # res=minimize(objective2,x0,method='L-BFGS-B',bounds=Bounds(0.0,100.0),args=(A,E),options=options,jac=jacobian2)#jac=grad_func)
-    # #res=minimize(funreg,x0,method='L-BFGS-B',bounds=Bounds(0.0,5.0),args=(A,E),options=options,jac=jacreg)#jac=grad_func)
+    fname=rootnamepath + os.sep + 'CALIBRATION'
 
-    if config == 1:
-        fname=rootname+'-config1'
-    else:
-        fname=rootname+'-config2'
-
-    if bUseRayleighPhase:
-        fname+='_RayleighPhase'
-    else:
-        fname+='_ReportPhase'
-    np.savez(fname,res=res,A=A)
-
-    if complex_fit:
-        f,axs=plt.subplots(1,2,figsize=(12,4))
-
-        im=axs[0].scatter(Tx['center'][:,0], Tx['center'][:,1], c=np.angle(res.x),cmap=plt.cm.gray)
-        plt.colorbar(im,label='Angle')
-        axs[0].set_title('fitted')
-        axs[0].set_xlabel('X')
-        axs[0].set_ylabel('Y')
-        axs[0].set_aspect('equal')
-
-        im=axs[1].scatter(Tx['center'][:,0], Tx['center'][:,1], c=np.abs(res.x),cmap=plt.cm.gray)
-        plt.colorbar(im,label='amplitude')
-        axs[1].set_title('fitted')
-        axs[1].set_xlabel('X')
-        axs[1].set_ylabel('Y')
-        axs[1].set_aspect('equal')
-    else:
-
-        f,axs=plt.subplots(1,1,figsize=(12,4))
-
-        im=axs.scatter(Tx['center'][:,0]*1e3, Tx['center'][:,1]*1e3, c=res.x,cmap=plt.cm.gray)
-        plt.colorbar(im,label='Amplitude')
-        axs.set_title('fitted')
-        axs.set_xlabel('X (mm)')
-        axs.set_ylabel('Y (mm)')
-        axs.set_aspect('equal')
-
-    plt.figure(figsize=(12,5))
-    dfMeasurements=df.copy()
-    for n,l in enumerate(Locations):
-        dfMeasurements[l]=np.sqrt(dfMeasurements[l]/MaxIntensityReport)
-        alllines.append(plt.plot(ZDim, dfMeasurements[l],label=str(l))[0])
-    plt.legend()
-    for n,l in enumerate(Locations):
-        sA=A[n*ZDim.shape[0]:(n+1)*ZDim.shape[0],:]
-        plt.plot(ZDim,np.abs(sA.dot(res.x)),':',color=alllines[n].get_color())
-
+    CalResults = {  'CALIBRATION': res.x,
+                     'YAMLConfigFilename': YAMLConfigFilename,
+                    'Frequency': Frequency,
+                    'FocalLength': FocalLength,
+                    'Aperture': Aperture,
+                    'InDiameters': InDiameters,
+                    'OutDiameters': OutDiameters,
+                    'Locations': Locations,
+                    'MaxIntensityReport': MaxIntensityReport,
+                    'MaxIntensity': MaxIntensity,
+                    'Regularizer': regularizer,
+                    'bUseRayleighPhase': bUseRayleighPhase}
+    
+    SaveToH5py(CalResults,fname+'.h5')
 
     dfMeasurements=df.copy()
     for n,l in enumerate(Locations):
         dfMeasurements[l]=np.sqrt(dfMeasurements[l]/MaxIntensityReport)
 
-    SSEnow,SSEw_BFGS=MakePlots(fname,Tx,Frequency,ZDim,Locations,CB,dfMeasurements,deviceName,
+    MSENow,MSE_BFGS=MakePlots(fname,res.x,A,Tx,Frequency,ZDim,Locations,CB,dfMeasurements,deviceName,
                                    bUseRayleighPhase=bUseRayleighPhase,dfPhase=dfPhase)
-    return SSEw_BFGS
+    plt.close('all')
+    #we resave the results to add MSE metrics
+    CalResults['MSENow']=MSENow
+    CalResults['MSE_BFGS']=MSE_BFGS    
+    SaveToH5py(CalResults,fname+'.h5')
+
+
+    return MSENow,MSE_BFGS
+
+
+def RUN_FITTING_Process(queue,TxConfig, YAMLConfigFilename,deviceName,COMPUTING_BACKEND):
+    
+    class InOutputWrapper(object):
+       
+        def __init__(self, queue, stdout=True):
+            self.queue=queue
+            if stdout:
+                self._stream = sys.stdout
+                sys.stdout = self
+            else:
+                self._stream = sys.stderr
+                sys.stderr = self
+            self._stdout = stdout
+
+        def write(self, text):
+            self.queue.put(text)
+
+        def __getattr__(self, name):
+            return getattr(self._stream, name)
+
+        def __del__(self):
+            try:
+                if self._stdout:
+                    sys.stdout = self._stream
+                else:
+                    sys.stderr = self._stream
+            except AttributeError:
+                pass
+
+    stdout = InOutputWrapper(queue,True)
+  
+    try:
+         MSENow,MSE_BFGS=RUN_FITTING(TxConfig,
+              YAMLConfigFilename,
+              deviceName=deviceName,
+              COMPUTING_BACKEND=COMPUTING_BACKEND)
+         queue.put({'MSENow':MSENow, 'MSE_BFGS':MSE_BFGS})
+    except BaseException as e:
+        print('--Babel-Brain-Low-Error')
+        print(traceback.format_exc())
+        print(str(e))
+
+
+def RUN_FITTING_Parallel(TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
+    """
+    Run the fitting process in parallel using multiprocessing.
+    """
+    queue=Queue()
+    fieldWorkerProcess = Process(target=RUN_FITTING_Process, 
+                                        args=(queue,
+                                              TxConfig,
+                                              YAMLConfigFilename,
+                                              deviceName,
+                                              COMPUTING_BACKEND))
+    fieldWorkerProcess.start()      
+        
+    # progress.
+    T0=time.time()
+    bNoError=True
+    MSENow=None
+    while fieldWorkerProcess.is_alive():
+        time.sleep(0.1)
+        while queue.empty() == False:
+            cMsg=queue.get()
+            if type(cMsg) is str:
+                print(cMsg,end='')
+                if '--Babel-Brain-Low-Error' in cMsg:
+                    bNoError=False
+            else:
+                assert(type(cMsg) is dict)
+                MSENow=cMsg['MSENow']
+                MSE_BFGS=cMsg['MSE_BFGS']
+    fieldWorkerProcess.join()
+    if MSENow is None:
+        cMsg=queue.get()
+        if type(cMsg) is str:
+            print(cMsg,end='')
+            if '--Babel-Brain-Low-Error' in cMsg:
+                bNoError=False        
+        else:
+            assert(type(cMsg) is dict)
+            MSENow=cMsg['MSENow']
+            MSE_BFGS=cMsg['MSE_BFGS']
+
+            
+    if bNoError:
+        TEnd=time.time()
+        TotalTime = TEnd-T0
+        print('Total time',TotalTime)
+        print("*"*40)
+        print("*"*5+" DONE Calibration.")
+        print("*"*40)
+    else:
+        print("*"*40)
+        print("*"*5+" Error in execution of the calibration process.")
+        print("*"*40)
+    return MSENow, MSE_BFGS

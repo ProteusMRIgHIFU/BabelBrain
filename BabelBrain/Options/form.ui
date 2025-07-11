@@ -672,7 +672,7 @@
        <rect>
         <x>6</x>
         <y>30</y>
-        <width>120</width>
+        <width>143</width>
         <height>32</height>
        </rect>
       </property>
@@ -692,9 +692,9 @@
      <widget class="QLineEdit" name="TxOptimizedWeightsLineEdit">
       <property name="geometry">
        <rect>
-        <x>139</x>
+        <x>157</x>
         <y>35</y>
-        <width>469</width>
+        <width>451</width>
         <height>21</height>
        </rect>
       </property>
@@ -725,7 +725,7 @@
        <x>10</x>
        <y>117</y>
        <width>615</width>
-       <height>325</height>
+       <height>100</height>
       </rect>
      </property>
      <property name="autoFillBackground">
@@ -750,12 +750,12 @@
        <string>Calibration Execution </string>
       </property>
      </widget>
-     <widget class="QPushButton" name="ExcelAcousticProfilespushButton">
+     <widget class="QPushButton" name="YAMLCalibrationpushButton">
       <property name="geometry">
        <rect>
         <x>7</x>
         <y>18</y>
-        <width>118</width>
+        <width>141</width>
         <height>47</height>
        </rect>
       </property>
@@ -763,8 +763,8 @@
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Excel acoustic
-profiles file...</string>
+       <string>YAML file for
+calibration inputs</string>
       </property>
       <property name="autoDefault">
        <bool>false</bool>
@@ -773,12 +773,12 @@ profiles file...</string>
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QLineEdit" name="ExcelAcousticProfilesLineEdit">
+     <widget class="QLineEdit" name="YAMLCalibrationLineEdit">
       <property name="geometry">
        <rect>
-        <x>139</x>
+        <x>160</x>
         <y>31</y>
-        <width>469</width>
+        <width>448</width>
         <height>21</height>
        </rect>
       </property>
@@ -787,165 +787,13 @@ profiles file...</string>
       </property>
       <property name="text">
        <string>...</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="OptimizationResultsPathpushButton">
-      <property name="geometry">
-       <rect>
-        <x>5</x>
-        <y>225</y>
-        <width>118</width>
-        <height>48</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Results path...</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="OptimizationResultsPathLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>142</x>
-        <y>238</y>
-        <width>464</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>...</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="ProfilesCellRangeLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>141</x>
-        <y>78</y>
-        <width>127</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>A1:B1</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_7">
-      <property name="geometry">
-       <rect>
-        <x>11</x>
-        <y>74</y>
-        <width>115</width>
-        <height>29</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Cell range
-(i.e, A1:Z90)</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="ExcelPhaseProgrammingpushButton">
-      <property name="geometry">
-       <rect>
-        <x>7</x>
-        <y>133</y>
-        <width>118</width>
-        <height>47</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Excel phase file...</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="PhaseCellRangeLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>141</x>
-        <y>193</y>
-        <width>127</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>A1:B1</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="ExcelPhaseProgrammingLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>139</x>
-        <y>146</y>
-        <width>469</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>...</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_8">
-      <property name="geometry">
-       <rect>
-        <x>11</x>
-        <y>189</y>
-        <width>115</width>
-        <height>29</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Cell range
-(i.e, A1:Z90)</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="UsePhaseFilecheckBox">
-      <property name="geometry">
-       <rect>
-        <x>216</x>
-        <y>111</y>
-        <width>211</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="layoutDirection">
-       <enum>Qt::LayoutDirection::LeftToRight</enum>
-      </property>
-      <property name="text">
-       <string>Use manufacuterer phase data</string>
       </property>
      </widget>
      <widget class="QPushButton" name="ExecuteCalibrationButton">
       <property name="geometry">
        <rect>
-        <x>291</x>
-        <y>280</y>
+        <x>219</x>
+        <y>64</y>
         <width>161</width>
         <height>32</height>
        </rect>
@@ -955,36 +803,6 @@ profiles file...</string>
       </property>
       <property name="text">
        <string>Execute - BE PATIENT!</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="FocalLengthLabel_23">
-      <property name="geometry">
-       <rect>
-        <x>21</x>
-        <y>279</y>
-        <width>171</width>
-        <height>33</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Lamba coefficient
-(between 1e-5 and 1e-3)</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="LambdaLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>185</x>
-        <y>284</y>
-        <width>85</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>1e-4</string>
       </property>
      </widget>
     </widget>
