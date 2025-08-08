@@ -629,8 +629,37 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
-       
-    
+
+        if self.Config['TxSystem'] =='Single':
+            USMaskkHzDropDown = self.Widget.USMaskkHzDropDown
+            USMaskkHzDropDown.setEditable(True)
+            USMaskkHzDropDown.lineEdit().textChanged.connect(self.StartManualMaskFrequency)
+            USMaskkHzDropDown.lineEdit().editingFinished.connect(self.UpdateManualMaskFrequency)
+
+    @Slot()
+    def StartManualMaskFrequency(self,txt):
+        try:
+            value = float(txt)
+            if value <200 or value > 1000:
+                self.Widget.CalculatePlanningMask.setEnabled(False)
+            else:
+                self.Widget.CalculatePlanningMask.setEnabled(True)
+        except ValueError:
+            self.Widget.CalculatePlanningMask.setEnabled(False)
+
+    @Slot()
+    def UpdateManualMaskFrequency(self):
+        try:
+            value = float(self.Widget.USMaskkHzDropDown.currentText())
+            if value <200 or value > 1000:
+                QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+                return
+            self.UpdateMaskParameters()
+            self.Widget.CalculatePlanningMask.setEnabled(True)
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+            self.Widget.USMaskkHzDropDown.setFocus()
+
     @Slot()
     def handleOutput(self, text, stdout):
         color = self.palette().color(QPalette.WindowText)
