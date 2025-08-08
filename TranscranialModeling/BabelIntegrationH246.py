@@ -363,6 +363,7 @@ class SimulationConditions(SimulationConditionsBASE):
         xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        u0*=self.AdjustWeightAmplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -371,23 +372,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._SourceMapFlat=u2[:,:,self._ZSourceLocation]
         
-        if self._bDisplay:
-            plt.figure(figsize=(6,3))
-            plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapFlat)/1e6,
-                       vmin=np.abs(self._SourceMapFlat[RegionMap]).min()/1e6,cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Incident map to be forwarded propagated (MPa)')
 
-            plt.subplot(1,2,2)
-            
-            plt.imshow((np.abs(u2[:,self._FocalSpotLocation[1],:]).T+
-                                       self._MaterialMap[self._FocalSpotLocation[0],:,:].T*
-                                       np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
-                                       extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
-                                       cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Acoustic field with Rayleigh with skull and brain (MPa)')
         
     def CreateSources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field

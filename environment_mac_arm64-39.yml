@@ -37,7 +37,7 @@ dependencies:
       - appdirs==1.4.4
       - async-timeout==4.0.2
       - attrs==22.1.0
-      - babelviscofdtd==1.0.8
+      - babelviscofdtd==1.0.10
       - certifi==2022.9.24
       - charset-normalizer==2.1.1
       - chart-studio==1.1.0
@@ -89,6 +89,8 @@ dependencies:
       - pybtex==0.24.0
       - pycork @ git+https://github.com/drlukeparry/pycork.git@d9efcd1da212c685345f65503ba253373dcdece0
       - pygments==2.13.0
+      - et-xmlfile==2.0.0 
+      - openpyxl==3.1.5
       - pyinstaller==6.1.0
       - pyinstaller-hooks-contrib==2022.13
       - pymdown-extensions==9.9

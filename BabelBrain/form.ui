@@ -184,7 +184,7 @@ mask</string>
       </rect>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="ZTEtab">
       <property name="enabled">
@@ -247,17 +247,20 @@ mask</string>
         <double>300.000000000000000</double>
        </property>
       </widget>
-      <widget class="QLabel" name="label_5">
+      <widget class="QLabel" name="HULabel">
        <property name="geometry">
         <rect>
-         <x>63</x>
+         <x>37</x>
          <y>23</y>
-         <width>80</width>
-         <height>16</height>
+         <width>139</width>
+         <height>20</height>
         </rect>
        </property>
        <property name="text">
         <string>HU threshold</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </widget>

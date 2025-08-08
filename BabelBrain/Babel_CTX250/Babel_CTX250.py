@@ -6,7 +6,7 @@ import sys
 import yaml
 
 
-from Babel_CTX500.Babel_CTX500 import CTX500
+from _Babel_RingTx.Babel_RingTx import RingTx
 
 import platform
 _IS_MAC = platform.system() == 'Darwin'
@@ -23,7 +23,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-class CTX250(CTX500):
+class CTX250(RingTx):
      def DefaultConfig(self):
         #Specific parameters for the CTX250 - to be configured later via a yaml
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
@@ -31,9 +31,3 @@ class CTX250(CTX500):
 
         self.Config=config
 
-
-if __name__ == "__main__":
-    app = QApplication([])
-    widget = CTX250()
-    widget.show()
-    sys.exit(app.exec_())

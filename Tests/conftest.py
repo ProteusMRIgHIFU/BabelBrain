@@ -92,14 +92,19 @@ transducers = [
     {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
     {'name': 'CTX_500', 'dropdown_index': 1, 'diameter': 0},
     {'name': 'CTX_250', 'dropdown_index': 2, 'diameter': 0},
-    {'name': 'DPX_500', 'dropdown_index': 3, 'diameter': 0},
-    {'name': 'H317', 'dropdown_index': 4, 'diameter': 0},
-    {'name': 'H246', 'dropdown_index': 5, 'diameter': 0},
-    {'name': 'BSonix', 'dropdown_index': 6, 'diameter': 0},
-    {'name': 'REMOPD', 'dropdown_index': 7, 'diameter': 0},
-    {'name': 'I12378', 'dropdown_index': 8, 'diameter': 0},
-    {'name': 'ATAC', 'dropdown_index': 9, 'diameter': 0},
-    {'name': 'R15148', 'dropdown_index': 10, 'diameter': 0}
+    {'name': 'CTX_250_2ch', 'dropdown_index': 3, 'diameter': 0},
+    {'name': 'DPX_500', 'dropdown_index': 4, 'diameter': 0},
+    {'name': 'DPXPC_300', 'dropdown_index': 5, 'diameter': 0},
+    {'name': 'H317', 'dropdown_index': 6, 'diameter': 0},
+    {'name': 'H246', 'dropdown_index': 7, 'diameter': 0},
+    {'name': 'BSonix', 'dropdown_index': 8, 'diameter': 0},
+    {'name': 'REMOPD', 'dropdown_index': 9, 'diameter': 0},
+    {'name': 'I12378', 'dropdown_index': 10, 'diameter': 0},
+    {'name': 'ATAC', 'dropdown_index': 11, 'diameter': 0},
+    {'name': 'R15148', 'dropdown_index': 12, 'diameter': 0},
+    {'name': 'R15287', 'dropdown_index': 13, 'diameter': 0}
+    {'name': 'R15473', 'dropdown_index': 14, 'diameter': 0}
+    {'name': 'R15646', 'dropdown_index': 15, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -581,7 +586,7 @@ def get_freq():
             freq = '650'
         elif tx in ['ATAC']:
             freq = '1000'
-        elif tx == 'REMOPD':
+        elif tx in ['REMOPD','R15287']:
             freq = '300'
         return freq
 

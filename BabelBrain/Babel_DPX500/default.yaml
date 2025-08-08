@@ -1,4 +1,5 @@
 TxDiam:                   64.0e-3    #in m
+FocalLength:              150.0e-3  #in m
 NaturalOutPlaneDistance:  144.9e-3  # in m
 MinimalTPODistance:       50.0e-3  # in m
 MaximalTPODistance:       120.0e-3  # in m
@@ -6,6 +7,16 @@ USFrequencies:
     - 500000.0
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
+InDiameters: #inner diameter of rings
+    - 0.0
+    - 0.03243857
+    - 0.04582899
+    - 0.05597536
+OutDiameters:  #outer diameter of rings
+    - 0.0312153
+    - 0.04464872
+    - 0.05483928
+    - 0.06328742
 Corrections:
     Original:
         - 1.03596820e+00 

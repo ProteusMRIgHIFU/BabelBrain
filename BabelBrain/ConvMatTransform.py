@@ -26,7 +26,6 @@ templateBSight=\
 '''
 
 import re
-
 def read_itk_affine_transform(filename):
     with open(filename) as f:
         tfm_file_lines = f.readlines()
