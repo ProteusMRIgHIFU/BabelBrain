@@ -323,7 +323,7 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
             print("stderr:", result.stderr)
             result=result.returncode 
     else:
-        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/win/run_win.bat")
+        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_win.bat")
         
         print("Starting MeshConv")
         result = subprocess.run(

@@ -62,7 +62,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -116,9 +116,9 @@
      <property name="geometry">
       <rect>
        <x>9</x>
-       <y>107</y>
+       <y>158</y>
        <width>349</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -173,9 +173,9 @@
      <property name="geometry">
       <rect>
        <x>233</x>
-       <y>157</y>
+       <y>200</y>
        <width>206</width>
-       <height>72</height>
+       <height>70</height>
       </rect>
      </property>
      <property name="title">
@@ -262,9 +262,9 @@
      <property name="geometry">
       <rect>
        <x>9</x>
-       <y>131</y>
+       <y>182</y>
        <width>150</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -291,9 +291,9 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>233</y>
+       <y>273</y>
        <width>150</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -307,9 +307,9 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>259</y>
+       <y>299</y>
        <width>251</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -323,9 +323,9 @@
      <property name="geometry">
       <rect>
        <x>18</x>
-       <y>282</y>
+       <y>322</y>
        <width>156</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -336,9 +336,9 @@
      <property name="geometry">
       <rect>
        <x>17</x>
-       <y>308</y>
+       <y>348</y>
        <width>241</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -349,9 +349,9 @@
      <property name="geometry">
       <rect>
        <x>16</x>
-       <y>334</y>
+       <y>374</y>
        <width>251</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -365,9 +365,9 @@
      <property name="geometry">
       <rect>
        <x>273</x>
-       <y>334</y>
+       <y>374</y>
        <width>276</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -378,9 +378,9 @@
      <property name="geometry">
       <rect>
        <x>175</x>
-       <y>282</y>
+       <y>322</y>
        <width>42</width>
-       <height>21</height>
+       <height>19</height>
       </rect>
      </property>
      <property name="minimum">
@@ -394,9 +394,9 @@
      <property name="geometry">
       <rect>
        <x>261</x>
-       <y>308</y>
+       <y>348</y>
        <width>42</width>
-       <height>22</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="minimum">
@@ -413,9 +413,9 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>358</y>
+       <y>398</y>
        <width>86</width>
-       <height>22</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="decimals">
@@ -438,9 +438,9 @@
      <property name="geometry">
       <rect>
        <x>53</x>
-       <y>358</y>
+       <y>398</y>
        <width>255</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -451,9 +451,9 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>358</y>
+       <y>398</y>
        <width>86</width>
-       <height>22</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="decimals">
@@ -476,9 +476,9 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>358</y>
+       <y>398</y>
        <width>70</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -489,9 +489,9 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>382</y>
+       <y>422</y>
        <width>86</width>
-       <height>22</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="decimals">
@@ -514,9 +514,9 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>382</y>
+       <y>422</y>
        <width>86</width>
-       <height>22</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="decimals">
@@ -539,9 +539,9 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>382</y>
+       <y>422</y>
        <width>288</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -552,9 +552,9 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>382</y>
+       <y>422</y>
        <width>70</width>
-       <height>20</height>
+       <height>18</height>
       </rect>
      </property>
      <property name="text">
@@ -613,6 +613,57 @@
      </property>
      <property name="flat">
       <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="PlanTUSRootlineEdit">
+     <property name="geometry">
+      <rect>
+       <x>142</x>
+       <y>107</y>
+       <width>485</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="PlanTUSRootpushButton">
+     <property name="geometry">
+      <rect>
+       <x>9</x>
+       <y>102</y>
+       <width>120</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
+     <property name="text">
+      <string>PlanTUS root...</string>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="RUNPlanTUSpushButton">
+     <property name="geometry">
+      <rect>
+       <x>261</x>
+       <y>128</y>
+       <width>136</width>
+       <height>32</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>RUN PlanTUS</string>
      </property>
     </widget>
    </widget>
@@ -1302,6 +1353,54 @@ for large thermal simulation</string>
    </widget>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>ElastixOptimizercomboBox</tabstop>
+  <tabstop>TrabecularProportionSpinBox</tabstop>
+  <tabstop>SimNIBSRootpushButton</tabstop>
+  <tabstop>SimbNINBSRootlineEdit</tabstop>
+  <tabstop>PlanTUSRootpushButton</tabstop>
+  <tabstop>PlanTUSRootlineEdit</tabstop>
+  <tabstop>RUNPlanTUSpushButton</tabstop>
+  <tabstop>FOVDiameterSpinBox</tabstop>
+  <tabstop>FOVLengthSpinBox</tabstop>
+  <tabstop>PetraNPeaksSpinBox</tabstop>
+  <tabstop>PetraMRIPeakDistancespinBox</tabstop>
+  <tabstop>ZTESlopeSpinBox</tabstop>
+  <tabstop>ZTEOffsetSpinBox</tabstop>
+  <tabstop>PETRASlopeSpinBox</tabstop>
+  <tabstop>PETRAOffsetSpinBox</tabstop>
+  <tabstop>ResetpushButton</tabstop>
+  <tabstop>ContinuepushButton</tabstop>
+  <tabstop>CancelpushButton</tabstop>
+  <tabstop>TxOptimizedWeightspushButton</tabstop>
+  <tabstop>TxOptimizedWeightsLineEdit</tabstop>
+  <tabstop>YAMLCalibrationpushButton</tabstop>
+  <tabstop>YAMLCalibrationLineEdit</tabstop>
+  <tabstop>ExecuteCalibrationButton</tabstop>
+  <tabstop>BaselineTemperatureSpinBox</tabstop>
+  <tabstop>LimitBHTEIterationsPerProcessSpinBox</tabstop>
+  <tabstop>bForceHomogenousMediumcheckBox</tabstop>
+  <tabstop>HomogenousDensitySpinBox</tabstop>
+  <tabstop>HomogenousLSoSSpinBox</tabstop>
+  <tabstop>HomogenousLAttSpinBox</tabstop>
+  <tabstop>HomogenousSSoSSpinBox</tabstop>
+  <tabstop>HomogenousSAttSpinBox</tabstop>
+  <tabstop>HomogenousSpecHeatSpinBox</tabstop>
+  <tabstop>HomogenousThermCondSpinBox</tabstop>
+  <tabstop>HomogenousPerfusionSpinBox</tabstop>
+  <tabstop>HomogenousAbsorptionSpinBox</tabstop>
+  <tabstop>HomogenousInitTempSpinBox</tabstop>
+  <tabstop>bForceNoAbsorptionSkullScalpcheckBox</tabstop>
+  <tabstop>DisableCTMedianFiltercheckBox</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>SaveDisplacementcheckBox</tabstop>
+  <tabstop>SaveStresscheckBox</tabstop>
+  <tabstop>SegmentBrainTissuecheckBox</tabstop>
+  <tabstop>InvertZTEcheckBox</tabstop>
+  <tabstop>ForceBlendercheckBox</tabstop>
+  <tabstop>ManualFOVcheckBox</tabstop>
+  <tabstop>GeneratePETRAHistogramcheckBox</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
