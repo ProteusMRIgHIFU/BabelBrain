@@ -16,7 +16,7 @@ FixedParameters: 0 0 0
 
 templateBSight=\
 '''# Version: 13
-# Coordinate system: NIfTI:Aligned
+# Coordinate system: NIfTI:S:Scanner
 # Created by: Brainsight 2.5
 # Units: millimetres, degrees, milliseconds, and microvolts
 # Encoding: UTF-8

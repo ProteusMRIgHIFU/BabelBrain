@@ -25,12 +25,16 @@ from ConvMatTransform import (
     ReadTrajectoryBrainsight,
     itk_to_BSight,
     read_itk_affine_transform,
+    templateBSight,
+    BSight_to_itk,
+    templateSlicer
 )
 
 import yaml
 import glob
 import subprocess
 import traceback
+from scipy.io import loadmat
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -55,7 +59,11 @@ class PlanTUSTxConfig(object):
                  plane_offset,
                  additional_offset, 
                  focal_distance_list, 
-                 flhm_list):
+                 flhm_list,
+                 IDTarget="",
+                 fsl_path="/Users/spichardo/fsl/share/fsl/bin",
+                 connectome_path="/Applications/wb_view.app/Contents/usr/bin",
+                 freesurfer_path="/Applications/freesurfer/7.4.1/bin"):
 
         # Maximum and minimum focal depth of transducer (in mm)
         self.max_distance = max_distance
@@ -78,6 +86,10 @@ class PlanTUSTxConfig(object):
         # calibration report
         self.focal_distance_list = focal_distance_list
         self.flhm_list = flhm_list
+        self.fsl_path = fsl_path
+        self.connectome_path = connectome_path
+        self.freesurfer_path = freesurfer_path
+        self.IDTarget = IDTarget
 
     def ExportYAML(self,fname):
         txconfig = {
@@ -88,7 +100,11 @@ class PlanTUSTxConfig(object):
             "plane_offset": self.plane_offset,
             "additional_offset": self.additional_offset,
             "focal_distance_list": self.focal_distance_list,
-            "flhm_list": self.flhm_list
+            "flhm_list": self.flhm_list,
+            "fsl_path": self.fsl_path,
+            "connectome_path": self.connectome_path,
+            "freesurfer_path": self.freesurfer_path,
+            "IDTarget": self.IDTarget
         }
 
         with open(fname, "w") as file:
@@ -303,38 +319,6 @@ class AdvancedOptions(QDialog):
                 print("*"*5+" Error in execution of the calibration process.")
                 print("*"*40)
 
-    def check_queue_TUSPlan(self):
-
-        # progress.
-        
-        bNoError=True
-        bDone=False
-        while self.CalQueue and not self.CalQueue.empty():
-            cMsg=self.CalQueue.get()
-            if type(cMsg) is str:
-                print(cMsg,end='')
-                if '--Babel-Brain-Low-Error' in cMsg\
-                   or '--Babel-Brain-Success' in cMsg:
-                    if '--Babel-Brain-Low-Error' in cMsg:
-                        bNoError=False
-                    self.CaltimerTUSPlan.stop()
-                    self.CalProcess.join()
-                    bDone=True
-                
-        if bDone:
-            self.setEnabled(True)
-            self._WorkingDialog.hide()
-            if bNoError:
-                TEnd=time.time()
-                TotalTime = TEnd-self.T0Cal
-                print('Total time',TotalTime)
-                print("*"*40)
-                print("*"*5+" DONE PlanTUS.")
-                print("*"*40)
-            else:
-                print("*"*40)
-                print("*"*5+" Error in execution of PlanTUS.")
-                print("*"*40)
             
     @Slot()
     def YAMLCalibration(self):
@@ -520,6 +504,9 @@ class AdvancedOptions(QDialog):
             inMat=read_itk_affine_transform(Mat4Trajectory)
             RMat = itk_to_BSight(inMat)
 
+        #we will reuse to recover the center of the trajectory
+        self._RMat = RMat
+
         # Create a new PlanTUSTxConfig object with the current values
         plan_tus_config = PlanTUSTxConfig(
             transducer_diameter=BabelTxConfig['TxDiam']*1e3,
@@ -529,7 +516,8 @@ class AdvancedOptions(QDialog):
             plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3,
             additional_offset=MainApp.AcSim.Widget.SkinDistanceSpinBox.value(),
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList'],
-            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
+            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList'],
+            IDTarget=MainApp.Config['ID'],
         )
 
         t1Path=MainApp.Config['T1W']
@@ -540,7 +528,7 @@ class AdvancedOptions(QDialog):
         plan_tus_config.ExportYAML(TxConfigName)
         
         mshPath=glob.glob(MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
-        maskPath=t1Path.replace('.nii.gz','_TargetMask.nii.gz')
+        maskPath=t1Path.replace('.nii.gz','_PlanTUSMask.nii.gz')
 
         create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)
 
@@ -570,6 +558,91 @@ class AdvancedOptions(QDialog):
         )
         self._WorkingDialog.show()
         self.setEnabled(False)
+        
+
+    def check_queue_TUSPlan(self):
+
+        # progress.
+        
+        bNoError=True
+        bDone=False
+        while self.CalQueue and not self.CalQueue.empty():
+            cMsg=self.CalQueue.get()
+            if type(cMsg) is str:
+                print(cMsg,end='')
+                if '--Babel-Brain-Low-Error' in cMsg\
+                   or '--Babel-Brain-Success' in cMsg:
+                    if '--Babel-Brain-Low-Error' in cMsg:
+                        bNoError=False
+                    self.CaltimerTUSPlan.stop()
+                    self.CalProcess.join()
+                    bDone=True
+                
+        if bDone:
+            self.setEnabled(True)
+            self._WorkingDialog.hide()
+            if bNoError:
+                TEnd=time.time()
+                TotalTime = TEnd-self.T0Cal
+                print('Total time',TotalTime)
+                print("*"*40)
+                print("*"*5+" DONE PlanTUS.")
+                print("*"*40)
+                t1Path=self.parent().Config['T1W']
+                basepath=os.path.split(t1Path)[0]+os.sep+'PlanTUS'
+
+                #we look for new trajectory files
+                trajFiles=glob.glob(basepath+os.sep+'**'+os.sep+'*Localite.mat',recursive=True)
+                if len(trajFiles)>0:
+                    for trajFile in trajFiles:
+                        id = self.parent().Config['ID']+'_PlanTUS'
+                        transform=loadmat(trajFile)['position_matrix']
+                        TT=transform.copy()
+                        # we need to convert the transform to the correct format
+                        TT[:3,0] = -transform[0:3,1]
+                        TT[:3,1] = transform[0:3,2] 
+                        TT[:3,2] = -transform[0:3,0]
+                        transform=TT 
+                        print("Found trajectory file:", trajFile)
+                        # we will reuse to recover the center of the trajectory
+                        outString=templateBSight.format(m0n0=transform[0,0],
+                                m0n1=transform[1,0],
+                                m0n2=transform[2,0],
+                                m1n0=transform[0,1],
+                                m1n1=transform[1,1],
+                                m1n2=transform[2,1],
+                                m2n0=transform[0,2],
+                                m2n1=transform[1,2],
+                                m2n2=transform[2,2],
+                                X=self._RMat[0,3],
+                                Y=self._RMat[1,3],
+                                Z=self._RMat[2,3],
+                                name=id)
+                        foutname = trajFile.split('Localite.mat')[0] + 'BSight.txt'
+                        with open(foutname, 'w') as f:
+                            f.write(outString)
+
+                        transform = BSight_to_itk(transform)
+                        outString=templateSlicer.format(m0n0=transform[0,0],
+                                        m0n1=transform[1,0],
+                                        m0n2=transform[2,0],
+                                        m1n0=transform[0,1],
+                                        m1n1=transform[1,1],
+                                        m1n2=transform[2,1],
+                                        m2n0=transform[0,2],
+                                        m2n1=transform[1,2],
+                                        m2n2=transform[2,2],
+                                        X=self._RMat[0,3],
+                                        Y=self._RMat[1,3],
+                                        Z=self._RMat[2,3])
+                        foutname = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
+                        with open(foutname, 'w') as f:
+                            f.write(outString)
+                        
+            else:
+                print("*"*40)
+                print("*"*5+" Error in execution of PlanTUS.")
+                print("*"*40)
 
 
 def RunPlanTUSBackground(queue,
