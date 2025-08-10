@@ -405,7 +405,10 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['CTMapCombo']=CTMapCombo
-        self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
+        if self.Config['TrajectoryType']=='brainsight':
+            self.Config['ID'] = ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
+        else:
+            self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
 
         #filenames when saving results for Brainsight
         self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
@@ -1203,7 +1206,11 @@ class RunMaskGeneration(QObject):
                                                     'bSaveDisplacement','LimitBHTEIterationsPerProcess',
                                                     'bForceHomogenousMedium','HomogenousMediumValues',
                                                     'bForceNoAbsorptionSkullScalp',
-                                                    'TxOptimizedWeights']:
+                                                    'TxOptimizedWeights',
+                                                    'PlanTUSRoot',
+                                                     'FSLRoot',
+                                                     'ConnectomeRoot',
+                                                     'FreeSurferRoot']:
                 return True
             else:
                 return False

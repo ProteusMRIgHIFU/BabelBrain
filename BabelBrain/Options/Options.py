@@ -34,6 +34,7 @@ import yaml
 import glob
 import subprocess
 import traceback
+from functools import partial
 from scipy.io import loadmat
 
 _IS_MAC = platform.system() == 'Darwin'
@@ -50,6 +51,40 @@ def resource_path():  # needed for bundling
         bundle_dir = os.path.join(Path(__file__).parent,'..')
 
     return bundle_dir
+
+def connect_folder_button(parent,button, line_edit, title):
+    """Helper to connect a button to folder selection behavior."""
+    button.clicked.connect(partial(select_folder, parent,line_edit, title))
+    button.setIcon(button.style().standardIcon(QStyle.SP_DirOpenIcon))
+
+def connect_file_button(parent,button, line_edit, title,filemask):
+    """Helper to connect a button to file selection behavior."""
+    button.clicked.connect(partial(select_file, parent,line_edit, title,filemask))
+    button.setIcon(button.style().standardIcon(QStyle.SP_FileIcon))
+
+@Slot()
+def select_folder(parent,line_edit, title):
+    """Generic folder selection slot."""
+    bdir = line_edit.text()
+    if not os.path.isdir(bdir):
+        bdir = os.getcwd()
+
+    folder = QFileDialog.getExistingDirectory(parent, title, bdir)
+    if folder:
+        line_edit.setText(folder)
+        line_edit.setCursorPosition(len(folder))
+
+@Slot()
+def select_file(parent,line_edit, title,filemask):
+    """Generic file selection slot."""
+    bdir = line_edit.text()
+    if not os.path.isdir(bdir):
+        bdir = os.getcwd()
+
+    file = QFileDialog.getOpenFileName(parent, title, bdir, filemask)[0]
+    if len(file)>0:
+        line_edit.setText(file)
+        line_edit.setCursorPosition(len(file))
 
 class PlanTUSTxConfig(object):
     def __init__(self, max_distance, 
@@ -139,6 +174,9 @@ class OptionalParams(object):
         self._DefaultAdvanced['bSegmentBrainTissue']=False
         self._DefaultAdvanced['SimbNINBSRoot']='...'
         self._DefaultAdvanced['PlanTUSRoot']='...'
+        self._DefaultAdvanced['FSLRoot']='...'
+        self._DefaultAdvanced['ConnectomeRoot']='...'
+        self._DefaultAdvanced['FreeSurferRoot']='...'
         self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
         self._DefaultAdvanced['bForceHomogenousMedium']=False
         self._DefaultAdvanced['HomogenousMediumValues']={}
@@ -190,20 +228,26 @@ class AdvancedOptions(QDialog):
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)   
-        
-        self.ui.SimNIBSRootpushButton.clicked.connect(self.SelectSimNIBSRoot)
-        self.ui.SimNIBSRootpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
-        self.ui.PlanTUSRootpushButton.clicked.connect(self.SelectPlanTUSRoot)
-        self.ui.PlanTUSRootpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+        buttons = [
+                (self.ui.SimNIBSRootpushButton, self.ui.SimbNINBSRootlineEdit, "Select SimNIBS Root Folder"),
+                (self.ui.PlanTUSRootpushButton, self.ui.PlanTUSRootlineEdit, "Select PlanTUS Root Folder"),
+                (self.ui.ConnectomeRootpushButton, self.ui.ConnectomeRootlineEdit, "Select Connectome Root Folder"),
+                (self.ui.FreeSurferRootpushButton, self.ui.FreeSurferRootlineEdit, "Select FreeSurfer Root Folder"),
+                (self.ui.FSLRootpushButton, self.ui.FSLRootlineEdit, "Select FSL Root Folder")
+            ]
 
-        self.ui.TxOptimizedWeightspushButton.clicked.connect(self.SelectTxOptimizedWeight)
-        self.ui.TxOptimizedWeightspushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
-
-        self.ui.YAMLCalibrationpushButton.clicked.connect(self.YAMLCalibration)
-        self.ui.YAMLCalibrationpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
-
+        for button, line_edit, title in buttons:
+            connect_folder_button(self,button, line_edit, title)
+            
+        buttons = [
+                (self.ui.TxOptimizedWeightspushButton, self.ui.TxOptimizedWeightsLineEdit, "Select Tx Optimized Weights File","HDF5 (*.h5 *.hdf5)"),
+                (self.ui.YAMLCalibrationpushButton, self.ui.YAMLCalibrationLineEdit, "Select YAML file with calibration input fields","YAML files (*.yaml *.yml)"),
+               ]
+        for button, line_edit, title, mask in buttons:
+            connect_file_button(self,button, line_edit, title, mask)
+    
         self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
 
         self.ui.ExecuteCalibrationButton.clicked.connect(self.ExecuteCalibration)
@@ -317,21 +361,7 @@ class AdvancedOptions(QDialog):
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of the calibration process.")
-                print("*"*40)
-
-            
-    @Slot()
-    def YAMLCalibration(self):
-        """Select the YAMLS file with the acoustic profiles"""
-        curfile=self.ui.YAMLCalibrationLineEdit.text()
-        bdir=os.path.dirname(curfile)
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        fname = QFileDialog.getOpenFileName(self, "Select YAML file with calibration input fields",bdir, "YAMKS files (*.yaml *.yml)")[0]
-        if len(fname)>0:
-            self.ui.YAMLCalibrationLineEdit.setText(fname)
-            self.ui.YAMLCalibrationLineEdit.setCursorPosition(len(fname))
-    
+                print("*"*40)    
         
     def SetValues(self,values):
 
@@ -365,6 +395,12 @@ class AdvancedOptions(QDialog):
         self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(values.SimbNINBSRoot))
         self.ui.PlanTUSRootlineEdit.setText(values.PlanTUSRoot)
         self.ui.PlanTUSRootlineEdit.setCursorPosition(len(values.PlanTUSRoot))
+        self.ui.FSLRootlineEdit.setText(values.FSLRoot)
+        self.ui.FSLRootlineEdit.setCursorPosition(len(values.FSLRoot))
+        self.ui.ConnectomeRootlineEdit.setText(values.ConnectomeRoot)
+        self.ui.ConnectomeRootlineEdit.setCursorPosition(len(values.ConnectomeRoot))
+        self.ui.FreeSurferRootlineEdit.setText(values.FreeSurferRoot)
+        self.ui.FreeSurferRootlineEdit.setCursorPosition(len(values.FreeSurferRoot))
 
         # sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
         # if sel==-1:
@@ -385,42 +421,6 @@ class AdvancedOptions(QDialog):
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
         self.ui.TxWeightLabel.setText("Optimized Weights for Transducer: " +  self._TxSystem)
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
-
-    @Slot()
-    def SelectSimNIBSRoot(self):
-        """Select the SimNIBS root folder"""
-        bdir=self.ui.SimbNINBSRootlineEdit.text()
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        folder = QFileDialog.getExistingDirectory(self, "Select SimNIBS Root Folder",bdir)    
-        
-        if folder:
-            self.ui.SimbNINBSRootlineEdit.setText(folder)
-            self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(folder))
-
-    @Slot()
-    def SelectPlanTUSRoot(self):
-        """Select the PlanTUS root folder"""
-        bdir=self.ui.PlanTUSRootlineEdit.text()
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        folder = QFileDialog.getExistingDirectory(self, "Select PlanTUS Root Folder",bdir)
-
-        if folder:
-            self.ui.PlanTUSRootlineEdit.setText(folder)
-            self.ui.PlanTUSRootlineEdit.setCursorPosition(len(folder))
-
-    @Slot()
-    def SelectTxOptimizedWeight(self):
-        curfile=self.ui.TxOptimizedWeightsLineEdit.text()
-        bdir=os.path.dirname(curfile)
-        if not os.path.isdir(bdir):
-            bdir=os.getcwd()
-        fWeight=QFileDialog.getOpenFileName(self,
-            "Select Weight results",bdir, "HDF5 (*.h5 *.hdf5)")[0]
-        if len(fWeight)>0:
-            self.ui.TxOptimizedWeightsLineEdit.setText(fWeight)
-            self.ui.TxOptimizedWeightsLineEdit.setCursorPosition(len(fWeight))
         
     @Slot()
     def ResetToDefaults(self):
@@ -456,6 +456,9 @@ class AdvancedOptions(QDialog):
         self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
         self.NewValues.SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
         self.NewValues.PlanTUSRoot=self.ui.PlanTUSRootlineEdit.text()
+        self.NewValues.FSLRoot=self.ui.FSLRootlineEdit.text()
+        self.NewValues.ConnectomeRoot=self.ui.ConnectomeRootlineEdit.text()
+        self.NewValues.FreeSurferRoot=self.ui.FreeSurferRootlineEdit.text()
         if self.NewValues.bSegmentBrainTissue:
             if not os.path.isdir(self.NewValues.SimbNINBSRoot):
                 msgBox = QMessageBox()
@@ -497,6 +500,9 @@ class AdvancedOptions(QDialog):
 
         PlanTUSRoot=self.ui.PlanTUSRootlineEdit.text()
         SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
+        FSLRoot=self.ui.FSLRootlineEdit.text()
+        ConnectomeRoot=self.ui.ConnectomeRootlineEdit.text()
+        FreeSurferRoot=self.ui.FreeSurferRootlineEdit.text()
 
         if TrajectoryType =='brainsight':
             RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
@@ -510,15 +516,19 @@ class AdvancedOptions(QDialog):
         # Create a new PlanTUSTxConfig object with the current values
         plan_tus_config = PlanTUSTxConfig(
             transducer_diameter=BabelTxConfig['TxDiam']*1e3,
-            max_distance=BabelTxConfig['MinimalTPODistance']*1e3,
-            min_distance=BabelTxConfig['MaximalTPODistance']*1e3,
+            min_distance=BabelTxConfig['MinimalTPODistance']*1e3,
+            max_distance=BabelTxConfig['MaximalTPODistance']*1e3,
             max_angle=10.0, #we keep it constant for the time being
             plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3,
             additional_offset=MainApp.AcSim.Widget.SkinDistanceSpinBox.value(),
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList'],
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList'],
             IDTarget=MainApp.Config['ID'],
+            fsl_path=FSLRoot,
+            connectome_path=ConnectomeRoot,
+            freesurfer_path=FreeSurferRoot
         )
+  
 
         t1Path=MainApp.Config['T1W']
 
@@ -618,8 +628,8 @@ class AdvancedOptions(QDialog):
                                 Y=self._RMat[1,3],
                                 Z=self._RMat[2,3],
                                 name=id)
-                        foutname = trajFile.split('Localite.mat')[0] + 'BSight.txt'
-                        with open(foutname, 'w') as f:
+                        foutnameBSight = trajFile.split('Localite.mat')[0] + 'BSight.txt'
+                        with open(foutnameBSight, 'w') as f:
                             f.write(outString)
 
                         transform = BSight_to_itk(transform)
@@ -635,10 +645,21 @@ class AdvancedOptions(QDialog):
                                         X=self._RMat[0,3],
                                         Y=self._RMat[1,3],
                                         Z=self._RMat[2,3])
-                        foutname = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
-                        with open(foutname, 'w') as f:
+                        foutnameSlicer = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
+                        with open(foutnameSlicer, 'w') as f:
                             f.write(outString)
-                        
+
+                    ret = QMessageBox.question(self,'', "Do you want to use the\n PlanTUS to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
+
+                    if ret == QMessageBox.Yes:
+                        TrajectoryType=self.parent().Config['TrajectoryType']
+                        if TrajectoryType =='brainsight':
+                            ext='*BSight.txt'
+                        else:
+                            ext='*Slicer.txt'
+                        fname = QFileDialog.getOpenFileName(self, "Select txt file with calibration input fields",basepath, "Text files ("+ext+")")[0]
+                        if len(fname)>0:
+                            self.parent().Config['Mat4Trajectory'] = fname
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")

@@ -89,20 +89,24 @@ def GetBrainSightHeader(fname):
     dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:-2]}
     return dct
 
-def ReadTrajectoryBrainsight(fname):
+def ReadTrajectoryBrainsight(fname,bGetID=False):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
       'm0n0','m0n1','m0n2',
       'm1n0','m1n1','m1n2',
       'm2n0','m2n1','m2n2']
+    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python')
+    ID=df['Target name'][0]
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:]).iloc[0].to_numpy()
     Mat4=np.eye(4)
     Mat4[:3,3]=df[:3]
     Mat4[:3,0]=df[3:6]
     Mat4[:3,1]=df[6:9]
     Mat4[:3,2]=df[9:]
-    
-    return Mat4
+    if bGetID:
+        return Mat4, ID
+    else:
+        return Mat4
 
 
 if __name__ == "__main__":
