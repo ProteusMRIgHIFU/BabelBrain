@@ -76,6 +76,8 @@ dependencies:
       - mkdocs-material==8.5.11
       - mkdocs-material-extensions==1.1.1
       - mkdocs-windmill==1.0.5
+      - mlx==0.28.0
+      - mlx-metal==0.28.0
       - multidict==6.0.2
       - networkx==2.8.8
       - nibabel==5.2.1

@@ -20,6 +20,7 @@ from multiprocessing import Process,Queue
 import time
 
 import traceback
+from skimage import metrics
 
 
 def read_excel_range(file_path, range_str, sheet_name=0, **kwargs):
@@ -119,73 +120,108 @@ def read_excel_range_with_numeric_headers(file_path, range_str, sheet_name=0, **
 
 def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=None,
               bUseRayleighPhase=True,dfPhase=None):
-  
     outdir=os.path.dirname(infname)
 
     rootpath=outdir+os.sep+'Plots-'
         
-    MSENow=[]
+    MSEnow=[]
     MSEw=[]
 
     report={}
+    Allbase=[]
+    Allexperimental=[]
+    Allcorrected=[]
     maxp=0.0
     for l in Locations:
         report[l]=np.array(df[l])
         maxp=np.max([maxp,report[l].max()])
+    # for l in Locations:
+    #     report[l]/=maxp
 
-    if len(Locations)>12:
-        f,ax=plt.subplots(4,4,figsize=(22/3*2,14/3*2))
-    else:
-        f,ax=plt.subplots(3,4,figsize=(22/3*2,14/3*2))
-    ax=ax.flatten()
+    
+    
     B=np.ones((A.shape[1],1),np.float32)
+    AllFigs=[]
     for n,l in enumerate(Locations):
+        if len(Locations)>12:
+            div =16
+            if n % 16 == 0:
+                f,ax=plt.subplots(4,4,figsize=(22/3*2,14/3*2))
+                ax=ax.flatten()
+                AllFigs.append(f)
+        else:
+            div =12
+            if n == 0:
+                f,ax=plt.subplots(3,4,figsize=(22/3*2,14/3*2))
+                ax=ax.flatten()
+                AllFigs.append(f)
         base=np.abs(A[n*ZDim.shape[0]:(n+1)*ZDim.shape[0],:].dot(B)).flatten()
         corrected=np.abs(A[n*ZDim.shape[0]:(n+1)*ZDim.shape[0],:].dot(x)).flatten()
         experimental=np.array(report[l]).flatten()
 
+        Allbase+=base.tolist()
+        Allcorrected+=corrected.tolist()
+        Allexperimental+=experimental.tolist()
+
         # report=df[l]/df[l].max()
-        if n==0:
-            ax[n].plot(ZDim*1e3,base,':',label='Uncorrected')
-            ax[n].plot(ZDim*1e3,experimental,label='Experimental')
-            ax[n].plot(ZDim*1e3,corrected,label='Corrected')
+        if n % div==0:
+            ax[n % div].plot(ZDim*1e3,base,':',label='Uncorrected')
+            ax[n % div].plot(ZDim*1e3,experimental,label='Experimental')
+            ax[n % div].plot(ZDim*1e3,corrected,label='Corrected')
         else:
-            ax[n].plot(ZDim*1e3,base,':')
-            ax[n].plot(ZDim*1e3,experimental)
-            ax[n].plot(ZDim*1e3,corrected)
+            ax[n % div].plot(ZDim*1e3,base,':')
+            ax[n % div].plot(ZDim*1e3,experimental)
+            ax[n % div].plot(ZDim*1e3,corrected)
         try:
-            MSENow+=((base-experimental)**2).to_list()
+            MSEnow+=((base-experimental)**2).to_list()
             MSEw+=((corrected-experimental)**2).to_list()
         except:
-            MSENow+=((base-experimental)**2).tolist()
+            MSEnow+=((base-experimental)**2).tolist()
             MSEw+=((corrected-experimental)**2).tolist()
-        
-        ax[n].set_title('TPO = '+str(l) + ' mm',fontsize=10)
-    # 
 
-    MSENow=np.array(MSENow)
-    MSEw=np.array(MSEw)
-    MSENow=MSENow.sum()/len(MSENow)
-    MSEw=MSEw.sum()/len(MSEw)
+        ax[n % div].set_title('TPO = '+str(l) + ' mm',fontsize=10)
+        if (n+1) % div == 0 or n==len(Locations)-1:
+            f.legend(loc='upper center',bbox_to_anchor=[1.055,0.94])
 
-    plt.suptitle('Comparison of corrected and uncorrected source - MSE = %.4E (uncorrected) and %.4E (corrected)' %(MSENow,MSEw),fontsize=14)
-    f.legend(loc='upper center',bbox_to_anchor=[1.055,0.94])
-    f.supxlabel('Z (mm)')
-    f.supylabel('Pressure (a.u.)')
-    plt.tight_layout()
-
+    Allbase=np.array(Allbase)
+    Allexperimental=np.array(Allexperimental)
+    Allcorrected=np.array(Allcorrected)
     
-    print('MSE non corrected',MSENow)
-    print('MSE corrected',MSEw)
-    print('MSE reduction',1.0 -MSEw/MSENow)
-    plt.savefig(rootpath+'AcProfiles.pdf',bbox_inches='tight')
+    MSEnow=metrics.normalized_root_mse(Allbase,Allexperimental)
+    MSEw=metrics.normalized_root_mse(Allcorrected,Allexperimental)
+    print('*'*60)
+    print('Acoustic axis comparison')
+    print('NRMSE non corrected',MSEnow)
+    print('NRMSE corrected',MSEw)
+    print('NRMSE reduction',1.0 -MSEw/MSEnow)
+
+    SSInow=metrics.structural_similarity(Allbase,Allexperimental,data_range=np.max([Allbase.max(),Allexperimental.max()]),full=True)[0]
+    SSIw=metrics.structural_similarity(Allcorrected,Allexperimental,data_range=np.max([Allbase.max(),Allexperimental.max()]),full=True)[0]
+    print('SSI non corrected',SSInow)
+    print('SSI corrected',SSIw)
+    print('SSI improvement',SSIw-SSInow)
+
+    with open(outdir+os.sep+'Part1_Stats.csv','w') as fstat:
+        fstat.write('SSI non corrected,SSI corrected,NRMSE non corrected,NRMSE corrected\n')
+        fstat.write('%3.2f,%3.2f,%3.2f,%3.2f\n' %(SSInow,SSIw,MSEnow,MSEw))
+    
+    for n,f in enumerate(AllFigs):
+        f.supxlabel('Z (mm)')
+        f.supylabel('Pressure (a.u.)')
+        f.suptitle('Comparison of corrected and uncorrected source - SSI = %3.2f (uncorrected) and %3.2f (corrected)' %(SSInow,SSIw),fontsize=14)
+        f.tight_layout()
+        if len(AllFigs)>1:
+            f.savefig(rootpath+'-AcProfiles%i.pdf' % (n+1),bbox_inches='tight')
+        else:
+            f.savefig(rootpath+'AcProfiles.pdf',bbox_inches='tight')
+    
+
  
     def PlotWeight(ax,xd,norm,cmap):
         
         nelem=0
         for VertDisplay, FaceDisplay in zip(Tx['RingVertDisplay'],
                                             Tx['RingFaceDisplay']):
-
             for e in VertDisplay[FaceDisplay][:,:,:2]:
                 color = cmap(norm(xd[nelem]))
                 pp3 = plt.Polygon(e*1e3,linewidth=0.1,color=color)
@@ -207,7 +243,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
 
     if RealWeight is None:
     
-        cmap = plt.cm.coolwarm
+        
         # norm = matplotlib.colors.Normalize(vmin=x.min(), vmax=x.max())  # Normalize scalar between 0 and 1
         if np.iscomplex(x[0]):
             nplots=2  
@@ -226,9 +262,14 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         for nf in range(nplots):
             ax=axs[nf]
             if nf==0:
+                cmap = plt.cm.jet
                 xd=np.abs(x)
-                norm =  matplotlib.colors.TwoSlopeNorm(vmin=xd.min(), vmax=xd.max(),vcenter=1.0)
+                if xd.max()<=1.0:
+                    norm =  matplotlib.colors.Normalize(vmin=0.0, vmax=1.0)
+                else:
+                    norm =  matplotlib.colors.TwoSlopeNorm(vmin=0.0, vmax=xd.max(),vcenter=1.0)
             else:
+                cmap = plt.cm.coolwarm
                 xd=np.angle(x)
                 norm =  matplotlib.colors.TwoSlopeNorm(vmin=-np.pi, vmax=np.pi,vcenter=0.0)
 
@@ -243,9 +284,11 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         f,axs=plt.subplots(1,2,figsize=(12,4))
         axs=axs.flatten()
         cmap = plt.cm.coolwarm
-        norm =  matplotlib.colors.Normalize(vmin=RealWeight.min(), vmax=RealWeight.max())
+        norm =  matplotlib.colors.TwoSlopeNorm(vmin=0.0, vmax=RealWeight.max(),vcenter=1.0)
         PlotWeight(axs[0],RealWeight,norm,cmap)
+        axs[0].set_title('Real amplitude',fontsize=12)
         PlotWeight(axs[1],x,norm,cmap)
+        axs[1].set_title('Optimized amplitude',fontsize=12)
 
 
     plt.savefig(rootpath+'weight.pdf',bbox_inches='tight')
@@ -256,7 +299,8 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     xf=np.arange(Tx['center'][:,0].min(),
                  Tx['center'][:,0].max()+Step,Step)
     
-
+    # xf=np.arange(-20e-3,
+    #              20e-3+Step,Step)
     yf=np.zeros(1)
     
     yp,xp,zp=np.meshgrid(yf,xf,zf)
@@ -269,6 +313,8 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     def DoXZ(inx):
         
         AcPlanes=[]
+
+        bCalcAvgAmpl=True
         
         for l in Locations:
             ds=np.ones((1))*1e-3 #arbitary number
@@ -295,10 +341,19 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
                     AllPhi[n]=np.interp(l,dfPhase.index,dfPhase['EL%i Phase' %(n+1)])
             u0=np.zeros((Tx['center'].shape[0],1),np.complex64)
             nBase=0
+
+            GlobalAverage=0.0
             for n in range(Tx['NumberElems']):
                 u0[nBase:nBase+Tx['elemdims'][n][0]]=(np.exp(1j*AllPhi[n])).astype(np.complex64)
+                if bCalcAvgAmpl:
+                    usel=np.abs(inx.reshape((len(inx),1))[nBase:nBase+Tx['elemdims'][n][0]])
+                    print('Average (+/- std.) amplitude element %i = %3.2f(%4.3f)' % (n, np.mean(usel), np.std(usel)))
+                    GlobalAverage+=np.mean(usel)
                 nBase+=Tx['elemdims'][n][0]
             u0*=inx.reshape((len(inx),1))
+            if bCalcAvgAmpl:
+                print('Global average Tx = %3.2f' % (GlobalAverage/Tx['NumberElems']))
+            bCalcAvgAmpl=False #we omly need it once
             acplane=np.abs(ForwardSimple(cwvnb_extlay,Tx['center'].astype(np.float32),Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName))
             # acplane/=acplane.max()
             acplane=acplane.reshape((len(xf),len(zf)))
@@ -361,9 +416,10 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     
     
     if RealWeight is not None:
-        return MSENow,MSEw,PlanesMeanError, PlanesStdError,PlanesMSE
+        return SSInow,SSIw,PlanesMeanError, PlanesStdError,PlanesMSE
     else:
-        return MSENow,MSEw
+        return SSInow,SSIw
+
     
 def spherical_cap_area(A, R):
     """
@@ -654,39 +710,96 @@ def optimize_b_phase(A, e, b0, regularizer):
         options=options
     )
 
-def complex_objective(b_complex, A, e):
-
+def complex_objective(b_complex, A, e,Weights):
     b =b_complex[:A.shape[1]]*np.exp(1j*b_complex[A.shape[1]:])
     Ab = A @ b
-    return np.sum((np.abs(Ab) - e) ** 2)
+    residuals = np.abs(Ab) - e
+    return np.sum((residuals ** 2)*Weights)
 
-def complex_gradient(b_complex, A, e):
+def complex_gradient(b_complex, A, e,Weights):
     b =b_complex[:A.shape[1]]*np.exp(1j*b_complex[A.shape[1]:])
     Ab = A @ b
     abs_Ab = np.abs(Ab)
-    safe_abs = np.where(abs_Ab == 0, 1e-12, abs_Ab)
-    z_ratio = ((abs_Ab - e) / safe_abs) * Ab  # shape (M,)
-    grad_complex = A.conj().T @ z_ratio       # shape (N,)
+    safe_abs = np.where(abs_Ab < 1e-12, 1e-12, abs_Ab)
+    z_ratio = ((abs_Ab - e)/ safe_abs) * Ab *Weights # shape (M,)
+    grad_complex = 2*(A.conj().T @ z_ratio)       # shape (N,)
 
     # Return real-valued gradient for real optimizer
-    return 2 * np.hstack([grad_complex.real, grad_complex.imag])
+        # return  np.hstack([np.abs(grad_complex), np.angle(grad_complex)])
+    return np.hstack([grad_complex.real, grad_complex.imag])
 
-def objective_reg_complex(b, A, e, regularizer):
-    return complex_objective(b, A, e) + regularizer(b)
 
-def jacobian_reg_complex(b, A, e, regularizer):
-    return complex_gradient(b, A, e) + regularizer.gradient(b)
+def objective_reg_complex(b, A, e, regularizer,Weights):
+    return complex_objective(b, A, e,Weights) + regularizer(np.abs(b[:A.shape[1]]*np.exp(1j*b[A.shape[1]:])))
+
+def jacobian_reg_complex(b, A, e, regularizer,Weights):
+    regularizationGrad=np.zeros(A.shape[1]*2,dtype=np.float32)
+    #we regularize first the amplitude, then the phase
+    regularizationGrad[:A.shape[1]]=regularizer.gradient(b[:A.shape[1]])
+    regularizationGrad[A.shape[1]:]=regularizer.gradient(b[A.shape[1]:])
+    return complex_gradient(b, A, e,Weights) + regularizationGrad
+
+
 
 # ----------------------
 # Optimization Wrapper
 # ----------------------
-def optimize_b_complex(A, e, b0, regularizer):
-    options={'maxfun':2000,'disp':0}
-    bounds=[(1e-6, 100.0)] * (len(b0)//2)
+def optimize_b_complex(A, e, b0, regularizer,display=0,amplitudeLimit=100.0,Weights=1.0):
+    options={'maxfun':2000,'disp':display}
+    bounds=[(1e-6, amplitudeLimit)] * (len(b0)//2)
     bounds+=[(-np.pi, np.pi)] * (len(b0)//2)
     return minimize(
-        objective_reg_complex, b0, args=(A, e, regularizer),
+        objective_reg_complex, b0, args=(A, e, regularizer,Weights),
         jac=jacobian_reg_complex,
+        bounds=bounds,
+        method='L-BFGS-B',
+        options=options)
+
+def complex_objective_RI(b_complex, A, e,Weights):
+    N = A.shape[1]
+    ml = np
+    H=A
+    u=b_complex[:N] + 1j * b_complex[N:]
+    p_abs=e
+    W=Weights
+        
+    Hu = H @ u
+    abs_Hu = ml.abs(Hu)
+    eps = 1e-12  # prevent division by zero
+
+    # === Loss ===
+    residual = abs_Hu - p_abs
+    loss_data = ml.sum((residual**2)*W)
+    
+    # === Gradient ===
+    # ∂/∂u_r and ∂/∂u_i from chain rule
+    a_r = ml.real(Hu)
+    a_i = ml.imag(Hu)
+    abs_safe = ml.maximum(abs_Hu, eps)
+    
+    factor = 2 * residual / abs_safe * W # shape (M,)
+    grad_ur = ml.real(H.conj().T @ (factor * a_r + 1j * factor * a_i))
+    grad_ui = ml.imag(H.conj().T @ (factor * a_r + 1j * factor * a_i))
+
+    grad_total = np.concatenate([grad_ur, grad_ui]) #here, if mlx, will be evaluated
+    return loss_data, grad_total
+    
+
+
+def objective_reg_complex_RI(b, A, e, regularizer,Weights):
+    loss_total, grad_total = complex_objective_RI(b, A, e,Weights)
+    loss_total+=regularizer(b[:A.shape[1]])+regularizer(b[A.shape[1]:])
+    grad_total[:A.shape[1]]+=regularizer.gradient(b[:A.shape[1]])
+    grad_total[A.shape[1]:]+=regularizer.gradient(b[A.shape[1]:])
+    return loss_total, grad_total
+
+def optimize_b_complex_RI(A, e, b0, regularizer,display=0,amplitudeLimit=100.0,Weights=1.0):
+    options={'maxfun':2000,'disp':display}
+    bounds=[(-amplitudeLimit, amplitudeLimit)] * (len(b0)//2)
+    bounds+=[(-amplitudeLimit, amplitudeLimit)] * (len(b0)//2)
+    return minimize(
+        objective_reg_complex_RI, b0, args=(A, e, regularizer,Weights),
+        jac=True,
         bounds=bounds,
         method='L-BFGS-B',
         options=options)
@@ -727,7 +840,7 @@ def RUN_FITTING(TxConfig,
         rangePhase_str = rangePhase_str.split('!')[1] if '!' in rangePhase_str else rangePhase_str
 
     # load more experimental parameters
-    complex_fit=INPUT_PARAMS.get('ComplexFit',True)
+    FitType=INPUT_PARAMS.get('FitType','RealImag')
     regularizer=INPUT_PARAMS.get('Regularizer','Grouped')
     config = INPUT_PARAMS.get('Config',1)
     InnerD = INPUT_PARAMS.get('InnerDiameter', 0.0)
@@ -873,7 +986,6 @@ def RUN_FITTING(TxConfig,
     ZDim=np.array(df.index).astype(np.float32)*1e-3
     A=np.zeros((ZDim.shape[0]*len(Locations),Tx['center'].shape[0]),np.complex64)
 
-
     for n,l in enumerate(Locations):
         u0=np.zeros((Tx['center'].shape[0],1),np.complex64)
         nBase=0
@@ -926,27 +1038,30 @@ def RUN_FITTING(TxConfig,
         groups=[]
         nBase=0
     
-        if complex_fit:
-            for kk in range(2):
-                for m in range(Tx['NumberElems']):
-                    groups.append(np.arange(nBase,nBase+Tx['elemdims'][m][0]))
-                    nBase+=Tx['elemdims'][m][0]
-        else:
-            for m in range(Tx['NumberElems']):
-                groups.append(np.arange(nBase,nBase+Tx['elemdims'][m][0]))
-                nBase+=Tx['elemdims'][m][0]
+        for m in range(Tx['NumberElems']):
+            groups.append(np.arange(nBase,nBase+Tx['elemdims'][m][0]))
+            nBase+=Tx['elemdims'][m][0]
         if regularizer=='Grouped':
             reg =GroupHomogeneityRegularizer(lam,groups)
         else:
             reg =GroupL2Regularizer(lam,groups)
     else:
         raise ValueError("Unknown regularization " + regularizer)
-    if complex_fit:
-        x0=np.zeros(A.shape[1]*2)
-        x0[:A.shape[1]]=1.0
-        res=optimize_b_complex(A, E, x0, reg)
-        res.x=res.x[:A.shape[1]]*np.exp(1j*res.x[A.shape[1]:])
+    if FitType == 'AbsPhase':
+            x0=np.zeros(A.shape[1]*2,dtype=np.float32)
+            np.random.seed(78) # we use the same seed so we can compare between regularizers
+            x0[:A.shape[1]]=np.random.random(A.shape[1]).astype(np.float32)+0.1
+            res=optimize_b_complex(A, E, x0,reg)
+            res.x=res.x[:A.shape[1]]*np.exp(1j*res.x[A.shape[1]:])
+    elif FitType == 'RealImag':
+        x0=np.zeros(A.shape[1]*2,dtype=np.float32)
+        np.random.seed(78) # we use the same seed so we can compare between regularizers
+        x0[:A.shape[1]]=np.random.random(A.shape[1]).astype(np.float32)+0.1
+        print('using Real+Imag fitting')
+        res=optimize_b_complex_RI(A, E, x0,reg)
+        res.x=res.x[:A.shape[1]]+1j*res.x[A.shape[1]:]
     else:
+        assert(FitType=='Amp')
         x0=np.ones(A.shape[1])
         res=optimize_b(A, E, x0, reg)
 
@@ -971,6 +1086,8 @@ def RUN_FITTING(TxConfig,
     dfMeasurements=df.copy()
     for n,l in enumerate(Locations):
         dfMeasurements[l]=np.sqrt(dfMeasurements[l]/MaxIntensityReport)
+
+
 
     MSENow,MSE_BFGS=MakePlots(fname,res.x,A,Tx,Frequency,ZDim,Locations,CB,dfMeasurements,deviceName,
                                    bUseRayleighPhase=bUseRayleighPhase,dfPhase=dfPhase)
@@ -1016,68 +1133,13 @@ def RUN_FITTING_Process(queue,TxConfig, YAMLConfigFilename,deviceName,COMPUTING_
     stdout = InOutputWrapper(queue,True)
   
     try:
-         MSENow,MSE_BFGS=RUN_FITTING(TxConfig,
+         SSINow,SSI_BFGS=RUN_FITTING(TxConfig,
               YAMLConfigFilename,
               deviceName=deviceName,
               COMPUTING_BACKEND=COMPUTING_BACKEND)
-         queue.put({'MSENow':MSENow, 'MSE_BFGS':MSE_BFGS})
+         queue.put({'SSINow':SSINow, 'SSI_BFGS':SSI_BFGS})
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())
         print(str(e))
 
-
-def RUN_FITTING_Parallel(TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
-    """
-    Run the fitting process in parallel using multiprocessing.
-    """
-    queue=Queue()
-    fieldWorkerProcess = Process(target=RUN_FITTING_Process, 
-                                        args=(queue,
-                                              TxConfig,
-                                              YAMLConfigFilename,
-                                              deviceName,
-                                              COMPUTING_BACKEND))
-    fieldWorkerProcess.start()      
-        
-    # progress.
-    T0=time.time()
-    bNoError=True
-    MSENow=None
-    while fieldWorkerProcess.is_alive():
-        time.sleep(0.1)
-        while queue.empty() == False:
-            cMsg=queue.get()
-            if type(cMsg) is str:
-                print(cMsg,end='')
-                if '--Babel-Brain-Low-Error' in cMsg:
-                    bNoError=False
-            else:
-                assert(type(cMsg) is dict)
-                MSENow=cMsg['MSENow']
-                MSE_BFGS=cMsg['MSE_BFGS']
-    fieldWorkerProcess.join()
-    if MSENow is None:
-        cMsg=queue.get()
-        if type(cMsg) is str:
-            print(cMsg,end='')
-            if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False        
-        else:
-            assert(type(cMsg) is dict)
-            MSENow=cMsg['MSENow']
-            MSE_BFGS=cMsg['MSE_BFGS']
-
-            
-    if bNoError:
-        TEnd=time.time()
-        TotalTime = TEnd-T0
-        print('Total time',TotalTime)
-        print("*"*40)
-        print("*"*5+" DONE Calibration.")
-        print("*"*40)
-    else:
-        print("*"*40)
-        print("*"*5+" Error in execution of the calibration process.")
-        print("*"*40)
-    return MSENow, MSE_BFGS

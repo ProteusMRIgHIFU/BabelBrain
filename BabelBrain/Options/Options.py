@@ -281,17 +281,6 @@ class AdvancedOptions(QDialog):
               self.ui.YAMLCalibrationLineEdit.text(),
               deviceName=self._currentConfig['ComputingDevice'],
               COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
-        
-        # MSENow, MSE_BFGS=self.RUN_FITTING(self._TxConfig,
-        #       self.ui.YAMLCalibrationLineEdit.text(),
-        #       deviceName=self._currentConfig['ComputingDevice'],
-        #       COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
-
-        # msgBox = QMessageBox()
-        # msgBox.setText("Calibration executed with the following results:\n"+
-        #                "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
-        #                 "\n\nPLEASE check plots in output directory specied in YAML file")
-        # msgBox.exec()
 
     def RUN_FITTING_Parallel(self,TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
         """
@@ -325,7 +314,7 @@ class AdvancedOptions(QDialog):
         
         bNoError=True
         bDone=False
-        MSENow=None
+        SSINow=None
         while self.CalQueue and not self.CalQueue.empty():
             cMsg=self.CalQueue.get()
             if type(cMsg) is str:
@@ -337,8 +326,8 @@ class AdvancedOptions(QDialog):
                     bDone=True
             else:
                 assert(type(cMsg) is dict)
-                MSENow=cMsg['MSENow']
-                MSE_BFGS=cMsg['MSE_BFGS']
+                SSINow=cMsg['SSINow']
+                SSI_BFGS=cMsg['SSI_BFGS']
                 self.Caltimer.stop()
                 self.CalProcess.join()
                 bDone=True
@@ -355,7 +344,7 @@ class AdvancedOptions(QDialog):
                 self._WorkingDialog.hide()
                 msgBox = QMessageBox()
                 msgBox.setText("Calibration executed with the following results:\n"+
-                            "MSE uncorrected: {:.4E}\nMSE after fitting: {:.4E}".format(MSENow,MSE_BFGS)+
+                            "SSI uncorrected: {:4.3f}\nSSI after fitting: {:4.3f}".format(SSINow,SSI_BFGS)+
                                 "\n\nPLEASE check plots in output directory specied in YAML file")
                 msgBox.exec()
             else:
