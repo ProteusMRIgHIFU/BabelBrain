@@ -50,21 +50,6 @@ Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/
 
 Besides the recommended conda environment, a healthy XCode installation in macOS, or CUDA (up to v11.8) + Visual Studio/gcc in Windows/Linux will be required. Consult [BabelViscoFDTD](https://github.com/ProteusMRIgHIFU/BabelViscoFDTD) for details on what is needed for the FDTD solvers
 
-*  CSG Python `pycork` library needs to be installed manually. Clone the repository in a BabelBrain environment. 
-   
-   In macOS, install the GMP library; for example with `homebrew`
-   ```
-   brew install gmp
-   ```
-   Install the `pycork` library with:
-   ```
-   git clone https://github.com/drlukeparry/pycork.git
-   cd pycork
-   git checkout d9efcd1da212c685345f65503ba253373dcdece0 
-   git submodule update --init --recursive
-   pip install .
-   ```
-
 
 
 ## Running

@@ -23,10 +23,6 @@ import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
-try:
-    import pycork
-except:
-    print("UNABLE TO IMPORT PYCORK, NEED TO 'SELECT FORCE USING BLENDER' IN ADVANCED OPTIONS")
 import pyvista as pv
 import time
 import gc
@@ -258,25 +254,12 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     if Mesh1.body_count != 1:
         print('Mesh 1 is invalid... trying to fix')
         Mesh1 = FixMesh(Mesh1)
-
     if Mesh2.body_count != 1:
         print('Mesh 2 is invalid... trying to fix')
         Mesh2 = FixMesh(Mesh2)
-    
     # Perform intersection
-    verts_1 = Mesh1.vertices
-    verts_2 = Mesh2.vertices
-    tris_1 = Mesh1.faces
-    tris_2 = Mesh2.faces
-
     if not bForceUseBlender:
-        try:
-            verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
-            Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
-        except:
-            #we use blender as backup if it  fails (but pycork does not trigger an easy to catch exception)
-            print('Pycork failed, defaulting to blender')
-            Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+        Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='manifold')
     else:
         Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
 
@@ -361,7 +344,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 prefix='', #Id to add to output file for identification
                                 bPlot=True,
                                 bForceFullRecalculation=False,
-                                bForceUseBlender=False, # we use pycork by default, but we let open to use blender as backup
+                                bForceUseBlender=False, # we use manifol3d by default, but we let open to use blender as backup
                                 factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
                                 FOVDiameter=60.0, # diameter for  manual FOV
@@ -515,7 +498,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     TransformationCone[0,3]=Location[0]
     TransformationCone[1,3]=Location[1]
     TransformationCone[2,3]=Location[2]+HeightCone
-    Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
+    Cone=creation.cone(RadCone,HeightCone)
+    Cone.apply_transform(TransformationCone.copy())
 
     TransformationCone[2,3]=Location[2]
    
@@ -525,7 +509,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     TransformationCone[2,3]=-Location[2]
 
     Cone.apply_transform(TransformationCone)
-    
     
     RMat=RMat[:3,:3]
     

@@ -1,7 +1,7 @@
 name: BabelBrain
 channels:
-  - agd-lbr
   - conda-forge
+  - defaults
 dependencies:
   - bzip2=1.0.8=h3422bc3_4
   - ca-certificates=2022.9.24=h4653dfc_0
@@ -46,6 +46,7 @@ dependencies:
       - contourpy==1.0.6
       - cycler==0.11.0
       - decorator==5.1.1
+      - et-xmlfile==2.0.0
       - fonttools==4.38.0
       - frozenlist==1.3.3
       - ghp-import==2.1.0
@@ -62,6 +63,7 @@ dependencies:
       - linetimer==0.1.5
       - llvmlite==0.39.1
       - macholib==1.16.2
+      - manifold3d==3.2.1
       - markdown==3.3.7
       - markupsafe==2.1.1
       - matplotlib==3.6.2
@@ -79,6 +81,7 @@ dependencies:
       - nibabel==5.2.1
       - numba==0.56.2
       - numpy-stl==2.17.1
+      - openpyxl==3.1.5
       - packaging==21.3
       - pandas==1.5.0
       - patsy==0.5.3
@@ -86,11 +89,10 @@ dependencies:
       - platformdirs==2.5.4
       - plotly==5.11.0
       - pooch==1.6.0
+      - pwlf==2.5.2
       - pybtex==0.24.0
-      - pycork @ git+https://github.com/drlukeparry/pycork.git@d9efcd1da212c685345f65503ba253373dcdece0
+      - pydicom==2.4.4
       - pygments==2.13.0
-      - et-xmlfile==2.0.0 
-      - openpyxl==3.1.5
       - pyinstaller==6.1.0
       - pyinstaller-hooks-contrib==2022.13
       - pymdown-extensions==9.9
@@ -125,7 +127,7 @@ dependencies:
       - tenacity==8.1.0
       - threadpoolctl==3.1.0
       - tifffile==2022.10.10
-      - trimesh==3.22.3
+      - trimesh==4.7.3
       - typing-extensions==4.4.0
       - uhi==0.3.2
       - urllib3==1.26.12
@@ -136,4 +138,4 @@ dependencies:
       - wslink==1.9.1
       - yarl==1.8.1
       - zipp==3.11.0
-prefix: /opt/homebrew/Caskroom/miniforge/base/envs/BabelBrain
+prefix: /Users/spichardo/miniconda3/envs/BabelBrain

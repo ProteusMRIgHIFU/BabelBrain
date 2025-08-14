@@ -370,7 +370,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._u2RayleighField=u2
         
-        self._SourceMapFlat=u2[:,:,self._ZSourceLocation]
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation]
         
 
         
@@ -390,17 +390,17 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocZ=self._ZSourceLocation
         
-        SourceMaskIND=np.where(np.abs(self._SourceMapFlat)>0)
+        SourceMaskIND=np.where(np.abs(self._SourceMapRayleigh)>0)
         SourceMask=np.zeros((self._N1,self._N2),np.uint32)
         
         RefI= int((SourceMaskIND[0].max()-SourceMaskIND[0].min())/2)+SourceMaskIND[0].min()
         RefJ= int((SourceMaskIND[1].max()-SourceMaskIND[1].min())/2)+SourceMaskIND[1].min()
-        AngRef=np.angle(self._SourceMapFlat[RefI,RefJ])
-        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapFlat)>0),TimeVectorSource.shape[0]))
+        AngRef=np.angle(self._SourceMapRayleigh[RefI,RefJ])
+        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapRayleigh)>0),TimeVectorSource.shape[0]))
         nSource=1                       
         for i,j in zip(SourceMaskIND[0],SourceMaskIND[1]):
             SourceMask[i,j]=nSource
-            u0=self._SourceMapFlat[i,j]
+            u0=self._SourceMapRayleigh[i,j]
             #we recover amplitude and phase from Rayleigh field
             PulseSource[nSource-1,:] = np.abs(u0) *np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(u0))
             PulseSource[nSource-1,:int(ramp_length_points)]*=ramp

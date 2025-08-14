@@ -687,7 +687,8 @@ class Babel_Thermal(QWidget):
         print(OutName)
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
-        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','CTX_250_2ch',
+                                                    'H246','R15287','R15473','DPXPC_300']:
             if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix

@@ -65,6 +65,7 @@ dependencies:
       - lazy-loader==0.2
       - linetimer==0.1.5
       - llvmlite==0.39.1
+      - manifold3d==3.2.1
       - matplotlib==3.7.1
       - networkx==3.0
       - nibabel==5.2.1
@@ -78,6 +79,7 @@ dependencies:
       - pillow==9.5.0
       - platformdirs==3.2.0
       - pooch==1.7.0
+      - pwlf==2.5.2
       - pydicom==2.3.1
       - pygments==2.14.0
       - pymeshfix==0.16.2
@@ -104,7 +106,7 @@ dependencies:
       - six==1.16.0
       - superqt==0.4.1
       - tifffile==2023.3.21
-      - trimesh==3.21.3
+      - trimesh==4.7.3
       - typing-extensions==4.5.0
       - tzdata==2023.3
       - uhi==0.3.3
