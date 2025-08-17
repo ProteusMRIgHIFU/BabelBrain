@@ -104,7 +104,8 @@ transducers = [
     {'name': 'R15148', 'dropdown_index': 12, 'diameter': 0},
     {'name': 'R15287', 'dropdown_index': 13, 'diameter': 0},
     {'name': 'R15473', 'dropdown_index': 14, 'diameter': 0},
-    {'name': 'R15646', 'dropdown_index': 15, 'diameter': 0}
+    {'name': 'R15646', 'dropdown_index': 15, 'diameter': 0},
+    {'name': 'IGT64_500', 'dropdown_index': 16, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -576,7 +577,7 @@ def get_freq():
     def _get_freq(tx):
         if tx == 'Single':
             freq = '400'
-        elif tx in ['CTX_500','DPX_500','H246','R15148']:
+        elif tx in ['CTX_500','DPX_500','H246','R15148','IGT64_500']:
             freq = '500'
         elif tx in ['CTX_250','CTX_250_2ch']:
             freq = '250'

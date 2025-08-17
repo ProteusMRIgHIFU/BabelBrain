@@ -26,6 +26,7 @@ sys.path.append(os.path.abspath('./'))
 import SimpleITK as sitk
 import nibabel
 import numpy as np
+import importlib
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
 from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie,QPixmap
@@ -447,9 +448,13 @@ class BabelBrain(QWidget):
         for k in self._DefaultOptions.keys():
             if k not in self.Config:
                 self.Config[k]=getattr(self._DefaultOptions,k)
+            elif k=='TxOptimizedWeights':
+                #we check if we are missing a Tx
+                for tx in self._AllTransducers:
+                    if tx not in self.Config['TxOptimizedWeights']:
+                        self.Config['TxOptimizedWeights'][tx]=getattr(self._DefaultOptions,k)[tx]
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
-            
         self.SaveLatestSelection()
 
         self.load_ui()
@@ -547,39 +552,36 @@ class BabelBrain(QWidget):
         import BabelDatasetPreps as DataPreps
 
         from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
-        if self.Config['TxSystem'] =='Single':
-            from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
+        if self.Config['TxSystem'] =='CTX_500':
+            idimport = 'CTX500'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='CTX_500':
-            from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+            idimport = 'CTX500'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='CTX_250':
-            from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
+            idimport = 'CTX250'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='CTX_250_2ch':
-            from Babel_CTX250_2ch.Babel_CTX250_2ch import CTX250_2ch as WidgetAcSim
+            idimport = 'CTX250_2ch'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='DPX_500':
-            from Babel_DPX500.Babel_DPX500 import DPX500 as WidgetAcSim
+            idimport = 'DPX500'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='DPXPC_300':
-            from Babel_DPXPC300.Babel_DPXPC300 import DPXPC300 as WidgetAcSim
-        elif self.Config['TxSystem'] =='H317':
-            from Babel_H317.Babel_H317 import H317 as WidgetAcSim
-        elif self.Config['TxSystem'] =='H246':
-            from Babel_H246.Babel_H246 import H246 as WidgetAcSim
+            idimport = 'DPXPC300'
+            ibsub=idimport
+        elif self.Config['TxSystem'] =='Single':
+            idimport = 'SingleTx'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='BSonix':
-            from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
-        elif self.Config['TxSystem'] =='REMOPD':
-            from Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
-        elif self.Config['TxSystem'] =='I12378':
-            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
-        elif self.Config['TxSystem'] =='ATAC':
-            from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
-        elif self.Config['TxSystem'] =='R15148':
-            from Babel_R15148.Babel_R15148 import R15148 as WidgetAcSim
-        elif self.Config['TxSystem'] =='R15287':
-            from Babel_R15287.Babel_R15287 import R15287 as WidgetAcSim
-        elif self.Config['TxSystem'] =='R15473':
-            from Babel_R15473.Babel_R15473 import R15473 as WidgetAcSim
-        elif self.Config['TxSystem'] =='R15646':
-            from Babel_R15646.Babel_R15646 import R15646 as WidgetAcSim
+            idimport = 'SingleTx'
+            ibsub='BSonix'
         else:
+            idimport = self.Config['TxSystem']
+            ibsub=idimport
+        try:
+            WidgetAcSim = importlib.import_module(f"Babel_{idimport}.Babel_{ibsub}").__dict__[idimport]
+        except ImportError:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
         from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal

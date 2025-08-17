@@ -272,7 +272,7 @@ PETRA,
 Density?</string>
     </property>
     <property name="alignment">
-     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QPushButton" name="SelTrajectorypushButton">
@@ -547,8 +547,13 @@ Density?</string>
      </property>
     </item>
     <item>
-     <property name="text"> 
+     <property name="text">
       <string>R15646</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>IGT64_500</string>
      </property>
     </item>
    </widget>
