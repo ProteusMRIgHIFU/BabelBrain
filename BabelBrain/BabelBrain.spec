@@ -60,12 +60,39 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
 with open('version.txt','r') as f:
     version=f.readlines()[0].strip()
 
+commonhidden=['Babel_H317.Babel_H317',
+              'Babel_H246.Babel_H246',
+              'Babel_CTX500.Babel_CTX500',
+              'Babel_CTX250.Babel_CTX250',
+              'Babel_CTX250_2ch.Babel_CTX250_2ch', 
+              'Babel_DPX500.Babel_DPX500',
+              'Babel_DPXPC300.Babel_DPXPC300',
+              'Babel_SingleTx.Babel_SingleTx',
+              'Babel_SingleTx.Babel_BSonix',
+              'Babel_REMOPD.Babel_REMOPD',
+              'Babel_I12378.Babel_I12378',
+              'Babel_ATAC.Babel_ATAC',
+              'Babel_R15148.Babel_R15148',
+              'Babel_R15287.Babel_R15287',
+              'Babel_R15473.Babel_R15473',
+              'Babel_R15646.Babel_R15646',
+              'Babel_IGT64_500.Babel_IGT64_500',
+              'TranscranialModeling.BabelIntegrationCONCAVE_PHASEDARRAY',
+              'TranscranialModeling.BabelIntegrationH317',
+              'TranscranialModeling.BabelIntegrationH246',
+              'TranscranialModeling.BabelIntegrationREMOPD',
+              'TranscranialModeling.BabelIntegrationI12378',
+              'TranscranialModeling.BabelIntegrationATAC',
+              'TranscranialModeling.BabelIntegrationR15148',
+              'TranscranialModeling.BabelIntegrationR15646',
+              'TranscranialModeling.BabelIntegrationIGT64_500']
+
 if 'Darwin' in platform.system(): #for Mac
     tmp_ret = collect_all('BabelViscoFDTD')
     binaries = tmp_ret[1]
     datas=tmp_ret[0]
     tmp_ret = collect_all('trimesh')
-    hiddenimports=tmp_ret[2]
+    hiddenimports=commonhidden+tmp_ret[2]
     datas+=tmp_ret[0]
 
     tmp_ret = collect_all('itk')
@@ -179,6 +206,7 @@ elif 'Windows' in platform.system(): #for Windows
         binaries += modinfo[1]
         hiddenimports += modinfo[2]
         
+    hiddenimports+=commonhidden
     binaries+=[(os.environ['CONDA_PREFIX']+'/Library/bin/nvrtc-builtins64_117.dll','./')]
     datas+=commonDatas
     datas+=[('ExternalBin/elastix/run_win.bat','./ExternalBin/elastix'),
@@ -263,6 +291,7 @@ else: #for Linux
     datas = []
     binaries = []
     hiddenimports = []
+    hiddenimports += commonhidden
 
     missing_package_info = ['BabelViscoFDTD',\
                         'cupy','cupyx','cupy_backends',
