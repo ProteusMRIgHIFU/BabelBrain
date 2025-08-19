@@ -9,8 +9,8 @@ MinimalYSteering:      -20.0e-3  # in m
 MaximalYSteering:       20.0e-3  # in m
 
 MinimalDistanceConeToFocus:       10.0e-3  # in m
-MaximalDistanceConeToFocus:       67.0e-3  # in m 
-DefaultDistanceConeToFocus:       67.0e-3  # in m
+MaximalDistanceConeToFocus:       65.0e-3  # in m 
+DefaultDistanceConeToFocus:       65.0e-3  # in m
 
 USFrequencies:
     - 500000.0
