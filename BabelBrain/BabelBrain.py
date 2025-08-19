@@ -580,7 +580,7 @@ class BabelBrain(QWidget):
             idimport = self.Config['TxSystem']
             ibsub=idimport
         try:
-            WidgetAcSim = importlib.import_module(f"Babel_{idimport}.Babel_{ibsub}").__dict__[idimport]
+            WidgetAcSim = importlib.import_module(f"Babel_{idimport}.Babel_{ibsub}").__dict__[ibsub]
         except ImportError:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
