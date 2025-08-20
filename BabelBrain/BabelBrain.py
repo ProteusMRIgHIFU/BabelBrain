@@ -852,10 +852,11 @@ class BabelBrain(QWidget):
         else:
             inMat=read_itk_affine_transform(self.Config['Mat4Trajectory'])
             OrigTraj = itk_to_BSight(inMat)
-            OrigTraj[0,3]+=CorX
-            OrigTraj[1,3]+=CorY
-            OrigTraj[2,3]+=CorZ
+            OrigTraj[0,3]-=CorX
+            OrigTraj[1,3]-=CorY
+            OrigTraj[2,3]-=CorZ
             transform = BSight_to_itk(OrigTraj)
+            transform[:3,:3]=transform[:3,:3].T
             outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
                                         m0n2=transform[2,0],
