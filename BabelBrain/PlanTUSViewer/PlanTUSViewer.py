@@ -12,8 +12,7 @@ from PySide6.QtCore import Qt
 import numpy as np
 
 class GiftiViewer(QWidget):
-    def __init__(self, gifti_file, gifti_func=None,gifti_thresh=None, 
-                 shared_camera=None, parent=None, callbackSync=None,rangemap=None,viewtitle=""):
+    def __init__(self, gifti_files,selectedFunc=0,shared_camera=None, parent=None, callbackSync=None):
         super().__init__(parent)
 
         # --- Qt Layout ---
@@ -23,121 +22,116 @@ class GiftiViewer(QWidget):
         # VTK Widget
         self.vtkWidget = QVTKRenderWindowInteractor(self)
 
-        label = QLabel(viewtitle)
+        self.titleLabel = QLabel("")
 
         # Apply stylesheet
-        label.setStyleSheet("""
+        self.titleLabel.setStyleSheet("""
             QLabel {
                 font-size: 14px;       /* Change font size */
                 color: green;            /* Change text color */
             }
         """)
-        layout.addWidget(label,alignment=Qt.AlignCenter)
+        layout.addWidget(self.titleLabel,alignment=Qt.AlignCenter)
         layout.addWidget(self.vtkWidget)
 
         self.valueLabel = QLabel("Value: N/A")
         layout.addWidget(self.valueLabel)
 
+        self.renderer = vtk.vtkRenderer()
+
+        self.selectedFunc=selectedFunc
+
+        self.Entries=[]
+
+        self.func_data = []
+        self.faces = []
+
+        self.currentHeatmapVisibility = True
+
+        for g in gifti_files:
+            entry={}
+
         # --- Load GIFTI File ---
-        gii = nib.load(gifti_file)
-        coords = gii.darrays[0].data  # vertex coordinates (Nx3)
-        faces = gii.darrays[1].data   # triangles (Mx3)
+            gii = nib.load(g[0])
+            coords = gii.darrays[0].data  # vertex coordinates (Nx3)
+            faces = gii.darrays[1].data   # triangles (Mx3)
 
-        self.coords = coords
-        coordsOrig = coords.copy()
-        self.coordsOrig = coordsOrig
-        self.faces = faces
-        self.title=viewtitle
+            entry['coords'] = coords
+            coordsOrig = coords.copy()
+            entry['coordsOrig'] = coordsOrig
+            entry['faces'] = faces
+            entry['title'] = g[4] if len(g) > 4 else ""
 
 
-        if gifti_func:
-            func = nib.load(gifti_func)
+            func = nib.load(g[1])
             func_data = func.darrays[0].data
-            has_scalars = True
-            print(viewtitle, func_data.min(), func_data.max())
-        else:
-            func_data = None
-            has_scalars = False
 
-        self.func_data = func_data
+            entry['func_data'] = func_data
 
-        if gifti_thresh:
-            thresh = nib.load(gifti_thresh)
+            thresh = nib.load(g[2])
             thresh_data = thresh.darrays[0].data
-            has_threshold = True
             coords_outside_mask = coords.copy()
             coords_outside_mask[thresh_data==1, :] = np.nan  # remove vertices below threshold
             coords[thresh_data==0, :] = np.nan  # remove vertices below threshold
 
-        else:
-            thresh_data = None
-            has_threshold = False
-            coords_outside_mask = coords.copy()
-
-        
-        # has_scalars = len(gii.darrays) > 2
-
-        if has_scalars:
-            # scalars = gii.darrays[2].data
             scalars = func_data
-        else:
-            scalars = None
-  
-        # --- Convert to VTK PolyData ---
-        self.renderer = vtk.vtkRenderer()
-        for n,c in enumerate([coords, coords_outside_mask,coordsOrig]):
-            points = vtk.vtkPoints()
-            for x, y, z in c:
-                points.InsertNextPoint(x, y, z)
+            # --- Convert to VTK PolyData ---
+            
+            for n,c in enumerate([coords, coords_outside_mask,coordsOrig]):
+                points = vtk.vtkPoints()
+                for x, y, z in c:
+                    points.InsertNextPoint(x, y, z)
 
-            polys = vtk.vtkCellArray()
-            for tri in faces:
-                polys.InsertNextCell(3)
-                polys.InsertCellPoint(int(tri[0]))
-                polys.InsertCellPoint(int(tri[1]))
-                polys.InsertCellPoint(int(tri[2]))
+                polys = vtk.vtkCellArray()
+                for tri in faces:
+                    polys.InsertNextCell(3)
+                    polys.InsertCellPoint(int(tri[0]))
+                    polys.InsertCellPoint(int(tri[1]))
+                    polys.InsertCellPoint(int(tri[2]))
 
-            polydata = vtk.vtkPolyData()
-            polydata.SetPoints(points)
-            polydata.SetPolys(polys)
+                polydata = vtk.vtkPolyData()
+                polydata.SetPoints(points)
+                polydata.SetPolys(polys)
 
-            # --- Mapper + Actor ---
-            mapper = vtk.vtkPolyDataMapper()
-            mapper.SetInputData(polydata)
+                # --- Mapper + Actor ---
+                mapper = vtk.vtkPolyDataMapper()
+                mapper.SetInputData(polydata)
 
-            actor = vtk.vtkActor()
-            actor.SetMapper(mapper)
-        
-            if  n in [0,2]:
-                vtk_scalars = vtk.vtkFloatArray()
-                vtk_scalars.SetName("Heatmap")
-                for val in scalars:
-                    vtk_scalars.InsertNextValue(float(val))
+                actor = vtk.vtkActor()
+                actor.SetMapper(mapper)
+            
+                if  n in [0,2]:
+                    vtk_scalars = vtk.vtkFloatArray()
+                    vtk_scalars.SetName("Heatmap")
+                    for val in scalars:
+                        vtk_scalars.InsertNextValue(float(val))
 
-                polydata.GetPointData().SetScalars(vtk_scalars)
-                if rangemap is None:
-                    mapper.SetScalarRange(vtk_scalars.GetRange())
+                    polydata.GetPointData().SetScalars(vtk_scalars)
+                    if g[3] is None:
+                        mapper.SetScalarRange(vtk_scalars.GetRange())
+                    else:
+                        mapper.SetScalarRange(g[3])
+                    self.renderer.AddActor(actor)
+                    if n==0:
+                        entry['mapperMasked'] = mapper
+                        entry['actorHeatMapMasked'] = actor
+                    else:
+                        entry['mapperUnmasked'] = mapper
+                        entry['actorHeatMapUnmasked'] = actor
                 else:
-                    mapper.SetScalarRange(rangemap)
-                self.renderer.AddActor(actor)
-                if n==0:
-                    self.mapperMasked = mapper
-                    self.actorHeatMapMasked= actor
-                else:
-                    self.mapperUnmasked = mapper
-                    self.actorHeatMapUnmasked= actor
-                    self.actorHeatMapUnmasked.SetVisibility(False)
+                    # If no scalars or the rest of the scalp, just give the actor a solid color
+                    actor.GetProperty().SetColor(0.8, 0.8, 0.8)  # light gray
+                    self.renderer.AddActor(actor)
+                    entry['actorSkinMasked'] = actor
 
-            else:
-                # If no scalars or the rest of the scalp, just give the actor a solid color
-                actor.GetProperty().SetColor(0.8, 0.8, 0.8)  # light gray
-                self.renderer.AddActor(actor)
-                self.actorSkinMasked = actor
+                actor.SetVisibility(False)
+
+            self.Entries.append(entry)
 
 
         # --- Renderer ---
-       
-            
+        self.select_function(self.selectedFunc)
+
         self.renderer.SetBackground(0.1, 0.1, 0.1)
 
         if shared_camera:
@@ -226,8 +220,7 @@ class GiftiViewer(QWidget):
         # --- Scalar bar ---
         scalar_bar = vtk.vtkScalarBarActor()
         self.renderer.AddActor(scalar_bar)
-        scalar_bar.SetLookupTable(self.mapperMasked.GetLookupTable())
-        # scalar_bar.SetTitle("Heatmap")
+        scalar_bar.SetLookupTable(self.current_ActorsEntry['mapperMasked'].GetLookupTable())
         scalar_bar.SetNumberOfLabels(5)
 
         # Place on right side of the render window
@@ -236,7 +229,18 @@ class GiftiViewer(QWidget):
         scalar_bar_widget.SetScalarBarActor(scalar_bar)
         scalar_bar_widget.On()   # ena
 
-        
+    def select_function(self,selection):
+        #we first hide the current function's actors
+        self.current_ActorsEntry['actorHeatMapMasked'].SetVisibility(False)
+        self.current_ActorsEntry['actorHeatMapUnmasked'].SetVisibility(False)
+        self.current_ActorsEntry['actorSkinMasked'].SetVisibility(False)
+        self.selectedFunc=selection
+        self.titleLabel.setText(self.current_ActorsEntry['title'])
+        self.set_heatmap_visibility(self.currentHeatmapVisibility) #this will honor the current selection
+
+    @property
+    def current_ActorsEntry(self):
+        return self.Entries[self.selectedFunc]
 
     def on_left_click(self, obj, event):
         if not self.selection_mode:
@@ -245,10 +249,10 @@ class GiftiViewer(QWidget):
         x, y = self.interactor.GetEventPosition()
         if self.picker.Pick(x, y, 0, self.renderer):
             cell_id = self.picker.GetCellId()
-            if cell_id >= 0 and cell_id < len(self.faces):
+            if cell_id >= 0 and cell_id < len(self.current_ActorsEntry['faces']):
                 # Get triangle vertices
-                tri = self.faces[cell_id]
-                vtx_coords = self.coordsOrig[tri]
+                tri = self.current_ActorsEntry['faces'][cell_id]
+                vtx_coords = self.current_ActorsEntry['coordsOrig'][tri]
                 if np.any(np.isnan(vtx_coords)):
                     return  # skip if any vertex is NaN
                 
@@ -262,16 +266,15 @@ class GiftiViewer(QWidget):
     
     def highlight_triangle(self, cell_id, pick_pos=None):
         """Highlight a triangle by ID and place sphere at pick position."""
-        if cell_id < 0 or cell_id >= len(self.faces):
+        if cell_id < 0 or cell_id >= len(self.current_ActorsEntry['faces']):
             return
 
-        tri = self.faces[cell_id]
-        vtx_coords = self.coordsOrig[tri]
+        tri = self.current_ActorsEntry['faces'][cell_id]
+        vtx_coords = self.current_ActorsEntry['coordsOrig'][tri]
         if np.any(np.isnan(vtx_coords)):
             return  # skip if any vertex is NaN
-        values=self.func_data[tri]
+        values=self.current_ActorsEntry['func_data'][tri]
         self.valueLabel.setText(f"Value: {np.mean(values):.2f}")
-        # print(self.title +f" [{id(self)}] Highlighting triangle {cell_id}, value: {np.mean(values)}")
 
         if pick_pos is None:
             # Use centroid if no explicit pick position
@@ -312,21 +315,23 @@ class GiftiViewer(QWidget):
             val = cmap(i)
             lut.SetTableValue(i, val[0], val[1], val[2], 1.0)
 
-        self.mapperMasked.SetLookupTable(lut)
-        self.mapperUnmasked.SetLookupTable(lut)
+        self.current_ActorsEntry['mapperMasked'].SetLookupTable(lut)
+        self.current_ActorsEntry['mapperUnmasked'].SetLookupTable(lut)
 
         self.vtkWidget.GetRenderWindow().Render()
 
     def set_heatmap_visibility(self, visible):
-        self.actorHeatMapMasked.SetVisibility(visible)
-        self.actorSkinMasked.SetVisibility(visible)
-        self.actorHeatMapUnmasked.SetVisibility(not visible)
+        self.currentHeatmapVisibility = visible
+        self.current_ActorsEntry['actorHeatMapMasked'].SetVisibility(visible)
+        self.current_ActorsEntry['actorSkinMasked'].SetVisibility(visible)
+        self.current_ActorsEntry['actorHeatMapUnmasked'].SetVisibility(not visible)
         self.vtkWidget.GetRenderWindow().Render()
 
 class MultiGiftiViewerWidget(QWidget):
-    def __init__(self, gifti_files, parent=None):
+    def __init__(self, gifti_files, MaxViews=4, parent=None):
         super().__init__(parent)
         self.viewers = []
+        self.MaxViews = MaxViews
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -348,13 +353,12 @@ class MultiGiftiViewerWidget(QWidget):
                 v.vtkWidget.GetRenderWindow().Render()
 
         # Create viewers
-        for f in gifti_files:
-            v = GiftiViewer(f[0], gifti_func=f[1], gifti_thresh=f[2],
+        for n in range(self.MaxViews):
+            v = GiftiViewer(gifti_files,
                             shared_camera=shared_camera,
                             callbackSync=sync_cameras,
-                            rangemap=f[3] if len(f) > 3 else None,
-                            viewtitle=f[4] if len(f) > 4 else "",
-                            parent=self)
+                            parent=self,
+                            selectedFunc=n)
             viewers_layout.addWidget(v)
             self.viewers.append(v)
 
@@ -447,7 +451,7 @@ class MultiGiftiViewerWidget(QWidget):
         camera = self.viewers[0].renderer.GetActiveCamera()
         self.viewers[0].renderer.ResetCamera()
 
-        bounds = self.viewers[0].actorHeatMapMasked.GetBounds()
+        bounds = self.viewers[0].current_ActorsEntry['actorHeatMapMasked'].GetBounds()
         center = [(bounds[0] + bounds[1]) / 2,
                   (bounds[2] + bounds[3]) / 2,
                   (bounds[4] + bounds[5]) / 2]
@@ -501,7 +505,7 @@ if __name__ == "__main__":
                         [0,20],
                         'Skin-Skull Angle'))
 
-    widget = MultiGiftiViewerWidget(gifti_files)
+    widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4)
     widget.resize(1600, 600)
     widget.show()
 
