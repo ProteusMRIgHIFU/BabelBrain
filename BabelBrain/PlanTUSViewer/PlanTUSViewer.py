@@ -5,7 +5,7 @@ from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget, QRadioButton,QCheckBox,
-    QToolBar, QFileDialog, QSlider, QLabel, QComboBox, QHBoxLayout
+    QToolBar, QFileDialog, QSlider, QLabel, QComboBox, QHBoxLayout,QPushButton,QSizePolicy
 )
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
@@ -28,13 +28,15 @@ class GiftiViewer(QWidget):
         # Apply stylesheet
         label.setStyleSheet("""
             QLabel {
-                font-size: 16px;       /* Change font size */
-                color: blue;            /* Change text color */
-                font-weight: bold;     /* Make text bold */
+                font-size: 14px;       /* Change font size */
+                color: green;            /* Change text color */
             }
         """)
         layout.addWidget(label,alignment=Qt.AlignCenter)
         layout.addWidget(self.vtkWidget)
+
+        self.valueLabel = QLabel("Value: N/A")
+        layout.addWidget(self.valueLabel)
 
         # --- Load GIFTI File ---
         gii = nib.load(gifti_file)
@@ -43,7 +45,9 @@ class GiftiViewer(QWidget):
 
         self.coords = coords
         coordsOrig = coords.copy()
+        self.coordsOrig = coordsOrig
         self.faces = faces
+        self.title=viewtitle
 
 
         if gifti_func:
@@ -54,6 +58,8 @@ class GiftiViewer(QWidget):
         else:
             func_data = None
             has_scalars = False
+
+        self.func_data = func_data
 
         if gifti_thresh:
             thresh = nib.load(gifti_thresh)
@@ -242,7 +248,7 @@ class GiftiViewer(QWidget):
             if cell_id >= 0 and cell_id < len(self.faces):
                 # Get triangle vertices
                 tri = self.faces[cell_id]
-                vtx_coords = self.coords[tri]
+                vtx_coords = self.coordsOrig[tri]
                 if np.any(np.isnan(vtx_coords)):
                     return  # skip if any vertex is NaN
                 
@@ -260,10 +266,12 @@ class GiftiViewer(QWidget):
             return
 
         tri = self.faces[cell_id]
-        vtx_coords = self.coords[tri]
+        vtx_coords = self.coordsOrig[tri]
         if np.any(np.isnan(vtx_coords)):
             return  # skip if any vertex is NaN
-        print(f"[{id(self)}] Highlighting triangle {cell_id}, vertices: {vtx_coords}")
+        values=self.func_data[tri]
+        self.valueLabel.setText(f"Value: {np.mean(values):.2f}")
+        # print(self.title +f" [{id(self)}] Highlighting triangle {cell_id}, value: {np.mean(values)}")
 
         if pick_pos is None:
             # Use centroid if no explicit pick position
@@ -345,7 +353,8 @@ class MultiGiftiViewerWidget(QWidget):
                             shared_camera=shared_camera,
                             callbackSync=sync_cameras,
                             rangemap=f[3] if len(f) > 3 else None,
-                            viewtitle=f[4] if len(f) > 4 else "")
+                            viewtitle=f[4] if len(f) > 4 else "",
+                            parent=self)
             viewers_layout.addWidget(v)
             self.viewers.append(v)
 
@@ -396,6 +405,24 @@ class MultiGiftiViewerWidget(QWidget):
 
         self.set_preset_view("oblique")
 
+        self.select_cell_id = None
+
+        button = QPushButton("Generate Trajectory", self)
+        button.clicked.connect(self.GenerateTrajectory)
+        button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # only as wide as needed
+        button.setStyleSheet("padding: 8px 36px;")
+        button.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;       /* Change font size */
+                color: blue;            /* Change text color */
+                font-weight: bold;     /* Make text bold */
+            }
+        """)
+        layout.addWidget(button, alignment=Qt.AlignHCenter) 
+
+    def GenerateTrajectory(self):
+        print("Generating trajectory...")
+
     # --------------------------
     # Methods from MainWindow
     # --------------------------
@@ -409,6 +436,7 @@ class MultiGiftiViewerWidget(QWidget):
 
     def broadcast_selection(self, cell_id, pick_pos):
         """Called when one viewer selects a triangle."""
+        self.select_cell_id = cell_id
         for v in self.viewers:
             v.highlight_triangle(cell_id, pick_pos)
 
@@ -472,10 +500,6 @@ if __name__ == "__main__":
                         '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
                         [0,20],
                         'Skin-Skull Angle'))
-    
-    # window = MainWindow(gifti_files)
-    # window.resize(1200, 600)
-    # window.show()
 
     widget = MultiGiftiViewerWidget(gifti_files)
     widget.resize(1600, 600)
