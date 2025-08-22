@@ -4,7 +4,7 @@ import vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QRadioButton,
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QRadioButton,QCheckBox,
     QToolBar, QFileDialog, QSlider, QLabel, QComboBox, QHBoxLayout
 )
 from PySide6.QtGui import QAction
@@ -12,8 +12,8 @@ from PySide6.QtCore import Qt
 import numpy as np
 
 class GiftiViewer(QWidget):
-    def __init__(self, gifti_file, gifti_func=None, 
-                 shared_camera=None, parent=None, callbackSync=None):
+    def __init__(self, gifti_file, gifti_func=None,gifti_thresh=None, 
+                 shared_camera=None, parent=None, callbackSync=None,rangemap=None,viewtitle=""):
         super().__init__(parent)
 
         # --- Qt Layout ---
@@ -22,6 +22,18 @@ class GiftiViewer(QWidget):
 
         # VTK Widget
         self.vtkWidget = QVTKRenderWindowInteractor(self)
+
+        label = QLabel(viewtitle)
+
+        # Apply stylesheet
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;       /* Change font size */
+                color: blue;            /* Change text color */
+                font-weight: bold;     /* Make text bold */
+            }
+        """)
+        layout.addWidget(label,alignment=Qt.AlignCenter)
         layout.addWidget(self.vtkWidget)
 
         # --- Load GIFTI File ---
@@ -30,16 +42,33 @@ class GiftiViewer(QWidget):
         faces = gii.darrays[1].data   # triangles (Mx3)
 
         self.coords = coords
+        coordsOrig = coords.copy()
         self.faces = faces
+
 
         if gifti_func:
             func = nib.load(gifti_func)
             func_data = func.darrays[0].data
             has_scalars = True
+            print(viewtitle, func_data.min(), func_data.max())
         else:
             func_data = None
             has_scalars = False
 
+        if gifti_thresh:
+            thresh = nib.load(gifti_thresh)
+            thresh_data = thresh.darrays[0].data
+            has_threshold = True
+            coords_outside_mask = coords.copy()
+            coords_outside_mask[thresh_data==1, :] = np.nan  # remove vertices below threshold
+            coords[thresh_data==0, :] = np.nan  # remove vertices below threshold
+
+        else:
+            thresh_data = None
+            has_threshold = False
+            coords_outside_mask = coords.copy()
+
+        
         # has_scalars = len(gii.darrays) > 2
 
         if has_scalars:
@@ -49,44 +78,60 @@ class GiftiViewer(QWidget):
             scalars = None
   
         # --- Convert to VTK PolyData ---
-        points = vtk.vtkPoints()
-        for x, y, z in coords:
-            points.InsertNextPoint(x, y, z)
+        self.renderer = vtk.vtkRenderer()
+        for n,c in enumerate([coords, coords_outside_mask,coordsOrig]):
+            points = vtk.vtkPoints()
+            for x, y, z in c:
+                points.InsertNextPoint(x, y, z)
 
-        polys = vtk.vtkCellArray()
-        for tri in faces:
-            polys.InsertNextCell(3)
-            polys.InsertCellPoint(int(tri[0]))
-            polys.InsertCellPoint(int(tri[1]))
-            polys.InsertCellPoint(int(tri[2]))
+            polys = vtk.vtkCellArray()
+            for tri in faces:
+                polys.InsertNextCell(3)
+                polys.InsertCellPoint(int(tri[0]))
+                polys.InsertCellPoint(int(tri[1]))
+                polys.InsertCellPoint(int(tri[2]))
 
-        polydata = vtk.vtkPolyData()
-        polydata.SetPoints(points)
-        polydata.SetPolys(polys)
+            polydata = vtk.vtkPolyData()
+            polydata.SetPoints(points)
+            polydata.SetPolys(polys)
 
-        # --- Mapper + Actor ---
-        self.mapper = vtk.vtkPolyDataMapper()
-        self.mapper.SetInputData(polydata)
+            # --- Mapper + Actor ---
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputData(polydata)
 
-        self.actor = vtk.vtkActor()
-        self.actor.SetMapper(self.mapper)
-    
-        if has_scalars:
-            vtk_scalars = vtk.vtkFloatArray()
-            vtk_scalars.SetName("Heatmap")
-            for val in scalars:
-                vtk_scalars.InsertNextValue(float(val))
+            actor = vtk.vtkActor()
+            actor.SetMapper(mapper)
+        
+            if  n in [0,2]:
+                vtk_scalars = vtk.vtkFloatArray()
+                vtk_scalars.SetName("Heatmap")
+                for val in scalars:
+                    vtk_scalars.InsertNextValue(float(val))
 
-            polydata.GetPointData().SetScalars(vtk_scalars)
-            # self.mapper.SetScalarRange(vtk_scalars.GetRange())
-            self.mapper.SetScalarRange([0,20])
-        else:
-            # If no scalars, just give the actor a solid color
-            self.actor.GetProperty().SetColor(0.8, 0.8, 0.8)  # light gray
+                polydata.GetPointData().SetScalars(vtk_scalars)
+                if rangemap is None:
+                    mapper.SetScalarRange(vtk_scalars.GetRange())
+                else:
+                    mapper.SetScalarRange(rangemap)
+                self.renderer.AddActor(actor)
+                if n==0:
+                    self.mapperMasked = mapper
+                    self.actorHeatMapMasked= actor
+                else:
+                    self.mapperUnmasked = mapper
+                    self.actorHeatMapUnmasked= actor
+                    self.actorHeatMapUnmasked.SetVisibility(False)
+
+            else:
+                # If no scalars or the rest of the scalp, just give the actor a solid color
+                actor.GetProperty().SetColor(0.8, 0.8, 0.8)  # light gray
+                self.renderer.AddActor(actor)
+                self.actorSkinMasked = actor
+
 
         # --- Renderer ---
-        self.renderer = vtk.vtkRenderer()
-        self.renderer.AddActor(self.actor)
+       
+            
         self.renderer.SetBackground(0.1, 0.1, 0.1)
 
         if shared_camera:
@@ -175,8 +220,8 @@ class GiftiViewer(QWidget):
         # --- Scalar bar ---
         scalar_bar = vtk.vtkScalarBarActor()
         self.renderer.AddActor(scalar_bar)
-        scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
-        scalar_bar.SetTitle("Heatmap")
+        scalar_bar.SetLookupTable(self.mapperMasked.GetLookupTable())
+        # scalar_bar.SetTitle("Heatmap")
         scalar_bar.SetNumberOfLabels(5)
 
         # Place on right side of the render window
@@ -194,12 +239,13 @@ class GiftiViewer(QWidget):
         x, y = self.interactor.GetEventPosition()
         if self.picker.Pick(x, y, 0, self.renderer):
             cell_id = self.picker.GetCellId()
-            if cell_id >= 0:
+            if cell_id >= 0 and cell_id < len(self.faces):
                 # Get triangle vertices
                 tri = self.faces[cell_id]
                 vtx_coords = self.coords[tri]
-                print(f"Selected triangle {cell_id}, vertices: {vtx_coords}")
-
+                if np.any(np.isnan(vtx_coords)):
+                    return  # skip if any vertex is NaN
+                
                 # Place sphere at picked point
                 pick_pos = self.picker.GetPickPosition()
                 if self.selection_callback:
@@ -215,6 +261,8 @@ class GiftiViewer(QWidget):
 
         tri = self.faces[cell_id]
         vtx_coords = self.coords[tri]
+        if np.any(np.isnan(vtx_coords)):
+            return  # skip if any vertex is NaN
         print(f"[{id(self)}] Highlighting triangle {cell_id}, vertices: {vtx_coords}")
 
         if pick_pos is None:
@@ -256,137 +304,16 @@ class GiftiViewer(QWidget):
             val = cmap(i)
             lut.SetTableValue(i, val[0], val[1], val[2], 1.0)
 
-        self.mapper.SetLookupTable(lut)
+        self.mapperMasked.SetLookupTable(lut)
+        self.mapperUnmasked.SetLookupTable(lut)
 
         self.vtkWidget.GetRenderWindow().Render()
 
-
-class MainWindow(QMainWindow):
-    def __init__(self, gifti_files):
-        super().__init__()
-        self.setWindowTitle("Synchronized Multi-View GIFTI Viewer")
-
-        # Shared camera
-        shared_camera = vtk.vtkCamera()
-
-        # Horizontal layout
-        central = QWidget()
-        layout = QHBoxLayout()
-        central.setLayout(layout)
-
-        # Create viewers
-        self.viewers = []
-        # --- Synchronize Rendering ---
-        def sync_cameras(caller, event):
-            for v in self.viewers:
-                v.vtkWidget.GetRenderWindow().Render()
-
-        for f in gifti_files:
-            v = GiftiViewer(f[0], gifti_func=f[1], 
-                            shared_camera=shared_camera,
-                            callbackSync=sync_cameras)
-            layout.addWidget(v)
-            self.viewers.append(v)
-
-        self.setCentralWidget(central)
-
-        
-
-        # Attach observer to all interactors
-        for v in self.viewers:
-            v.interactor.AddObserver("InteractionEvent", sync_cameras)
-
-        toolbar = QToolBar("Controls")
-        self.addToolBar(toolbar)
-
-        self.selection_button = QRadioButton("Selection Mode")
-        self.selection_button.toggled.connect(self.toggle_selection)
-        toolbar.addWidget(self.selection_button)
-
-        # reset_action = QAction("Reset Camera", self)
-        # reset_action.triggered.connect(self.reset_camera_view)
-        # toolbar.addAction(reset_action)
-
-        # Presets
-        axial_action = QAction("Axial", self)
-        axial_action.triggered.connect(lambda: self.set_preset_view("axial"))
-        toolbar.addAction(axial_action)
-
-        coronal_action = QAction("Coronal", self)
-        coronal_action.triggered.connect(lambda: self.set_preset_view("coronal"))
-        toolbar.addAction(coronal_action)
-
-        sagittal_action = QAction("Sagittal", self)
-        sagittal_action.triggered.connect(lambda: self.set_preset_view("sagittal"))
-        toolbar.addAction(sagittal_action)
-
-        oblique_action = QAction("3D", self)
-        oblique_action.triggered.connect(lambda: self.set_preset_view("oblique"))
-        toolbar.addAction(oblique_action)
-
-        screenshot_action = QAction("Screenshot", self)
-        for v in self.viewers:
-            screenshot_action.triggered.connect(v.save_screenshot)
-        toolbar.addAction(screenshot_action)
-
-         # --- Hook up selection synchronization ---
-        for v in self.viewers:
-            v.selection_callback = self.broadcast_selection
-
-        if self.viewers:
-            self.viewers[0].renderer.ResetCamera()
-            for v in self.viewers:
-                v.vtkWidget.GetRenderWindow().Render()
-
-        self.set_preset_view("oblique")
-
-    def toggle_selection(self, checked: bool):
-        for v in self.viewers:
-            v.set_selection_mode(checked)
-
-    def broadcast_selection(self, cell_id, pick_pos):
-        """Called when one viewer selects a triangle."""
-        for v in self.viewers:
-            v.highlight_triangle(cell_id, pick_pos)
-
-
-    def set_preset_view(self, preset):
-        if not self.viewers:
-            return
-
-        camera = self.viewers[0].renderer.GetActiveCamera()
-        # Reset to fit bounds
-        self.viewers[0].renderer.ResetCamera()
-
-        bounds = self.viewers[0].actor.GetBounds()
-        center = [(bounds[0] + bounds[1]) / 2,
-                  (bounds[2] + bounds[3]) / 2,
-                  (bounds[4] + bounds[5]) / 2]
-
-        camera.SetFocalPoint(center)
-
-        if preset == "axial":
-            camera.SetPosition(center[0], center[1], center[2] + 600)
-            camera.SetViewUp(0, 1, 0)
-
-        elif preset == "coronal":
-            camera.SetPosition(center[0], center[1] + 600, center[2])
-            camera.SetViewUp(0, 0, 1)
-
-        elif preset == "sagittal":
-            camera.SetPosition(center[0] + 600, center[1], center[2])
-            camera.SetViewUp(0, 0, 1)
-
-        elif preset == "oblique":
-            camera.SetPosition(center[0] + 400,
-                               center[1] + 400,
-                               center[2] + 400)
-            camera.SetViewUp(0, 0, 1)
-
-        # Update all viewers
-        for v in self.viewers:
-            v.vtkWidget.GetRenderWindow().Render()
-
+    def set_heatmap_visibility(self, visible):
+        self.actorHeatMapMasked.SetVisibility(visible)
+        self.actorSkinMasked.SetVisibility(visible)
+        self.actorHeatMapUnmasked.SetVisibility(not visible)
+        self.vtkWidget.GetRenderWindow().Render()
 
 class MultiGiftiViewerWidget(QWidget):
     def __init__(self, gifti_files, parent=None):
@@ -414,9 +341,11 @@ class MultiGiftiViewerWidget(QWidget):
 
         # Create viewers
         for f in gifti_files:
-            v = GiftiViewer(f[0], gifti_func=f[1],
+            v = GiftiViewer(f[0], gifti_func=f[1], gifti_thresh=f[2],
                             shared_camera=shared_camera,
-                            callbackSync=sync_cameras)
+                            callbackSync=sync_cameras,
+                            rangemap=f[3] if len(f) > 3 else None,
+                            viewtitle=f[4] if len(f) > 4 else "")
             viewers_layout.addWidget(v)
             self.viewers.append(v)
 
@@ -425,9 +354,14 @@ class MultiGiftiViewerWidget(QWidget):
             v.interactor.AddObserver("InteractionEvent", sync_cameras)
 
         # Toolbar buttons
-        self.selection_button = QRadioButton("Selection Mode")
+        self.selection_button = QCheckBox("Selection Mode")
         self.selection_button.toggled.connect(self.toggle_selection)
         self.toolbar.addWidget(self.selection_button)
+
+        self.heatmap_checkbox = QCheckBox("Show masked")
+        self.heatmap_checkbox.setChecked(True)  # default ON
+        self.heatmap_checkbox.toggled.connect(self.toggle_heatmap)
+        self.toolbar.addWidget(self.heatmap_checkbox)
 
         axial_action = QAction("Axial", self)
         axial_action.triggered.connect(lambda: self.set_preset_view("axial"))
@@ -465,9 +399,13 @@ class MultiGiftiViewerWidget(QWidget):
     # --------------------------
     # Methods from MainWindow
     # --------------------------
-    def toggle_selection(self, checked: bool):
+    def toggle_selection(self, checked):
         for v in self.viewers:
             v.set_selection_mode(checked)
+
+    def toggle_heatmap(self, checked):
+        for v in self.viewers:
+            v.set_heatmap_visibility(checked)
 
     def broadcast_selection(self, cell_id, pick_pos):
         """Called when one viewer selects a triangle."""
@@ -481,7 +419,7 @@ class MultiGiftiViewerWidget(QWidget):
         camera = self.viewers[0].renderer.GetActiveCamera()
         self.viewers[0].renderer.ResetCamera()
 
-        bounds = self.viewers[0].actor.GetBounds()
+        bounds = self.viewers[0].actorHeatMapMasked.GetBounds()
         center = [(bounds[0] + bounds[1]) / 2,
                   (bounds[2] + bounds[3]) / 2,
                   (bounds[4] + bounds[5]) / 2]
@@ -514,17 +452,33 @@ if __name__ == "__main__":
 
     # Replace with path to your GIFTI file
     gifti_files = []
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/T1_PlanTUSMask/skin.surf.gii',
-                       '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/T1_PlanTUSMask/angles_skin.func.gii'))
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/T1_PlanTUSMask/skin.surf.gii',
-                       '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/T1_PlanTUSMask/angles_skin.func.gii'))
+    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin.func.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+                        [0,100],
+                        'Distance'))
+    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/target_intersection_skin.func.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+                        [0,100],
+                        'Target Intersection'))
+    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/angles_skin.func.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+                        [0,20],
+                        'Angle'))
+    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin_skull_angles_skin.func.gii',
+                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+                        [0,20],
+                        'Skin-Skull Angle'))
     
     # window = MainWindow(gifti_files)
     # window.resize(1200, 600)
     # window.show()
 
     widget = MultiGiftiViewerWidget(gifti_files)
-    widget.resize(1200, 600)
+    widget.resize(1600, 600)
     widget.show()
 
     sys.exit(app.exec())

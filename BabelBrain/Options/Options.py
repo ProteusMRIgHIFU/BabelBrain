@@ -527,7 +527,7 @@ class AdvancedOptions(QDialog):
         plan_tus_config.ExportYAML(TxConfigName)
         
         mshPath=glob.glob(MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
-        maskPath=t1Path.replace('.nii.gz','_PlanTUSMask.nii.gz')
+        maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
 
         create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)
 
