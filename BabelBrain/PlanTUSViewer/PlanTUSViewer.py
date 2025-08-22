@@ -22,11 +22,14 @@ class GiftiViewer(QWidget):
         # VTK Widget
         self.vtkWidget = QVTKRenderWindowInteractor(self)
 
-        self.titleLabel = QLabel("")
+        self.titleLabel = QComboBox(self)
+        self.titleLabel.addItems([g[4] for g in gifti_files])
+        self.titleLabel.setCurrentIndex(selectedFunc)
+        self.titleLabel.currentIndexChanged.connect(self.select_function)
 
         # Apply stylesheet
         self.titleLabel.setStyleSheet("""
-            QLabel {
+            QComboBox {
                 font-size: 14px;       /* Change font size */
                 color: green;            /* Change text color */
             }
@@ -235,7 +238,6 @@ class GiftiViewer(QWidget):
         self.current_ActorsEntry['actorHeatMapUnmasked'].SetVisibility(False)
         self.current_ActorsEntry['actorSkinMasked'].SetVisibility(False)
         self.selectedFunc=selection
-        self.titleLabel.setText(self.current_ActorsEntry['title'])
         self.set_heatmap_visibility(self.currentHeatmapVisibility) #this will honor the current selection
 
     @property
