@@ -14,6 +14,7 @@ import yaml
 import glob
 import subprocess
 import traceback
+import shutil
 
 from scipy.io import loadmat
 
@@ -115,6 +116,7 @@ class RUN_PLAN_TUS(QObject):
         self.CaltimerTUSPlan = QTimer(self)
         self.CaltimerTUSPlan.timeout.connect(self.check_queue_TUSPlan)
         self._WorkingDialog = ClockDialog(OptionsDlg)
+        self.select_vortex=-1
 
     def Execute(self):
         '''
@@ -175,15 +177,19 @@ class RUN_PLAN_TUS(QObject):
         queue=Queue()
         self.CalQueue=queue
 
+        self.planTUSargs=(queue,
+                         scriptbase,
+                         SimbNINBSRoot,
+                         PlanTUSRoot,
+                         t1Path,
+                         mshPath,
+                         maskPath,
+                         TxConfigName)
+        
+        self.RunningTUSPlan = True
+
         fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
-                                            args=(queue,
-                                                scriptbase,
-                                                SimbNINBSRoot,
-                                                PlanTUSRoot,
-                                                t1Path,
-                                                mshPath,
-                                                maskPath,
-                                                TxConfigName))
+                                            args=self.planTUSargs)
         
         self.CalProcess=fieldWorkerProcess
         self.T0Cal=time.time()
@@ -199,10 +205,31 @@ class RUN_PLAN_TUS(QObject):
         self.OptionsDlg.setEnabled(False)
 
 
-    def callBackAfterGenTrajectory(self, select_cell_id):
-        print("Callback after generating trajectory for cell id:", select_cell_id)
+    def callBackAfterGenTrajectory(self, select_vortex):
+        print("Callback after generating trajectory for cell id:", select_vortex)
+        self.select_vortex=select_vortex
         self.dlgResultsPlanTUS.accept()
         # progress.
+
+    def GenerateTrajectory(self, select_vortex):
+
+        self.RunningTUSPlan = False
+        fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
+                                            args=self.planTUSargs,
+                                            kwargs={'runOnlyTrajectory': select_vortex})
+        
+        self.CalProcess=fieldWorkerProcess
+        self.T0Cal=time.time()
+        fieldWorkerProcess.start()     
+        self.CaltimerTUSPlan.start(100)
+        mainWindowCenter = self.OptionsDlg.geometry().center()
+
+        self._WorkingDialog.move(
+            mainWindowCenter.x() - 50,
+            mainWindowCenter.y() - 50
+        )
+        self._WorkingDialog.show()
+        self.OptionsDlg.setEnabled(False)
 
     def check_queue_TUSPlan(self):
 
@@ -228,13 +255,25 @@ class RUN_PLAN_TUS(QObject):
             if bNoError:
                 TEnd=time.time()
                 TotalTime = TEnd-self.T0Cal
+                if self.RunningTUSPlan:
+                    print('Total time',TotalTime)
+                    print("*"*40)
+                    print("*"*5+" DONE PlanTUS.")
+                    print("*"*40)
+                    if not self.showTUSPlanViewer():
+                        return
+
+                    print('Generating trajectory for ID', self.select_vortex)
+
+                    self.GenerateTrajectory(self.select_vortex)
+                    #now we re run to generate the trajectory
+                    return
+
+                #this means we are completing the trajectory
                 print('Total time',TotalTime)
                 print("*"*40)
-                print("*"*5+" DONE PlanTUS.")
+                print("*"*5+" DONE Trajectory generation.")
                 print("*"*40)
-                if not self.showTUSPlanViewer():
-                    return
-                
                 print('looking for trajectories')
                 
                 basepath=self.PlanOutputPath            
@@ -242,8 +281,9 @@ class RUN_PLAN_TUS(QObject):
                 #we look for new trajectory files
                 trajFiles=glob.glob(basepath+os.sep+'**'+os.sep+'*Localite.mat',recursive=True)
                 if len(trajFiles)>0:
+                    assert(len(trajFiles)==1)
                     for trajFile in trajFiles:
-                        id = self.parent().Config['ID']+'_PlanTUS'
+                        id = self.MainApp.Config['ID']+'_PlanTUS'
                         transform=loadmat(trajFile)['position_matrix']
                         TT=transform.copy()
                         # we need to convert the transform to the correct format
@@ -271,6 +311,7 @@ class RUN_PLAN_TUS(QObject):
                             f.write(outString)
 
                         transform = BSight_to_itk(transform)
+                        transform[:3,:3]=transform[:3,:3].T
                         outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
                                         m0n2=transform[2,0],
@@ -287,17 +328,31 @@ class RUN_PLAN_TUS(QObject):
                         with open(foutnameSlicer, 'w') as f:
                             f.write(outString)
 
-                    ret = QMessageBox.question(self,'', "Do you want to use the\n PlanTUS to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
-
+                    ret = QMessageBox.question(self.OptionsDlg,'', "Do you want to use the\n PlanTUS results to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
                     if ret == QMessageBox.Yes:
-                        TrajectoryType=self.parent().Config['TrajectoryType']
+                        TrajectoryType=self.MainApp.Config['TrajectoryType']
                         if TrajectoryType =='brainsight':
                             ext='*BSight.txt'
+                            lastfoutname=foutnameBSight
                         else:
                             ext='*Slicer.txt'
-                        fname = QFileDialog.getOpenFileName(self, "Select txt file with calibration input fields",basepath, "Text files ("+ext+")")[0]
-                        if len(fname)>0:
-                            self.parent().Config['Mat4Trajectory'] = fname
+                            lastfoutname=foutnameSlicer
+
+                        finalfname=self.MainApp.Config['Mat4Trajectory'].split('.txt')[0]+'_PlanTUS.txt'
+                                
+    
+                        if len(trajFiles)>1:
+                            fname = QFileDialog.getOpenFileName(self.OptionsDlg, "Select txt file with calibration input fields",basepath, "Text files ("+ext+")")[0]
+                            if len(fname)>0:
+                                shutil.copy(fname, finalfname)
+                                self.MainApp.Config['Mat4Trajectory'] = finalfname
+                                self.MainApp.Config['ID'] = id
+                                self.MainApp.UpdateWindowTitle()
+                        else:
+                            fname = lastfoutname
+                            self.MainApp.Config['Mat4Trajectory'] = finalfname
+                            self.MainApp.Config['ID'] = id
+                            self.MainApp.UpdateWindowTitle()
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")
@@ -347,7 +402,8 @@ def RunPlanTUSBackground(queue,
                         t1Path,
                         mshPath,
                         maskPath,
-                        TxConfigName):
+                        TxConfigName,
+                        runOnlyTrajectory=-1):
     class InOutputWrapper(object):
        
         def __init__(self, queue, stdout=True):
@@ -389,19 +445,23 @@ def RunPlanTUSBackground(queue,
             print("Starting PlanTUS")
             if _IS_MAC:
                 cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + PlanTUSRoot + '" "' + t1Path + '" "' + mshPath +'" "' + maskPath + '" "'+TxConfigName+'"'
+                if runOnlyTrajectory>-1:
+                    cmd += ' --do_only_trajectory '+str(runOnlyTrajectory)
                 print(cmd)
                 result = os.system(cmd)
             else:
-                result = subprocess.run(
-                        [shell,
+                args= [shell,
                         path_script,
                         SimbNINBSRoot,
                         PlanTUSRoot,
                         t1Path,
                         mshPath,
                         maskPath,
-                        TxConfigName], capture_output=True, text=True
-                )
+                        TxConfigName]
+                if runOnlyTrajectory>-1:
+                    args.append('--do_only_trajectory')
+                    args.append(str(runOnlyTrajectory))
+                result = subprocess.run(args, capture_output=True, text=True)
                 print("stdout:", result.stdout)
                 print("stderr:", result.stderr)
                 result=result.returncode 
@@ -409,16 +469,17 @@ def RunPlanTUSBackground(queue,
             path_script = os.path.join(resource_path(),"ExternalBin/PlanTUS/run_win.bat")
             
             print("Starting PlanTUS")
-            result = subprocess.run(
-                    [path_script,
+            args= [path_script,
                     SimbNINBSRoot,
                     PlanTUSRoot,
                     t1Path,
                     mshPath,
                     maskPath,
-                    TxConfigName,
-                    ], capture_output=True, text=True,shell=True,
-            )
+                    TxConfigName]
+            if runOnlyTrajectory>-1:
+                    args.append('--do_only_trajectory')
+                    args.append(str(runOnlyTrajectory))
+            result = subprocess.run(args, capture_output=True, text=True,shell=True)
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             result=result.returncode 

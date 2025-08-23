@@ -134,7 +134,6 @@ class GiftiViewer(QWidget):
 
         # --- Renderer ---
         self.select_function(self.selectedFunc)
-
         self.renderer.SetBackground(0.1, 0.1, 0.1)
 
         if shared_camera:
@@ -262,25 +261,19 @@ class GiftiViewer(QWidget):
                 pick_pos = self.picker.GetPickPosition()
                 if self.selection_callback:
                     # Notify main window about selection
-                    self.selection_callback(cell_id, pick_pos)
+                    self.selection_callback(tri[0], pick_pos)
 
         return
     
-    def highlight_triangle(self, cell_id, pick_pos=None):
+    def highlight_triangle(self, vertex, pick_pos):
         """Highlight a triangle by ID and place sphere at pick position."""
-        if cell_id < 0 or cell_id >= len(self.current_ActorsEntry['faces']):
+        if vertex < 0 or vertex >= self.current_ActorsEntry['coordsOrig'].shape[0]:
             return
 
-        tri = self.current_ActorsEntry['faces'][cell_id]
-        vtx_coords = self.current_ActorsEntry['coordsOrig'][tri]
-        if np.any(np.isnan(vtx_coords)):
-            return  # skip if any vertex is NaN
-        values=self.current_ActorsEntry['func_data'][tri]
-        self.valueLabel.setText(f"Value: {np.mean(values):.2f}")
-
-        if pick_pos is None:
-            # Use centroid if no explicit pick position
-            pick_pos = vtx_coords.mean(axis=0)
+        value = self.current_ActorsEntry['func_data'][vertex]
+        if np.isnan(value):
+            return  # skip if value is NaN
+        self.valueLabel.setText(f"Value: {value:.2f}")
 
         self.sphere_source.SetCenter(*pick_pos)
         self.sphere_actor.SetVisibility(True)
@@ -412,7 +405,7 @@ class MultiGiftiViewerWidget(QWidget):
 
         self.set_preset_view("oblique")
 
-        self.select_cell_id = None
+        self.select_vortex = None
 
         button = QPushButton("Generate Trajectory", self)
         button.clicked.connect(self.GenerateTrajectory)
@@ -429,9 +422,9 @@ class MultiGiftiViewerWidget(QWidget):
         layout.addWidget(button, alignment=Qt.AlignHCenter) 
 
     def GenerateTrajectory(self):
-        print("Generating trajectory... for cell id",self.select_cell_id )
+        print("Generating trajectory... for vortex id",self.select_vortex)
         if self.callBackAfterGenTrajectory:
-            self.callBackAfterGenTrajectory(self.select_cell_id )
+            self.callBackAfterGenTrajectory(self.select_vortex )
 
     # --------------------------
     # Methods from MainWindow
@@ -444,11 +437,11 @@ class MultiGiftiViewerWidget(QWidget):
         for v in self.viewers:
             v.set_heatmap_visibility(checked)
 
-    def broadcast_selection(self, cell_id, pick_pos):
+    def broadcast_selection(self, vertex, pick_pos):
         """Called when one viewer selects a triangle."""
-        self.select_cell_id = cell_id
+        self.select_vortex = vertex
         for v in self.viewers:
-            v.highlight_triangle(cell_id, pick_pos)
+            v.highlight_triangle(vertex, pick_pos)
         #once a valid triangle is selected, enable the button
         self.generateTrajectoryPushButton.setEnabled(True)
         self.generateTrajectoryPushButton.setStyleSheet("""
