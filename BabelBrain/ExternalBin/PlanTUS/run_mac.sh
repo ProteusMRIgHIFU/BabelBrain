@@ -9,4 +9,4 @@ fi
 # Activate the Python virtual environment and run the PlanTUS_wrapper.py script
 # Check if the simnibs_env directory exists
 source "$1/simnibs_env/bin/activate"
-python "$2/PlanTUS_wrapper.py" "$3" "$4" "$5" "$6" 
+python "$2/PlanTUS_wrapper.py" "$3" "$4" "$5" "$6" --skip_wb_view

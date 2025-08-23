@@ -330,10 +330,11 @@ class GiftiViewer(QWidget):
         self.vtkWidget.GetRenderWindow().Render()
 
 class MultiGiftiViewerWidget(QWidget):
-    def __init__(self, gifti_files, MaxViews=4, parent=None):
+    def __init__(self, gifti_files, MaxViews=4, parent=None, callBackAfterGenTrajectory=None):
         super().__init__(parent)
         self.viewers = []
         self.MaxViews = MaxViews
+        self.callBackAfterGenTrajectory = callBackAfterGenTrajectory
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -420,14 +421,17 @@ class MultiGiftiViewerWidget(QWidget):
         button.setStyleSheet("""
             QPushButton {
                 font-size: 16px;       /* Change font size */
-                color: blue;            /* Change text color */
-                font-weight: bold;     /* Make text bold */
+                color: gray;     /* Make text bold */
             }
         """)
+        button.setEnabled(False)  
+        self.generateTrajectoryPushButton = button
         layout.addWidget(button, alignment=Qt.AlignHCenter) 
 
     def GenerateTrajectory(self):
-        print("Generating trajectory...")
+        print("Generating trajectory... for cell id",self.select_cell_id )
+        if self.callBackAfterGenTrajectory:
+            self.callBackAfterGenTrajectory(self.select_cell_id )
 
     # --------------------------
     # Methods from MainWindow
@@ -445,6 +449,15 @@ class MultiGiftiViewerWidget(QWidget):
         self.select_cell_id = cell_id
         for v in self.viewers:
             v.highlight_triangle(cell_id, pick_pos)
+        #once a valid triangle is selected, enable the button
+        self.generateTrajectoryPushButton.setEnabled(True)
+        self.generateTrajectoryPushButton.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;       /* Change font size */
+                color: blue;            /* Change text color */
+                font-weight: bold;     /* Make text bold */
+            }
+        """)
 
     def set_preset_view(self, preset):
         if not self.viewers:

@@ -1,8 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QStyle,QMessageBox
-from PySide6.QtGui import QValidator
+from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox
 from PySide6.QtCore import Slot, Qt,QTimer
 
 # Important:
@@ -17,25 +16,14 @@ from pathlib import Path
 from multiprocessing import Process,Queue
 import time
 
+from functools import partial
 
 from Calibration.TxCalibration import RUN_FITTING_Process 
 from ClockDialog import ClockDialog
-from CreateSingleVoxelMask import create_single_voxel_mask
-from ConvMatTransform import (
-    ReadTrajectoryBrainsight,
-    itk_to_BSight,
-    read_itk_affine_transform,
-    templateBSight,
-    BSight_to_itk,
-    templateSlicer
-)
 
-import yaml
-import glob
-import subprocess
-import traceback
-from functools import partial
-from scipy.io import loadmat
+from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
+
+
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -85,65 +73,6 @@ def select_file(parent,line_edit, title,filemask):
     if len(file)>0:
         line_edit.setText(file)
         line_edit.setCursorPosition(len(file))
-
-class PlanTUSTxConfig(object):
-    def __init__(self, max_distance, 
-                 min_distance, 
-                 transducer_diameter, 
-                 max_angle, 
-                 plane_offset,
-                 additional_offset, 
-                 focal_distance_list, 
-                 flhm_list,
-                 IDTarget="",
-                 fsl_path="/Users/spichardo/fsl/share/fsl/bin",
-                 connectome_path="/Applications/wb_view.app/Contents/usr/bin",
-                 freesurfer_path="/Applications/freesurfer/7.4.1/bin"):
-
-        # Maximum and minimum focal depth of transducer (in mm)
-        self.max_distance = max_distance
-        self.min_distance = min_distance
-
-        # Aperture diameter (in mm)
-        self.transducer_diameter = transducer_diameter
-
-        # Maximum allowed angle for tilting of TUS transducer (in degrees)
-        self.max_angle = max_angle
-
-        # Offset between radiating surface and exit plane of transducer (in mm)
-        self.plane_offset = plane_offset
-
-        # Additional offset between skin and exit plane of transducer (in mm;
-        # e.g., due to addtional gel/silicone pad)
-        self.additional_offset = additional_offset
-
-        # Focal distance and corresponding FLHM values (both in mm) according to, e.g.,
-        # calibration report
-        self.focal_distance_list = focal_distance_list
-        self.flhm_list = flhm_list
-        self.fsl_path = fsl_path
-        self.connectome_path = connectome_path
-        self.freesurfer_path = freesurfer_path
-        self.IDTarget = IDTarget
-
-    def ExportYAML(self,fname):
-        txconfig = {
-            "max_distance": self.max_distance,
-            "min_distance": self.min_distance,
-            "transducer_diameter": self.transducer_diameter,
-            "max_angle": self.max_angle,
-            "plane_offset": self.plane_offset,
-            "additional_offset": self.additional_offset,
-            "focal_distance_list": self.focal_distance_list,
-            "flhm_list": self.flhm_list,
-            "fsl_path": self.fsl_path,
-            "connectome_path": self.connectome_path,
-            "freesurfer_path": self.freesurfer_path,
-            "IDTarget": self.IDTarget
-        }
-
-        with open(fname, "w") as file:
-            yaml.dump(txconfig, file)
 
 
 class OptionalParams(object):
@@ -256,10 +185,7 @@ class AdvancedOptions(QDialog):
         self.CalProcess = None
         self.Caltimer = QTimer(self)
         self.Caltimer.timeout.connect(self.check_queue)
-        self.CaltimerTUSPlan = QTimer(self)
-        self.CaltimerTUSPlan.timeout.connect(self.check_queue_TUSPlan)
-        self._WorkingDialog = ClockDialog(self)
-        
+
 
     @Slot()
     def ExecuteCalibration(self):
@@ -478,269 +404,6 @@ class AdvancedOptions(QDialog):
 
     @Slot()
     def RUNPlanTUS(self):
-        '''
-        Run the external PlanTUS script
-        '''
-        MainApp=self.parent()
-        BabelTxConfig=MainApp.AcSim.Config
-        SelFreq=MainApp.Widget.USMaskkHzDropDown.property('UserData')
-        TrajectoryType=MainApp.Config['TrajectoryType']
-        Mat4Trajectory=MainApp.Config['Mat4Trajectory']
-
-        PlanTUSRoot=self.ui.PlanTUSRootlineEdit.text()
-        SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
-        FSLRoot=self.ui.FSLRootlineEdit.text()
-        ConnectomeRoot=self.ui.ConnectomeRootlineEdit.text()
-        FreeSurferRoot=self.ui.FreeSurferRootlineEdit.text()
-
-        if TrajectoryType =='brainsight':
-            RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
-        else:
-            inMat=read_itk_affine_transform(Mat4Trajectory)
-            RMat = itk_to_BSight(inMat)
-
-        #we will reuse to recover the center of the trajectory
-        self._RMat = RMat
-
-        # Create a new PlanTUSTxConfig object with the current values
-        plan_tus_config = PlanTUSTxConfig(
-            transducer_diameter=BabelTxConfig['TxDiam']*1e3,
-            min_distance=BabelTxConfig['MinimalTPODistance']*1e3,
-            max_distance=BabelTxConfig['MaximalTPODistance']*1e3,
-            max_angle=10.0, #we keep it constant for the time being
-            plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3,
-            additional_offset=MainApp.AcSim.Widget.SkinDistanceSpinBox.value(),
-            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList'],
-            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList'],
-            IDTarget=MainApp.Config['ID'],
-            fsl_path=FSLRoot,
-            connectome_path=ConnectomeRoot,
-            freesurfer_path=FreeSurferRoot
-        )
-  
-
-        t1Path=MainApp.Config['T1W']
-
-        basepath=os.path.split(t1Path)[0]
-        TxConfigName = basepath + os.sep + "PlanTUSTxConfig.yaml"
-        # Export the configuration to a YAML file
-        plan_tus_config.ExportYAML(TxConfigName)
-        
-        mshPath=glob.glob(MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
-        maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
-
-        create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)
-
-        scriptbase=os.path.join(resource_path(),"ExternalBin"+os.sep+"PlanTUS"+os.sep)
-        queue=Queue()
-        self.CalQueue=queue
-
-        fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
-                                            args=(queue,
-                                                scriptbase,
-                                                SimbNINBSRoot,
-                                                PlanTUSRoot,
-                                                t1Path,
-                                                mshPath,
-                                                maskPath,
-                                                TxConfigName))
-        
-        self.CalProcess=fieldWorkerProcess
-        self.T0Cal=time.time()
-        fieldWorkerProcess.start()     
-        self.CaltimerTUSPlan.start(100)
-        mainWindowCenter = self.geometry().center()
-
-        self._WorkingDialog.move(
-            mainWindowCenter.x() - 50,
-            mainWindowCenter.y() - 50
-        )
-        self._WorkingDialog.show()
-        self.setEnabled(False)
-        
-
-    def check_queue_TUSPlan(self):
-
-        # progress.
-        
-        bNoError=True
-        bDone=False
-        while self.CalQueue and not self.CalQueue.empty():
-            cMsg=self.CalQueue.get()
-            if type(cMsg) is str:
-                print(cMsg,end='')
-                if '--Babel-Brain-Low-Error' in cMsg\
-                   or '--Babel-Brain-Success' in cMsg:
-                    if '--Babel-Brain-Low-Error' in cMsg:
-                        bNoError=False
-                    self.CaltimerTUSPlan.stop()
-                    self.CalProcess.join()
-                    bDone=True
-                
-        if bDone:
-            self.setEnabled(True)
-            self._WorkingDialog.hide()
-            if bNoError:
-                TEnd=time.time()
-                TotalTime = TEnd-self.T0Cal
-                print('Total time',TotalTime)
-                print("*"*40)
-                print("*"*5+" DONE PlanTUS.")
-                print("*"*40)
-                t1Path=self.parent().Config['T1W']
-                basepath=os.path.split(t1Path)[0]+os.sep+'PlanTUS'
-
-                #we look for new trajectory files
-                trajFiles=glob.glob(basepath+os.sep+'**'+os.sep+'*Localite.mat',recursive=True)
-                if len(trajFiles)>0:
-                    for trajFile in trajFiles:
-                        id = self.parent().Config['ID']+'_PlanTUS'
-                        transform=loadmat(trajFile)['position_matrix']
-                        TT=transform.copy()
-                        # we need to convert the transform to the correct format
-                        TT[:3,0] = -transform[0:3,1]
-                        TT[:3,1] = transform[0:3,2] 
-                        TT[:3,2] = -transform[0:3,0]
-                        transform=TT 
-                        print("Found trajectory file:", trajFile)
-                        # we will reuse to recover the center of the trajectory
-                        outString=templateBSight.format(m0n0=transform[0,0],
-                                m0n1=transform[1,0],
-                                m0n2=transform[2,0],
-                                m1n0=transform[0,1],
-                                m1n1=transform[1,1],
-                                m1n2=transform[2,1],
-                                m2n0=transform[0,2],
-                                m2n1=transform[1,2],
-                                m2n2=transform[2,2],
-                                X=self._RMat[0,3],
-                                Y=self._RMat[1,3],
-                                Z=self._RMat[2,3],
-                                name=id)
-                        foutnameBSight = trajFile.split('Localite.mat')[0] + 'BSight.txt'
-                        with open(foutnameBSight, 'w') as f:
-                            f.write(outString)
-
-                        transform = BSight_to_itk(transform)
-                        outString=templateSlicer.format(m0n0=transform[0,0],
-                                        m0n1=transform[1,0],
-                                        m0n2=transform[2,0],
-                                        m1n0=transform[0,1],
-                                        m1n1=transform[1,1],
-                                        m1n2=transform[2,1],
-                                        m2n0=transform[0,2],
-                                        m2n1=transform[1,2],
-                                        m2n2=transform[2,2],
-                                        X=self._RMat[0,3],
-                                        Y=self._RMat[1,3],
-                                        Z=self._RMat[2,3])
-                        foutnameSlicer = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
-                        with open(foutnameSlicer, 'w') as f:
-                            f.write(outString)
-
-                    ret = QMessageBox.question(self,'', "Do you want to use the\n PlanTUS to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
-
-                    if ret == QMessageBox.Yes:
-                        TrajectoryType=self.parent().Config['TrajectoryType']
-                        if TrajectoryType =='brainsight':
-                            ext='*BSight.txt'
-                        else:
-                            ext='*Slicer.txt'
-                        fname = QFileDialog.getOpenFileName(self, "Select txt file with calibration input fields",basepath, "Text files ("+ext+")")[0]
-                        if len(fname)>0:
-                            self.parent().Config['Mat4Trajectory'] = fname
-            else:
-                print("*"*40)
-                print("*"*5+" Error in execution of PlanTUS.")
-                print("*"*40)
-
-
-def RunPlanTUSBackground(queue,
-                        scriptbase,
-                        SimbNINBSRoot,
-                        PlanTUSRoot,
-                        t1Path,
-                        mshPath,
-                        maskPath,
-                        TxConfigName):
-    class InOutputWrapper(object):
-       
-        def __init__(self, queue, stdout=True):
-            self.queue=queue
-            if stdout:
-                self._stream = sys.stdout
-                sys.stdout = self
-            else:
-                self._stream = sys.stderr
-                sys.stderr = self
-            self._stdout = stdout
-
-        def write(self, text):
-            self.queue.put(text)
-
-        def __getattr__(self, name):
-            return getattr(self._stream, name)
-
-        def __del__(self):
-            try:
-                if self._stdout:
-                    sys.stdout = self._stream
-                else:
-                    sys.stderr = self._stream
-            except AttributeError:
-                pass
-
-    stdout = InOutputWrapper(queue,True)
-  
-    try:
-        if sys.platform == 'linux' or _IS_MAC:
-            if sys.platform == 'linux':
-                shell='bash'
-                path_script =scriptbase+"run_linux.sh"
-            elif _IS_MAC:
-                shell='zsh'
-                path_script = scriptbase+"run_mac.sh"
-
-            print("Starting PlanTUS")
-            if _IS_MAC:
-                cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + PlanTUSRoot + '" "' + t1Path + '" "' + mshPath +'" "' + maskPath + '" "'+TxConfigName+'"'
-                print(cmd)
-                result = os.system(cmd)
-            else:
-                result = subprocess.run(
-                        [shell,
-                        path_script,
-                        SimbNINBSRoot,
-                        PlanTUSRoot,
-                        t1Path,
-                        mshPath,
-                        maskPath,
-                        TxConfigName], capture_output=True, text=True
-                )
-                print("stdout:", result.stdout)
-                print("stderr:", result.stderr)
-                result=result.returncode 
-        else:
-            path_script = os.path.join(resource_path(),"ExternalBin/PlanTUS/run_win.bat")
-            
-            print("Starting PlanTUS")
-            result = subprocess.run(
-                    [path_script,
-                    SimbNINBSRoot,
-                    PlanTUSRoot,
-                    t1Path,
-                    mshPath,
-                    maskPath,
-                    TxConfigName,
-                    ], capture_output=True, text=True,shell=True,
-            )
-            print("stdout:", result.stdout)
-            print("stderr:", result.stderr)
-            result=result.returncode 
-        print("PlanTUS Finished")
-        print("--Babel-Brain-Success")
-    except BaseException as e:
-        print('--Babel-Brain-Low-Error')
-        print(traceback.format_exc())
-        print(str(e))
+        R=RUN_PLAN_TUS(self.parent(),self)
+        R.Execute()
     
