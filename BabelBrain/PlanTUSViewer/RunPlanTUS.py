@@ -109,8 +109,8 @@ class PlanTUSTxConfig(object):
 class RUN_PLAN_TUS(QObject):
     def __init__(self, MainApp, OptionsDlg):
         super().__init__(OptionsDlg)
-        self.MainApp = MainApp
-        self.OptionsDlg = OptionsDlg
+        self.MainApp = MainApp # reference to main BabelBrain object
+        self.OptionsDlg = OptionsDlg #reference to options dialog that is calling this class
         self.CalQueue = None
         self.CalProcess = None
         self.CaltimerTUSPlan = QTimer(self)
@@ -171,8 +171,8 @@ class RUN_PLAN_TUS(QObject):
         self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+maskPath.split(os.sep)[-1].replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
-        create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)
-
+        create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)                
+     
         scriptbase=os.path.join(resource_path(),"ExternalBin"+os.sep+"PlanTUS"+os.sep)
         queue=Queue()
         self.CalQueue=queue
@@ -186,6 +186,18 @@ class RUN_PLAN_TUS(QObject):
                          maskPath,
                          TxConfigName)
         
+        #we check if files are already generated, in case the user may just want to refine the location
+
+        if os.path.isfile(self.PlanOutputPath+os.sep+'skin.surf.gii'):
+            ret = QMessageBox.question(self.OptionsDlg,'', "PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            if ret == QMessageBox.No:
+                if not self.showTUSPlanViewer():
+                    return #we stop here
+                print('Generating trajectory for ID', self.select_vortex)
+                self.GenerateTrajectory(self.select_vortex)
+                return
+
+        print('Starting PlanTUS for target', self.MainApp.Config['ID'])
         self.RunningTUSPlan = True
 
         fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
@@ -350,6 +362,7 @@ class RUN_PLAN_TUS(QObject):
                                 self.MainApp.UpdateWindowTitle()
                         else:
                             fname = lastfoutname
+                            shutil.copy(fname, finalfname)
                             self.MainApp.Config['Mat4Trajectory'] = finalfname
                             self.MainApp.Config['ID'] = id
                             self.MainApp.UpdateWindowTitle()
@@ -388,10 +401,9 @@ class RUN_PLAN_TUS(QObject):
                             'Skin-Skull Angle'))
 
         widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4,callBackAfterGenTrajectory=self.callBackAfterGenTrajectory)
-        widget.resize(1600, 600)
-
         layout.addWidget(widget)
         self.dlgResultsPlanTUS = DlgResults
+        DlgResults.resize(1700, 700)
         return self.dlgResultsPlanTUS.exec()
 
 

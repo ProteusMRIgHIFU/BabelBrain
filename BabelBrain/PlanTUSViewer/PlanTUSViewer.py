@@ -261,16 +261,16 @@ class GiftiViewer(QWidget):
                 pick_pos = self.picker.GetPickPosition()
                 if self.selection_callback:
                     # Notify main window about selection
-                    self.selection_callback(tri[0], pick_pos)
+                    self.selection_callback(tri[0], cell_id,pick_pos)
 
         return
     
-    def highlight_triangle(self, vertex, pick_pos):
+    def highlight_triangle(self, cell_id,pick_pos):
         """Highlight a triangle by ID and place sphere at pick position."""
-        if vertex < 0 or vertex >= self.current_ActorsEntry['coordsOrig'].shape[0]:
-            return
 
-        value = self.current_ActorsEntry['func_data'][vertex]
+        tri = self.current_ActorsEntry['faces'][cell_id]
+        values = self.current_ActorsEntry['func_data'][tri]
+        value = np.mean(values)
         if np.isnan(value):
             return  # skip if value is NaN
         self.valueLabel.setText(f"Value: {value:.2f}")
@@ -372,16 +372,16 @@ class MultiGiftiViewerWidget(QWidget):
         self.heatmap_checkbox.toggled.connect(self.toggle_heatmap)
         self.toolbar.addWidget(self.heatmap_checkbox)
 
-        axial_action = QAction("Axial", self)
-        axial_action.triggered.connect(lambda: self.set_preset_view("axial"))
+        axial_action = QAction("Top", self)
+        axial_action.triggered.connect(lambda: self.set_preset_view("top"))
         self.toolbar.addAction(axial_action)
 
-        coronal_action = QAction("Coronal", self)
-        coronal_action.triggered.connect(lambda: self.set_preset_view("coronal"))
+        coronal_action = QAction("Front", self)
+        coronal_action.triggered.connect(lambda: self.set_preset_view("front"))
         self.toolbar.addAction(coronal_action)
 
-        sagittal_action = QAction("Sagittal", self)
-        sagittal_action.triggered.connect(lambda: self.set_preset_view("sagittal"))
+        sagittal_action = QAction("Lateral", self)
+        sagittal_action.triggered.connect(lambda: self.set_preset_view("lateral"))
         self.toolbar.addAction(sagittal_action)
 
         oblique_action = QAction("3D", self)
@@ -437,11 +437,11 @@ class MultiGiftiViewerWidget(QWidget):
         for v in self.viewers:
             v.set_heatmap_visibility(checked)
 
-    def broadcast_selection(self, vertex, pick_pos):
+    def broadcast_selection(self, vertex, cell_id,pick_pos):
         """Called when one viewer selects a triangle."""
         self.select_vortex = vertex
         for v in self.viewers:
-            v.highlight_triangle(vertex, pick_pos)
+            v.highlight_triangle(cell_id, pick_pos)
         #once a valid triangle is selected, enable the button
         self.generateTrajectoryPushButton.setEnabled(True)
         self.generateTrajectoryPushButton.setStyleSheet("""
@@ -466,14 +466,14 @@ class MultiGiftiViewerWidget(QWidget):
 
         camera.SetFocalPoint(center)
 
-        if preset == "axial":
-            camera.SetPosition(center[0], center[1], center[2] + 600)
+        if preset == "top":
+            camera.SetPosition(center[0], center[1], center[2] +800)
             camera.SetViewUp(0, 1, 0)
-        elif preset == "coronal":
-            camera.SetPosition(center[0], center[1] + 600, center[2])
+        elif preset == "front":
+            camera.SetPosition(center[0], center[1] + 800, center[2])
             camera.SetViewUp(0, 0, 1)
-        elif preset == "sagittal":
-            camera.SetPosition(center[0] + 600, center[1], center[2])
+        elif preset == "lateral":
+            camera.SetPosition(center[0] + 800, center[1], center[2])
             camera.SetViewUp(0, 0, 1)
         elif preset == "oblique":
             camera.SetPosition(center[0] + 400,
@@ -484,6 +484,7 @@ class MultiGiftiViewerWidget(QWidget):
         # Update all viewers
         for v in self.viewers:
             v.vtkWidget.GetRenderWindow().Render()
+
 
 if __name__ == "__main__":
 
