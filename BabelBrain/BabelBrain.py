@@ -389,6 +389,8 @@ class BabelBrain(QWidget):
             ComputingBackend=2
         elif Backend=='Metal':
             ComputingBackend=3
+        elif Backend=='MLX':
+            ComputingBackend=4
 
         self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
@@ -1366,6 +1368,8 @@ def main():
                     Backend='OpenCL'
                 elif prevConfig['ComputingBackend']==3:
                     Backend='Metal'
+                elif prevConfig['ComputingBackend']==4:
+                    Backend='MLX'
 
             selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
 

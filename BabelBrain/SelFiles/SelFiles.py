@@ -243,6 +243,7 @@ class SelFiles(QDialog):
             print('Available Metal Devices',devices)
             for dev in devices:
                 AllDevices.append([dev,'Metal'])
+                AllDevices.append([dev,'MLX'])
         else:
             #we try to import CUDA and OpenCL in Win/Linux systems, if it fails, it means some drivers are not correctly installed
             try:

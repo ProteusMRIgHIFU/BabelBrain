@@ -52,7 +52,7 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
 def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
     try:
-        Backend = ['CUDA','OpenCL','Metal'][kargs['COMPUTING_BACKEND']-1]
+        Backend = ['CUDA','OpenCL','Metal','MLX'][kargs['COMPUTING_BACKEND']-1]
         deviceName=kargs['deviceName']
         AllCases=[]
         #These fields will preseved individually per sonication regime

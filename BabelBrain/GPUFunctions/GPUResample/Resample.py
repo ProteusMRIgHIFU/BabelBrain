@@ -16,9 +16,9 @@ from scipy.ndimage._interpolation import spline_filter, _prepad_for_spline_filte
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -77,12 +77,22 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         import metalcomputebabel as mc
         clp = mc
         
-        preamble = '#define _METAL'
+        preamble = '#define _METAL\n'
         prgcl, sel_device, ctx = InitMetal(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
        
         # Create kernels from program function
         knl_at=prgcl.function('affine_transform')
         # knl_sf=prgcl.function('spline_filter_3d')
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+
+        preamble = '#define _MLX\n'
+        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+       
+        # Create kernels from program function
+        knl_at=prgcl['affine_transform']['kernel']
+        # knl_sf=prgcl['spline_filter_3d']
 
 
 def _check_cval_modified(mode, cval, integer_output):
@@ -432,6 +442,26 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
 
             # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=np.float32).reshape(output_section.shape)
+        elif GPUBackend == 'MLX':
+
+            # Move input data from host to device memory
+            filtered_gpu = ctx.array(filtered)
+            m_gpu = ctx.array(m) 
+            output_section_gpu = ctx.array(output_section)
+            float_params_gpu = ctx.array(float_params)
+            int_params_gpu = ctx.array(int_params)
+
+            # Deploy affine transform kernel
+            handle=knl_at(inputs=[filtered_gpu,m_gpu,output_section_gpu,float_params_gpu,int_params_gpu],
+                       grid=[output_section.size,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[1,1,1]], # dummy output is just 1 float, as we never write to it
+                       output_dtypes=[ctx.float32],
+                        )[0]
+            ctx.eval(handle)
+
+            # Move kernel output data back to host memory
+            output_section = np.array(output_section_gpu).reshape(output_section.shape)
             
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

@@ -1,3 +1,10 @@
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
+//MLX_HEADER_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void median_reflect(
                              __global const  PixelType * input,
@@ -22,7 +29,12 @@ kernel void median_reflect(
                            device PixelType * output [[ buffer(1) ]],
                            const device int * int_params [[ buffer(2)]], 
                            uint gid[[thread_position_in_grid]]) {
-    
+    #define _i gid
+#endif
+#if defined(_MLX)
+    #define _i thread_position_in_grid.x
+#endif
+#if defined(_METAL)  ||defined(_MLX)  
     const int dims_0 = int_params[0];
     const int dims_1 = int_params[1];
     const int dims_2 = int_params[2];
@@ -30,13 +42,12 @@ kernel void median_reflect(
     const int filter_size_1 = int_params[4];
     const int filter_size_2 = int_params[5];
 
-    const int x = gid/(dims_1*dims_2);
-    const int y = (gid-x*dims_1*dims_2)/dims_2;
-    const int z = gid -x*dims_1*dims_2 - y * dims_2;
-    #define _i gid
+    const int x = _i/(dims_1*dims_2);
+    const int y = (_i-x*dims_1*dims_2)/dims_2;
+    const int z = _i -x*dims_1*dims_2 - y * dims_2;
 #endif
-    
-    
+
+
     int ind_2 = z - (filter_size_2/2);
     int ind_1 = y - (filter_size_1/2);
     int ind_0 = x - (filter_size_0/2);
@@ -105,4 +116,7 @@ kernel void median_reflect(
     // Return median value
     output[_i]=values[midpoint];
 
-    }
+#ifndef _MLX   
+}
+#endif
+//MLX_FUNCTION_END

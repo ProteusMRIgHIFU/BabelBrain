@@ -124,8 +124,10 @@ def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MedianCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MedianCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MedianCOMPUTING_BACKEND='Metal'
+    else:
+        MedianCOMPUTING_BACKEND='MLX'
 
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
@@ -138,8 +140,10 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         VoxelizeCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         VoxelizeCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         VoxelizeCOMPUTING_BACKEND='Metal'
+    else:
+        VoxelizeCOMPUTING_BACKEND='MLX'
 
 MapFilter=None
 MapFilterCOMPUTING_BACKEND=''
@@ -151,8 +155,10 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MapFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MapFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MapFilterCOMPUTING_BACKEND='Metal'
+    else:
+        MapFilterCOMPUTING_BACKEND='MLX'
 
 ResampleFilter=None
 ResampleFilterCOMPUTING_BACKEND=''
@@ -164,8 +170,10 @@ def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         ResampleFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         ResampleFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         ResampleFilterCOMPUTING_BACKEND='Metal'
+    else:
+        ResampleFilterCOMPUTING_BACKEND='MLX'
 
 BinaryClosingFilter=None
 BinaryClosingFilterCOMPUTING_BACKEND=''
@@ -177,8 +185,10 @@ def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         BinaryClosingFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         BinaryClosingFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         BinaryClosingFilterCOMPUTING_BACKEND='Metal'
+    else:
+        BinaryClosingFilterCOMPUTING_BACKEND='MLX'
 
 LabelImage=None
 LabelImageCOMPUTING_BACKEND=''
@@ -190,8 +200,10 @@ def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         LabelImageCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         LabelImageCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         LabelImageCOMPUTING_BACKEND='Metal'
+    else:
+        LabelImageCOMPUTING_BACKEND='MLX'
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''

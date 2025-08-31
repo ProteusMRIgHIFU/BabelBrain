@@ -1,3 +1,10 @@
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
+//MLX_HEADER_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void label_init(__global const bool * x, 
                          __global int * y
@@ -13,14 +20,14 @@ __kernel void label_init(__global const bool * x,
     int _i = xind*ysize_1*ysize_2 + yind*ysize_2 + zind;
 #endif
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
-
 kernel void label_init(const device bool * x [[ buffer(0) ]],
                        device int * y [[ buffer(2) ]],
                        uint gid[[thread_position_in_grid]]) 
 {
     #define _i gid
+#endif
+#ifdef _MLX
+    #define _i thread_position_in_grid.x
 #endif
 
     if (x[_i] == 0)
@@ -31,10 +38,11 @@ kernel void label_init(const device bool * x [[ buffer(0) ]],
     { 
         y[_i] = _i; 
     }
-    
+#ifndef _MLX   
 }
-
-
+#endif
+//MLX_FUNCTION_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void label_connect(__global const int * shape,
                             __global const int * dirs,
@@ -64,6 +72,11 @@ kernel void label_connect(const device int * shape [[ buffer(0) ]],
     #define ndirs int_params[0]
     #define ndim int_params[1]
     #define _i gid
+#endif
+#ifdef _MLX
+    #define ndirs int_params[0]
+    #define ndim int_params[1]
+    #define _i thread_position_in_grid.x
 #endif
     
     if (y[_i] < 0) return;
@@ -123,8 +136,11 @@ kernel void label_connect(const device int * shape [[ buffer(0) ]],
         }
     }
       
+#ifndef _MLX   
 }
-
+#endif
+//MLX_FUNCTION_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void label_count(__global int * y, 
                           __global int * count) 
@@ -144,6 +160,9 @@ kernel void label_count(device int * y [[ buffer(0) ]],
                         uint gid[[thread_position_in_grid]]) 
 {
     #define _i gid
+#endif
+#ifdef _MLX
+    #define _i thread_position_in_grid.x
 #endif
 
     if (y[_i] < 0)
@@ -168,8 +187,11 @@ kernel void label_count(device int * y [[ buffer(0) ]],
         atomic_add(&count[0], 1);
         #endif
     }
+#ifndef _MLX   
 }
-
+#endif
+//MLX_FUNCTION_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void label_labels(__global int * y,
                            __global int * count, 
@@ -192,6 +214,9 @@ kernel void label_labels(device int * y [[ buffer(0) ]],
 {
     #define _i gid
 #endif
+#ifdef _MLX
+    #define _i thread_position_in_grid.x
+#endif
 
     if (y[_i] != _i)
     {
@@ -207,7 +232,11 @@ kernel void label_labels(device int * y [[ buffer(0) ]],
 
     labels[j] = _i;
 }
-
+#ifndef _MLX   
+}
+#endif
+//MLX_FUNCTION_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 
 __kernel void label_finalize(const int maxlabel,
@@ -234,7 +263,10 @@ kernel void label_finalize(const device int * int_params [[ buffer(0)]] ,
     #define maxlabel int_params[2]
     #define _i gid
 #endif
-
+#ifdef _MLX
+    #define maxlabel int_params[2]
+    #define _i thread_position_in_grid.x
+#endif
     if (y[_i] < 0) 
     {
         y[_i] = 0;
@@ -254,4 +286,7 @@ kernel void label_finalize(const device int * int_params [[ buffer(0)]] ,
         j = (j_min + j_max) / 2;
     }
     y[_i] = j + 1;
+#ifndef _MLX   
 }
+#endif
+//MLX_FUNCTION_END

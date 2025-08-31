@@ -9,9 +9,9 @@ import numpy as np
 from pathlib import Path
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -65,6 +65,15 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
        
         # Create kernel from program function
         knl=prgcl.function('median_reflect')
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+
+        clp = mx
+        preamble = '#define _MLX\ntypedef unsigned char PixelType;\n' 
+        prgcl, sel_device, ctx = InitMLX(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+       
+        # Create kernel from program function
+        knl=prgcl['median_reflect']['kernel']
     
     
 def MedianFilter(data,size,GPUBackend='OpenCL'):
@@ -166,6 +175,29 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
                 ctx.sync_buffers((data_section_pr,output_section_pr))
             
             output_section = np.frombuffer(output_section_pr,dtype=np.uint8).reshape(output_section.shape)
+        elif GPUBackend == 'MLX':
+            int_params=np.zeros(6,np.int32)
+            int_params[0] = output_section.shape[0]
+            int_params[1] = output_section.shape[1]
+            int_params[2] = data_section.shape[2]
+            int_params[3] = footprint.shape[0]
+            int_params[4] = footprint.shape[1]
+            int_params[5] = footprint.shape[2]
+
+            data_section_pr = ctx.array(data_section)
+            output_section_pr = ctx.array(output_section)
+            int_params_pr = ctx.array(int_params)
+
+            
+            handle=knl(inputs=[data_section_pr,output_section_pr,int_params_pr],
+                       grid=[output_section.size,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[1,1,1]], # dummy output is just 1 float, as we never write to it
+                       output_dtypes=[ctx.float32],
+                        )[0]
+            ctx.eval(handle)
+            
+            output_section = np.array(output_section_pr).reshape(output_section.shape)
 
         # Record results in output array
         if slice_end == output.shape[2]:
