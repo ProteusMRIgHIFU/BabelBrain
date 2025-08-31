@@ -1,3 +1,9 @@
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
+//MLX_HEADER_END
 #ifdef _OPENCL
 __kernel void mapfilter(__global const  float * HUMap,
                         __global const unsigned char * IsBone,
@@ -41,17 +47,20 @@ extern "C" __global__ void mapfilter(const float * HUMap,
 
     if (section_gid >= section_size) return;
 #endif
+//MLX_FUNCTION_START
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
 kernel void mapfilter(const device  float * HUMap [[ buffer(0) ]],
                       const device unsigned char * IsBone [[ buffer(1) ]],
                       const device float * UniqueHU [[ buffer(2) ]],
                       unsigned device int * CtMap [[ buffer(3) ]],
                       const unsigned device int * int_params [[ buffer(4) ]],
                       uint section_gid[[thread_position_in_grid]]) {
- 
-    const unsigned int dimUnique = int_params[0];
+#endif
+#ifdef _MLX
+     unsigned int section_gid = thread_position_in_grid.x;
+#endif
+#if defined(_METAL) || defined(_MLX)
+     const unsigned int dimUnique = int_params[0];
 #endif
 
     // Skip if not bone
@@ -68,4 +77,7 @@ kernel void mapfilter(const device  float * HUMap [[ buffer(0) ]],
         }
     }
 
+#ifndef _MLX   
 }
+#endif
+//MLX_FUNCTION_END

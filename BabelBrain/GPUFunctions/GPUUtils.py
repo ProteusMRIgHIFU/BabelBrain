@@ -447,8 +447,7 @@ def InitMLX(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False
             for arg in functions[k]['args']:
                 input_names.append(arg['name'])
                 input_rw_status.append(arg['const']==False)
-                
-            
+
             functions[k]['kernel'] = mx.fast.metal_kernel(
                         name=k,
                         input_names=input_names,
