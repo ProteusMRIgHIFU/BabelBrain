@@ -111,7 +111,8 @@ computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
     {'type': 'OpenCL','supported_os': ['Mac','Windows','Linux']},
     {'type': 'CUDA','supported_os': ['Windows','Linux']},
-    {'type': 'Metal','supported_os': ['Mac']}
+    {'type': 'Metal','supported_os': ['Mac']},
+    {'type':'MLX','supported_os': ['Mac']}
 ]
 spatial_step = {
     'Spatial_Step_0_919': 0.919,  # 200 kHz,   6 PPW

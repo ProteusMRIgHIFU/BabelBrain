@@ -1,7 +1,7 @@
 import sys
 import platform
 import traceback
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal
+from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal,InitMLX
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from scipy.io import savemat
 import numpy as np
@@ -43,8 +43,10 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
         InitCuda(deviceName)
     elif kargs['Backend']=='OpenCL':
         InitOpenCL(deviceName)
-    else:
+    elif kargs['Backend']=='Metal':
         InitMetal(deviceName)
+    elif kargs['Backend']=='MLX':
+        InitMLX(deviceName)
     fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
     queueResult.put(fname)
     

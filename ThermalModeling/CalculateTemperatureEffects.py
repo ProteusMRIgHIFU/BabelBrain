@@ -16,7 +16,7 @@ from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
 from scipy.io import loadmat,savemat
 from platform import platform
 from os.path import isfile
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal
+from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal, InitMLX
 from multiprocessing import Process,Queue
 import sys
 import time
@@ -293,7 +293,7 @@ def RunBHTECycles(nCurrent,
     DutyCycle : float
         Duty cycle (0-1).
     Backend : str
-        Backend type ('CUDA', 'OpenCL', 'Metal').
+        Backend type ('CUDA', 'OpenCL', 'Metal', 'MLX').
     MonitoringPointsMap : np.ndarray
         Map of monitoring points.
     stableTemp : float
@@ -425,7 +425,7 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
     queueResult : multiprocessing.Queue
         Queue to store results.
     Backend : str
-        Backend type ('CUDA', 'OpenCL', 'Metal').
+        Backend type ('CUDA', 'OpenCL', 'Metal', 'MLX').
     deviceName : str
         Name of the device to use.
     queueMsg : multiprocessing.Queue
@@ -481,10 +481,11 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
         InitCuda(deviceName)
     elif Backend=='OpenCL':
         InitOpenCL(deviceName)
-    else:
+    elif Backend=='Metal':
         InitMetal(deviceName)
+    elif Backend=='MLX':
+        InitMLX(deviceName)
 
-    
     TotalIterations=NumberGroupedSonications*Repetitions
 
     Res=RunBHTECycles(nCurrent,
@@ -581,7 +582,7 @@ def CalculateTemperatureEffects(InputPData,
     PauseBetweenGroupedSonications : float, optional
         Pause duration between grouped sonications (default is 0.0).
     Backend : str, optional
-        Backend type ('CUDA', 'OpenCL', 'Metal', default is 'CUDA').
+        Backend type ('CUDA', 'OpenCL', 'Metal', 'MLX', default is 'CUDA').
     LimitBHTEIterationsPerProcess : int, optional
         Max BHTE iterations per process (default is 100).
     bForceHomogenousMedium : bool, optional
