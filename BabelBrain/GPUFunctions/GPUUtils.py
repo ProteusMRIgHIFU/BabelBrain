@@ -440,18 +440,21 @@ def InitMLX(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False
         header += '\n' + subheader
         for k in subfunc:
             functions[k] = subfunc[k]
+    for k in functions:
+        input_names = []
+        input_rw_status = []
+        for arg in functions[k]['args']:
+            input_names.append(arg['name'])
+            input_rw_status.append(arg['const']==False)
+        functions[k]['input_names'] = input_names
+        functions[k]['input_rw_status'] = input_rw_status
+        functions[k]['header'] = header+'\n'
     if build_later==False:
         for k in functions:
-            input_names = []
-            input_rw_status = []
-            for arg in functions[k]['args']:
-                input_names.append(arg['name'])
-                input_rw_status.append(arg['const']==False)
-
             functions[k]['kernel'] = mx.fast.metal_kernel(
                         name=k,
-                        input_names=input_names,
-                        input_rw_status=input_rw_status,
+                        input_names=functions[k]['input_names'],
+                        input_rw_status=functions[k]['input_rw_status'],
                         output_names=["dummy"],
                         source=functions[k]['code']+'\n',
                         header=header+'\n')
