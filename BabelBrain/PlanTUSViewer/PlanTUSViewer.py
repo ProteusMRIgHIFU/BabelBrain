@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 import numpy as np
+from vtk.util import numpy_support
 
 class GiftiViewer(QWidget):
     def __init__(self, gifti_files,selectedFunc=0,shared_camera=None, parent=None, callbackSync=None):
@@ -238,6 +239,7 @@ class GiftiViewer(QWidget):
         self.current_ActorsEntry['actorSkinMasked'].SetVisibility(False)
         self.selectedFunc=selection
         self.set_heatmap_visibility(self.currentHeatmapVisibility) #this will honor the current selection
+
 
     @property
     def current_ActorsEntry(self):
@@ -486,36 +488,385 @@ class MultiGiftiViewerWidget(QWidget):
             v.vtkWidget.GetRenderWindow().Render()
 
 
+
+
+class OrthoSliceViewer(QWidget):
+    """
+    Three linked orthogonal views (Axial/Coronal/Sagittal) for a NIfTI volume.
+    - Click in any view to move the crosshair: only the in-plane indices change.
+    - Crosshairs update in all views.
+    - Uses vtkNIFTIImageReader to preserve orientation (origin/spacing/direction).
+    """
+    def __init__(self, nifti_path: str, size, parent=None):
+        super().__init__(parent)
+        
+
+        # ----- Read NIfTI (respects qform/sform) -----
+        self.reader = vtk.vtkNIFTIImageReader()
+        self.reader.SetFileName(nifti_path)
+        self.reader.Update()
+        self.image = self.reader.GetOutput()
+
+        # Convenience: extent/origin/spacing/direction
+        self.extent = self.image.GetExtent()        # (iMin,iMax, jMin,jMax, kMin,kMax)
+        self.origin = np.array(self.image.GetOrigin(), dtype=float)
+        self.spacing = np.array(self.image.GetSpacing(), dtype=float)
+
+        # direction is a 3x3
+        dir_mat = self.image.GetDirectionMatrix()
+        self.direction = np.array([[dir_mat.GetElement(r, c) for c in range(3)] for r in range(3)], dtype=float)
+        self.dir_inv = np.linalg.inv(self.direction)
+
+        # Crosshair starts at volume center (indices)
+        self.crosshair = [
+            (self.extent[0] + self.extent[1]) // 2,  # i
+            (self.extent[2] + self.extent[3]) // 2,  # j
+            (self.extent[4] + self.extent[5]) // 2,  # k
+        ]
+
+        # ----- Build UI layout -----
+        layout = QHBoxLayout(self)
+        self.setLayout(layout)
+
+        # Keep per-view data
+        self.views = []  # list of dicts: {name, widget, renderer, mapper, actor, lines, orientation}
+
+        # Create the three orthogonal views
+        self._add_view(layout, name="Axial",    orientation="Z")  # k fixed, (i,j) vary
+        self._add_view(layout, name="Coronal",  orientation="Y")  # j fixed, (i,k) vary
+        self._add_view(layout, name="Sagittal", orientation="X")  # i fixed, (j,k) vary
+
+        # Initial draw
+        self._update_all()
+
+    # -----------------------------
+    # Helpers: IJK <-> World
+    # -----------------------------
+    def ijk_to_world(self, i, j, k):
+        """Convert voxel indices (i,j,k) to world coordinates using origin/spacing/direction."""
+        ijk_mm = np.array([i * self.spacing[0], j * self.spacing[1], k * self.spacing[2]], dtype=float)
+        return (self.direction @ ijk_mm) + self.origin
+
+    def world_to_ijk(self, x, y, z):
+        """Convert world to voxel indices (floating)."""
+        xyz = np.array([x, y, z], dtype=float)
+        ijk_mm = self.dir_inv @ (xyz - self.origin)
+        ijk = ijk_mm / self.spacing
+        return ijk  # float indices
+
+    # -----------------------------
+    # View construction
+    # -----------------------------
+    def _add_view(self, parent_layout, name, orientation):
+        # Mapper oriented to X/Y/Z
+        mapper = vtk.vtkImageSliceMapper()
+        mapper.SetInputConnection(self.reader.GetOutputPort())
+        if orientation == "Z":
+            mapper.SetOrientationToZ()
+            slice_index = self.crosshair[2]
+        elif orientation == "Y":
+            mapper.SetOrientationToY()
+            slice_index = self.crosshair[1]
+        elif orientation == "X":
+            mapper.SetOrientationToX()
+            slice_index = self.crosshair[0]
+        else:
+            raise ValueError("orientation must be 'X','Y', or 'Z'.")
+
+        mapper.SetSliceNumber(int(slice_index))
+
+        # Image actor + contrast defaults
+        actor = vtk.vtkImageSlice()
+        actor.SetMapper(mapper)
+        prop = actor.GetProperty()
+        # Window/level from data range for a reasonable default
+        lo, hi = self.image.GetScalarRange()
+        prop.SetColorWindow(max(hi - lo, 1e-3))
+        prop.SetColorLevel((hi + lo) * 0.5)
+
+        # Renderer
+        ren = vtk.vtkRenderer()
+        ren.AddViewProp(actor)
+        ren.SetBackground(0, 0, 0)
+
+        # Crosshair (two lines)
+        line_color = (1.0, 0.0, 0.0)
+        lines = []
+        for _ in range(2):
+            line = vtk.vtkLineSource()
+            mapper_line = vtk.vtkPolyDataMapper()
+            mapper_line.SetInputConnection(line.GetOutputPort())
+            actor_line = vtk.vtkActor()
+            actor_line.SetMapper(mapper_line)
+            actor_line.GetProperty().SetColor(*line_color)
+            actor_line.GetProperty().SetLineWidth(1.5)
+            ren.AddActor(actor_line)
+            lines.append((line, actor_line))
+
+        # Widget + interactor
+        w = QVTKRenderWindowInteractor()
+        w.GetRenderWindow().AddRenderer(ren)
+        iren = w.GetRenderWindow().GetInteractor()
+        style = vtk.vtkInteractorStyleImage()
+        iren.SetInteractorStyle(style)
+
+        # Picker (pick only this slice actor to get correct world coords)
+        picker = vtk.vtkPropPicker()
+        picker.PickFromListOn()
+        picker.AddPickList(actor)
+
+        # Click handler: update in-plane indices only
+        def on_left_click(obj, evt, view_name=name, orient=orientation, pick=picker, renderer=ren):
+            x, y = iren.GetEventPosition()
+            if pick.Pick(x, y, 0, renderer):
+                wx, wy, wz = pick.GetPickPosition()
+                fi, fj, fk = self.world_to_ijk(wx, wy, wz)
+                # Clamp to extent & round only the in-plane axes
+                i, j, k = self.crosshair
+                if orient == "Z":      # axial: (i,j) from click, keep k
+                    i = int(np.clip(round(fi), self.extent[0], self.extent[1]))
+                    j = int(np.clip(round(fj), self.extent[2], self.extent[3]))
+                elif orient == "Y":    # coronal: (i,k) from click, keep j
+                    i = int(np.clip(round(fi), self.extent[0], self.extent[1]))
+                    k = int(np.clip(round(fk), self.extent[4], self.extent[5]))
+                elif orient == "X":    # sagittal: (j,k) from click, keep i
+                    j = int(np.clip(round(fj), self.extent[2], self.extent[3]))
+                    k = int(np.clip(round(fk), self.extent[4], self.extent[5]))
+                self.crosshair = [i, j, k]
+                self._update_all()
+            # obj.OnLeftButtonDown()  # preserve default pan/zoom behavior
+
+        iren.AddObserver("LeftButtonPressEvent", on_left_click)
+        iren.Initialize()
+
+        if orientation == "Z":
+            # View from superior (looking down -Z)
+            ren.GetActiveCamera().SetFocalPoint(0, 0, 0)
+            ren.GetActiveCamera().SetPosition(0, 0, 1)
+            ren.GetActiveCamera().SetViewUp(0, 1, 0)
+
+        elif orientation == "Y":
+            # View from front (looking along -Y)
+            ren.GetActiveCamera().SetFocalPoint(0, 0, 0)
+            ren.GetActiveCamera().SetPosition(0, -1, 0)
+            ren.GetActiveCamera().SetViewUp(0, 0, 1)
+
+        elif orientation == "X":
+            # View from left (looking along -X)
+            ren.GetActiveCamera().SetFocalPoint(0, 0, 0)
+            ren.GetActiveCamera().SetPosition(-1, 0, 0)
+            ren.GetActiveCamera().SetViewUp(0, 0, 1)
+
+        ren.ResetCamera()
+
+        mainQ = QWidget()
+        tlayout = QVBoxLayout()
+        mainQ.setLayout(tlayout)
+        secondQ = QWidget()
+        slayout = QHBoxLayout()
+        secondQ.setLayout(slayout)
+
+        if orientation == "Z":
+            al=QLabel("A")
+            al.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: green;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            tlayout.addWidget(al,alignment=Qt.AlignCenter)
+            ll=QLabel("L")
+            ll.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: blue;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            slayout.addWidget(ll)
+        elif orientation == "Y":
+            sl=QLabel("S")
+            sl.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: red;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            tlayout.addWidget(sl,alignment=Qt.AlignCenter)
+            ll=QLabel("L")
+            ll.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: blue;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            slayout.addWidget(ll)
+        else:
+            sl=QLabel("S")
+            sl.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: red;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            tlayout.addWidget(sl,alignment=Qt.AlignCenter)
+            al=QLabel("A")
+            al.setStyleSheet("""
+            QLabel {
+                font-size: 18px;       /* Change font size */
+                color: green;            /* Change text color */
+                font-weight: bold;       /* Change font weight */
+            }
+            """)
+            slayout.addWidget(al)
+
+        tlayout.addWidget(w)
+        slayout.addWidget(mainQ)
+        parent_layout.addWidget(secondQ)
+        self.views.append(dict(
+            name=name, orientation=orientation,
+            widget=w, renderer=ren, mapper=mapper, actor=actor, lines=lines
+        ))
+
+        # w.GetRenderWindow().Render()
+
+        # def add_orientation_labels(vtk_widget,orientation):
+        # # Helper to create a text actor
+        #     def make_label(text, x, y):
+        #         actor = vtk.vtkTextActor()
+        #         actor.SetInput(text)
+        #         actor.GetTextProperty().SetFontSize(24)
+        #         actor.GetTextProperty().SetColor(1, 1, 1)  # white text
+        #         actor.GetTextProperty().SetBold(True)
+        #         actor.SetDisplayPosition(x, y)
+        #         return actor
+
+        #     # Get render window size
+        #     iren.Initialize()
+        #     size = vtk_widget.GetRenderWindow().GetSize()
+        #     dpr = vtk_widget.devicePixelRatioF()
+        #     w = int(vtk_widget.width()*dpr)
+        #     h = int(vtk_widget.height()*dpr)
+        #     # w = int(size[0] )
+        #     # h = int(size[1] )
+
+
+        #     if orientation == "Z":
+        #         # Axial: L/R (X), P/A (Y)
+        #         ren.AddActor2D(make_label("L", int(w/100*5), h//2))
+        #         ren.AddActor2D(make_label("R", w-int(w/10)*4, h//2))
+        #         ren.AddActor2D(make_label("P", w//2, 10))
+        #         ren.AddActor2D(make_label("A", w//2, h-10))
+
+        #     elif orientation == "Y":
+        #         # Coronal: L/R (X), S/I (Z)
+        #         ren.AddActor2D(make_label("L", 10, h//2))
+        #         ren.AddActor2D(make_label("R", w-100, h//2))
+        #         ren.AddActor2D(make_label("S", w//2, h-10))
+        #         ren.AddActor2D(make_label("I", w//2, 10))
+
+        #     elif orientation == "X":
+        #         # Sagittal: P/A (Y), S/I (Z)
+        #         ren.AddActor2D(make_label("P", 10, h//2))
+        #         ren.AddActor2D(make_label("A", w-10, h//2))
+        #         ren.AddActor2D(make_label("S", w//2, h-10))
+        #         ren.AddActor2D(make_label("I", w//2, 10))
+
+        #     vtk_widget.GetRenderWindow().Render()
+        # add_orientation_labels(w, orientation)
+
+
+    # -----------------------------
+    # Update all view slices + crosshairs
+    # -----------------------------
+    def _update_all(self):
+        i, j, k = self.crosshair
+        ei0, ei1, ej0, ej1, ek0, ek1 = self.extent
+
+        for view in self.views:
+            orient = view["orientation"]
+            mapper = view["mapper"]
+            lines = view["lines"]
+
+            # Set the slice number appropriate for this view
+            if orient == "Z":
+                mapper.SetSliceNumber(int(k))
+            elif orient == "Y":
+                mapper.SetSliceNumber(int(j))
+            elif orient == "X":
+                mapper.SetSliceNumber(int(i))
+
+            # Update crosshair lines (world coords via ijk_to_world)
+            # Each view plane has two in-plane axes; draw lines across full extent.
+
+            if orient == "Z":
+                # Plane: k fixed; in-plane axes: i, j
+                p1 = self.ijk_to_world(ei0, j,  k)
+                p2 = self.ijk_to_world(ei1, j,  k)
+                p3 = self.ijk_to_world(i,  ej0, k)
+                p4 = self.ijk_to_world(i,  ej1, k)
+
+            elif orient == "Y":
+                # Plane: j fixed; in-plane axes: i, k
+                p1 = self.ijk_to_world(ei0, j,  k)
+                p2 = self.ijk_to_world(ei1, j,  k)
+                p3 = self.ijk_to_world(i,  j,  ek0)
+                p4 = self.ijk_to_world(i,  j,  ek1)
+
+            elif orient == "X":
+                # Plane: i fixed; in-plane axes: j, k
+                p1 = self.ijk_to_world(i,  ej0, k)
+                p2 = self.ijk_to_world(i,  ej1, k)
+                p3 = self.ijk_to_world(i,  j,  ek0)
+                p4 = self.ijk_to_world(i,  j,  ek1)
+
+            # Apply to the two lines
+            lineA, _ = lines[0]
+            lineB, _ = lines[1]
+            lineA.SetPoint1(*p1); lineA.SetPoint2(*p2)
+            lineB.SetPoint1(*p3); lineB.SetPoint2(*p4)
+
+            # Render this view
+            view["widget"].GetRenderWindow().Render()
+
+
 if __name__ == "__main__":
 
     
     app = QApplication(sys.argv)
 
     # Replace with path to your GIFTI file
-    gifti_files = []
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin.func.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
-                        [0,100],
-                        'Distance'))
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/target_intersection_skin.func.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
-                        [0,100],
-                        'Target Intersection'))
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/angles_skin.func.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
-                        [0,20],
-                        'Angle'))
-    gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin_skull_angles_skin.func.gii',
-                        '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
-                        [0,20],
-                        'Skin-Skull Angle'))
+    # gifti_files = []
+    # gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin.func.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+    #                     [0,100],
+    #                     'Distance'))
+    # gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/target_intersection_skin.func.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+    #                     [0,100],
+    #                     'Target Intersection'))
+    # gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/angles_skin.func.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+    #                     [0,20],
+    #                     'Angle'))
+    # gifti_files.append(('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin_skull_angles_skin.func.gii',
+    #                     '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/distances_skin_thresholded.func.gii',
+    #                     [0,20],
+    #                     'Skin-Skull Angle'))
 
-    widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4)
-    widget.resize(1600, 600)
-    widget.show()
+    # widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4)
+    # widget.resize(1600, 600)
+    # widget.show()
 
+    sliceviewer=OrthoSliceViewer('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1.nii.gz',[1600,600])
+    sliceviewer.resize(1600, 600)
+    sliceviewer.show()
     sys.exit(app.exec())
