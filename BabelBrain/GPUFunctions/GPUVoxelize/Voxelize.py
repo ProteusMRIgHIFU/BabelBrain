@@ -242,8 +242,6 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                        output_dtypes=[ctx.uint32],
                        init_value=0,
                         )[0]
-        ctx.eval(vtable_gpu)
-        ctx.eval(vtable_gpu)
         vtable=np.array(vtable_gpu)
 
     # Create points array 
@@ -352,13 +350,13 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             globalcount_gpu=prg_ExtractPoints(inputs=[vtable_gpu,int_params_gpu,points_section_gpu],
                        grid=[ntotal,1,1],
                        threadgroup=[1024,1,1],
-                       output_shapes=[[globalcount.size]], # dummy output is just 1 float, as we never write to it
+                       output_shapes=[[globalcount.size]], 
                        output_dtypes=[ctx.uint32],
                        init_value=0,
                         )[0]
 
             ctx.eval(globalcount_gpu)
-
+            
             # Move kernel output data back to host memory
             points_section=np.array(points_section_gpu).reshape(points_section.shape)
             globalcount+=np.array(globalcount_gpu)

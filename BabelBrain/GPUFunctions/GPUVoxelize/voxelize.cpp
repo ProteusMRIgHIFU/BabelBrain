@@ -1,5 +1,5 @@
 //MLX_HEADER_START
-#ifdef _METAL
+#if defined(_MLX) || defined(_METAL)
 #include <metal_stdlib>
 #include <metal_atomic>
 using namespace metal;
@@ -310,7 +310,9 @@ kernel void ExtractPoints( device const unsigned int* voxel_table [[ buffer(0) ]
             #if defined(_METAL) || defined(_MLX)
             size_t nt = (size_t)(atomic_fetch_add_explicit(globalcount,1,memory_order_relaxed));
             #endif
+            #ifndef _MLX
             nt-=(size_t)basePoint;
+            #endif
             Points[nt*3]=(float)i;
             Points[nt*3+1]=(float)j;
             Points[nt*3+2]=(float)k;
