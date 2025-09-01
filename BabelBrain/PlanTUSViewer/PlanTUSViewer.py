@@ -488,6 +488,144 @@ class MultiGiftiViewerWidget(QWidget):
             v.vtkWidget.GetRenderWindow().Render()
 
 
+class FinalResultViewer(QWidget):
+    def __init__(self, gifti_files, parent=None, callbackSync=None):
+        super().__init__(parent)
+
+        # --- Qt Layout ---
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        # VTK Widget
+        self.vtkWidget = QVTKRenderWindowInteractor(self)
+
+        layout.addWidget(self.vtkWidget)
+
+
+        self.renderer = vtk.vtkRenderer()
+
+        self.Entries=[]
+
+        self.func_data = []
+        self.faces = []
+
+        self.currentHeatmapVisibility = True
+
+        # --- Load GIFTI File ---
+        gii = nib.load(gifti_files[0])
+        coordsHead = gii.darrays[0].data  # vertex coordinates (Nx3)
+        facesHead = gii.darrays[1].data   # triangles (Mx3)
+
+        gii = nib.load(gifti_files[1])
+        coordsTx = gii.darrays[0].data  # vertex coordinates (Nx3)
+        facesTx = gii.darrays[1].data   # triangles (Mx3)
+
+        objects=[[coordsHead,facesHead],
+                    [coordsTx,facesTx]]
+
+        # --- Convert to VTK PolyData ---
+
+        for n,e in enumerate(objects):
+            coords, faces = e
+            points = vtk.vtkPoints()
+            for x, y, z in coords:
+                points.InsertNextPoint(x, y, z)
+
+            polys = vtk.vtkCellArray()
+            for tri in faces:
+                polys.InsertNextCell(3)
+                polys.InsertCellPoint(int(tri[0]))
+                polys.InsertCellPoint(int(tri[1]))
+                polys.InsertCellPoint(int(tri[2]))
+
+            polydata = vtk.vtkPolyData()
+            polydata.SetPoints(points)
+            polydata.SetPolys(polys)
+
+            # --- Mapper + Actor ---
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputData(polydata)
+
+            actor = vtk.vtkActor()
+            actor.SetMapper(mapper)
+        
+        
+            # If no scalars or the rest of the scalp, just give the actor a solid color
+            if n==0:
+                actor.GetProperty().SetColor(0.8, 0.8, 0.8)  # light gray
+                self.ActorHead = actor
+            else:
+                actor.GetProperty().SetColor(0.4, 0.4, 1.0)  # blue
+                self.ActorTx = actor
+            self.renderer.AddActor(actor)
+
+            actor.SetVisibility(True)
+
+        # --- Renderer ---
+        self.renderer.SetBackground(0.1, 0.1, 0.1)
+
+     
+        # --- Render Window ---
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.interactor = self.vtkWidget.GetRenderWindow().GetInteractor()
+
+        # --- Better Interaction (like 3D Slicer) ---
+        style = vtkInteractorStyleTrackballCamera()
+        self.interactor.SetInteractorStyle(style)
+
+        def zoom_callback(obj, event):
+            camera = self.renderer.GetActiveCamera()
+            if event == "MouseWheelForwardEvent":
+                camera.Dolly(1.05)  # zoom in
+            elif event == "MouseWheelBackwardEvent":
+                camera.Dolly(0.95)  # zoom out
+            self.renderer.ResetCameraClippingRange()
+            if callbackSync:
+                callbackSync(self, event)
+            else:
+                self.vtkWidget.GetRenderWindow().Render()
+
+        self.interactor.AddObserver("MouseWheelForwardEvent", zoom_callback)
+        self.interactor.AddObserver("MouseWheelBackwardEvent", zoom_callback)
+
+        def keypress_callback(obj, event):
+            key = obj.GetKeySym()
+            camera = self.renderer.GetActiveCamera()
+            if key == "plus" or key == "equal":  # "+" key
+                camera.Dolly(1.1)
+            elif key == "minus":
+                camera.Dolly(0.9)
+            self.renderer.ResetCameraClippingRange()
+            if callbackSync:
+                callbackSync(self, event)
+            else:
+                self.vtkWidget.GetRenderWindow().Render()
+
+        self.interactor.AddObserver("KeyPressEvent", keypress_callback)
+
+        self.interactor.Initialize()
+        self.interactor.Start()
+        self.reset_camera()
+
+
+
+
+    def reset_camera(self):
+        self.renderer.ResetCamera()
+        self.vtkWidget.GetRenderWindow().Render()
+
+        camera = self.renderer.GetActiveCamera()
+
+        bounds = self.ActorHead.GetBounds()
+        center = [(bounds[0] + bounds[1]) / 2,
+                  (bounds[2] + bounds[3]) / 2,
+                  (bounds[4] + bounds[5]) / 2]
+
+
+        camera.SetPosition(center[0] + 400,
+                            center[1] + 400,
+                            center[2] + 400)
+        camera.SetViewUp(0, 0, 1)
 
 
 class OrthoSliceViewer(QWidget):
@@ -866,7 +1004,12 @@ if __name__ == "__main__":
     # widget.resize(1600, 600)
     # widget.show()
 
-    sliceviewer=OrthoSliceViewer('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1.nii.gz',[1600,600])
-    sliceviewer.resize(1600, 600)
-    sliceviewer.show()
+    # sliceviewer=OrthoSliceViewer('/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1.nii.gz',[1600,600])
+    # sliceviewer.resize(1600, 600)
+    # sliceviewer.show()
+    gifti_files = ['/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/skin.surf.gii',
+                   '/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PlanTUS/Q_PlanTUSMask/Q/transducer_Q_PlanTUSMask_Q.surf.gii']
+    VW=FinalResultViewer(gifti_files)
+    VW.resize(600, 600)
+    VW.show()
     sys.exit(app.exec())

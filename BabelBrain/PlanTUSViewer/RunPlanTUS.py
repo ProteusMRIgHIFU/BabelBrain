@@ -29,7 +29,7 @@ from ConvMatTransform import (
     templateSlicer
 )
 
-from PlanTUSViewer.PlanTUSViewer import MultiGiftiViewerWidget
+from PlanTUSViewer.PlanTUSViewer import MultiGiftiViewerWidget,FinalResultViewer
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -340,6 +340,10 @@ class RUN_PLAN_TUS(QObject):
                         with open(foutnameSlicer, 'w') as f:
                             f.write(outString)
 
+                        bdir,sfile = os.path.split(trajFile)
+                        tfile = sfile.replace('position_matrix','transducer').replace('_Localite.mat','.surf.gii')
+                        self.showFinalResults(bdir+os.sep+tfile)
+
                     ret = QMessageBox.question(self.OptionsDlg,'', "Do you want to use the\n PlanTUS results to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
                     if ret == QMessageBox.Yes:
                         TrajectoryType=self.MainApp.Config['TrajectoryType']
@@ -370,6 +374,22 @@ class RUN_PLAN_TUS(QObject):
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")
                 print("*"*40)
+
+    def showFinalResults(self,TxResultSurface):
+        DlgResults=QDialog(self.OptionsDlg)
+        DlgResults.setWindowTitle("Trajectory Results")
+
+        layout = QVBoxLayout()
+        DlgResults.setLayout(layout)
+
+        gifti_files = []
+        gifti_files.append(self.PlanOutputPath+os.sep+'skin.surf.gii')
+        gifti_files.append(TxResultSurface)
+        
+        widget = FinalResultViewer(gifti_files)
+        layout.addWidget(widget)
+        DlgResults.resize(600, 600)
+        DlgResults.exec()
 
     def showTUSPlanViewer(self):
         DlgResults=QDialog(self.OptionsDlg)
