@@ -196,6 +196,8 @@ elif 'Windows' in platform.system(): #for Windows
                         'fastrlock',\
                         'skimage',\
                         'pyopencl',\
+                        'pwlf',\
+                        'openpyxl'\
                         ]
 
     for mp in missing_package_info:
