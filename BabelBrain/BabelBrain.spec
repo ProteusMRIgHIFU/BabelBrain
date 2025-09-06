@@ -252,7 +252,11 @@ elif 'Windows' in platform.system(): #for Windows
         datas=datas,
         hiddenimports=hiddenimports,
         hookspath=[],
-        hooksconfig={},
+        hooksconfig={
+            "matplotlib": {
+                "backends": ["TkAgg","Qt5Agg","AGG","PDF","PS","SVG","PGF"],  # collect multiple backends
+            },
+        },
         runtime_hooks=[],
         excludes=[],
         win_no_prefer_redirects=False,
@@ -351,7 +355,11 @@ else: #for Linux
         datas=datas,
         hiddenimports=hiddenimports,
         hookspath=[],
-        hooksconfig={},
+        hooksconfig={
+            "matplotlib": {
+                "backends": ["TkAgg","Qt5Agg","AGG","PDF","PS","SVG","PGF"],  # collect multiple backends
+            },
+        },
         runtime_hooks=[],
         excludes=[],
         win_no_prefer_redirects=False,
