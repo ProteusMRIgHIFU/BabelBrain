@@ -240,6 +240,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                        threadgroup=[1024,1,1],
                        output_shapes=[[vtable_size//4]], 
                        output_dtypes=[ctx.uint32],
+                       use_optimal_threadgroups=True,
                        init_value=0,
                         )[0]
         vtable=np.array(vtable_gpu)
@@ -352,6 +353,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                        threadgroup=[1024,1,1],
                        output_shapes=[[globalcount.size]], 
                        output_dtypes=[ctx.uint32],
+                       use_optimal_threadgroups=True,
                        init_value=0,
                         )[0]
 
