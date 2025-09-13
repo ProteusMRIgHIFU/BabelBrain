@@ -15,11 +15,13 @@ import glob
 import subprocess
 import traceback
 import shutil
+import nibabel
+import numpy as np
 
 from scipy.io import loadmat
 
 from ClockDialog import ClockDialog
-from CreateSingleVoxelMask import create_single_voxel_mask
+from CreateVoxelMask import create_target_mask
 from ConvMatTransform import (
     ReadTrajectoryBrainsight,
     itk_to_BSight,
@@ -160,6 +162,8 @@ class RUN_PLAN_TUS(QObject):
   
 
         t1Path=self.MainApp.Config['T1W']
+        voxel_radius=2/np.array(nibabel.load(t1Path).header.get_zooms()) #2mm radius
+        raddi=tuple(np.ceil(voxel_radius).astype(int))
 
         basepath=os.path.split(t1Path)[0]
         TxConfigName = basepath + os.sep + "PlanTUSTxConfig.yaml"
@@ -171,8 +175,8 @@ class RUN_PLAN_TUS(QObject):
         self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+maskPath.split(os.sep)[-1].replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
-        create_single_voxel_mask(t1Path, RMat[:3,3], maskPath)                
-     
+        create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
+
         scriptbase=os.path.join(resource_path(),"ExternalBin"+os.sep+"PlanTUS"+os.sep)
         queue=Queue()
         self.CalQueue=queue
