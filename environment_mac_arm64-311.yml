@@ -27,7 +27,7 @@ dependencies:
   - zlib=1.2.13=h18a0788_1
   - pip:
       - altgraph==0.17.4
-      - babelviscofdtd==1.0.10
+      - babelviscofdtd==1.1.2
       - certifi==2025.1.31
       - charset-normalizer==3.4.1
       - click==8.1.8
