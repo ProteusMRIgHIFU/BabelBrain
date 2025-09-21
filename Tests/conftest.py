@@ -106,6 +106,7 @@ transducers = [
     {'name': 'R15473', 'dropdown_index': 14, 'diameter': 0},
     {'name': 'R15646', 'dropdown_index': 15, 'diameter': 0},
     {'name': 'IGT64_500', 'dropdown_index': 16, 'diameter': 0}
+    {'name': 'H301', 'dropdown_index': 17, 'diameter': 0}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -585,7 +586,7 @@ def get_freq():
             freq = '250'
         elif tx in ['BSonix','I12378','R15646']:
             freq = '650'
-        elif tx in ['ATAC']:
+        elif tx in ['ATAC','H301']:
             freq = '1000'
         elif tx in ['REMOPD','R15287','DPXPC_300','R15473']:
             freq = '300'
