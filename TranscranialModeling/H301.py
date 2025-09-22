@@ -1,7 +1,7 @@
 '''
 Class for Tx definition
 SonicConcepts H301 Tx
-128 elements, focal=150mm, diameter=150mm , elem diameter=10.5 mm, freq=1000 kHz
+128 elements, focal=150mm, diameter=150mm , elem diameter=10.15 mm, freq=1100 kHz
 ABOUT:
     author        - Samuel Pichardo
     date          - Aug 17, 2025
@@ -35,11 +35,11 @@ def H301Locations():
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateH301Tx(Frequency=1e6,RotationZ=0,FactorEnlarge=1):
+def GenerateH301Tx(Frequency=1.1e6,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency
     Foc=150e-3*FactorEnlarge
-    Diameter=10.5e-3*FactorEnlarge
+    Diameter=10.15e-3*FactorEnlarge
 
     #%This is the indiv tx element
     TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])

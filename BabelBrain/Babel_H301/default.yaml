@@ -13,4 +13,4 @@ MaximalDistanceConeToFocus:       129.0e-3  # in m
 DefaultDistanceConeToFocus:       60.0e-3  # in m
 
 USFrequencies:
-    - 1000000.0
+    - 1100000.0
