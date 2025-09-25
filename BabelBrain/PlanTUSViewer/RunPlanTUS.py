@@ -48,6 +48,61 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+
+def AcousticAxisONeil(frequency,aperture,focal_length,c=1500.0,step=0.05):
+    #Old O'Neil, still unbeatable analytical formula for spherical shells
+    k = np.pi*2*frequency/c #wavenumber
+    l = c/frequency
+    a = aperture/2
+    A=focal_length
+    h=A-np.sqrt(A**2-a**2)
+    z=np.arange(0,2*focal_length,l*step) #twice the focal spot should be enough
+    B=np.sqrt((z-h)**2+a**2)
+    M=(B+z)/2
+    delta=B-z
+    E=2/(1-z/A)
+    P=E*np.sin(k*delta/2)
+    return h,z,np.abs(P)
+    
+def FindTPOEquivalent(frequency,aperture,focal_length):
+    #first we calculate the acoustic axis with an analytical formula
+    h,zo,po=AcousticAxisONeil(frequency,aperture,focal_length)
+    peaks, _ = find_peaks(po, height=None, threshold=None, distance=None, prominence=None)
+    #we find the peak closer to the natural focus
+    closer_peak=np.argmin(np.abs(zo[peaks]-focal_length))
+    end_half=po[peaks[closer_peak]:]>=0.5*po[peaks[closer_peak]]
+    end_half=np.where(np.diff(end_half))[0]
+    if len(end_half)>0:
+        end_half=end_half[0]+1
+        # print('e',po[peaks[closer_peak]:][end_half]/po[peaks[closer_peak]])
+        end_half=zo[peaks[closer_peak]:][end_half]
+    else: #we use the last point, 
+        print('Warning, unable to find end of half peak pressure length')
+        end_half=zo[peaks[closer_peak]:][-1]
+    
+    
+    beg_half=po[:peaks[closer_peak]]>=0.5*po[peaks[closer_peak]]
+    beg_half=np.where(np.diff(beg_half))[0]
+    if len(beg_half)>0:
+        beg_half=beg_half[-1]
+        # print('b',po[:peaks[closer_peak]][beg_half]/po[peaks[closer_peak]])
+        beg_half=zo[:peaks[closer_peak]][beg_half]
+    else: #we use the last point, 
+        print('Warning, unable to find begining of half peak pressure length')
+        beg_half=zo[:peaks[closer_peak]][0]
+    FLHM=end_half-beg_half
+    TPOequivalent=zo[peaks[closer_peak]]-h #we made this relative to the outplane
+    msg=f'''
+analytical estimation of TPO location for single element Tx with:
+  Diameter = {aperture}
+  Focal length = {focal_length}
+  Frequency = {frequency}
+  TPO value (relative to outplane) = {TPOequivalent}
+  FLHM = {FLHM}
+      '''
+    print(msg)
+    return h,TPOequivalent,FLHM
+
 class PlanTUSTxConfig(object):
     def __init__(self, max_distance, 
                  min_distance, 
@@ -60,7 +115,8 @@ class PlanTUSTxConfig(object):
                  IDTarget="",
                  fsl_path="/Users/spichardo/fsl/share/fsl/bin",
                  connectome_path="/Applications/wb_view.app/Contents/usr/bin",
-                 freesurfer_path="/Applications/freesurfer/7.4.1/bin"):
+                 freesurfer_path="/Applications/freesurfer/7.4.1/bin",
+                 bUseGenericTransducerModel=False):
 
         # Maximum and minimum focal depth of transducer (in mm)
         self.max_distance = max_distance
@@ -87,6 +143,7 @@ class PlanTUSTxConfig(object):
         self.connectome_path = connectome_path
         self.freesurfer_path = freesurfer_path
         self.IDTarget = IDTarget
+        self.bUseGenericTransducerModel = bUseGenericTransducerModel
 
     def ExportYAML(self,fname):
         txconfig = {
@@ -101,7 +158,8 @@ class PlanTUSTxConfig(object):
             "fsl_path": self.fsl_path,
             "connectome_path": self.connectome_path,
             "freesurfer_path": self.freesurfer_path,
-            "IDTarget": self.IDTarget
+            "IDTarget": self.IDTarget,
+            "bUseGenericTransducerModel": self.bUseGenericTransducerModel
         }
 
         with open(fname, "w") as file:
@@ -125,6 +183,7 @@ class RUN_PLAN_TUS(QObject):
         Run the external PlanTUS script
         '''
         BabelTxConfig=self.MainApp.AcSim.Config
+        TxSystem = self.MainApp.Config['TxSystem']
         SelFreq=self.MainApp.Widget.USMaskkHzDropDown.property('UserData')
         TrajectoryType=self.MainApp.Config['TrajectoryType']
         Mat4Trajectory=self.MainApp.Config['Mat4Trajectory']
@@ -143,21 +202,72 @@ class RUN_PLAN_TUS(QObject):
 
         #we will reuse to recover the center of the trajectory
         self._RMat = RMat
+        if 'CTX' in TxSystem or 'DPX' in TxSystem:
+            bUseGenericTransducerModel = False
+        else:
+            bUseGenericTransducerModel = True
+
+        if 'MinimalTPODistance' in BabelTxConfig: #ring-based Txs
+            min_distance=BabelTxConfig['MinimalTPODistance']*1e3
+            max_distance=BabelTxConfig['MaximalTPODistance']*1e3
+            if 'FocalLength' in BabelTxConfig:
+                plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3
+            else:
+                plane_offset=0.0
+            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+            transducer_diameter=BabelTxConfig['TxDiam']*1e3
+            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
+            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
+            
+        elif 'MinimalZSteering' in BabelTxConfig: #phased arrays
+            Diameter=BabelTxConfig['TxDiam']
+            if 'TxFoc' in BabelTxConfig: #shell Tx
+                Focus=BabelTxConfig['TxFoc']
+                plane_offset=(Focus-np.sqrt(Focus**2-Diameter**2/4))*1e3
+                max_distance_plane =Focus*1e3-plane_offset 
+                assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus'])
+                plane_offset=Focus-BabelTxConfig['MaximalDistanceConeToFocus'] 
+                additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']-self.MainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()
+                additional_offset=np.max([0,additional_offset])
+            else: #flat array as the REMOPD
+                plane_offset=0.0
+                additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+            transducer_diameter=BabelTxConfig['TxDiam']*1e3
+            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
+            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
+        elif 'BSonix35mm' in BabelTxConfig: #BSonixTx
+            transducer_diameter=BabelTxConfig['CaseDiameter']
+            plane_offset=0.0
+            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+            seldevice = self.MainApp.AcSim.Widget.GetTxModel()
+            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FocalDistanceList']
+            flhm_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FHMLList']
+        else: # single element Tx
+            FocalLength = self.MainApp.AcSim.FocalLengthSpinBox.value()
+            transducer_diameter = self.MainApp.AcSim.DiameterSpinBox.value()
+            #we use analytical formula of acoustic axis from the O'Neil paper
+            plane_offset,TPOequivalent,FLHM=FindTPOEquivalent(SelFreq,transducer_diameter*1e-3,FocalLength*1e-3)
+            plane_offset*=1e3
+            focal_distance_list = [TPOequivalent*1e3]
+            flhm_list = [FLHM*1e3]
+            
+        additional_offset=np.max([0,additional_offset]) #negative values is for special cases to "invade" the scalp
 
         # Create a new PlanTUSTxConfig object with the current values
         plan_tus_config = PlanTUSTxConfig(
-            transducer_diameter=BabelTxConfig['TxDiam']*1e3,
-            min_distance=BabelTxConfig['MinimalTPODistance']*1e3,
-            max_distance=BabelTxConfig['MaximalTPODistance']*1e3,
+            transducer_diameter=transducer_diameter,
+            min_distance=min_distance,
+            max_distance=max_distance,
             max_angle=10.0, #we keep it constant for the time being
-            plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3,
-            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value(),
-            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList'],
-            flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList'],
+            plane_offset=plane_offset,
+            additional_offset=additional_offset,
+            focal_distance_list=focal_distance_list,
+            flhm_list=flhm_list,
             IDTarget=self.MainApp.Config['ID'],
             fsl_path=FSLRoot,
             connectome_path=ConnectomeRoot,
-            freesurfer_path=FreeSurferRoot
+            freesurfer_path=FreeSurferRoot,
+            bUseGenericTransducerModel=bUseGenericTransducerModel
         )
   
 
