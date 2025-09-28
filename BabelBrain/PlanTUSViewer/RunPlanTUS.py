@@ -228,13 +228,14 @@ class RUN_PLAN_TUS(QObject):
                 assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus'])
                 plane_offset=Focus-BabelTxConfig['MaximalDistanceConeToFocus'] 
                 additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']-self.MainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()
-                additional_offset=np.max([0,additional_offset])
             else: #flat array as the REMOPD
                 plane_offset=0.0
                 additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
             transducer_diameter=BabelTxConfig['TxDiam']*1e3
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
+            min_distance=np.min(focal_distance_list)
+            max_distance=np.max(focal_distance_list)
         elif 'BSonix35mm' in BabelTxConfig: #BSonixTx
             transducer_diameter=BabelTxConfig['CaseDiameter']
             plane_offset=0.0
@@ -242,6 +243,8 @@ class RUN_PLAN_TUS(QObject):
             seldevice = self.MainApp.AcSim.Widget.GetTxModel()
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FHMLList']
+            min_distance=np.min(focal_distance_list)
+            max_distance=np.max(focal_distance_list)
         else: # single element Tx
             FocalLength = self.MainApp.AcSim.FocalLengthSpinBox.value()
             transducer_diameter = self.MainApp.AcSim.DiameterSpinBox.value()
@@ -250,17 +253,19 @@ class RUN_PLAN_TUS(QObject):
             plane_offset*=1e3
             focal_distance_list = [TPOequivalent*1e3]
             flhm_list = [FLHM*1e3]
+            min_distance=TPOequivalent*1e3
+            max_distance=min_distance
             
-        additional_offset=np.max([0,additional_offset]) #negative values is for special cases to "invade" the scalp
+        additional_offset=np.max([0.0,additional_offset]) #negative values is for special cases to "invade" the scalp
 
         # Create a new PlanTUSTxConfig object with the current values
         plan_tus_config = PlanTUSTxConfig(
-            transducer_diameter=transducer_diameter,
-            min_distance=min_distance,
-            max_distance=max_distance,
+            transducer_diameter=float(transducer_diameter),
+            min_distance=float(min_distance),
+            max_distance=float(max_distance),
             max_angle=10.0, #we keep it constant for the time being
-            plane_offset=plane_offset,
-            additional_offset=additional_offset,
+            plane_offset=float(plane_offset),
+            additional_offset=float(additional_offset),
             focal_distance_list=focal_distance_list,
             flhm_list=flhm_list,
             IDTarget=self.MainApp.Config['ID'],
