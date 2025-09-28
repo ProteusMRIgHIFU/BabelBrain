@@ -29,3 +29,33 @@ OutDiameters:  #outer diameter of rings
     - 58.0e-3
     - 61.6e-3
     - 65.0e-3
+PlanTUS: #This information is to interface with the PlanTUS tool
+    300000.0: 
+        FocalDistanceList:
+            - 7.0
+            - 10.0
+            - 13.0
+            - 14.5
+            - 18.0
+            - 18.5
+            - 23.5
+            - 28.0
+            - 40.5
+            - 52.0
+            - 62.5
+            - 72.0
+            - 77.0
+        FHMLList:
+            - 6.5
+            - 6.5
+            - 8.0
+            - 9.0
+            - 10.5
+            - 11.0
+            - 12.5
+            - 14.5
+            - 23.0
+            - 32.5
+            - 42.5
+            - 53.0
+            - 55.5

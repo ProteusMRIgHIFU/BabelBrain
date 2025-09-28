@@ -58,7 +58,7 @@ def GenerateR15646Tx(Frequency=0.65e6,RotationZ=0,FactorEnlarge=1):
     TxR15646['elemdims']=TxElem['ds'].size
     TxR15646['NumberElems']=len(theta)
     TxR15646['VertDisplay'] = np.zeros((0,3))
-    TxR15646['FaceDisplay'] = np.zeros((0,4),np.int)
+    TxR15646['FaceDisplay'] = np.zeros((0,4),np.int64)
 
     for n in range(len(theta)):
         prevFaceLength=TxR15646['VertDisplay'].shape[0]

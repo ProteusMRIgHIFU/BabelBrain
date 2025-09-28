@@ -18,7 +18,6 @@ InDiameters: #inner diameter of rings
     - 54.9e-3  
     - 58.7e-3  
     - 62.4e-3  
-
 OutDiameters:  #outer diameter of rings
     - 21.1e-3 
     - 28.8e-3 
@@ -30,4 +29,29 @@ OutDiameters:  #outer diameter of rings
     - 57.8e-3  
     - 61.5e-3 
     - 65.0e-3 
-
+PlanTUS: #This information is to interface with the PlanTUS tool
+    300000.0: 
+        FocalDistanceList:
+            - 11.0
+            - 15.0
+            - 19.0
+            - 22.5
+            - 23.0
+            - 28.0
+            - 41.0
+            - 52.5
+            - 63.5
+            - 73.5
+            - 74.0
+        FHMLList:
+            - 7.5
+            - 8.0
+            - 10.5
+            - 12.5
+            - 13.0
+            - 15.5
+            - 22.5
+            - 31.5
+            - 42.0
+            - 53.0
+            - 55.0

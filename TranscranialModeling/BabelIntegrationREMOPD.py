@@ -27,7 +27,6 @@ from linetimer import CodeTimer
 
 PITCH = 3.08e-3 
 KERF = 0.5e-3
-FREQ=300e3
 APERTURE = 0.058
 minPPPArray=60.08
 DimensionElem = PITCH-KERF
@@ -38,7 +37,7 @@ def computeREMOPDGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
-def GenerateSingleElem(PPW=12.0):
+def GenerateSingleElem(FREQ=300e3,PPW=12.0):
     #60.08 PPW produces close to integer steps for both pitch and kerf
     
     Tx = {}
@@ -86,10 +85,10 @@ def GenerateSingleElem(PPW=12.0):
     return Tx
     
 
-def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0):
+def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
    
     #%This is the indiv tx element
-    TxElem=GenerateSingleElem()
+    TxElem=GenerateSingleElem(FREQ=Frequency)
 
 
     transLoc = computeREMOPDGeometry()
@@ -281,7 +280,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ)[self._TxSet]
+        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
         
         
         #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
