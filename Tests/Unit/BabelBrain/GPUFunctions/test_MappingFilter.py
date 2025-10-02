@@ -1,17 +1,14 @@
 import logging
-import os
 import re
-import sys
-sys.path.append('BabelBrain/GPUFunctions')
-sys.path.append('BabelBrain/GPUFunctions/GPUMapping')
 
 import nibabel
 import numpy as np
 import pytest
 
-import MappingFilter
+from BabelBrain.GPUFunctions.GPUMapping import MappingFilter
 
-def test_MappingFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_resampled_input,get_mpl_plot,compare_data,request):
+@pytest.mark.step1
+def test_MappingFilter_vs_CPU(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_resampled_input,get_mpl_plot,compare_data,request):
         
     # Parameters
     input_folder = dataset['folder_path']
