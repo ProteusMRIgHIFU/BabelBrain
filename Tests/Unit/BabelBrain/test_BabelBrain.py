@@ -8,6 +8,7 @@ import numpy as np
 
 from BabelBrain import BabelBrain
 
+@pytest.mark.step1
 def test_save_T1W_iso(dataset,load_files,check_data,get_mpl_plot,compare_data,tmp_path,request):
 
     # Load inputs
@@ -43,7 +44,7 @@ def test_save_T1W_iso(dataset,load_files,check_data,get_mpl_plot,compare_data,tm
     screenshot = get_mpl_plot(plots, axes_num=2,titles=plot_names,color_map='gray')
     request.node.screenshots.append(screenshot)
 
-    # Calculate Bhattacharyya Distance, output is between 0 and 1
-    bhatt_distance = compare_data['bhatt_distance'](T1W_data, T1W_iso_data, num_bins=256)
+    # Calculate Bhattacharyya Coefficient, output is between 0 and 1
+    bhatt_coefficient = compare_data['bhatt_coeff'](T1W_data, T1W_iso_data)
 
-    assert bhatt_distance < 0.01, f"Bhattacharyya Distance is greater than 0.01 ({bhatt_distance})"
+    assert bhatt_coefficient == pytest.approx(1.0, rel=1e-9), f"Bhattacharyya Coefficient is not 1.0 ({bhatt_coefficient})"

@@ -1,18 +1,15 @@
 import logging
-import os
 import re
-import sys
-sys.path.append('BabelBrain/GPUFunctions')
-sys.path.append('BabelBrain/GPUFunctions/GPUMedianFilter')
 
 import nibabel
 import numpy as np
 import pytest
 from scipy import ndimage
 
-import MedianFilter
+from BabelBrain.GPUFunctions.GPUMedianFilter import MedianFilter
 
-def test_MedianFilter(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_resampled_input,get_mpl_plot,compare_data,request):
+@pytest.mark.step1
+def test_MedianFilter_vs_CPU(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_resampled_input,get_mpl_plot,compare_data,request):
         
      # Parameters
      input_folder = dataset['folder_path']
