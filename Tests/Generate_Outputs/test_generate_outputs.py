@@ -1,0 +1,66 @@
+import pytest
+
+pytest.mark.generate_outputs
+def test_generate_valid_outputs(qtbot,babelbrain_widget,image_to_base64,request):
+
+    # Save plot screenshot to be added to html report later
+    request.node.screenshots = []
+
+    # Start babelbrain instance
+    bb_widget = babelbrain_widget(generate_outputs = True)
+    
+    # Run Step 1
+    bb_widget.testing_error = False
+    bb_widget.Widget.CalculatePlanningMask.click()
+
+    # Wait for step 1 completion before continuing. Test timeouts after 15 min have past
+    qtbot.waitUntil(bb_widget.Widget.tabWidget.isEnabled,timeout=900000)
+    qtbot.wait(1000) # Wait for plots to display
+    
+    # Take screenshot of step 1 results
+    screenshot = qtbot.screenshot(bb_widget)
+    request.node.screenshots.append(image_to_base64(screenshot))
+
+    # Check if step 1 failed
+    if bb_widget.testing_error == True:
+        pytest.fail(f"Test failed due to error in execution")
+
+    # Run Step 2
+    bb_widget.Widget.tabWidget.setCurrentIndex(1)
+    bb_widget.AcSim.Widget.CalculateAcField.click()
+
+    # Wait for step 2 completion before continuing. Test timeouts after 15 min have past
+    qtbot.waitUntil(bb_widget.Widget.tabWidget.isEnabled,timeout=900000)
+    qtbot.wait(1000) # Wait for plots to display
+
+    # Take screenshot of step 2 results
+    screenshot = qtbot.screenshot(bb_widget)
+    request.node.screenshots.append(image_to_base64(screenshot))
+
+    if bb_widget.testing_error == True:
+        pytest.fail(f"Test failed due to error in execution")
+
+    # Run Step 3
+    bb_widget.Widget.tabWidget.setCurrentIndex(2)
+    bb_widget.ThermalSim.Widget.CalculateThermal.click()
+
+    # Wait for step 3 completion before continuing. Test timeouts after 15 min have past
+    qtbot.waitUntil(bb_widget.Widget.tabWidget.isEnabled,timeout=900000)
+    qtbot.wait(1000) # Wait for plots to display
+
+    # Take screenshot of step 3 results
+    screenshot = qtbot.screenshot(bb_widget)
+    request.node.screenshots.append(image_to_base64(screenshot))
+
+    if bb_widget.testing_error == True:
+        pytest.fail(f"Test failed due to error in execution")
+    
+    with qtbot.captureExceptions() as exceptions:
+        # Run Export CSV Command
+        bb_widget.ThermalSim.Widget.ExportSummary.click()
+        
+        # Run Export Maps Command
+        bb_widget.ThermalSim.Widget.ExportMaps.click()
+        
+    if len(exceptions) > 0:
+        pytest.fail(f"Test failed due to error in execution: {exceptions}")

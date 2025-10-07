@@ -13,7 +13,7 @@ device_name = M3
 The test below should the bare minimum at every release.\
 It will test that no execution errors occurs processing one single dataset with MRI-only, CT and ZTE inputs. It will run 33 simulations in totals, 11 transducers $\times$ 3 types of imaging input.
 
-`pytest Tests -k 'test_steps_normal and brainsight and Deep_Target and ( -CT- or -NONE- or -ZTE- ) and ID_0082'`
+`pytest Tests -k 'test_full_pipeline_normal and brainsight and Deep_Target and ( -CT- or -NONE- or -ZTE- ) and ID_0082'`
 
 if on macOS/Linux.
 
