@@ -612,17 +612,17 @@ def get_freq():
         tx = tx['name']
         if tx == 'Single':
             freq = '400'
-        elif tx in ['CTX_500','DPX_500','H246','R15148','IGT64_500']:
+        elif tx in ['CTX_500','DPX_500','H246','R15148']:
             freq = '500'
-        elif tx in ['CTX_250','CTX_250_2ch']:
+        elif tx == 'CTX_250':
             freq = '250'
         elif tx == 'H317':
             freq = '250'
-        elif tx in ['BSonix','I12378','R15646']:
+        elif tx in ['BSonix','I12378']:
             freq = '650'
         elif tx in ['ATAC']:
             freq = '1000'
-        elif tx in ['REMOPD','R15287','DPXPC_300','R15473']:
+        elif tx == 'REMOPD':
             freq = '300'
         return freq
     
@@ -957,170 +957,6 @@ def pytest_runtest_makereport(item,call):
             extras.append(pytest_html.extras.html(f"<tr>{img_tags}</tr>"))
             
         report.extras = extras
-        
-    if (report.when == 'call') or (report.when in ['setup', 'teardown'] and report.failed):
-        extras = getattr(report, 'extras', [])
-        _create_individual_test_report(item, report, extras)
-
-def _create_individual_test_report(item, report, extras):
-    '''
-    Create an individual HTML report for a single test.
-
-    Parameters
-    ----------
-    item : pytest.Item
-        The test item that was executed.
-    report : pytest.TestReport
-        The test report containing results and metadata.
-    extras : list
-        List of extra content (screenshots, logs, etc.) to include in the report.
-    '''
-    # Create test-specific report directory
-    test_reports_dir = os.path.join(REPORTS_DIR, "individual_tests")
-    os.makedirs(test_reports_dir, exist_ok=True)
-    
-    # Generate safe filename from test name
-    safe_test_name = re.sub(r'[^\w\-_\.]', '_', item.nodeid)
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    report_filename = f"{safe_test_name}_{timestamp}.html"
-    report_path = os.path.join(test_reports_dir, report_filename)
-    
-    # Determine test status and styling
-    if report.passed:
-        status = "PASSED"
-        status_color = "#28a745"
-    elif report.failed:
-        status = "FAILED"
-        status_color = "#dc3545"
-    elif report.skipped:
-        status = "SKIPPED"
-        status_color = "#ffc107"
-    else:
-        status = "UNKNOWN"
-        status_color = "#6c757d"
-    
-    # Build HTML content
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Test Report: {item.name}</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .header {{ background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
-            .status {{ font-weight: bold; color: {status_color}; }}
-            .section {{ margin: 20px 0; }}
-            .section h3 {{ color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }}
-            .code {{ background-color: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace; }}
-            .error {{ background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 3px; }}
-            table {{ border-collapse: collapse; width: 100%; }}
-            td {{ padding: 5px; border: 1px solid #dee2e6; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>Test Report: {item.name}</h1>
-            <p><strong>Status:</strong> <span class="status">{status}</span></p>
-            <p><strong>Test ID:</strong> {item.nodeid}</p>
-            <p><strong>Duration:</strong> {report.duration:.4f} seconds</p>
-            <p><strong>Timestamp:</strong> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        </div>
-    """
-    
-    # Add test parameters if available
-    if hasattr(item, 'callspec') and item.callspec.params:
-        html_content += """
-        <div class="section">
-            <h3>Test Parameters</h3>
-            <table>
-        """
-        for param_name, param_value in item.callspec.params.items():
-            html_content += f"<tr><td><strong>{param_name}</strong></td><td>{param_value}</td></tr>"
-        html_content += "</table></div>"
-    
-    # Add failure information if test failed
-    if report.failed and report.longrepr:
-        html_content += f"""
-        <div class="section">
-            <h3>Failure Details</h3>
-            <div class="error">
-                <pre>{report.longrepr}</pre>
-            </div>
-        </div>
-        """
-    
-    # Add skip reason if test was skipped
-    if report.skipped and report.longrepr:
-        html_content += f"""
-        <div class="section">
-            <h3>Skip Reason</h3>
-            <div class="code">
-                {report.longrepr}
-            </div>
-        </div>
-        """
-    
-    # Add captured output if available
-    if hasattr(report, 'capstdout') and report.capstdout:
-        html_content += f"""
-        <div class="section">
-            <h3>Captured Output</h3>
-            <div class="code">
-                <pre>{report.capstdout}</pre>
-            </div>
-        </div>
-        """
-    
-    # Add captured logs if available
-    if hasattr(report, 'caplog') and report.caplog:
-        html_content += f"""
-        <div class="section">
-            <h3>Captured Logs</h3>
-            <div class="code">
-                <pre>{report.caplog}</pre>
-            </div>
-        </div>
-        """
-    
-    # Add extras (screenshots, plots, etc.)
-    if extras:
-        html_content += """
-        <div class="section">
-            <h3>Additional Content</h3>
-            <table>
-        """
-        for extra in extras:
-            if hasattr(extra, 'content'):
-                html_content += f"<tr><td>{extra.content}</td></tr>"
-        html_content += "</table></div>"
-
-    if hasattr(item, 'screenshots'):
-        html_content += f"""
-        <div class="section">
-            <h3>Screenshots</h3>
-        """
-        for screenshot in item.screenshots:
-            img_tags = "<td><img src='data:image/png;base64,{}'></td>".format(screenshot)
-            html_content += f"""
-            <table>
-                <tr>{img_tags}</tr>
-            </table>
-            """
-        html_content += f"""
-        </div>
-        """
-    html_content += """
-    </body>
-    </html>
-    """
-    
-    # Write the HTML report to file
-    try:
-        with open(report_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-    except Exception as e:
-        print(f"Failed to create individual test report: {e}")
-
 
 @pytest.hookimpl()
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
