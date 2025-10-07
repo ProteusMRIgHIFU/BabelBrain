@@ -5,13 +5,7 @@ import os
 
 import pytest
 
-config = configparser.ConfigParser()
-config.read('Tests' + os.sep + 'config.ini')
-ref_output_dir = config['Paths']['ref_output_folder_1']
-ref_output_dir_2 = config['Paths']['ref_output_folder_2']
-gen_output_dir = config['Paths']['gen_output_folder']
-
-def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,request):
+def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,request,transducer):
 
     # Save plot screenshot to be added to html report later
     request.node.screenshots = []
@@ -75,7 +69,9 @@ def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,r
     if len(exceptions) > 0:
         pytest.fail(f"Test failed due to error in execution: {exceptions}")
     
-def test_full_pipeline_normal_regression(qtbot,babelbrain_widget,image_to_base64,check_os,compare_BabelBrain_Outputs,request,tmp_path,tolerance):
+def test_full_pipeline_regression_normal(qtbot,babelbrain_widget,image_to_base64,check_os,compare_BabelBrain_Outputs,request,tmp_path,tolerance,get_config_dirs):
+    config_dirs = get_config_dirs
+    ref_output_dir = config_dirs['ref_dir_1']
     
     # Save plot screenshot to be added to html report later
     request.node.screenshots = []
@@ -144,8 +140,12 @@ def test_full_pipeline_normal_regression(qtbot,babelbrain_widget,image_to_base64
     
     assert bb_outputs_match == True, "There were differences between the h5 files, see logged warnings for more details"
     
-def test_full_pipeline_two_outputs(compare_BabelBrain_Outputs,tolerance):
+def test_full_pipeline_two_outputs(compare_BabelBrain_Outputs,tolerance,get_config_dirs):
 
+    config_dirs = get_config_dirs
+    ref_output_dir = config_dirs['ref_dir_1']
+    ref_output_dir_2 = config_dirs['ref_dir_2']
+    
     bb_outputs_match = compare_BabelBrain_Outputs(ref_folder = ref_output_dir, test_folder = ref_output_dir_2,tolerance=tolerance)
         
     assert bb_outputs_match == True, "There were differences between the h5 files, see logged warnings for more details"

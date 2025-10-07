@@ -40,6 +40,7 @@ gpu_device = config['GPU']['device_name']               # GPU device used for te
 print('Using GPU device: ',gpu_device)
 test_data_folder = config['Paths']['data_folder_path']  # Folder containing input test data
 ref_output_dir = config['Paths']['ref_output_folder_1']   # Folder containing previously generated BabelBrain outputs. Used in regression tests
+ref_output_dir_2 = config['Paths']['ref_output_folder_2']   # Folder containing previously generated BabelBrain outputs. Used in test_full_pipeline_two_outputs tests
 gen_output_dir = config['Paths']['gen_output_folder']   # Folder to store newly generated BabelBrain outputs. Used for generate_outputs "test"
 REPORTS_DIR = "PyTest_Reports"
 
@@ -96,23 +97,23 @@ thermal_profiles = {
     'thermal_profile_3': test_data_folder + os.sep + 'Profiles' + os.sep + 'Thermal_Profile_3.yaml'
 }
 transducers = [
-    {'name': 'Single', 'dropdown_index': 0, 'diameter': 0}, # EDIT DIAMETER
-    {'name': 'CTX_500', 'dropdown_index': 1, 'diameter': 0},
-    {'name': 'CTX_250', 'dropdown_index': 2, 'diameter': 0},
-    {'name': 'CTX_250_2ch', 'dropdown_index': 3, 'diameter': 0},
-    {'name': 'DPX_500', 'dropdown_index': 4, 'diameter': 0},
-    {'name': 'DPXPC_300', 'dropdown_index': 5, 'diameter': 0},
-    {'name': 'H317', 'dropdown_index': 6, 'diameter': 0},
-    {'name': 'H246', 'dropdown_index': 7, 'diameter': 0},
-    {'name': 'BSonix', 'dropdown_index': 8, 'diameter': 0},
-    {'name': 'REMOPD', 'dropdown_index': 9, 'diameter': 0},
-    {'name': 'I12378', 'dropdown_index': 10, 'diameter': 0},
-    {'name': 'ATAC', 'dropdown_index': 11, 'diameter': 0},
-    {'name': 'R15148', 'dropdown_index': 12, 'diameter': 0},
-    {'name': 'R15287', 'dropdown_index': 13, 'diameter': 0},
-    {'name': 'R15473', 'dropdown_index': 14, 'diameter': 0},
-    {'name': 'R15646', 'dropdown_index': 15, 'diameter': 0},
-    {'name': 'IGT64_500', 'dropdown_index': 16, 'diameter': 0}
+    {'name': 'Single',      'dropdown_index': 0,  'diameter': 0, 'freqs':[200000.0,250000.0,300000.0,350000.0,400000.0,450000.0,500000.0,550000.0,600000.0,650000.0,700000.0,750000.0,800000.0,850000.0,900000.0,950000.0,1000000.0]}, # EDIT DIAMETER
+    {'name': 'CTX_500',     'dropdown_index': 1,  'diameter': 0, 'freqs':[500000.0,545000.0]},
+    {'name': 'CTX_250',     'dropdown_index': 2,  'diameter': 0, 'freqs':[250000.0]},
+    {'name': 'CTX_250_2ch', 'dropdown_index': 3,  'diameter': 0, 'freqs':[250000.0]},
+    {'name': 'DPX_500',     'dropdown_index': 4,  'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'DPXPC_300',   'dropdown_index': 5,  'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'H317',        'dropdown_index': 6,  'diameter': 0, 'freqs':[250000.0,700000.0,825000.0]},
+    {'name': 'H246',        'dropdown_index': 7,  'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'BSonix',      'dropdown_index': 8,  'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'REMOPD',      'dropdown_index': 9,  'diameter': 0, 'freqs':[300000.0,480000.0,490000.0]},
+    {'name': 'I12378',      'dropdown_index': 10, 'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'ATAC',        'dropdown_index': 11, 'diameter': 0, 'freqs':[1000000.0]},
+    {'name': 'R15148',      'dropdown_index': 12, 'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'R15287',      'dropdown_index': 13, 'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'R15473',      'dropdown_index': 14, 'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'R15646',      'dropdown_index': 15, 'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'IGT64_500',   'dropdown_index': 16, 'diameter': 0, 'freqs':[500000.0]}
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -231,11 +232,16 @@ def check_os(computing_backend):
 
 @pytest.fixture(scope="session")
 def get_gpu_device():
-    
-    def _get_gpu_device():
-        return gpu_device
+    return gpu_device
 
-    return _get_gpu_device
+@pytest.fixture(scope="session")
+def get_config_dirs():
+    config_dirs = {}
+    config_dirs["test_data_dir"] = test_data_folder
+    config_dirs["ref_dir_1"] = ref_output_dir
+    config_dirs["ref_dir_2"] = ref_output_dir_2
+    config_dirs["gen_output_dir"] = gen_output_dir
+    return config_dirs
 
 @pytest.fixture()
 def get_rmse():
@@ -395,8 +401,7 @@ def compare_data(get_rmse):
             obj2 = f2[name]
             if isinstance(obj1, h5py.Dataset):
                 data1, data2 = obj1[()], obj2[()]
-                if not np.allclose(data1, data2, rtol=tolerance, atol=0):
-                # if not np.array_equal(data1, data2):
+                if not np.allclose(data1, data2, rtol=tolerance, atol=0,equal_nan=True):
                     if data1.size > 1:
                         logging.warning(f"Dataset {name} differs")
                     else:
@@ -603,8 +608,8 @@ def get_pyvista_plot():
 
 @pytest.fixture()
 def get_freq():
-
-    def _get_freq(tx):
+    def _get_default_freq(tx):
+        tx = tx['name']
         if tx == 'Single':
             freq = '400'
         elif tx in ['CTX_500','DPX_500','H246','R15148','IGT64_500']:
@@ -620,8 +625,14 @@ def get_freq():
         elif tx in ['REMOPD','R15287','DPXPC_300','R15473']:
             freq = '300'
         return freq
+    
+    def _get_low_freq(tx):
+        return tx['freqs'][0]
+        
+    def _get_high_freq(tx):
+        return tx['freqs'][-1]
 
-    return _get_freq
+    return {'default': _get_default_freq,'low': _get_low_freq,'high': _get_high_freq}
 
 @pytest.fixture()
 def get_extra_scan_file():
@@ -647,7 +658,7 @@ def selfiles_widget(qtbot):
 
     yield sf_widget
     
-    # sf_widget.close()
+    sf_widget.close()
     sf_widget.deleteLater()
 
 @pytest.fixture()
@@ -658,12 +669,18 @@ def babelbrain_widget(request,qtbot,
                       dataset,
                       transducer,
                       selfiles_widget,
-                      get_freq,
+                      frequency,
                       get_extra_scan_file,
                       computing_backend,
+                      load_files,
                       tmp_path):
+    created_widgets = []
     
     def _babelbrain_widget(generate_outputs=False):
+        
+        # Convert frequency to string
+        freq = str(int(frequency/1000)
+                   )
         # Folder paths
         input_folder = dataset['folder_path']
         simNIBS_folder = dataset['m2m_folder_path']
@@ -671,21 +688,23 @@ def babelbrain_widget(request,qtbot,
         if generate_outputs:
             if not os.path.exists(gen_output_dir):
                 pytest.fail(f"output folder does not exist:\n{gen_output_dir}")
-            output_folder = gen_output_dir + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={get_freq(transducer['name'])}_{computing_backend['type']}{os.sep}"
-            try:
-                os.makedirs(output_folder)
-            except:
-                shutil.rmtree(output_folder)
-                os.makedirs(output_folder)
+            output_folder = gen_output_dir + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
         else:
-            output_folder = tmp_path
+            output_folder = str(tmp_path) + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
 
+        try:
+            os.makedirs(output_folder)
+        except:
+            shutil.rmtree(output_folder)
+            os.makedirs(output_folder)
+                
         # Filenames
         T1W_file = dataset['T1_path']
         if scan_type != 'NONE':
             CT_file = get_extra_scan_file(scan_type,input_folder)
         thermal_profile_file = thermal_profiles['thermal_profile_1']
         trajectory_file = trajectory_folder + f"{trajectory_type}_{dataset['id']}_{trajectory}.txt"
+        load_files([trajectory_file]) # Use to ensure trajectory file exists otherwise skip
 
         # Set SelFiles Parameters
         selfiles_widget.ui.TrajectoryTypecomboBox.setCurrentIndex(test_trajectory_type[trajectory_type])
@@ -711,6 +730,7 @@ def babelbrain_widget(request,qtbot,
         bb_widget = BabelBrain(selfiles_widget,AltOutputFilesPath=str(output_folder))
         bb_widget.show()
         qtbot.addWidget(bb_widget) # qtbot will handle bb_widget teardown
+        created_widgets.append(bb_widget)
 
         # Copy T1W file and additional scan over to output folder
         # Not needed?
@@ -729,6 +749,7 @@ def babelbrain_widget(request,qtbot,
         # Copy Trajectory file over to output folder
         trajectory_new_file = os.path.join(output_folder,os.path.basename(bb_widget.Config['Mat4Trajectory']))
         shutil.copy(bb_widget.Config['Mat4Trajectory'],trajectory_new_file)
+        bb_widget.Config['ID'] = os.path.splitext(os.path.basename(bb_widget.Config['Mat4Trajectory']))[0] # Affects trajectory naming in output files
 
         # Edit file paths so new data is saved in output folder
         bb_widget.Config['Mat4Trajectory'] = trajectory_new_file
@@ -738,27 +759,26 @@ def babelbrain_widget(request,qtbot,
             bb_widget.Config['CT_or_ZTE_input'] = os.path.join(output_folder,os.path.basename(bb_widget.Config['CT_or_ZTE_input']))
 
         # Set Sim Parameters
-        freq = get_freq(transducer['name'])
-
         freq_index = bb_widget.Widget.USMaskkHzDropDown.findText(freq)
 
         bb_widget.Widget.USMaskkHzDropDown.setCurrentIndex(freq_index)
         bb_widget.Widget.USPPWSpinBox.setProperty('UserData',6) # 6 PPW
         if scan_type != 'NONE':
             bb_widget.Widget.HUThresholdSpinBox.setValue(300)
-
-        # Teardown Function
-        def bb_widget_teardown():
-            bb_widget.deleteLater()
-            if tmp_path.exists():
-                shutil.rmtree(tmp_path) # Remove all files created in tmp folder
-            os.environ.pop('BABEL_PYTEST')
-            
-        request.addfinalizer(bb_widget_teardown)
         
         return bb_widget
 
-    return _babelbrain_widget
+    yield _babelbrain_widget
+
+    for w in created_widgets:
+        w.close()
+        w.deleteLater()
+    
+    if tmp_path.exists():
+        shutil.rmtree(tmp_path) # Remove all files created in tmp folder
+    
+    if 'BABEL_PYTEST' in os.environ:
+        os.environ.pop('BABEL_PYTEST')
 
 @pytest.fixture()
 def set_up_file_manager(load_files,tmpdir,get_example_data,get_extra_scan_file):
@@ -871,7 +891,19 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('dataset',tuple(test_datasets),ids=tuple(ds['id'] for ds in test_datasets))
     
     if 'transducer' in metafunc.fixturenames:
-        metafunc.parametrize('transducer', tuple(transducers),ids=tuple(tx['name'] for tx in transducers))
+        if 'frequency' in metafunc.fixturenames:
+            # Parametrize both transducer and freq
+            params = []
+            for tx in transducers:
+                for freq in tx['freqs']:
+                    params.append(pytest.param(tx, freq, id=f"{tx['name']}-{int(freq/1000)}kHz"))
+            metafunc.parametrize("transducer,frequency", params)
+        else:
+            # Only parametrize transducer
+            metafunc.parametrize(
+                "transducer",
+                [pytest.param(tx, id=tx['name']) for tx in transducers]
+            )
     
     if 'computing_backend' in metafunc.fixturenames:
         params = [pytest.param(cb, id=cb['type'], marks=pytest.mark.gpu) for cb in computing_backends]
@@ -899,6 +931,16 @@ def pytest_generate_tests(metafunc):
                               pytest.param(0.01, marks=pytest.mark.tol_1, id="1%_tolerance"),
                               pytest.param(0.05, marks=pytest.mark.tol_5, id="5%_tolerance")])
 
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        # Add markers for basic babelbrain param tests
+        if "Deep_Target" in item.name and \
+            "ID_0082" in item.name and \
+            "H317" in item.name and \
+            ("NONE" in item.name or "CT" in item.name or "ZTE" in item.name) and \
+            ("250kHz" in item.name or "825kHz" in item.name):
+            item.add_marker(pytest.mark.basic_babelbrain_params)
+            
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item,call):
     outcome = yield
