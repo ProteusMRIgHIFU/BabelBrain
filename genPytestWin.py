@@ -2,7 +2,7 @@ from subprocess import check_output, CalledProcessError, STDOUT
 
 
 if __name__ == "__main__":
-    command =['pytest', "-k","test_steps_normal and brainsight and Deep_Target and ( -CT- or -NONE- or -ZTE- ) and ID_0082","--co"]
+    command =['pytest', "-k","test_full_pipeline_normal and brainsight and Deep_Target and ( -CT- or -NONE- or -ZTE- ) and ID_0082","--co"]
     try:
         output = check_output(command, stderr=STDOUT).decode()
         success = True 

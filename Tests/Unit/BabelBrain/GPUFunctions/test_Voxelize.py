@@ -1,19 +1,16 @@
 import logging
 import os
 import re
-import sys
-sys.path.append('BabelBrain/GPUFunctions')
-sys.path.append('BabelBrain/GPUFunctions/GPUVoxelize')
 
 from nibabel import processing, nifti1, affines
 import numpy as np
 import pytest
-import trimesh
 
-import Voxelize
-from BabelDatasetPreps import FixMesh
+from BabelBrain.GPUFunctions.GPUVoxelize import Voxelize
+from BabelBrain.BabelDatasetPreps import FixMesh
 
-def test_Voxelize(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_pyvista_plot,compare_data,request):
+@pytest.mark.step1
+def test_Voxelize_vs_CPU(computing_backend,dataset,spatial_step,check_os,get_gpu_device,load_files,get_pyvista_plot,compare_data,request):
         
      # Parameters
      input_folder = dataset['folder_path']
