@@ -2,7 +2,7 @@
 
 This guide provides instructions for setting up and running pytest tests for BabelBrain, along with additional instructions for using it in Visual Studio Code.
 
-## Installation
+# Installation
 Before you begin, ensure you have Pytest installed in your environment.
 
 ``` bash
@@ -28,7 +28,7 @@ These optional packages may also be installed:
 pip install pytest-benchmark, pytest-profiling, pytest-sugar
 ```
 
-## Writing Tests
+# Writing Tests
 
 Pytest allows you to write tests using Python's built-in `assert` statement. Test files/tests should be named with the prefix `test_` so that pytest can automatically discover them.
 
@@ -79,8 +79,24 @@ BabelBrain/
 └── ...
 </pre>
 
-## Running Tests
-### In terminal
+# Types of Tests
+**Unit Test:**  
+As the name implies, these tests are for specific functions or "units" of BabelBrain. Simplest test to ensure individual components work properly.
+
+**Integration Test:**  
+Tests to ensure multiple components work together.
+
+**E2E (End-to-End) Test:**  
+Tests to ensure the entire pipeline works as expected.
+
+**Regression Test:**  
+Tests to ensure consistency to BabelBrain outputs following major changes. Requires previously generated outputs to use as truth data.
+
+**Generate_Outputs Test:**  
+A "Test" to automatically batch run and save BabelBrain outputs to be used in future regression tests.
+
+# Running Tests
+## In terminal
 
 In the highest level directory of BabelBrain, simply execute the `pytest` command in your terminal. This command will discover and run **ALL** tests. Note that pytest will automatically be configured based on parameters specified in the `pytest.ini` file. 
 
@@ -102,7 +118,7 @@ pytest -k "addition and subtraction"
 pytest -m "custom_marker_1"
 ```
 
-Note that a full list of available markers can be found in the `pytest.ini` file.
+Note that a full list of available markers can be found in the [pytest.ini](pytest.ini) file.
 
 If you want to see what tests are collected without running them, you can add the `--collect-only` option
 
@@ -112,7 +128,7 @@ pytest -m "custom_marker_1" --collect-only
 
 More information on other types of pytest arguments can be found [here](https://docs.pytest.org/en/6.2.x/usage.html).
 
-### In Visual Studio Code
+## In Visual Studio Code
 
 Open your project in Visual Studio Code. Install Python and Test Explorer UI extensions for Visual Studio Code.
 
@@ -133,18 +149,19 @@ Visual Studio Code will now discover pytest tests and display them in the testin
 
 If they do not appear, open the Command Palette again and select "Python: Select Interpreter" and choose the one in the same environment as your pytest package.
 
-Note that the commandline arguments are still specified in the `pytest.ini` file and are run automatically.
+Note that the commandline arguments are still specified in the [pytest.ini](pytest.ini) file and are run automatically.
 
 Alternatively, tests can be run from the integrated terminal similar to previous section.
 
 
-## Additional Setup for BabelBrain testing
-Certain tests require a directory containing test data, GPU device name, etc. These parameters are specified in the `config.ini` which is an untracked file as it is user-specific. If it's your first time running tests, you should create the `config.ini` file inside the `Tests/` folder (see folder structure example from earlier) and format it as follows:
+# Additional Setup for BabelBrain testing
+Certain tests require a directory containing test data, GPU device name, etc. These parameters are specified in the `config.ini` which is an untracked file as it is user-specific. If it's your first time running tests, you should duplicate the [example_config.ini](example_config.ini) file, update variables to match your setup, then rename the file to `config.ini`. This file possesses roughly the following format:
 
-```plaintext
+```ini
 [Paths]
 data_folder_path  = <path to test data>
-ref_output_folder = <path to reference BabelBrain output data>
+ref_output_folder_1 = <path to reference BabelBrain output data set 1>
+ref_output_folder_2 = <path to reference BabelBrain output data set 2>
 gen_output_folder = <path to folder to store outputs from test_generate_outputs.py>
 
 [GPU]
@@ -186,8 +203,9 @@ BabelBrain_Test_Data/
 └── ...
 </pre>
 
-The names of datasets, trajectories, and transducers can be modified in the parameters section in the `conftest.py` file.
+The names of datasets, trajectories, and transducers can be modified in the parameters section in the [conftest.py](conftest.py) file.
 
-## Further Reading
+# Further Reading
 For more information about pytest and its features, check out the [pytest documentation](https://docs.pytest.org/en/latest/).
 
+For examples of specific BabelBrain pytests, see [BABELBRAIN_PYTEST](BABELBRAIN_PYTEST.md) file
