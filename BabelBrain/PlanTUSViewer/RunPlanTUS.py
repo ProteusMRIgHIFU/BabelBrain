@@ -240,9 +240,12 @@ class RUN_PLAN_TUS(QObject):
             transducer_diameter=BabelTxConfig['CaseDiameter']
             plane_offset=0.0
             additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
-            seldevice = self.MainApp.AcSim.Widget.GetTxModel()
-            focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FocalDistanceList']
-            flhm_list=BabelTxConfig['PlanTUS'][SelFreq][seldevice]['FHMLList']
+            seldevice = self.MainApp.AcSim.GetTxModel()
+            focal_distance_list=[]
+            flhm_list=[]
+            for k in BabelTxConfig['PlanTUS'][SelFreq]:
+                focal_distance_list+=BabelTxConfig['PlanTUS'][SelFreq][k]['FocalDistanceList']
+                flhm_list+=BabelTxConfig['PlanTUS'][SelFreq][k]['FHMLList']
             min_distance=np.min(focal_distance_list)
             max_distance=np.max(focal_distance_list)
         else: # single element Tx
