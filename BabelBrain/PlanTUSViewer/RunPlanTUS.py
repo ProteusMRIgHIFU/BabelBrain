@@ -186,7 +186,7 @@ class RUN_PLAN_TUS(QObject):
         TxSystem = self.MainApp.Config['TxSystem']
         SelFreq=self.MainApp.Widget.USMaskkHzDropDown.property('UserData')
         TrajectoryType=self.MainApp.Config['TrajectoryType']
-        Mat4Trajectory=self.MainApp.Config['Mat4Trajectory']
+        Mat4Trajectory=self.MainApp.Config['OrigMat4Trajectory']
 
         PlanTUSRoot=self.OptionsDlg.ui.PlanTUSRootlineEdit.text()
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
@@ -444,7 +444,7 @@ class RUN_PLAN_TUS(QObject):
                         with open(foutnameBSight, 'w') as f:
                             f.write(outString)
 
-                        transform = BSight_to_itk(transform)
+                        transform = BSight_to_itk(ReadTrajectoryBrainsight(foutnameBSight))
                         transform[:3,:3]=transform[:3,:3].T
                         outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
@@ -455,9 +455,10 @@ class RUN_PLAN_TUS(QObject):
                                         m2n0=transform[0,2],
                                         m2n1=transform[1,2],
                                         m2n2=transform[2,2],
-                                        X=self._RMat[0,3],
-                                        Y=self._RMat[1,3],
-                                        Z=self._RMat[2,3])
+                                        X=transform[0,3],
+                                        Y=transform[1,3],
+                                        Z=transform[2,3])
+
                         foutnameSlicer = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
                         with open(foutnameSlicer, 'w') as f:
                             f.write(outString)
@@ -476,7 +477,7 @@ class RUN_PLAN_TUS(QObject):
                             ext='*Slicer.txt'
                             lastfoutname=foutnameSlicer
 
-                        finalfname=self.MainApp.Config['Mat4Trajectory'].split('.txt')[0]+'_PlanTUS.txt'
+                        finalfname=self.MainApp.Config['OrigMat4Trajectory'].split('.txt')[0]+'_PlanTUS.txt'
                                 
     
                         if len(trajFiles)>1:
