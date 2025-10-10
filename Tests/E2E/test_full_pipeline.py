@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,request,transducer):
+def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,request,transducer):
 
     # Save plot screenshot to be added to html report later
     request.node.screenshots = []
@@ -69,7 +69,7 @@ def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,r
     if len(exceptions) > 0:
         pytest.fail(f"Test failed due to error in execution: {exceptions}")
     
-def test_full_pipeline_regression_normal(qtbot,babelbrain_widget,image_to_base64,check_os,compare_BabelBrain_Outputs,request,tmp_path,tolerance,get_config_dirs):
+def test_full_pipeline_regression_normal(qtbot,babelbrain_widget,image_to_base64,compare_BabelBrain_Outputs,request,tmp_path,tolerance,get_config_dirs):
     config_dirs = get_config_dirs
     ref_output_dir = config_dirs['ref_dir_1']
     

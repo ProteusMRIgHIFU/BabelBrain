@@ -672,6 +672,7 @@ def babelbrain_widget(request,qtbot,
                       frequency,
                       get_extra_scan_file,
                       computing_backend,
+                      check_os,
                       load_files,
                       tmp_path):
     created_widgets = []
