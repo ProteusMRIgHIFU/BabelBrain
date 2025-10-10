@@ -7,3 +7,4 @@ ExternalBin/elastix/linux/bin/* binary
 ExternalBin/elastix/mac/lib/* binary
 ExternalBin/elastix/mac/bin/* binary
 ExternalBin/elastix/windows/* binary
+*.ipynb text eol=lf

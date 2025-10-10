@@ -24,7 +24,41 @@ def default_output_path(in_path, provided: None):
         stem = in_path
     return f"{stem}_mask.nii.gz"
 
-def create_single_voxel_mask(in_path, ras, out_path):
+def ellipsoid_mask(shape, radii, center=None):
+    """
+    Create an ellipsoidal mask in a 3D array.
+
+    Parameters
+    ----------
+    shape : tuple of int
+        Dimensions of the 3D array (I, J, K).
+    radii : tuple of float
+        Radii along each axis (ri, rj, rk).
+    center : tuple of float, optional
+        Center of the ellipsoid (zi, yj, xk). If None, defaults to the center of the volume.
+
+    Returns
+    -------
+    mask : np.ndarray of bool
+        Boolean mask with True inside the ellipsoid.
+    """
+    I, J, K = shape
+    ri, rj, rk = radii
+
+    if center is None:
+        center = (I / 2, J / 2, K / 2)
+
+    # Coordinate grid
+    z, y, x = np.ogrid[:I, :J, :K]
+
+    # Normalized distance for ellipsoid
+    dist = ((z - center[0]) / ri) ** 2 + ((y - center[1]) / rj) ** 2 + ((x - center[2]) / rk) ** 2
+
+    # Inside ellipsoid if sum of squares <= 1
+    mask = dist <= 1
+    return mask.astype(np.float32)
+
+def create_target_mask(in_path, ras, out_path, raddi=(1,1,1)):
     '''
     Create a binary mask NIfTI file with a single voxel set to 1 at the specified RAS coordinate.
     '''
@@ -43,12 +77,11 @@ def create_single_voxel_mask(in_path, ras, out_path):
     if not in_bounds(idx, shape3d):
         raise ValueError(f"Error: computed voxel index {tuple(idx)} is out of bounds for volume shape {shape3d}.")
 
-    mask = np.zeros(shape3d, dtype=np.uint8)
-    mask[tuple(idx)] = 1
+    mask = ellipsoid_mask(shape3d, raddi, center=idx)
 
     # Prepare header: copy from input, but ensure correct datatype and 3D shape
     header = img.header.copy()
-    header.set_data_dtype(np.uint8)
+    header.set_data_dtype(np.float32)
     header.set_data_shape(mask.shape)
 
     out_img = nib.Nifti1Image(mask, affine, header=header)
@@ -82,7 +115,7 @@ def main():
 
     out_path = default_output_path(in_path, args.output)
 
-    create_single_voxel_mask(in_path, ras, out_path)
+    create_target_mask(in_path, ras, out_path)
 
 if __name__ == "__main__":
     main()

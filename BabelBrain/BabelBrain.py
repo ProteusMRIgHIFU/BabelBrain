@@ -401,6 +401,7 @@ class BabelBrain(QWidget):
         self.Config['SimbNIBSType']=SimbNIBSType
         self.Config['TrajectoryType']=TrajectoryType
         self.Config['Mat4Trajectory']=Mat4Trajectory
+        self.Config['OrigMat4Trajectory']=Mat4Trajectory
         self.Config['ThermalProfile']=ThermalProfile
         self.Config['T1W']=T1W
         self.Config['bUseCT']=bUseCT
