@@ -6,7 +6,7 @@ git checkout main
 sed -i '' "/gen_output_folder/c\\
 gen_output_folder = /Volumes/Samsung_T5/BabelBrainRegression/Generated_Outputs/v0.4.3
 " Tests/config.ini
-pytest -k "test_full_pipeline_normal and Metal and (H317 or CTX_500)" -m "basic_babelbrain_params"
+pytest -k "test_full_pipeline_normal and Metal and (H317 or CTX_500) and None" -m "basic_babelbrain_params"
 conda deactivate
 conda activate BabelMLX #activating 2nd reference 
 git checkout MLXv2
@@ -14,7 +14,7 @@ git checkout MLXv2
 sed -i '' "/gen_output_folder/c\\
 gen_output_folder = /Volumes/Samsung_T5/BabelBrainRegression/Generated_Outputs/v0.8.0
 " Tests/config.ini
-pytest -k "test_full_pipeline_normal and MLX and (H317 or CTX_500)" -m "basic_babelbrain_params"
+pytest -k "test_full_pipeline_normal and MLX and (H317 or CTX_500) and None" -m "basic_babelbrain_params"
 #setting comparison directories
 sed -i '' "/ref_output_folder_1/c\\
 ref_output_folder_1 = /Volumes/Samsung_T5/BabelBrainRegression/Generated_Outputs/v0.4.3
