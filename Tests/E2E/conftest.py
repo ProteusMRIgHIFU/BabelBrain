@@ -8,7 +8,7 @@ import pytest
 
 @pytest.fixture
 def compare_BabelBrain_Outputs(compare_data):
-    def _compare_BabelBrain_Outputs(ref_folder,test_folder,tolerance):
+    def _compare_BabelBrain_Outputs(ref_folder,test_folder,tolerance,node_screenshots):
         
         # Find h5 files in folders
         pattern = "**/*ThermalField_AllCombinations.h5"
@@ -42,14 +42,14 @@ def compare_BabelBrain_Outputs(compare_data):
             h5_ref = ref_lookup.get(test_base)
             if h5_ref:
                 logging.info(f"\n\nComparing\n{h5_test}\n{h5_ref}\n")
-                matches.append(compare_h5(h5_ref, h5_test, tolerance=tolerance))
+                matches.append(compare_h5(h5_ref, h5_test, node_screenshots,tolerance=tolerance))
             else:
                 # See if there is another reference file that uses different gpu
                 test_base_no_gpu = grab_folder_file_name(h5_test,no_gpu=True)
                 h5_ref = ref_lookup_no_gpu.get(test_base_no_gpu)
                 if h5_ref:
                     logging.info(f"\nComparing\n{h5_test}\n{h5_ref}\n")
-                    matches.append(compare_h5(h5_ref, h5_test, tolerance=tolerance))
+                    matches.append(compare_h5(h5_ref, h5_test, node_screenshots,tolerance=tolerance))
                 else:
                     missing_ref_files.append(h5_test)
         
