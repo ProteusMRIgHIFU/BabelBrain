@@ -101,15 +101,22 @@ transducers = [
     {'name': 'Single',      'dropdown_index': 0,  'diameter': 0, 'freqs':[200000.0,250000.0,300000.0,350000.0,400000.0,450000.0,500000.0,550000.0,600000.0,650000.0,700000.0,750000.0,800000.0,850000.0,900000.0,950000.0,1000000.0]}, # EDIT DIAMETER
     {'name': 'CTX_500',     'dropdown_index': 1,  'diameter': 0, 'freqs':[500000.0,545000.0]},
     {'name': 'CTX_250',     'dropdown_index': 2,  'diameter': 0, 'freqs':[250000.0]},
-    {'name': 'DPX_500',     'dropdown_index': 3,  'diameter': 0, 'freqs':[500000.0]},
-    {'name': 'H317',        'dropdown_index': 4,  'diameter': 0, 'freqs':[250000.0,700000.0,825000.0]},
-    {'name': 'H246',        'dropdown_index': 5,  'diameter': 0, 'freqs':[500000.0]},
-    {'name': 'BSonix',      'dropdown_index': 6,  'diameter': 0, 'freqs':[650000.0]},
-    {'name': 'REMOPD',      'dropdown_index': 7,  'diameter': 0, 'freqs':[300000.0,480000.0,490000.0]},
-    {'name': 'I12378',      'dropdown_index': 8, 'diameter': 0, 'freqs':[650000.0]},
-    {'name': 'ATAC',        'dropdown_index': 9, 'diameter': 0, 'freqs':[1000000.0]},
-    {'name': 'R15148',      'dropdown_index': 10, 'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'CTX_250_2ch', 'dropdown_index': 3,  'diameter': 0, 'freqs':[250000.0]},
+    {'name': 'DPX_500',     'dropdown_index': 4,  'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'DPXPC_300',   'dropdown_index': 5,  'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'H317',        'dropdown_index': 6,  'diameter': 0, 'freqs':[250000.0,700000.0,825000.0]},
+    {'name': 'H246',        'dropdown_index': 7,  'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'BSonix',      'dropdown_index': 8,  'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'REMOPD',      'dropdown_index': 9,  'diameter': 0, 'freqs':[300000.0,480000.0,490000.0]},
+    {'name': 'I12378',      'dropdown_index': 10, 'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'ATAC',        'dropdown_index': 11, 'diameter': 0, 'freqs':[1000000.0]},
+    {'name': 'R15148',      'dropdown_index': 12, 'diameter': 0, 'freqs':[500000.0]},
+    {'name': 'R15287',      'dropdown_index': 13, 'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'R15473',      'dropdown_index': 14, 'diameter': 0, 'freqs':[300000.0]},
+    {'name': 'R15646',      'dropdown_index': 15, 'diameter': 0, 'freqs':[650000.0]},
+    {'name': 'IGT64_500',   'dropdown_index': 16, 'diameter': 0, 'freqs':[500000.0]},
 ]
+
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
     {'type': 'OpenCL','supported_os': ['Windows','Linux']},
@@ -637,17 +644,15 @@ def get_freq():
         tx = tx['name']
         if tx == 'Single':
             freq = '400'
-        elif tx in ['CTX_500','DPX_500','H246','R15148']:
+        elif tx in ['CTX_500','DPX_500','H246','R15148','IGT64_500']:
             freq = '500'
-        elif tx == 'CTX_250':
+        elif tx in ['CTX_250','H317','CTX_250_2ch']:
             freq = '250'
-        elif tx == 'H317':
-            freq = '250'
-        elif tx in ['BSonix','I12378']:
+        elif tx in ['BSonix','I12378','R15646']:
             freq = '650'
         elif tx in ['ATAC']:
             freq = '1000'
-        elif tx == 'REMOPD':
+        elif tx in ['REMOPD','DPXPC_300','R15287','R15473']:
             freq = '300'
         return freq
     
