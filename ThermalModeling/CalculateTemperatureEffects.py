@@ -157,7 +157,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     print('Water Acoustic Energy entering',AcousticEnergyWater)
     if bForceHomogenousMedium:
         selregion = MaterialMap ==0
-    elif  len(IdRegionBenchmark)>=0:
+    elif  len(IdRegionBenchmark)>0:
         selregion= np.isin(MaterialMap,IdRegionBenchmark)
     else:
         if bSegmentedBrain:

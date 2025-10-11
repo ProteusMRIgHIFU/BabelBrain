@@ -15,6 +15,7 @@ from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')  # Use the 'Agg' backend, which is noninteractive
 import matplotlib.pyplot as plt
+from PIL import Image
 import nibabel
 from nibabel import processing, nifti1, affines
 import numpy as np
@@ -113,7 +114,7 @@ transducers = [
     {'name': 'R15287',      'dropdown_index': 13, 'diameter': 0, 'freqs':[300000.0]},
     {'name': 'R15473',      'dropdown_index': 14, 'diameter': 0, 'freqs':[300000.0]},
     {'name': 'R15646',      'dropdown_index': 15, 'diameter': 0, 'freqs':[650000.0]},
-    {'name': 'IGT64_500',   'dropdown_index': 16, 'diameter': 0, 'freqs':[500000.0]}
+    {'name': 'IGT64_500',   'dropdown_index': 16, 'diameter': 0, 'freqs':[500000.0]},
 ]
 computing_backends = [
     # {'type': 'CPU','supported_os': ['Mac','Windows','Linux']},
@@ -390,7 +391,7 @@ def compare_data(get_rmse):
         logging.info(f"DICE Coefficient: {dice_coeff}")
         return dice_coeff
     
-    def h5_data(h5_ref_path,h5_test_path,tolerance=0):
+    def h5_data(h5_ref_path,h5_test_path,node_screenshots,tolerance=0):
         mismatches = []
         
         def compare_items(name, obj1):
@@ -401,9 +402,34 @@ def compare_data(get_rmse):
             obj2 = f2[name]
             if isinstance(obj1, h5py.Dataset):
                 data1, data2 = obj1[()], obj2[()]
-                if not np.allclose(data1, data2, rtol=tolerance, atol=0,equal_nan=True):
+                if not np.allclose(data1, data2, rtol=tolerance, equal_nan=True): #atol=0,
                     if data1.size > 1:
                         logging.warning(f"Dataset {name} differs")
+                        if len(data1.shape)==3: #we save some screenshots of projection of error
+                            if np.issubdtype(data1.dtype, np.integer):
+                                diff=np.max(np.abs(data2-data1),axis=0)
+                                dlabel=''
+                            else:
+                                diff=np.abs(data2-data1)
+                                diff[data1==0.0]=0
+                                diff[data1!=0.0]/=data1[data1!=0]
+                                diff=np.max(diff,axis=0) #MIP projection
+                                diff*=100
+                                dlabel=' %'
+                            plt.figure()
+                            plt.imshow(diff)
+                            plt.colorbar()
+                            fn=os.path.split(h5_ref_path)[1].split('_DataForSim')[0]
+                            plt.title(f'{fn}\nMIP diff {dlabel} {name} Tol={tolerance}')
+                            # Save the plot to a BytesIO object
+                            buffer = BytesIO()
+                            plt.savefig(buffer, format='webp')
+                            buffer.seek(0)
+                            
+                            # Encode the image data as base64 string
+                            base64_plot = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                            node_screenshots.append(base64_plot)
+                            
                     else:
                         logging.warning(f"Dataset {name} differs: {data1} vs {data2}")
                     mismatches.append(name)
@@ -484,13 +510,18 @@ def image_to_base64():
         if not image_path.exists() or not image_path.is_file():
             raise FileNotFoundError(f"File {image_path} does not exist.")
         
-        # Open the image file in binary mode
-        with image_path.open("rb") as image_file:
-            # Read the binary data from the file
-            image_data = image_file.read()
-            
-            # Encode the binary data to a base64 string
-            base64_string = base64.b64encode(image_data).decode('utf-8')
+
+        # Open the PNG image
+        im = Image.open(image_path)
+        # Convert and save as WEBP
+        buffer = BytesIO()
+        # Save the image in WebP format into the buffer
+        im.save(buffer, format="WEBP", quality=90)
+        buffer.seek(0)
+                                
+        # Encode the image data as base64 string
+        base64_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
         
         return base64_string
     
@@ -534,7 +565,7 @@ def get_mpl_plot():
 
         # Save the plot to a BytesIO object
         buffer = BytesIO()
-        plt.savefig(buffer, format='png')
+        plt.savefig(buffer, format='webp')
         buffer.seek(0)
         
         # Encode the image data as base64 string
@@ -935,12 +966,26 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Add markers for basic babelbrain param tests
         if "Deep_Target" in item.name and \
-            "ID_0082" in item.name and \
-            "H317" in item.name and \
-            ("NONE" in item.name or "CT" in item.name or "ZTE" in item.name) and \
-            ("250kHz" in item.name or "825kHz" in item.name):
+            "ID_0082" in item.name and (\
+            ("H317" in item.name and ("250kHz" in item.name or "825kHz" in item.name)) or \
+            ("Single" in item.name and "500kHz" in item.name) or \
+            ("CTX_500" in item.name and "500kHz" in item.name) or \
+            "CTX_250" in item.name or \
+            "DPX_500" in item.name or \
+            "DPXPC_300" in item.name or \
+            "H246" in item.name or \
+            "BSonix" in item.name or \
+            ("REMOPD" in item.name and "490kHz" in item.name) or \
+            "I12378" in item.name or \
+            "R15148" in item.name or \
+            "R15287" in item.name or \
+            "R15473" in item.name or \
+            "R15646" in item.name or \
+            "IGT64_500" in item.name) and \
+            "PETRA" not in item.name and \
+            "brainsight" in item.name and \
+            ("NONE" in item.name or "CT" in item.name or "ZTE" in item.name):
             item.add_marker(pytest.mark.basic_babelbrain_params)
-            
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item,call):
     outcome = yield
@@ -953,7 +998,7 @@ def pytest_runtest_makereport(item,call):
         if hasattr(item, 'screenshots'):
             img_tags = ''
             for screenshot in item.screenshots:
-                img_tags += "<td><img src='data:image/png;base64,{}' width='500'>></td>".format(screenshot)
+                img_tags += "<td><img src='data:image/webp;base64,{}' width='500'>></td>".format(screenshot)
             extras.append(pytest_html.extras.html(f"<tr>{img_tags}</tr>"))
             
         report.extras = extras

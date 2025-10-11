@@ -2,7 +2,8 @@ import configparser
 import glob
 import logging
 import os
-
+from PIL import Image
+from io import BytesIO
 import pytest
 
 def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,request,transducer):
@@ -23,6 +24,7 @@ def test_full_pipeline_normal(qtbot,babelbrain_widget,image_to_base64,check_os,r
     
     # Take screenshot of step 1 results
     screenshot = qtbot.screenshot(bb_widget)
+
     request.node.screenshots.append(image_to_base64(screenshot))
 
     # Check if step 1 failed
@@ -136,16 +138,17 @@ def test_full_pipeline_regression_normal(qtbot,babelbrain_widget,image_to_base64
         pytest.fail(f"Test failed due to error in execution: {exceptions}")
         
     # Compare output against reference outputs
-    bb_outputs_match = compare_BabelBrain_Outputs(ref_folder = ref_output_dir, test_folder = tmp_path, tolerance=tolerance)
+    bb_outputs_match = compare_BabelBrain_Outputs(ref_folder = ref_output_dir, test_folder = tmp_path, tolerance=tolerance, node_screenshots=request.node.screenshots)
     
     assert bb_outputs_match == True, "There were differences between the h5 files, see logged warnings for more details"
     
-def test_full_pipeline_two_outputs(compare_BabelBrain_Outputs,tolerance,get_config_dirs):
-
+def test_full_pipeline_two_outputs(compare_BabelBrain_Outputs,tolerance,get_config_dirs,request):
+    # Save plot screenshot to be added to html report later
+    request.node.screenshots = []
     config_dirs = get_config_dirs
     ref_output_dir = config_dirs['ref_dir_1']
     ref_output_dir_2 = config_dirs['ref_dir_2']
     
-    bb_outputs_match = compare_BabelBrain_Outputs(ref_folder = ref_output_dir, test_folder = ref_output_dir_2,tolerance=tolerance)
+    bb_outputs_match = compare_BabelBrain_Outputs(ref_folder = ref_output_dir, test_folder = ref_output_dir_2,tolerance=tolerance,node_screenshots=request.node.screenshots)
         
     assert bb_outputs_match == True, "There were differences between the h5 files, see logged warnings for more details"
