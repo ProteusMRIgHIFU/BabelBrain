@@ -1,6 +1,6 @@
 import pytest
 import os
-import glob
+from glob import glob
 
 pytest.mark.generate_outputs
 def test_generate_valid_outputs(qtbot,babelbrain_widget,image_to_base64,request):
