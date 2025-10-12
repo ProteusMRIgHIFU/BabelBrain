@@ -721,18 +721,12 @@ def babelbrain_widget(request,qtbot,
         simNIBS_folder = dataset['m2m_folder_path']
         trajectory_folder = input_folder + 'Trajectories' + os.sep
         if generate_outputs:
-            if not os.path.exists(gen_output_dir):
-                pytest.fail(f"output folder does not exist:\n{gen_output_dir}")
+            os.makedirs(gen_output_dir,exist_ok = True)
             output_folder = gen_output_dir + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
         else:
             output_folder = str(tmp_path) + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
 
-        try:
-            os.makedirs(output_folder)
-        except:
-            shutil.rmtree(output_folder)
-            os.makedirs(output_folder)
-                
+        os.makedirs(output_folder,exist_ok = True)
         # Filenames
         T1W_file = dataset['T1_path']
         if scan_type != 'NONE':
