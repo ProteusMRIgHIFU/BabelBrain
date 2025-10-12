@@ -25,7 +25,7 @@ import pytest
 import pytest_html
 import pyvista as pv
 import SimpleITK as sitk
-from skimage.metrics import structural_similarity, mean_squared_error
+from skimage.metrics import structural_similarity, mean_squared_error,normalized_root_mse
 import trimesh
 
 from BabelBrain.BabelBrain import BabelBrain
@@ -396,20 +396,28 @@ def compare_data(get_rmse):
             obj2 = f2[name]
             if isinstance(obj1, h5py.Dataset):
                 data1, data2 = obj1[()], obj2[()]
-                if not np.allclose(data1, data2, rtol=tolerance, equal_nan=True): #atol=0,
+                if not np.allclose(data1, data2, rtol=tolerance, atol=0, equal_nan=True):
                     if data1.size > 1:
-                        logging.warning(f"Dataset {name} differs")
                         if len(data1.shape)==3: #we save some screenshots of projection of error
                             if np.issubdtype(data1.dtype, np.integer):
                                 diff=np.max(np.abs(data2-data1),axis=0)
                                 dlabel=''
+                                logging.warning(f"Dataset {name} differs with maximal diff of {diff.max()} (int)")
                             else:
+                                nmrse=normalized_root_mse(data1,data2,normalization='min-max')
                                 diff=np.abs(data2-data1)
+                                diffMax=diff.max()
                                 diff[data1==0.0]=0
                                 diff[data1!=0.0]/=data1[data1!=0]
                                 diff=np.max(diff,axis=0) #MIP projection
-                                diff*=100
                                 dlabel=' %'
+                                logging.warning(f"Dataset {name} differs with maximal diff of {diffMax} ({diff.max()*100} %) and NRMSE {nmrse}")
+                                if (diff.max()-diff.min())>100:
+                                    diff[diff!=0]=np.log10(diff[diff!=0])
+                                    diff[diff==0]=np.nan
+                                else:
+                                    diff*=100
+                    
                             plt.figure()
                             plt.imshow(diff)
                             plt.colorbar()
@@ -424,6 +432,8 @@ def compare_data(get_rmse):
                             base64_plot = base64.b64encode(buffer.getvalue()).decode('utf-8')
                             node_screenshots.append(base64_plot)
                             
+                        else:
+                            logging.warning(f"Dataset {name} differs")   
                     else:
                         logging.warning(f"Dataset {name} differs: {data1} vs {data2}")
                     mismatches.append(name)
@@ -711,18 +721,12 @@ def babelbrain_widget(request,qtbot,
         simNIBS_folder = dataset['m2m_folder_path']
         trajectory_folder = input_folder + 'Trajectories' + os.sep
         if generate_outputs:
-            if not os.path.exists(gen_output_dir):
-                pytest.fail(f"output folder does not exist:\n{gen_output_dir}")
+            os.makedirs(gen_output_dir,exist_ok = True)
             output_folder = gen_output_dir + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
         else:
             output_folder = str(tmp_path) + f"{os.sep}{trajectory_type}_CT={scan_type}_{trajectory}_{transducer['name']}_Freq={freq}kHz_{computing_backend['type']}{os.sep}"
 
-        try:
-            os.makedirs(output_folder)
-        except:
-            shutil.rmtree(output_folder)
-            os.makedirs(output_folder)
-                
+        os.makedirs(output_folder,exist_ok = True)
         # Filenames
         T1W_file = dataset['T1_path']
         if scan_type != 'NONE':

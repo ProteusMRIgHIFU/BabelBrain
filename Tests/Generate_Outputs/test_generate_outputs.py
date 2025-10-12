@@ -1,4 +1,6 @@
 import pytest
+import os
+from glob import glob
 
 pytest.mark.generate_outputs
 def test_generate_valid_outputs(qtbot,babelbrain_widget,image_to_base64,request):
@@ -8,6 +10,13 @@ def test_generate_valid_outputs(qtbot,babelbrain_widget,image_to_base64,request)
 
     # Start babelbrain instance
     bb_widget = babelbrain_widget(generate_outputs = True)
+
+    outdir = bb_widget.Config['OutputFilesPath']
+
+    finalfile=glob(outdir + os.sep + '*ThermalField_AllCombinations.h5')
+    b_already_calculated=len(finalfile)==1
+    if b_already_calculated:
+        pytest.skip(f"Calculation already completed previously at {outdir}." )
     
     # Run Step 1
     bb_widget.testing_error = False
