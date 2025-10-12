@@ -20,6 +20,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMeta
 from multiprocessing import Process,Queue
 import sys
 import time
+from scipy.ndimage import median_filter
 
 class InOutputWrapper(object):
     '''
@@ -542,6 +543,7 @@ def CalculateTemperatureEffects(InputPData,
                                     'Absorption':0.85, #m/s
                                     'InitTemperature':37.0}, #Np/m
                                 BenchmarkTestFile='',
+                                bApplyMedianPressure=True,
                                 ):
 
     '''
@@ -626,6 +628,9 @@ def CalculateTemperatureEffects(InputPData,
         
         pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
         pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+        if bApplyMedianPressure:
+            pAmp=median_filter(pAmp,3)
+            pAmpWater=median_filter(pAmpWater,3)
         
     else:
         ALL_ACFIELDSKULL=[]
@@ -640,6 +645,9 @@ def CalculateTemperatureEffects(InputPData,
             AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
             fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
             AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+            if bApplyMedianPressure:
+                AllInputs[n,:,:,:]=median_filter(AllInputs[n,:,:,:],3)
+                AllInputsWater[n,:,:,:]=median_filter(AllInputsWater[n,:,:,:],3)
         
         if DurationUS>len(InputPData)*2 and bGlobalDCMultipoint: 
         #ad-hoc rule, if sonication last at least 2x seconds the number of focal spots, we  approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
