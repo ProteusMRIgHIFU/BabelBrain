@@ -628,9 +628,6 @@ def CalculateTemperatureEffects(InputPData,
         
         pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
         pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
-        if bApplyMedianPressure:
-            pAmp=median_filter(pAmp,3)
-            pAmpWater=median_filter(pAmpWater,3)
         
     else:
         ALL_ACFIELDSKULL=[]
@@ -645,9 +642,6 @@ def CalculateTemperatureEffects(InputPData,
             AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
             fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
             AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
-            if bApplyMedianPressure:
-                AllInputs[n,:,:,:]=median_filter(AllInputs[n,:,:,:],3)
-                AllInputsWater[n,:,:,:]=median_filter(AllInputsWater[n,:,:,:],3)
         
         if DurationUS>len(InputPData)*2 and bGlobalDCMultipoint: 
         #ad-hoc rule, if sonication last at least 2x seconds the number of focal spots, we  approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
@@ -796,10 +790,13 @@ def CalculateTemperatureEffects(InputPData,
 
     LocIJK=Input['TargetLocation'].flatten()
     IdRegionBenchmark=[]
+    bNormalOperation=True
     if bForceHomogenousMedium:
+        bNormalOperation=False
         SelSkull = MaterialMap >0 # we select all material 
         BrainID =[1]
     elif len(BenchmarkTestFile)>0:
+        bNormalOperation=False
         BrainID=[len(BenchmarkInput['Materials'])-1]
         if BenchmarkInput['TestType']==1:
             #this is a test for the skull, we select all materials
@@ -833,7 +830,19 @@ def CalculateTemperatureEffects(InputPData,
 
     SelBrain=np.isin(MaterialMap,BrainID)
     SelSkin=MaterialMap==1
- 
+
+    if bNormalOperation and bApplyMedianPressure:
+        #we apply median filter to skull region 
+        if type(InputPData) is str: 
+            pAmpSk=pAmp.copy()
+            pAmpSk=median_filter(pAmpSk,3)
+            pAmp[SelSkull]=pAmpSk[SelSkull]
+        else:
+            for n in range(len(InputPData)):
+                pAmpSk=AllInputsWater[n,:,:,:].copy()
+                pAmpSk=median_filter(pAmpSk,3)
+                AllInputsWater[n,:,:,:][SelSkull]=pAmpSk[SelSkull]
+
     if type(InputPData) is str:   
         PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
