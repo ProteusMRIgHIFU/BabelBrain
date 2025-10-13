@@ -543,7 +543,7 @@ def CalculateTemperatureEffects(InputPData,
                                     'Absorption':0.85, #m/s
                                     'InitTemperature':37.0}, #Np/m
                                 BenchmarkTestFile='',
-                                bApplyMedianPressure=True,
+                                bApplyMedianPressure=False,
                                 ):
 
     '''
