@@ -1362,6 +1362,7 @@ def main():
                 GPU='CPU'
             else:
                 GPU=prevConfig['ComputingDevice']
+                Backend=''
                 if prevConfig['ComputingBackend']==1:
                     Backend='CUDA'
                 elif prevConfig['ComputingBackend']==2:
@@ -1370,8 +1371,8 @@ def main():
                     Backend='Metal'
                 elif prevConfig['ComputingBackend']==4:
                     Backend='MLX'
-
-            selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
+                if len(Backend)>0:
+                    selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
 
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])
