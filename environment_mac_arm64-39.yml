@@ -132,6 +132,7 @@ dependencies:
       - watchdog==2.1.9
       - webcolors==1.12
       - wslink==1.9.1
+      - xmltodict==1.0.2
       - yarl==1.8.1
       - zipp==3.11.0
 prefix: /opt/homebrew/Caskroom/miniforge/base/envs/BabelBrain
