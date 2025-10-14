@@ -111,5 +111,6 @@ dependencies:
       - tzdata==2023.3
       - uhi==0.3.3
       - urllib3==1.26.15
+      - xmltodict==1.0.2
       - vtk==9.2.6
 prefix: C:\Users\SPichardo\anaconda3\envs\BabelBrain

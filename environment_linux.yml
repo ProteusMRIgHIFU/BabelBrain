@@ -102,4 +102,5 @@ dependencies:
       - uhi==0.3.3
       - urllib3==1.26.15
       - vtk==9.2.6
+      - xmltodict==1.0.2
 prefix: /home/acoreas/anaconda3/envs/BabelBrainLinux

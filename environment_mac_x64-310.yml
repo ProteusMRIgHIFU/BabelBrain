@@ -118,5 +118,6 @@ dependencies:
     - vtk==9.2.2
     - webcolors==1.12
     - wslink==1.9.1
+    - xmltodict==1.0.2
     - yarl==1.8.1
 prefix: /Users/spichardo/opt/anaconda3/envs/BabelBrain
