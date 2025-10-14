@@ -343,22 +343,103 @@ def DensityToSSoSPichardo(density):
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
     return density*0.422 + 680.515  
     
+def make_affine_itk_friendly(affine, eps=1e-12, report=True):
+    """
+    Return a copy of `affine` whose top-left 3x3 is orthonormal
+    up to column scaling (i.e. preserves voxel sizes).
+    - affine: (4,4) array
+    - eps: tiny tolerance for near-zero scales
+    - report: if True, returns diagnostics along with affine
+    """
+    A = affine.copy()
+    M = A[:3, :3].astype(float)
 
-def SaveNiftiEnforcedISO(nii,fn):
-    nii.to_filename(fn)
+    # Column norms = voxel scales (for NIfTI affine convention)
+    scales = np.linalg.norm(M, axis=0)  # length for each axis vector (3,)
+    # Protect against zero/near-zero scale
+    tiny = scales < eps
+    if np.any(tiny):
+        raise ValueError(f"Detected near-zero scale(s) on axes: {np.where(tiny)[0].tolist()}")
+
+    # Direction matrix (each column is the direction cosine)
+    D = M / scales[np.newaxis, :]  # shape (3,3)
+
+    # Find nearest orthonormal matrix to D using SVD
+    U, svals, Vt = np.linalg.svd(D)
+    R = U @ Vt
+
+    # Ensure right-handed coordinate system unless original had reflection
+    det_original = np.linalg.det(D)
+    det_R = np.linalg.det(R)
+    if det_R < 0:
+        # Fix reflection: flip sign of last column of U then recompute
+        U[:, -1] *= -1
+        R = U @ Vt
+        det_R = np.linalg.det(R)
+
+    # Reconstruct matrix preserving scales (columns)
+    M_new = R * scales[np.newaxis, :]
+
+    # Place back
+    A_clean = A.copy()
+    A_clean[:3, :3] = M_new
+
+    if not report:
+        return A_clean
+
+    # Diagnostics
+    # 1) How non-orthonormal original was: check D^T D vs I
+    orig_gram = D.T @ D
+    orig_offdiag = orig_gram - np.eye(3)
+    orig_max_off = np.max(np.abs(orig_offdiag))
+
+    # 2) After cleaning: check orthonormality of R (should be ~I)
+    R_gram = R.T @ R
+    R_offdiag = R_gram - np.eye(3)
+    R_max_off = np.max(np.abs(R_offdiag))
+
+    # 3) Change in matrix
+    max_abs_change = np.max(np.abs(M_new - M))
+    max_rel_change = np.max(np.abs((M_new - M) / (np.where(np.abs(M) > 0, M, 1.0))))
+
+    return {
+        "affine": A_clean,
+        "scales_before": scales,
+        "det_direction_before": det_original,
+        "det_direction_after": det_R,
+        "orig_max_offdiag": float(orig_max_off),
+        "R_max_offdiag": float(R_max_off),
+        "max_abs_change_in_3x3": float(max_abs_change),
+        "max_rel_change_in_3x3": float(max_rel_change),
+    }
+
+def SaveNiftiEnforcedISO(nii_in,fn):
+    fn_unc=fn.split('.gz')[0] #we save uncompressed for faster operation
+    nii_in.to_filename(fn_unc)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
-    res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
+    res = float(np.round(np.array(nii_in.header.get_zooms()).mean(),5))
     try:
-        pre=sitk.ReadImage(fn)
+        pre=sitk.ReadImage(fn_unc)
         pre.SetSpacing([res,res,res])
         sitk.WriteImage(pre, newfn)
-        os.remove(fn)
+        os.remove(fn_unc)
     except:
-        res = '%6.5f' % (res)
-        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
-        print(cmd)
-        assert(os.system(cmd)==0)
-        os.remove(fn)
+        try: #lets try with a clean affine
+            print('Affine matrix was not exactly orthonormal, fixing affine matrix')
+            aff_clean = make_affine_itk_friendly(nii_in.affine, report=False)
+            nii = nibabel.Nifti1Image(nii_in.get_fdata(), aff_clean, header=nii_in.header)
+            nii.to_filename(fn_unc)
+            pre=sitk.ReadImage(fn_unc)
+            pre.SetSpacing([res,res,res])
+            sitk.WriteImage(pre, newfn)
+            os.remove(fn_unc)
+        except: #last resource is to use flirt
+            res = '%6.5f' % (res)
+            cmd='flirt -in "'+fn_unc + '" -ref "'+ fn_unc + '" -applyisoxfm ' +res + ' -nosearch -out "' + newfn +'"'
+            print(cmd)
+            assert(os.system(cmd)==0)
+            os.remove(fn_unc)
+
 
 def ResaveNormalized(RPath,Mask):
     assert('_Sub.nii.gz' in RPath)
