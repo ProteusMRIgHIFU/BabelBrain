@@ -582,7 +582,7 @@ class Babel_Thermal(QWidget):
                 return
         else:
             DefaultPath=self._MainApp.Config['OutputFilesPath']+os.sep
-            outCSV=DefaultPath+'Test_Export'
+            outCSV=DefaultPath+'Test_Export.csv'
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         DataToExport={}
