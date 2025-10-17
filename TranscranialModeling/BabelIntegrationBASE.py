@@ -649,8 +649,6 @@ def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
     OUT_FNAMES['DataForSim']=CPREFIX+'DataForSim.h5'
     return OUT_FNAMES
 
-PATH_FILES=''
-
 class BabelFTD_Simulations_BASE(object):
     #Meta class dealing with the specificis of each test based on the string name
     def __init__(self,MASKFNAME='',
@@ -688,10 +686,7 @@ class BabelFTD_Simulations_BASE(object):
                  BenchmarkTestFile='',
                  InputFocusStart='',
                  OptimizedWeightsFile=''):
-        global PATH_FILES
         self._MASKFNAME=MASKFNAME
-
-        PATH_FILES=os.path.split(MASKFNAME)[0]
         
         if bNoShear:
             self._Shear=0.0
@@ -1711,7 +1706,6 @@ elif self._bTightNarrowBeamDomain:
         bDoRefocusing : bool, optional
             If True, perform backpropagation/refocusing (default is True).
         '''
-        global PATH_FILES
         MaterialList=self.ReturnArrayMaterial()
 
         TypeSource=0 #particle source
@@ -1720,13 +1714,6 @@ elif self._bTightNarrowBeamDomain:
         Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
         if bRefocused==False:
-            if 'BABEL_PYTEST' in os.environ:
-                DictSaveInput={'MaterialMap':self._MaterialMap,
-                               'MaterialList':MaterialList,
-                               'Frequency':self._Frequency,
-                               'SourceMap':self._SourceMap,
-                               'PulseSource':self._PulseSource}
-                SaveToH5py(DictSaveInput,os.path.join(PATH_FILES,'INPUT_SIM.h5'))
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
                                                              self._MaterialMap,
                                                              MaterialList,
