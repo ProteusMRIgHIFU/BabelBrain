@@ -374,7 +374,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 ZTESlope=-2085.0,
                                 ZTEOffset=2329.0,
                                 DensityThreshold=1200.0, #this is in case the input data is rather a density map
-                                DeviceName=''): #created reduced FOV
+                                DeviceName='',
+                                bMaximizeBoneRim=True,
+                                bSaveCTMaximized=True): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -829,6 +831,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
             else:
                 nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+
+            RatioCTVoxels=np.ceil(1.5/np.array(nCT.header.get_zooms())).astype(int) # 1 mm distance
+
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             if CTType in [1,2,3]:
                 ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
@@ -892,6 +897,33 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         CTBone=ndataCT[nfct]
         CTBone[CTBone<TypeThresold]=TypeThresold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
+
+        if bMaximizeBoneRim:
+            nPixelsErode=RatioCTVoxels.copy()
+            print('nPixelsErode',nPixelsErode)
+            #we scan 1mm around the edge
+            for ntr in range(len(RatioCTVoxels)):
+                if RatioCTVoxels[ntr]%2==0:
+                    RatioCTVoxels[ntr]+=1
+                if RatioCTVoxels[ntr]==1:
+                    RatioCTVoxels[ntr]=3 #minimum 3 voxels
+
+            with CodeTimer("maximum_filter",unit='s'):
+                CTBoneMaxFilter=ndimage.maximum_filter(ndataCT,size=RatioCTVoxels)     
+
+            #we will replace the rim by the max filter
+            nfct_rim=np.logical_xor(nfct,ndimage.binary_erosion(nfct,structure=np.ones(nPixelsErode),iterations=1))
+            CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
+            CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
+            if bSaveCTMaximized:
+                nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                nCTNifti.to_filename(CTnamenonfiltered)
+
+            ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
+            if bSaveCTMaximized:
+                nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                nCTNifti.to_filename(CTnamefiltered)
+
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
         
