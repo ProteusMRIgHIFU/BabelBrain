@@ -760,7 +760,15 @@ class BabelFTD_Simulations_BASE(object):
                                 ExtraAdjustX=self._ExtraAdjustX,
                                 ExtraAdjustY=self._ExtraAdjustY)
         if  self._CTFNAME is not None and not self._bWaterOnly:
-            for k in ['Skin','Brain']:
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                Materials=['Water','Water']
+            else:
+                Materials=['Skin','Brain']
+            for k in Materials:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -782,7 +790,15 @@ class BabelFTD_Simulations_BASE(object):
                 
 
         elif not self._bWaterOnly:
-             for k in ['Skin','Cortical','Trabecular','Brain']:
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                Materials=['Water','Cortical','Trabecular','Water']
+            else:
+                Materials=['Skin','Cortical','Trabecular','Brain']
+            for k in ['Skin','Cortical','Trabecular','Brain']:
                 SelM=MatFreq[self._Frequency][k]
                 Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
