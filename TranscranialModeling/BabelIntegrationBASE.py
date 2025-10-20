@@ -798,9 +798,8 @@ class BabelFTD_Simulations_BASE(object):
                 Materials=['Water','Cortical','Trabecular','Water']
             else:
                 Materials=['Skin','Cortical','Trabecular','Brain']
-            for k in ['Skin','Cortical','Trabecular','Brain']:
+            for k in Materials:
                 SelM=MatFreq[self._Frequency][k]
-                Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,
