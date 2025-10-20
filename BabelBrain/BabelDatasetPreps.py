@@ -375,8 +375,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 ZTEOffset=2329.0,
                                 DensityThreshold=1200.0, #this is in case the input data is rather a density map
                                 DeviceName='',
-                                bMaximizeBoneRim=True,
-                                bSaveCTMaximized=True): #created reduced FOV
+                                bMaximizeBoneRim=False,
+                                bSaveCTMaximized=False): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
