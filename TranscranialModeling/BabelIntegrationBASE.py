@@ -891,6 +891,17 @@ class BabelFTD_Simulations_BASE(object):
             if bBrainSegmentation:
                 lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
+                                ExtraAdjustY=self._ExtraAdjustY)
+        if  self._CTFNAME is not None and not self._bWaterOnly:
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                Materials=['Water','Water']
+            else:
+                Materials=['Skin','Brain']
+            for k in Materials:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -912,12 +923,21 @@ class BabelFTD_Simulations_BASE(object):
                 
 
         elif not self._bWaterOnly:
-             lMaterials =['Skin','Cortical','Trabecular','Brain']
-             if bBrainSegmentation:
-                lMaterials+=['WhiteMatter','GrayMatter','CSF']
-             for k in lMaterials:
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                lMaterials=['Water','Cortical','Trabecular','Water']
+            else:
+                lMaterials=['Skin','Cortical','Trabecular','Brain']
+            if bBrainSegmentation:
+                if 'BABEL_PYTEST_PAPER' in os.environ:
+                    lMaterials+=['Water','Water','Water']
+                else:
+                    lMaterials+=['WhiteMatter','GrayMatter','CSF']
+            for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
-                Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,
