@@ -488,8 +488,11 @@ class Babel_Thermal(QWidget):
                     if not self._MainApp.Config['bForceHomogenousMedium']:
                         if hasattr(self,'_contour1'):
                             for c in [self._contour1,self._contour2]:
-                                for coll in c.collections:
-                                    coll.remove()
+                                try: #this is for old Matplotlib
+                                    for coll in c.collections:
+                                        coll.remove()
+                                except:
+                                    c.remove()
                             del self._contour1
                             del self._contour2
                             self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')

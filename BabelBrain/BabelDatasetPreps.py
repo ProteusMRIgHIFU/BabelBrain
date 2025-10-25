@@ -899,90 +899,86 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ndataCT[nfct]=CTBone
 
         if bMaximizeBoneRim:
-            interior_high_th=800.0
-            max_boost = 1000.0
-            nPixelsErode=RatioCTVoxels.copy()
-            print('nPixelsErode',nPixelsErode)
-            #we scan 1mm around the edge
-            for ntr in range(len(RatioCTVoxels)):
-                if RatioCTVoxels[ntr]%2==0:
-                    RatioCTVoxels[ntr]+=1
-                if RatioCTVoxels[ntr]==1:
-                    RatioCTVoxels[ntr]=3 #minimum 3 voxels
+            with CodeTimer("Fixing partial volume artifacts edge",unit='s'):
+                interior_high_th=800.0
+                max_boost = 1000.0
+                nPixelsErode=RatioCTVoxels.copy()
+                print('nPixelsErode',nPixelsErode)
+                #we scan 1mm around the edge
+                for ntr in range(len(RatioCTVoxels)):
+                    if RatioCTVoxels[ntr]%2==0:
+                        RatioCTVoxels[ntr]+=1
+                    if RatioCTVoxels[ntr]==1:
+                        RatioCTVoxels[ntr]=3 #minimum 3 voxels
+    
+                interior_mask=nfct.copy().astype(np.uint8)
 
-            # with CodeTimer("maximum_filter",unit='s'):
-            #     CTBoneMaxFilter=ndimage.maximum_filter(ndataCT,size=RatioCTVoxels)     
-
-            # #we will replace the rim by the max filter
-            # nfct_rim=np.logical_xor(nfct,ndimage.binary_erosion(nfct,structure=np.ones(nPixelsErode),iterations=1))
-
-            interior_mask=nfct.copy().astype(np.uint8)
-
-            # # # Create conservative interior bone mask (higher threshold + erosion)
-            interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
-
-            interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
+                # # # Create conservative interior bone mask (higher threshold + erosion)
+                interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
+                with CodeTimer("binary erosion",unit='s'):
+                    interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
 
 
-            # # Precompute interior bone mean (global or local)
-            global_interior_mean = ndataCT[interior_mask_val].mean()
-            print("Global interior bone mean HU:", global_interior_mean)
+                # # Precompute interior bone mean (global or local)
+                global_interior_mean = ndataCT[interior_mask_val].mean()
+                print("Global interior bone mean HU:", global_interior_mean)
 
-            # distance transform from interior mask: for each voxel inside coarse mask,
-            # compute distance to nearest interior voxel (in voxels)
-            # We'll compute distance only within the nfct to save time
-            # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
-            inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
-            # compute distance from every voxel to nearest interior voxel (Euclidean)
-            dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
+                # distance transform from interior mask: for each voxel inside coarse mask,
+                # compute distance to nearest interior voxel (in voxels)
+                # We'll compute distance only within the nfct to save time
+                # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
+                inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
+                # compute distance from every voxel to nearest interior voxel (Euclidean)
+                with CodeTimer("distance_transform_edt",unit='s'):
+                    dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
 
-            # # Identify edge voxels: in nfct but not in interior_mask
-            edge_voxels = (nfct == 1) & (interior_mask == 0)
+                # # Identify edge voxels: in nfct but not in interior_mask
+                edge_voxels = (nfct == 1) & (interior_mask == 0)
 
-            # # For each edge voxel, compute weight based on distance (close -> high weight)
-            # # weight = exp(-dist / distance_scale)  (so dist=0 => weight=1 ; dist large => ~0)
-            distance_scale=float(RatioCTVoxels[0])/2.0
-            dist = dist_to_interior[edge_voxels]
-            weights = np.exp(-dist / distance_scale)
+                # # For each edge voxel, compute weight based on distance (close -> high weight)
+                # # weight = exp(-dist / distance_scale)  (so dist=0 => weight=1 ; dist large => ~0)
+                distance_scale=float(RatioCTVoxels[0])/2.0
+                dist = dist_to_interior[edge_voxels]
+                weights = np.exp(-dist / distance_scale)
 
-            # # Local approach: get a local interior mean per edge voxel by sampling interior voxels
-            # # We'll compute a gaussian-blurred interior mean image for locality:
-            interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
-            # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
-            sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
-            blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
-            blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
-            # # avoid division by zero
-            local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
+                # # Local approach: get a local interior mean per edge voxel by sampling interior voxels
+                # # We'll compute a gaussian-blurred interior mean image for locality:
+                interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
+                # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
+                sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
+                with CodeTimer("interior_f gaussian_filter",unit='s'):
+                    blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
+                with CodeTimer("blur_mask gaussian_filter",unit='s'):
+                    blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
+                # # avoid division by zero
+                local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
 
-            # # Now get local interior mean for each edge voxel
-            local_means = local_interior_mean_img[edge_voxels]
+                # # Now get local interior mean for each edge voxel
+                local_means = local_interior_mean_img[edge_voxels]
 
-            # # Compute corrected HU: blend original toward local interior mean using weight
-            orig_vals = ndataCT[edge_voxels]
-            correct_vals = orig_vals + weights * (local_means - orig_vals)
+                # # Compute corrected HU: blend original toward local interior mean using weight
+                orig_vals = ndataCT[edge_voxels]
+                correct_vals = orig_vals + weights * (local_means - orig_vals)
 
-            # # Optionally clamp boost to avoid unrealistically large jumps
-            delta = correct_vals - orig_vals
-            delta_clipped = np.clip(delta, a_min=None, a_max=max_boost)  # only upper clamp
-            correct_vals = orig_vals + delta_clipped
+                # # Optionally clamp boost to avoid unrealistically large jumps
+                delta = correct_vals - orig_vals
+                delta_clipped = np.clip(delta, a_min=None, a_max=max_boost)  # only upper clamp
+                correct_vals = orig_vals + delta_clipped
 
-            CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
-            CTnamefilteredmask=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filteredmask.nii.gz'
-            CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
-            if bSaveCTMaximized:
-                nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
-                nCTNifti.to_filename(CTnamenonfiltered)
-                nCTNifti=nibabel.Nifti1Image(nfct.astype(np.uint8), nCT.affine, nCT.header)
-                nCTNifti.to_filename(CTnamefilteredmask)
+                CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
+                CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamenonfiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamenonfiltered)
 
+                # ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
+                ndataCT[edge_voxels] = correct_vals
 
-            # ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
-            ndataCT[edge_voxels] = correct_vals
-
-            if bSaveCTMaximized:
-                nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
-                nCTNifti.to_filename(CTnamefiltered)
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamefiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamefiltered)
 
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()

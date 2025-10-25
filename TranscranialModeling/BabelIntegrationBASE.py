@@ -20,6 +20,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
 import SimpleITK as sitk
 from scipy import interpolate
+import scipy
 import warnings
 import time
 import gc
@@ -58,8 +59,12 @@ def resource_path():  # needed for bundling
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
 _MapPichardo = ReadFromH5py(os.path.join(resource_path(), 'MapPichardo.h5'))
-_PichardoSOS=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
-_PichardoAtt=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
+if scipy.__version__>"1.14.0":
+    interp2d=interpolate.RectBivariateSpline
+else:
+    interp2d=interpolate.interp2d
+_PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
+_PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
 def FitSpeedCorticalShear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
@@ -687,6 +692,10 @@ class BabelFTD_Simulations_BASE(object):
                  InputFocusStart='',
                  OptimizedWeightsFile=''):
         self._MASKFNAME=MASKFNAME
+
+        if 'BABEL_PYTEST_QFACTOR' in os.environ:
+            QCorrection=float(os.environ['BABEL_PYTEST_QFACTOR'])
+            print('BABEL_PYTEST_QFACTOR Overwritting QCorrection factor', QCorrection)
         
         if bNoShear:
             self._Shear=0.0
