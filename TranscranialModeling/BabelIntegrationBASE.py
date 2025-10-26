@@ -674,7 +674,7 @@ class BabelFTD_Simulations_BASE(object):
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
-                 QCorrection=4, #we change to 4 when using maximize filter in Step 1
+                 QCorrection=2.75, #we change this to align compensate for the changes on the edge skull correction
                  MappingMethod='Webb-Marsac',
                  CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
