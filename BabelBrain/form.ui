@@ -244,7 +244,7 @@ mask</string>
         <double>10.000000000000000</double>
        </property>
        <property name="value">
-        <double>300.000000000000000</double>
+        <double>800.000000000000000</double>
        </property>
       </widget>
       <widget class="QLabel" name="HULabel">
