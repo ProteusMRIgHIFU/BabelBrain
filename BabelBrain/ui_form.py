@@ -97,7 +97,7 @@ class Ui_Widget(object):
         self.HUThresholdSpinBox.setDecimals(0)
         self.HUThresholdSpinBox.setMaximum(5000.000000000000000)
         self.HUThresholdSpinBox.setSingleStep(10.000000000000000)
-        self.HUThresholdSpinBox.setValue(800.000000000000000)
+        self.HUThresholdSpinBox.setValue(300.000000000000000)
         self.label_5 = QLabel(self.tab_3)
         self.label_5.setObjectName(u"label_5")
         self.label_5.setGeometry(QRect(63, 23, 80, 16))
