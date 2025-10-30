@@ -19,6 +19,7 @@ import nibabel
 import numpy as np
 
 from scipy.io import loadmat
+from scipy.signal import find_peaks
 
 from ClockDialog import ClockDialog
 from CreateVoxelMask import create_target_mask
@@ -249,15 +250,16 @@ class RUN_PLAN_TUS(QObject):
             min_distance=np.min(focal_distance_list)
             max_distance=np.max(focal_distance_list)
         else: # single element Tx
-            FocalLength = self.MainApp.AcSim.FocalLengthSpinBox.value()
-            transducer_diameter = self.MainApp.AcSim.DiameterSpinBox.value()
+            FocalLength = self.MainApp.AcSim.Widget.FocalLengthSpinBox.value()
+            transducer_diameter = self.MainApp.AcSim.Widget.DiameterSpinBox.value()
             #we use analytical formula of acoustic axis from the O'Neil paper
             plane_offset,TPOequivalent,FLHM=FindTPOEquivalent(SelFreq,transducer_diameter*1e-3,FocalLength*1e-3)
             plane_offset*=1e3
-            focal_distance_list = [TPOequivalent*1e3]
-            flhm_list = [FLHM*1e3]
+            focal_distance_list = [(TPOequivalent*1e3).tolist()]
+            flhm_list = [(FLHM*1e3).tolist()]
             min_distance=TPOequivalent*1e3
             max_distance=min_distance
+            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
             
         additional_offset=np.max([0.0,additional_offset]) #negative values is for special cases to "invade" the scalp
 
