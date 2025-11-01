@@ -62,7 +62,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -864,7 +864,7 @@ PlanTUS</string>
      <property name="geometry">
       <rect>
        <x>11</x>
-       <y>41</y>
+       <y>157</y>
        <width>615</width>
        <height>68</height>
       </rect>
@@ -879,16 +879,17 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>6</x>
-        <y>30</y>
+        <y>10</y>
         <width>143</width>
-        <height>32</height>
+        <height>52</height>
        </rect>
       </property>
       <property name="styleSheet">
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Calibration file...</string>
+       <string>Completed
+Calibration file...</string>
       </property>
       <property name="autoDefault">
        <bool>false</bool>
@@ -916,8 +917,8 @@ PlanTUS</string>
      <widget class="QLabel" name="TxWeightLabel">
       <property name="geometry">
        <rect>
-        <x>122</x>
-        <y>8</y>
+        <x>160</x>
+        <y>7</y>
         <width>340</width>
         <height>20</height>
        </rect>
@@ -931,7 +932,7 @@ PlanTUS</string>
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>117</y>
+       <y>46</y>
        <width>615</width>
        <height>100</height>
       </rect>
@@ -955,7 +956,7 @@ PlanTUS</string>
        </rect>
       </property>
       <property name="text">
-       <string>Calibration Execution </string>
+       <string>RUN CALIBRATION</string>
       </property>
      </widget>
      <widget class="QPushButton" name="YAMLCalibrationpushButton">

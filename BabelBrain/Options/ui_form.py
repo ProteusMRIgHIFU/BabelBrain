@@ -275,12 +275,12 @@ class Ui_Dialog(object):
         self.SaveDisplacementcheckBox.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         self.frame = QFrame(self.tab_2)
         self.frame.setObjectName(u"frame")
-        self.frame.setGeometry(QRect(11, 41, 615, 68))
+        self.frame.setGeometry(QRect(11, 157, 615, 68))
         self.frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame.setFrameShadow(QFrame.Shadow.Raised)
         self.TxOptimizedWeightspushButton = QPushButton(self.frame)
         self.TxOptimizedWeightspushButton.setObjectName(u"TxOptimizedWeightspushButton")
-        self.TxOptimizedWeightspushButton.setGeometry(QRect(6, 30, 143, 32))
+        self.TxOptimizedWeightspushButton.setGeometry(QRect(6, 10, 143, 52))
         self.TxOptimizedWeightspushButton.setStyleSheet(u"")
         self.TxOptimizedWeightspushButton.setAutoDefault(False)
         self.TxOptimizedWeightspushButton.setFlat(False)
@@ -290,10 +290,10 @@ class Ui_Dialog(object):
         self.TxOptimizedWeightsLineEdit.setStyleSheet(u"")
         self.TxWeightLabel = QLabel(self.frame)
         self.TxWeightLabel.setObjectName(u"TxWeightLabel")
-        self.TxWeightLabel.setGeometry(QRect(122, 8, 340, 20))
+        self.TxWeightLabel.setGeometry(QRect(160, 7, 340, 20))
         self.frame_2 = QFrame(self.tab_2)
         self.frame_2.setObjectName(u"frame_2")
-        self.frame_2.setGeometry(QRect(10, 117, 615, 100))
+        self.frame_2.setGeometry(QRect(10, 46, 615, 100))
         self.frame_2.setAutoFillBackground(False)
         self.frame_2.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
@@ -513,7 +513,7 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -562,10 +562,11 @@ class Ui_Dialog(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Domain Generation", None))
         self.SaveStresscheckBox.setText(QCoreApplication.translate("Dialog", u"Save stress data  ", None))
         self.SaveDisplacementcheckBox.setText(QCoreApplication.translate("Dialog", u"Save particle displacement data  ", None))
-        self.TxOptimizedWeightspushButton.setText(QCoreApplication.translate("Dialog", u"Calibration file...", None))
+        self.TxOptimizedWeightspushButton.setText(QCoreApplication.translate("Dialog", u"Completed\n"
+"Calibration file...", None))
         self.TxOptimizedWeightsLineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
         self.TxWeightLabel.setText(QCoreApplication.translate("Dialog", u"Transducer : ", None))
-        self.TxWeightLabel_4.setText(QCoreApplication.translate("Dialog", u"Calibration Execution ", None))
+        self.TxWeightLabel_4.setText(QCoreApplication.translate("Dialog", u"RUN CALIBRATION", None))
         self.YAMLCalibrationpushButton.setText(QCoreApplication.translate("Dialog", u"YAML file for\n"
 "calibration inputs", None))
         self.YAMLCalibrationLineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))

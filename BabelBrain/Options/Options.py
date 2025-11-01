@@ -22,6 +22,7 @@ from Calibration.TxCalibration import RUN_FITTING_Process
 from ClockDialog import ClockDialog
 
 from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
+from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
 
 
 
@@ -73,6 +74,8 @@ def select_file(parent,line_edit, title,filemask):
     if len(file)>0:
         line_edit.setText(file)
         line_edit.setCursorPosition(len(file))
+        return True
+    return False
 
 
 class OptionalParams(object):
@@ -171,11 +174,12 @@ class AdvancedOptions(QDialog):
             connect_folder_button(self,button, line_edit, title)
             
         buttons = [
-                (self.ui.TxOptimizedWeightspushButton, self.ui.TxOptimizedWeightsLineEdit, "Select Tx Optimized Weights File","HDF5 (*.h5 *.hdf5)"),
-                (self.ui.YAMLCalibrationpushButton, self.ui.YAMLCalibrationLineEdit, "Select YAML file with calibration input fields","YAML files (*.yaml *.yml)"),
+                (self.ui.YAMLCalibrationpushButton, self.ui.YAMLCalibrationLineEdit, "Select YAML file with input fields to run calibration","YAML files (*.yaml *.yml)"),
                ]
         for button, line_edit, title, mask in buttons:
             connect_file_button(self,button, line_edit, title, mask)
+        
+        self.ui.TxOptimizedWeightspushButton.clicked.connect(self.VerifyCalibrationFile)
     
         self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
 
@@ -185,6 +189,41 @@ class AdvancedOptions(QDialog):
         self.CalProcess = None
         self.Caltimer = QTimer(self)
         self.Caltimer.timeout.connect(self.check_queue)
+        self._WorkingDialog = ClockDialog(self)
+
+    @Slot()
+    def VerifyCalibrationFile(self):
+
+        if not select_file(self.ui.TxOptimizedWeightspushButton, self.ui.TxOptimizedWeightsLineEdit, "Select Tx Optimized Weights File","HDF5 (*.h5 *.hdf5)"):
+            return
+
+        calfile=self.ui.TxOptimizedWeightsLineEdit.text()
+        def ShowError(msg):
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText(msg)
+            msgBox.exec()
+
+        bError=False
+        
+        if not os.path.isfile(calfile):
+            ShowError(f"Calibration file does not exist\n{calfile}")
+            bError=True
+        else:
+            RefData={'TxConfig':self._TxConfig}
+            try:
+                Data=ReadFromH5py(calfile)
+                for k in ['TxConfig']:
+                    if Data[k]!=RefData[k]:
+                            ShowError(f"Calibration file does not match current Tx definition for field {k}:\n{Data[k]} vs {RefData[k]}")
+                            bError=True
+            except:
+                ShowError(f"Unable to load calibration file!!")
+                bError=True
+        if bError:
+            self.ui.TxOptimizedWeightsLineEdit.setText("")
+                
+
 
 
     @Slot()
