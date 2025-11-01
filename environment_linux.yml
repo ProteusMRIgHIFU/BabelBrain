@@ -70,7 +70,8 @@ dependencies:
       - pillow==9.4.0
       - platformdirs==3.2.0
       - pooch==1.7.0
-      - pwlf==2.5.2
+      - pwlf==2.5.1
+      - pymupdf==1.26.5
       - pydicom==2.3.1
       - pygments==2.14.0
       - pymeshfix==0.16.2
