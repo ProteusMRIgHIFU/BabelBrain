@@ -84,6 +84,7 @@ dependencies:
     - pyinstaller==6.1.0
     - pyinstaller-hooks-contrib==2022.13
     - pymeshfix==0.16.2
+    - pymupdf==1.17.0
     - pyopencl==2022.2.3
     - pyparsing==3.0.9
     - pyside6==6.4.0.1

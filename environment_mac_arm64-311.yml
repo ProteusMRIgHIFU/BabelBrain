@@ -93,6 +93,7 @@ dependencies:
       - pyinstaller-hooks-contrib==2025.9
       - pymdown-extensions==10.16.1
       - pymeshfix==0.17.1
+      - pymupdf==1.17.0
       - pyopencl==2025.2.6
       - pypandoc==1.15
       - pyparsing==3.2.5

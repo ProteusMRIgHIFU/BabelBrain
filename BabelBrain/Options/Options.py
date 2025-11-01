@@ -15,10 +15,12 @@ from pathlib import Path
 
 from multiprocessing import Process,Queue
 import time
+import yaml
 
 from functools import partial
 
 from Calibration.TxCalibration import RUN_FITTING_Process 
+from Calibration.ViewResults import PlotViewerCalibration
 from ClockDialog import ClockDialog
 
 from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
@@ -307,11 +309,19 @@ class AdvancedOptions(QDialog):
                 print("*"*5+" DONE Calibration.")
                 print("*"*40)
                 self._WorkingDialog.hide()
-                msgBox = QMessageBox()
-                msgBox.setText("Calibration executed with the following results:\n"+
-                            "SSI uncorrected: {:4.3f}\nSSI after fitting: {:4.3f}".format(SSINow,SSI_BFGS)+
-                                "\n\nPLEASE check plots in output directory specied in YAML file")
-                msgBox.exec()
+                yamlFile=self.ui.YAMLCalibrationLineEdit.text()
+                with open(yamlFile,'r') as f:
+                    inputInfo=yaml.safe_load(f)
+                rootnamepath=inputInfo['OutputResultsPath']
+                files=[os.path.join(rootnamepath,'Plots-AcProfiles.pdf'),
+                       os.path.join(rootnamepath,'Plots-Acplanes.pdf'),
+                       os.path.join(rootnamepath,'Plots-weight.pdf')]
+
+                res=PlotViewerCalibration(files).exec()
+                if res==QDialog.Accepted:
+                    calfile=os.path.join(rootnamepath,'CALIBRATION.h5')
+                    self.ui.TxOptimizedWeightsLineEdit.setText(calfile)
+                    self.ui.TxOptimizedWeightsLineEdit.setCursorPosition(len(calfile))
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of the calibration process.")

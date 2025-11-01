@@ -755,7 +755,7 @@ class BabelBrain(QWidget):
                                  self._AllTransducers,
                                  parent=self)
         ret=options.exec()
-        if ret !=-1:
+        if hasattr(options,'NewValues'):
             for k in options.NewValues.keys():
                 self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
