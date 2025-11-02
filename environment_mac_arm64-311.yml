@@ -29,7 +29,7 @@ dependencies:
   - pip:
       - altgraph==0.17.4
       - babel==2.17.0
-      - babelviscofdtd==1.1.4
+      - babelviscofdtd==1.1.5
       - backrefs==5.9
       - certifi==2025.10.5
       - charset-normalizer==3.4.4
@@ -93,7 +93,7 @@ dependencies:
       - pyinstaller-hooks-contrib==2025.9
       - pymdown-extensions==10.16.1
       - pymeshfix==0.17.1
-      - pymupdf==1.17.0
+      - pymupdf==1.26.5
       - pyopencl==2025.2.6
       - pypandoc==1.15
       - pyparsing==3.2.5

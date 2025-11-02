@@ -37,7 +37,7 @@ dependencies:
       - appdirs==1.4.4
       - async-timeout==4.0.2
       - attrs==22.1.0
-      - babelviscofdtd==1.1.2
+      - babelviscofdtd==1.1.5
       - certifi==2022.9.24
       - charset-normalizer==2.1.1
       - chart-studio==1.1.0
@@ -102,7 +102,7 @@ dependencies:
       - pyinstaller-hooks-contrib==2022.13
       - pymdown-extensions==9.9
       - pymeshfix==0.16.2
-      - pymupdf==1.17.0
+      - pymupdf==1.26.5
       - pyopencl==2022.2.3
       - pypandoc==1.10
       - pyparsing==3.0.9
