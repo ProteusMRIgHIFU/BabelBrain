@@ -191,6 +191,22 @@ class AdvancedOptions(QDialog):
         self.CalProcess = None
         self.Caltimer = QTimer(self)
         self.Caltimer.timeout.connect(self.check_queue)
+
+        BabelTxConfig=self.parent().AcSim.Config
+        TxSystem = self.parent().Config['TxSystem']
+        if 'MinimalTPODistance' in BabelTxConfig or\
+           'MinimalZSteering' in BabelTxConfig or\
+           'BSonix35mm' in BabelTxConfig: 
+            self.ui.FocalLengthLabel.setEnabled(False)
+            self.ui.DiameterLabel.setEnabled(False)
+            self.ui.FocalLengthSpinBox.setEnabled(False)
+            self.ui.DiameterSpinBox.setEnabled(False)
+        if 'MinimalZSteering' in BabelTxConfig and 'TxFoc' in BabelTxConfig:
+            self.ui.DistanceTxLabel.setText('Distance Cone to\nFocus (mm)')
+            self.ui.SkinDistanceSpinBox.setMinimum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.minimum())
+            self.ui.SkinDistanceSpinBox.setMaximum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.maximum())
+            self.ui.SkinDistanceSpinBox.setValue(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.value())
+
         self._WorkingDialog = ClockDialog(self)
 
     @Slot()

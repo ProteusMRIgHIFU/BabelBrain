@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>516</height>
+    <height>566</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>580</x>
-     <y>479</y>
+     <y>530</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>276</x>
-     <y>481</y>
+     <y>532</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>6</x>
-     <y>479</y>
+     <y>530</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -56,13 +56,13 @@
    <property name="geometry">
     <rect>
      <x>5</x>
-     <y>4</y>
+     <y>2</y>
      <width>644</width>
-     <height>474</height>
+     <height>526</height>
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -116,9 +116,9 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>219</y>
+       <y>297</y>
        <width>349</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -173,9 +173,9 @@
      <property name="geometry">
       <rect>
        <x>405</x>
-       <y>222</y>
+       <y>300</y>
        <width>206</width>
-       <height>70</height>
+       <height>72</height>
       </rect>
      </property>
      <property name="title">
@@ -206,7 +206,7 @@
        <double>200.000000000000000</double>
       </property>
      </widget>
-     <widget class="QLabel" name="DiameterLabel">
+     <widget class="QLabel" name="DiameterLabel99">
       <property name="geometry">
        <rect>
         <x>9</x>
@@ -244,7 +244,7 @@
        <double>400.000000000000000</double>
       </property>
      </widget>
-     <widget class="QLabel" name="FocalLengthLabel">
+     <widget class="QLabel" name="FocalLengthLabel99">
       <property name="geometry">
        <rect>
         <x>9</x>
@@ -262,9 +262,9 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>243</y>
+       <y>321</y>
        <width>150</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -291,9 +291,9 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>273</y>
+       <y>351</y>
        <width>150</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -307,9 +307,9 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>299</y>
+       <y>377</y>
        <width>251</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="layoutDirection">
@@ -323,9 +323,9 @@
      <property name="geometry">
       <rect>
        <x>18</x>
-       <y>322</y>
+       <y>400</y>
        <width>156</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="text">
@@ -335,10 +335,10 @@
     <widget class="QLabel" name="FocalLengthLabel_5">
      <property name="geometry">
       <rect>
-       <x>17</x>
-       <y>348</y>
+       <x>239</x>
+       <y>399</y>
        <width>241</width>
-       <height>18</height>
+       <height>20</height>
       </rect>
      </property>
      <property name="text">
@@ -349,7 +349,7 @@
      <property name="geometry">
       <rect>
        <x>16</x>
-       <y>374</y>
+       <y>423</y>
        <width>251</width>
        <height>18</height>
       </rect>
@@ -365,7 +365,7 @@
      <property name="geometry">
       <rect>
        <x>273</x>
-       <y>374</y>
+       <y>423</y>
        <width>276</width>
        <height>18</height>
       </rect>
@@ -378,9 +378,9 @@
      <property name="geometry">
       <rect>
        <x>175</x>
-       <y>322</y>
+       <y>400</y>
        <width>42</width>
-       <height>19</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="minimum">
@@ -393,10 +393,10 @@
     <widget class="QSpinBox" name="PetraMRIPeakDistancespinBox">
      <property name="geometry">
       <rect>
-       <x>261</x>
-       <y>348</y>
+       <x>483</x>
+       <y>399</y>
        <width>42</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimum">
@@ -413,7 +413,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>398</y>
+       <y>447</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -438,7 +438,7 @@
      <property name="geometry">
       <rect>
        <x>53</x>
-       <y>398</y>
+       <y>447</y>
        <width>255</width>
        <height>18</height>
       </rect>
@@ -451,7 +451,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>398</y>
+       <y>447</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -476,7 +476,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>398</y>
+       <y>447</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -489,7 +489,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>422</y>
+       <y>471</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -514,7 +514,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>422</y>
+       <y>471</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -539,7 +539,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>422</y>
+       <y>471</y>
        <width>288</width>
        <height>18</height>
       </rect>
@@ -552,7 +552,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>422</y>
+       <y>471</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -581,9 +581,9 @@
      <property name="geometry">
       <rect>
        <x>3</x>
-       <y>77</y>
+       <y>90</y>
        <width>636</width>
-       <height>138</height>
+       <height>201</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -596,9 +596,9 @@
       <property name="geometry">
        <rect>
         <x>543</x>
-        <y>38</y>
+        <y>3</y>
         <width>86</width>
-        <height>75</height>
+        <height>190</height>
        </rect>
       </property>
       <property name="text">
@@ -610,7 +610,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>8</x>
-        <y>29</y>
+        <y>89</y>
         <width>120</width>
         <height>32</height>
        </rect>
@@ -632,7 +632,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>8</x>
-        <y>2</y>
+        <y>62</y>
         <width>120</width>
         <height>32</height>
        </rect>
@@ -654,7 +654,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>141</x>
-        <y>34</y>
+        <y>94</y>
         <width>397</width>
         <height>21</height>
        </rect>
@@ -670,7 +670,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>141</x>
-        <y>7</y>
+        <y>67</y>
         <width>398</width>
         <height>21</height>
        </rect>
@@ -686,7 +686,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>9</x>
-        <y>80</y>
+        <y>140</y>
         <width>118</width>
         <height>32</height>
        </rect>
@@ -708,7 +708,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>9</x>
-        <y>54</y>
+        <y>114</y>
         <width>120</width>
         <height>32</height>
        </rect>
@@ -730,7 +730,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>143</x>
-        <y>85</y>
+        <y>145</y>
         <width>396</width>
         <height>21</height>
        </rect>
@@ -746,7 +746,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>142</x>
-        <y>59</y>
+        <y>119</y>
         <width>396</width>
         <height>21</height>
        </rect>
@@ -762,7 +762,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>143</x>
-        <y>110</y>
+        <y>170</y>
         <width>396</width>
         <height>21</height>
        </rect>
@@ -778,7 +778,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>9</x>
-        <y>105</y>
+        <y>165</y>
         <width>120</width>
         <height>32</height>
        </rect>
@@ -794,6 +794,130 @@ PlanTUS</string>
       </property>
       <property name="flat">
        <bool>false</bool>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="DiameterSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>38</y>
+        <width>90</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+      </property>
+      <property name="decimals">
+       <number>1</number>
+      </property>
+      <property name="minimum">
+       <double>20.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>150.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
+      </property>
+      <property name="value">
+       <double>50.000000000000000</double>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="FocalLengthSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>12</y>
+        <width>90</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+      </property>
+      <property name="decimals">
+       <number>1</number>
+      </property>
+      <property name="minimum">
+       <double>20.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>150.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
+      </property>
+      <property name="value">
+       <double>50.000000000000000</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="FocalLengthLabel">
+      <property name="geometry">
+       <rect>
+        <x>16</x>
+        <y>14</y>
+        <width>143</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Focal length (mm)</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="DiameterLabel">
+      <property name="geometry">
+       <rect>
+        <x>16</x>
+        <y>40</y>
+        <width>143</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Diameter (mm)</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="DistanceTxLabel">
+      <property name="geometry">
+       <rect>
+        <x>254</x>
+        <y>20</y>
+        <width>143</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Distance Tx outplane
+to skin (mm)</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="SkinDistanceSpinBox">
+      <property name="geometry">
+       <rect>
+        <x>420</x>
+        <y>22</y>
+        <width>90</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+      </property>
+      <property name="decimals">
+       <number>1</number>
+      </property>
+      <property name="minimum">
+       <double>0.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>200.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
+      </property>
+      <property name="value">
+       <double>0.000000000000000</double>
       </property>
      </widget>
     </widget>

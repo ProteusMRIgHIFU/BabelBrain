@@ -494,6 +494,20 @@ class BabelBrain(QWidget):
                             'Calculation time ultrasound':0.0,
                             'Calculation time thermal':0.0}
         
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.centerOnScreen()
+
+    def centerOnScreen(self):
+        # Get the screen geometry where the window is currently shown
+        screen = self.screen().geometry()
+        # Get the window geometry (including title bar, etc.)
+        frame = self.frameGeometry()
+        # Move the center of the frame to the screen center
+        frame.moveCenter(screen.center())
+        # Move the top-left point of the window to match
+        self.move(frame.topLeft())
+        
     def bHasTxWeights(self):
         '''
         Returns True if the current transducer has optimized weights

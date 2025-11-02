@@ -215,7 +215,7 @@ class RUN_PLAN_TUS(QObject):
                 plane_offset=(BabelTxConfig['FocalLength']-BabelTxConfig['NaturalOutPlaneDistance'])*1e3
             else:
                 plane_offset=0.0
-            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+            additional_offset=self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             transducer_diameter=BabelTxConfig['TxDiam']*1e3
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
@@ -226,12 +226,12 @@ class RUN_PLAN_TUS(QObject):
                 Focus=BabelTxConfig['TxFoc']
                 plane_offset=(Focus-np.sqrt(Focus**2-Diameter**2/4))*1e3
                 max_distance_plane =Focus*1e3-plane_offset 
-                assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus'])
-                plane_offset=Focus-BabelTxConfig['MaximalDistanceConeToFocus'] 
-                additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']-self.MainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()
+                assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus']*1e3)
+                plane_offset=Focus*1e3-BabelTxConfig['MaximalDistanceConeToFocus']*1e3
+                additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']*1e3-self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             else: #flat array as the REMOPD
                 plane_offset=0.0
-                additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+                additional_offset=self.OptionsDlg.ui.Widget.SkinDistanceSpinBox.value()
             transducer_diameter=BabelTxConfig['TxDiam']*1e3
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
@@ -240,7 +240,7 @@ class RUN_PLAN_TUS(QObject):
         elif 'BSonix35mm' in BabelTxConfig: #BSonixTx
             transducer_diameter=BabelTxConfig['CaseDiameter']
             plane_offset=0.0
-            additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
+            additional_offset=self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             seldevice = self.MainApp.AcSim.GetTxModel()
             focal_distance_list=[]
             flhm_list=[]
@@ -250,8 +250,8 @@ class RUN_PLAN_TUS(QObject):
             min_distance=np.min(focal_distance_list)
             max_distance=np.max(focal_distance_list)
         else: # single element Tx
-            FocalLength = self.MainApp.AcSim.Widget.FocalLengthSpinBox.value()
-            transducer_diameter = self.MainApp.AcSim.Widget.DiameterSpinBox.value()
+            FocalLength = self.OptionsDlg.ui.FocalLengthSpinBox.value()
+            transducer_diameter = self.OptionsDlg.ui.DiameterSpinBox.value()
             #we use analytical formula of acoustic axis from the O'Neil paper
             plane_offset,TPOequivalent,FLHM=FindTPOEquivalent(SelFreq,transducer_diameter*1e-3,FocalLength*1e-3)
             plane_offset*=1e3
