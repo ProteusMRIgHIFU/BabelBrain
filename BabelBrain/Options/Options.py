@@ -16,6 +16,7 @@ from pathlib import Path
 from multiprocessing import Process,Queue
 import time
 import yaml
+from glob import glob
 
 from functools import partial
 
@@ -329,9 +330,9 @@ class AdvancedOptions(QDialog):
                 with open(yamlFile,'r') as f:
                     inputInfo=yaml.safe_load(f)
                 rootnamepath=inputInfo['OutputResultsPath']
-                files=[os.path.join(rootnamepath,'Plots-AcProfiles.pdf'),
-                       os.path.join(rootnamepath,'Plots-Acplanes.pdf'),
-                       os.path.join(rootnamepath,'Plots-weight.pdf')]
+                files=sorted(glob(os.path.join(rootnamepath,'Plots-AcProfiles*.pdf')))+\
+                      sorted(glob(os.path.join(rootnamepath,'Plots-Acplanes*.pdf')))+\
+                      [os.path.join(rootnamepath,'Plots-weight.pdf')]
 
                 res=PlotViewerCalibration(files).exec()
                 if res==QDialog.Accepted:

@@ -135,7 +135,7 @@ class H246(BabelBaseTx):
             DistanceSkin =  -Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "TPO distance=%3.2f\n" %(TPO*1e3)+
+                                    "Z distance=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                     "DistanceSkin=%3.2f\n" %(DistanceSkin)+

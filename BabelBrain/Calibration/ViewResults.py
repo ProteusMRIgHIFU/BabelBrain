@@ -135,7 +135,7 @@ class PlotViewerTabs(QWidget):
         for path in file_paths:
             for page_index, pixmap in self._load_file_as_pixmaps(path):
                 panel = ZoomableImagePanel(pixmap,0.2)
-                tab_name = f"{os.path.basename(path)}".split('.')[0]
+                tab_name = f"{os.path.basename(path)}".split('.')[0].split('Plots-')[1]
                 if page_index > 0:
                     tab_name += f" (p{page_index+1})"
                 self.tab_widget.addTab(panel, tab_name)
