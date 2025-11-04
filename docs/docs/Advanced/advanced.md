@@ -7,7 +7,7 @@ If any of these options are modified, they will remain persistent on the next Ba
 <img src="advanced-1.png" height=450px>
 
 # Domain Generation
-<img src="advanced-2.png" height=250px>
+<img src="advanced-2.png" height=400px>
 
 
 ## Elastix co-registration Optimizer
