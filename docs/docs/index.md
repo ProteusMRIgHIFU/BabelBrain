@@ -1,7 +1,7 @@
 BabelBrain 
 =============
-**v0.4.2**  
-Feb 6th, 2025.
+**v0.8.0**  
+Nov 2nd, 2025.
 
 Samuel Pichardo, Ph.D  
 Associate Professor  

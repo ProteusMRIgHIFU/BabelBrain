@@ -30,9 +30,6 @@ The number of bins (default of 2) and minimal distance of bins (default to 50) a
 
 
 # Transcranial Ultrasound
-<img src="advanced-3.png" height=250px>
+<img src="advanced-3.png" height=350px>
 
-## CTX-500 Correction
-Starting R0.4.0, BabelBrain introduced a parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: **Original** and **July 2024**. The **Original** setting matches how the CTX-500 unit was modelled in previous releases (<= 0.3.5) and **July 2024** has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.
-
-The newer **CTX 250** and **CTX 500** transducers (introduced in R0.4.0) have already this correction by default.
+See section for [Transducer Calibration](TransducerCalibration.md)

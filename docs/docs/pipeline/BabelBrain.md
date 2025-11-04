@@ -160,26 +160,6 @@ When running in tandem with Brainsight, this trajectory will be loaded automatic
 <img src="Simulation-16.png" height=450px>
 
 ### Transducers
-#### CTX_250, CTX_500 and DPX_500
-<img src="Simulation-7.png" height=450px>
-
-For the CTX_250, CTX_500 and DPX_500 transducers, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
-
-The initial "TPO Distance" (an adjustable parameter in the TPO NeuroFUS device) is calculated based on the distance skin to the target. 
-
-It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Adjust both mechanical corrections as described above and combined with the TPO Distance to ensure your target is correctly engaged.
-
-#### H246
-The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.
-
-<img src="Simulation-9.png" height=450px>
-
-
-#### H317, I12378 and ATAC and R15148
-These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.
- 
-<img src="Simulation-10.png" height=450px>
-
 ####  Single
 The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which means that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point of the out plane of the transducer reaches the skin.
  
@@ -189,6 +169,29 @@ The "Single" transducer is a generic device with a configurable diameter and foc
 These are commercial transducers with fixed focal lengths as reported in <a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>. The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. 
  
 <img src="Simulation-13.png" height=450px>
+
+#### H246
+The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.
+
+<img src="Simulation-9.png" height=450px>
+
+#### Shell focusing ring-type arrays
+##### CTX_250, CTX_250-2ch, CTX_500, DPX_500, DPXPC_300, R15287 and R15473
+
+<img src="Simulation-7.png" height=450px>
+
+For focusing ring-type arrays, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. 
+
+The initial "Z Distance" is initially calculated based on the distance from the outplane to the target. For CTX and DPX devices, this corresponds to the TPO setting.
+
+It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Adjust both mechanical corrections as described above and combined with the Z Distance to ensure your target is correctly engaged.
+
+#### Shell focusing phased arrays
+##### H317, I12378, ATAC, R15148, R15646 and IGT64_500
+These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the `Distance cone to Focus` that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.
+ 
+<img src="Simulation-10.png" height=450px>
+
 
 ####  REMOPD
 This transducer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.
