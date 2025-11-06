@@ -430,6 +430,9 @@ def ResaveNormalized(RPath,Mask):
     PosResults=Results.affine.dot(Indexes)
 
     IndexesMask=np.round(np.linalg.inv(Mask.affine).dot(PosResults)).astype(int)
+    IndexesMask[0,IndexesMask[0,:]>=MaskData.shape[0]]=MaskData.shape[0]-1
+    IndexesMask[1,IndexesMask[1,:]>=MaskData.shape[1]]=MaskData.shape[1]-1
+    IndexesMask[2,IndexesMask[2,:]>=MaskData.shape[2]]=MaskData.shape[2]-1
 
     SubMask=MaskData[IndexesMask[0,:],IndexesMask[1,:],IndexesMask[2,:]].reshape(ResultsData.shape)
     ResultsData[SubMask<4]=0
