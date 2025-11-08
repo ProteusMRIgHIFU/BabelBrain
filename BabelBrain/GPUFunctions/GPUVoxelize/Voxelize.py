@@ -160,6 +160,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         # Build program from source code
         mf=clp.mem_flags
         prg=clp.Program(ctx,"#define _OPENCL\n"+constant_defs+kernel_code).build()
+        clExtractPoints=prg.ExtractPoints
+
         
         # Move input data from host to device memory
         vtable_gpu=clp.Buffer(ctx, mf.READ_WRITE, vtable.nbytes)
@@ -308,7 +310,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
         
             # Deploy kernel
-            prg.ExtractPoints(queue,[ntotal],None,vtable_gpu,
+            clExtractPoints(queue,[ntotal],None,vtable_gpu,
                                                 globalcount_gpu,
                                                 points_section_gpu,
                                                 int_params_gpu,

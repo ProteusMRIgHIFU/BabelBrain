@@ -231,7 +231,7 @@ kernel void label_labels(device int * y [[ buffer(0) ]],
     #endif
 
     labels[j] = _i;
-}
+
 #ifndef _MLX   
 }
 #endif
