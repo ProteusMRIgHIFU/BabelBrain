@@ -206,7 +206,7 @@ class REMOPD(BabelBasePhaseArray):
         # else:
         #     self._MultiPoint ='N/A'
          
-        for k in ['XSteering','YSteering','ZSteering','ZRotation','XMechanic','YMechanic','ZMechanic']:
+        for k in ['XSteering','YSteering','ZSteering','ZRotation','XMechanic','YMechanic','SkinDistance']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
     
@@ -277,16 +277,9 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
-        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
-        kargs['bPETRA'] = False
         kargs['bDryRun'] = self._bDryRun
         kargs['ZIntoSkin'] = ZIntoSkin
-            
-        if kargs['bUseCT']:
-            if self._mainApp.Config['CTType']==3:
-                kargs['bPETRA']=True
+        kargs|=self._mainApp.CommomAcOptions()
 
         
         queue=Queue()

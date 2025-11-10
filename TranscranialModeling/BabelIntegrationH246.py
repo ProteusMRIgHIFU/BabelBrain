@@ -363,31 +363,16 @@ class SimulationConditions(SimulationConditionsBASE):
         xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        u0*=self.AdjustWeightAmplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
         
-        self._SourceMapFlat=u2[:,:,self._ZSourceLocation]
+        self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation]
         
-        if self._bDisplay:
-            plt.figure(figsize=(6,3))
-            plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapFlat)/1e6,
-                       vmin=np.abs(self._SourceMapFlat[RegionMap]).min()/1e6,cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Incident map to be forwarded propagated (MPa)')
 
-            plt.subplot(1,2,2)
-            
-            plt.imshow((np.abs(u2[:,self._FocalSpotLocation[1],:]).T+
-                                       self._MaterialMap[self._FocalSpotLocation[0],:,:].T*
-                                       np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
-                                       extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
-                                       cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Acoustic field with Rayleigh with skull and brain (MPa)')
         
     def CreateSources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
@@ -405,17 +390,17 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocZ=self._ZSourceLocation
         
-        SourceMaskIND=np.where(np.abs(self._SourceMapFlat)>0)
+        SourceMaskIND=np.where(np.abs(self._SourceMapRayleigh)>0)
         SourceMask=np.zeros((self._N1,self._N2),np.uint32)
         
         RefI= int((SourceMaskIND[0].max()-SourceMaskIND[0].min())/2)+SourceMaskIND[0].min()
         RefJ= int((SourceMaskIND[1].max()-SourceMaskIND[1].min())/2)+SourceMaskIND[1].min()
-        AngRef=np.angle(self._SourceMapFlat[RefI,RefJ])
-        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapFlat)>0),TimeVectorSource.shape[0]))
+        AngRef=np.angle(self._SourceMapRayleigh[RefI,RefJ])
+        PulseSource = np.zeros((np.sum(np.abs(self._SourceMapRayleigh)>0),TimeVectorSource.shape[0]))
         nSource=1                       
         for i,j in zip(SourceMaskIND[0],SourceMaskIND[1]):
             SourceMask[i,j]=nSource
-            u0=self._SourceMapFlat[i,j]
+            u0=self._SourceMapRayleigh[i,j]
             #we recover amplitude and phase from Rayleigh field
             PulseSource[nSource-1,:] = np.abs(u0) *np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(u0))
             PulseSource[nSource-1,:int(ramp_length_points)]*=ramp

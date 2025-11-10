@@ -10,9 +10,9 @@ from scipy.ndimage._morphology import generate_binary_structure
 from skimage.measure import label
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -81,6 +81,19 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
         knl_label_count = prgcl.function('label_count')
         knl_label_labels = prgcl.function('label_labels')
         knl_label_finalize = prgcl.function('label_finalize')
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+
+        clp = mx
+        preamble = '#define _METAL\n#include <metal_stdlib>\nusing namespace metal;\n'
+        prgcl, sel_device, ctx = InitMLX(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+       
+        # Create kernel from program function
+        knl_label_init = prgcl['label_init']['kernel']
+        knl_label_connect = prgcl['label_connect']['kernel']
+        knl_label_count = prgcl['label_count']['kernel']
+        knl_label_labels = prgcl['label_labels']['kernel']
+        knl_label_finalize = prgcl['label_finalize']['kernel']
 
 
 def _label_modified(x, structure, y, GPUBackend='OpenCL'):
@@ -401,4 +414,4 @@ def LabelImage(image, background=None, return_num=False, connectivity=None, GPUB
             result = label(image)
             return result
     else: # Metal
-        raise ValueError('Metal version has not been implemented')
+        raise ValueError('Metal/MLX version has not been implemented')

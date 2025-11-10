@@ -26,21 +26,19 @@ sys.path.append(os.path.abspath('./'))
 import SimpleITK as sitk
 import nibabel
 import numpy as np
+import importlib
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie, QPainter, QImage,QPixmap
+from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie,QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QDoubleSpinBox,
     QGridLayout,
-    QHBoxLayout,
     QInputDialog,
     QLineEdit,
     QMessageBox,
-    QProgressBar,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
     QLabel
@@ -66,7 +64,8 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
-from Options.Options import AdvancedOptions
+from Options.Options import AdvancedOptions, OptionalParams
+from ClockDialog import ClockDialog
 
 
 multiprocessing.freeze_support()
@@ -180,6 +179,22 @@ def GetLatestSelection():
     return res
 
 def GetInputFromBrainsight():
+    '''
+    Reads and validates input files exported from Brainsight for use in BabelBrain.
+
+    Returns
+    -------
+    tuple
+        res : dict or None
+            Dictionary with paths and configuration if all files are valid, otherwise None.
+        header : dict
+            Header information from the Brainsight trajectory file.
+
+    Raises
+    ------
+    SystemError
+        If required input files are missing or invalid.
+    '''
     res=None
     PathMat4Trajectory  = _BrainsightSyncPath + os.sep +'Input_Target.txt'
     PathT1W             = _BrainsightSyncPath + os.sep +'Input_Anatomical.txt'
@@ -281,13 +296,33 @@ def GetInputFromBrainsight():
     return res,header
 
 def EndWithError(msg):
-        msgBox = QMessageBox()
-        msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText(msg)
-        msgBox.exec()
-        raise SystemError(msg)
+    '''
+    Display an error message and raise a SystemError.
+
+    Parameters
+    ----------
+    msg : str
+        The error message to display.
+    '''
+    msgBox = QMessageBox()
+    msgBox.setIcon(QMessageBox.Critical)
+    msgBox.setText(msg)
+    msgBox.exec()
+    raise SystemError(msg)
 
 def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
+    '''
+    Resample a T1-weighted MRI image to isotropic voxel spacing and save to file.
+
+    Parameters
+    ----------
+    T1W_fname : str
+        Path to the input T1-weighted image.
+    T1WIso_fname : str
+        Path to save the isotropic resampled image.
+    new_spacing : list of float, optional
+        Desired voxel spacing (default is [1.0, 1.0, 1.0]).
+    '''
     preT1=sitk.ReadImage(T1W_fname)
     getMin=sitk.MinimumMaximumImageFilter()
     getMin.Execute(preT1)
@@ -305,38 +340,23 @@ def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
                     minval,
                     preT1.GetPixelID())
     sitk.WriteImage(preT1, T1WIso_fname)
- 
-########################
-class ClockDialog(QDialog):
-    def __init__(self, parent=None):
-        super(ClockDialog,self).__init__(parent)
-        self.initUI()
 
-    def initUI(self):
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
-        self.setModal(False)
-
-        self.label = QLabel(self)
-        self.movie = QMovie( os.path.join(resource_path(),'icons8-hourglass.gif'))
-        self.label.setMovie(self.movie)
-        self.movie.start()
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        self.setLayout(layout)
 
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'
 
 ######################
+
 class BabelBrain(QWidget):
     '''
-    Main LIFU Control application
+    Main TUS simulation application
 
     '''
 
     def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
+
+        self._AllTransducers = widget.GetAllTransducers()
 
         simbnibs_path=widget.ui.SimbNIBSlineEdit.text()
         T1W=widget.ui.T1WlineEdit.text()
@@ -369,6 +389,8 @@ class BabelBrain(QWidget):
             ComputingBackend=2
         elif Backend=='Metal':
             ComputingBackend=3
+        elif Backend=='MLX':
+            ComputingBackend=4
 
         self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
@@ -379,6 +401,7 @@ class BabelBrain(QWidget):
         self.Config['SimbNIBSType']=SimbNIBSType
         self.Config['TrajectoryType']=TrajectoryType
         self.Config['Mat4Trajectory']=Mat4Trajectory
+        self.Config['OrigMat4Trajectory']=Mat4Trajectory
         self.Config['ThermalProfile']=ThermalProfile
         self.Config['T1W']=T1W
         self.Config['bUseCT']=bUseCT
@@ -386,7 +409,10 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['CTMapCombo']=CTMapCombo
-        self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
+        if self.Config['TrajectoryType']=='brainsight':
+            self.Config['ID'] = ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
+        else:
+            self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
 
         #filenames when saving results for Brainsight
         self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
@@ -419,31 +445,19 @@ class BabelBrain(QWidget):
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
             
         #default values for advanced features 
+
+        self._DefaultOptions=OptionalParams(self._AllTransducers)  
         
-        self.DefaultAdvanced={}
-        
-        self.DefaultAdvanced['bApplyBOXFOV']=False
-        self.DefaultAdvanced['FOVDiameter']=200.0
-        self.DefaultAdvanced['FOVLength']=400.0
-        self.DefaultAdvanced['bForceUseBlender']=False
-        self.DefaultAdvanced['ElastixOptimizer']='AdaptiveStochasticGradientDescent'
-        self.DefaultAdvanced['TrabecularProportion']=0.8
-        self.DefaultAdvanced['CTX_500_Correction']='Original'
-        self.DefaultAdvanced['CTX_250_Correction']='Original'
-        self.DefaultAdvanced['DPX_500_Correction']='Original'
-        self.DefaultAdvanced['PetraNPeaks']=2
-        self.DefaultAdvanced['PetraMRIPeakDistance']=50
-        self.DefaultAdvanced['bInvertZTE']=False
-        self.DefaultAdvanced['bDisableCTMedianFilter']=False
-        self.DefaultAdvanced['bGeneratePETRAHistogram']=False
-        self.DefaultAdvanced['BaselineTemperature']=37.0
-                
-        for k in self.DefaultAdvanced:
+        for k in self._DefaultOptions.keys():
             if k not in self.Config:
-                self.Config[k]=self.DefaultAdvanced[k]
+                self.Config[k]=getattr(self._DefaultOptions,k)
+            elif k=='TxOptimizedWeights':
+                #we check if we are missing a Tx
+                for tx in self._AllTransducers:
+                    if tx not in self.Config['TxOptimizedWeights']:
+                        self.Config['TxOptimizedWeights'][tx]=getattr(self._DefaultOptions,k)[tx]
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
-            
         self.SaveLatestSelection()
 
         self.load_ui()
@@ -479,7 +493,27 @@ class BabelBrain(QWidget):
         self._TrackingTime={'Calculation time domain':0.0,
                             'Calculation time ultrasound':0.0,
                             'Calculation time thermal':0.0}
+        
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.centerOnScreen()
 
+    def centerOnScreen(self):
+        # Get the screen geometry where the window is currently shown
+        screen = self.screen().geometry()
+        # Get the window geometry (including title bar, etc.)
+        frame = self.frameGeometry()
+        # Move the center of the frame to the screen center
+        frame.moveCenter(screen.center())
+        # Move the top-left point of the window to match
+        self.move(frame.topLeft())
+        
+    def bHasTxWeights(self):
+        '''
+        Returns True if the current transducer has optimized weights
+        '''
+        return len(self.Config['TxOptimizedWeights'][self.Config['TxSystem']])>0
+        
     def showClockDialog(self):
         self.centerClockDialog()
         # Show the dialog
@@ -491,8 +525,6 @@ class BabelBrain(QWidget):
     def centerClockDialog(self):
         # Calculate and set the new position for the dialog
         mainWindowCenter = self.geometry().center()
-        dialogWidth = self._WorkingDialog.width()
-        dialogHeight = self._WorkingDialog.height()
         self._WorkingDialog.move(
             mainWindowCenter.x() - 50,
             mainWindowCenter.y() - 50
@@ -537,27 +569,36 @@ class BabelBrain(QWidget):
         import BabelDatasetPreps as DataPreps
 
         from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
-        if self.Config['TxSystem'] =='Single':
-            from Babel_SingleTx.Babel_SingleTx import SingleTx as WidgetAcSim
+        if self.Config['TxSystem'] =='CTX_500':
+            idimport = 'CTX500'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='CTX_500':
-            from Babel_CTX500.Babel_CTX500 import CTX500 as WidgetAcSim
+            idimport = 'CTX500'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='CTX_250':
-            from Babel_CTX250.Babel_CTX250 import CTX250 as WidgetAcSim
+            idimport = 'CTX250'
+            ibsub=idimport
+        elif self.Config['TxSystem'] =='CTX_250_2ch':
+            idimport = 'CTX250_2ch'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='DPX_500':
-            from Babel_DPX500.Babel_DPX500 import DPX500 as WidgetAcSim
-        elif self.Config['TxSystem'] =='H317':
-            from Babel_H317.Babel_H317 import H317 as WidgetAcSim
-        elif self.Config['TxSystem'] =='H246':
-            from Babel_H246.Babel_H246 import H246 as WidgetAcSim
+            idimport = 'DPX500'
+            ibsub=idimport
+        elif self.Config['TxSystem'] =='DPXPC_300':
+            idimport = 'DPXPC300'
+            ibsub=idimport
+        elif self.Config['TxSystem'] =='Single':
+            idimport = 'SingleTx'
+            ibsub=idimport
         elif self.Config['TxSystem'] =='BSonix':
-            from Babel_SingleTx.Babel_BSonix import BSonix as WidgetAcSim
-        elif self.Config['TxSystem'] =='REMOPD':
-            from Babel_REMOPD.Babel_REMOPD import REMOPD as WidgetAcSim
-        elif self.Config['TxSystem'] =='I12378':
-            from Babel_I12378.Babel_I12378 import I12378 as WidgetAcSim
-        elif self.Config['TxSystem'] =='ATAC':
-            from Babel_ATAC.Babel_ATAC import ATAC as WidgetAcSim
+            idimport = 'SingleTx'
+            ibsub='BSonix'
         else:
+            idimport = self.Config['TxSystem']
+            ibsub=idimport
+        try:
+            WidgetAcSim = importlib.import_module(f"Babel_{idimport}.Babel_{ibsub}").__dict__[ibsub]
+        except ImportError:
             EndWithError("TX system " + self.Config['TxSystem'] + " is not yet supported")
 
         from Babel_Thermal.Babel_Thermal import Babel_Thermal as WidgetThermal
@@ -593,17 +634,54 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.hide()
         elif self.Config['CTType'] not in [2,3]:
             self.Widget.CTZTETabs.setTabEnabled(0,False)
-        elif self.Config['CTType']==3: #PETRA, we change the label
+        if self.Config['CTType']==3: #PETRA, we change the label
+            print('doing density selection')
             self.Widget.CTZTETabs.setTabText(0,"PETRA")
             ZTE.findChild(QLabel,"RangeLabel").setText("Normalized PETRA Range")
+        elif self.Config['CTType']==4: #Density, we change a little labels and limits
+            self.Widget.CTZTETabs.setTabText(1,"Density")
+            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText("Density threshold")
+            self.Widget.HUThresholdSpinBox.setMinimum(1050)
+            self.Widget.HUThresholdSpinBox.setMaximum(3000)
+            self.Widget.HUThresholdSpinBox.setValue(1200)
+            
         self.Widget.HUTreshold=self.Widget.CTZTETabs.widget(1).findChildren(QDoubleSpinBox)[0]
 
         # self.Widget.TransparencyScrollBar.sliderReleased.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.valueChanged.connect(self.UpdateTransparency)
         self.Widget.TransparencyScrollBar.setEnabled(False)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarks)
-       
-    
+
+        if self.Config['TxSystem'] =='Single':
+            USMaskkHzDropDown = self.Widget.USMaskkHzDropDown
+            USMaskkHzDropDown.setEditable(True)
+            USMaskkHzDropDown.lineEdit().textChanged.connect(self.StartManualMaskFrequency)
+            USMaskkHzDropDown.lineEdit().editingFinished.connect(self.UpdateManualMaskFrequency)
+
+    @Slot()
+    def StartManualMaskFrequency(self,txt):
+        try:
+            value = float(txt)
+            if value <200 or value > 1000:
+                self.Widget.CalculatePlanningMask.setEnabled(False)
+            else:
+                self.Widget.CalculatePlanningMask.setEnabled(True)
+        except ValueError:
+            self.Widget.CalculatePlanningMask.setEnabled(False)
+
+    @Slot()
+    def UpdateManualMaskFrequency(self):
+        try:
+            value = float(self.Widget.USMaskkHzDropDown.currentText())
+            if value <200 or value > 1000:
+                QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+                return
+            self.UpdateMaskParameters()
+            self.Widget.CalculatePlanningMask.setEnabled(True)
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+            self.Widget.USMaskkHzDropDown.setFocus()
+
     @Slot()
     def handleOutput(self, text, stdout):
         color = self.palette().color(QPalette.WindowText)
@@ -686,23 +764,14 @@ class BabelBrain(QWidget):
     def ShowAdvancedOptions(self):
         
         options = AdvancedOptions(self.Config,
-                                 self.DefaultAdvanced,
+                                 self.AcSim.Config,
+                                 self._DefaultOptions,
+                                 self._AllTransducers,
                                  parent=self)
         ret=options.exec()
-        if ret !=-1:
-            self.Config['bApplyBOXFOV']=options.ui.ManualFOVcheckBox.isChecked()
-            self.Config['FOVDiameter']=options.ui.FOVDiameterSpinBox.value()
-            self.Config['FOVLength']=options.ui.FOVLengthSpinBox.value()
-            self.Config['bForceUseBlender']=options.ui.ForceBlendercheckBox.isChecked()
-            self.Config['ElastixOptimizer']=options.ui.ElastixOptimizercomboBox.currentText()
-            self.Config['TrabecularProportion']=options.ui.TrabecularProportionSpinBox.value()
-            self.Config['CTX_500_Correction']=options.ui.CTX500CorrectioncomboBox.currentText()
-            self.Config['PetraNPeaks']=options.ui.PetraNPeaksSpinBox.value()
-            self.Config['PetraMRIPeakDistance']=options.ui.PetraMRIPeakDistancespinBox.value()
-            self.Config['bInvertZTE']=options.ui.InvertZTEcheckBox.isChecked()
-            self.Config['bDisableCTMedianFilter']=options.ui.DisableCTMedianFiltercheckBox.isChecked()
-            self.Config['bGeneratePETRAHistogram']=options.ui.GeneratePETRAHistogramcheckBox.isChecked()
-            self.Config['BaselineTemperature']=options.ui.BaselineTemperatureSpinBox.value()
+        if hasattr(options,'NewValues'):
+            for k in options.NewValues.keys():
+                self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
 
     @Slot(float)
@@ -800,10 +869,11 @@ class BabelBrain(QWidget):
         else:
             inMat=read_itk_affine_transform(self.Config['Mat4Trajectory'])
             OrigTraj = itk_to_BSight(inMat)
-            OrigTraj[0,3]+=CorX
-            OrigTraj[1,3]+=CorY
-            OrigTraj[2,3]+=CorZ
+            OrigTraj[0,3]-=CorX
+            OrigTraj[1,3]-=CorY
+            OrigTraj[2,3]-=CorZ
             transform = BSight_to_itk(OrigTraj)
+            transform[:3,:3]=transform[:3,:3].T
             outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
                                         m0n2=transform[2,0],
@@ -854,6 +924,8 @@ class BabelBrain(QWidget):
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
         FinalMask=Data.get_fdata()
         FinalMask=np.flip(FinalMask,axis=2)
+        bSegmentedBrain= np.max(FinalMask)>5
+        self._bSegmentedBrain = bSegmentedBrain
         T1W=nibabel.load(self._T1W_resampled_fname)
         T1WData=T1W.get_fdata()
         T1WData=np.flip(T1WData,axis=2)
@@ -934,8 +1006,11 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-
-            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=5,extent=extent,interpolation='none',aspect='equal'))
+            if bSegmentedBrain:
+                vmaxMask=8
+            else:
+                vmaxMask=5
+            self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=vmaxMask,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
                 self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
@@ -945,15 +1020,42 @@ class BabelBrain(QWidget):
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
         if self.Config['bUseCT']:
-            values =[1,4]
-            legends  = ['scalp','brain']
+            if bSegmentedBrain:
+                values =[1,4,6,7,8]
+                legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+            else:
+                values =[1,4]
+                legends  = ['scalp','brain']
+                colors =[(0.0, 0.3, 1.0, 1.0), 
+                     (1.0, 0.40740740740740755,0.0, 1.0)]
             #we use manual color asignation 
-            colors =[(0.0, 0.3, 1.0, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+            
         else:
-            values =[1,2,3,4]
-            legends  = ['scalp','cort.','trab.','brain']
+            if bSegmentedBrain:
+                values =[1,2,3,4,6,7,8]
+                legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
+                colors = [(0.0, 0.3, 1.0, 1.0), 
+                        (0.0, 0.5020, 1.0, 1.0),
+                        (0.0824,  1.0,  0.8824, 1.0),
+                        (0.4863,  1.0,  0.4745,   1.0),
+                        (1.0,  0.5804,   0.0,  1.0),
+                        (1.0,  0.1137,   0.0,  1.0),
+                        (0.4980, 0.0,   0.0,    1.0)]
+                
+            else:
+                values =[1,2,3,4]
+                legends  = ['scalp','cort.','trab.','brain']
+                colors = [(0.0, 0.0, 1.0, 1.0), 
+                      (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), 
+                      (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), 
+                      (1.0, 0.40740740740740755, 0.0, 1.0)]
             #we use manual color asignation 
-            colors = [(0.0, 0.3, 1.0, 1.0), (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), (1.0, 0.40740740740740755, 0.0, 1.0)]
+                
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
         leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
         self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
@@ -990,7 +1092,10 @@ class BabelBrain(QWidget):
         ExtraConfig['Frequency']=self._Frequency
         ExtraConfig['PPW']=self._BasePPW
         if self.Config['bUseCT']:
-            ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
+            if self.Config['CTType'] in [1,2,3]:
+                ExtraConfig['HUThreshold']=self.Widget.HUTreshold.value()
+            else:
+                ExtraConfig['DensityThreshold']=self.Widget.HUTreshold.value()
             if self.Config['CTType'] in [2,3]: #ZTE or PETRA
                 ExtraConfig['ZTERange']=self.Widget.ZTERangeSlider.value()
         with open(self._trackingtimefile,'r') as f:
@@ -1022,13 +1127,33 @@ class BabelBrain(QWidget):
         with open(self._trackingtimefile,'w') as f:
             yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
 
+    def CommomAcOptions(self):
+        kargs={}
+        kargs['bUseCT']=self.Config['bUseCT']
+        kargs['CTMapCombo']=self.Config['CTMapCombo']
+        kargs['bUseRayleighForWater']=self.Config['bUseRayleighForWater']
+        kargs['bSaveStress']=self.Config['bSaveStress']
+        kargs['bSaveDisplacement']=self.Config['bSaveDisplacement']
+        kargs['bForceHomogenousMedium']=self.Config['bForceHomogenousMedium']
+        kargs['HomogenousMediumValues']=self.Config['HomogenousMediumValues']
+        kargs['bPETRA'] = False
+        if kargs['bUseCT']:
+            if self.Config['CTType']==3:
+                kargs['bPETRA']=True
+            elif self.Config['CTType']==4:
+                kargs['bDensity']=True
+        kargs['OptimizedWeightsFile']=self.Config['TxOptimizedWeights'][self.Config['TxSystem']]
+        return kargs
+
 def get_color_at(widget, x,y):
     pixmap = QPixmap(widget.size())
     widget.render(pixmap)
     return pixmap.toImage().pixelColor(x,y).getRgb()
         
 class RunMaskGeneration(QObject):
-
+    '''
+    Worker class for running mask generation in a separate process.
+    '''
     finished = Signal()
     endError = Signal()
 
@@ -1037,7 +1162,16 @@ class RunMaskGeneration(QObject):
         self._mainApp=mainApp
 
     def run(self):
-        """Long-running task."""
+        '''
+        Execute the mask generation process in a separate process.
+
+        Emits
+        -----
+        finished : Signal
+            Emitted when mask generation completes successfully.
+        endError : Signal
+            Emitted if an error occurs during mask generation.
+        '''
 
         print("*"*40)
         print("*"*5+" Calculating mask.. BE PATIENT... it can take a couple of minutes...")
@@ -1081,16 +1215,27 @@ class RunMaskGeneration(QObject):
             kargs['CTType']=self._mainApp.Config['CTType']
             if kargs['CTType'] in [2,3]:
                 kargs['ZTERange']=Widget.ZTERangeSlider.value()
-            kargs['HUThreshold']=Widget.HUTreshold.value()
+            if kargs['CTType'] in [1,2,3]:
+                kargs['HUThreshold']=Widget.HUTreshold.value()
+            else:
+                kargs['DensityThreshold']=Widget.HUTreshold.value()
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
-            if '_Correction' not in k and 'BaselineTemperature' != k:
+            if '_Correction' not in k and k not in ['BaselineTemperature','bSaveStress',
+                                                    'bSaveDisplacement','LimitBHTEIterationsPerProcess',
+                                                    'bForceHomogenousMedium','HomogenousMediumValues',
+                                                    'bForceNoAbsorptionSkullScalp',
+                                                    'TxOptimizedWeights',
+                                                    'PlanTUSRoot',
+                                                     'FSLRoot',
+                                                     'ConnectomeRoot',
+                                                     'FreeSurferRoot']:
                 return True
             else:
                 return False
         #advanced parameters
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 kargs[k]=self._mainApp.Config[k] 
         
@@ -1100,7 +1245,7 @@ class RunMaskGeneration(QObject):
             with open(self._mainApp.Config['AdvancedParamsFile'],'r') as f:
                 PrevParams=yaml.load(f,yaml.SafeLoader)
             bForceFullRecalculation=False
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k): 
                     if k not in PrevParams: #if a new parameter was added in a new release, we force recalculations
                         bForceFullRecalculation=True
@@ -1108,24 +1253,24 @@ class RunMaskGeneration(QObject):
                         break
             if not bForceFullRecalculation:
                 for k in PrevParams:
-                    if ValidParam(k): 
-                        if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
-                            print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
-                            bForceFullRecalculation=True
-                            break
+                    if ValidParam(k) and k in kargs: 
+                       if kargs[k] != PrevParams[k]: #if a parameter changed, we force recalculations
+                                print('PrevParamsFile - Parameter',k,'is differemt',kargs[k],PrevParams[k])
+                                bForceFullRecalculation=True
+                                break
         else:
             #in case no file of params have been saved, we compare with defaults, which is compatible with previous releases of BabelBrain
-            for k in self._mainApp.DefaultAdvanced:
+            for k in self._mainApp._DefaultOptions.keys():
                 if ValidParam(k):
-                    if kargs[k] != self._mainApp.DefaultAdvanced[k]: #if a parameter is different from default, we force recalculations
-                        print('Defaults - Parameter',k,'is differemt',kargs[k],self._mainApp.DefaultAdvanced[k])
+                    if kargs[k] != getattr(self._mainApp._DefaultOptions,k): #if a parameter is different from default, we force recalculations
+                        print('Defaults - Parameter',k,'is differemt',kargs[k],getattr(self._mainApp._DefaultOptions,k))
                         bForceFullRecalculation=True
                         break
         kargs['bForceFullRecalculation']=bForceFullRecalculation
             
         # now we save the parameters for future comparison
         NewParams={}
-        for k in self._mainApp.DefaultAdvanced:
+        for k in self._mainApp._DefaultOptions.keys():
             if ValidParam(k):
                 NewParams[k]=kargs[k]
             
@@ -1173,6 +1318,10 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             self.endError.emit()
 def main():
+    '''
+    Main entry point for the BabelBrain application.
+    Handles argument parsing, GUI initialization, and application execution.
+    '''
     global bINUSE_INSIDE_BRAINSIGHT
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR']='/usr/local/fsl'
@@ -1228,14 +1377,17 @@ def main():
                 GPU='CPU'
             else:
                 GPU=prevConfig['ComputingDevice']
+                Backend=''
                 if prevConfig['ComputingBackend']==1:
                     Backend='CUDA'
                 elif prevConfig['ComputingBackend']==2:
                     Backend='OpenCL'
                 elif prevConfig['ComputingBackend']==3:
                     Backend='Metal'
-
-            selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
+                elif prevConfig['ComputingBackend']==4:
+                    Backend='MLX'
+                if len(Backend)>0:
+                    selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
 
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])

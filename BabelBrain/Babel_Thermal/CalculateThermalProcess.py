@@ -1,7 +1,7 @@
 import sys
 import platform
 import traceback
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal
+from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal,InitMLX
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from scipy.io import savemat
 import numpy as np
@@ -43,16 +43,18 @@ def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
         InitCuda(deviceName)
     elif kargs['Backend']=='OpenCL':
         InitOpenCL(deviceName)
-    else:
+    elif kargs['Backend']=='Metal':
         InitMetal(deviceName)
-    fname=CalculateTemperatureEffects(case,**kargs)
+    elif kargs['Backend']=='MLX':
+        InitMLX(deviceName)
+    fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
     queueResult.put(fname)
     
 
 def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
     try:
-        Backend = ['CUDA','OpenCL','Metal'][kargs['COMPUTING_BACKEND']-1]
+        Backend = ['CUDA','OpenCL','Metal','MLX'][kargs['COMPUTING_BACKEND']-1]
         deviceName=kargs['deviceName']
         AllCases=[]
         #These fields will preseved individually per sonication regime
@@ -64,18 +66,21 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
             queueResult=Queue()
             kargsSub={}
-            kargsSub['DutyCycle']=combination['DC']
-            kargsSub['PRF']=combination['PRF']
-            kargsSub['DurationUS']=combination['Duration']
-            kargsSub['DurationOff']=combination['DurationOff']
-            kargsSub['Repetitions']=combination['Repetitions']
+            for k in ['PRF','DurationOff','Repetitions','NumberGroupedSonications','PauseBetweenGroupedSonications']:
+                kargsSub[k]=combination[k]
             kargsSub['Isppa']=kargs['Isppa']
             kargsSub['sel_p']=kargs['sel_p']
-            kargsSub['bPlot']=False
+            kargsSub['DutyCycle']=combination['DC']            
+            kargsSub['DurationUS']=combination['Duration']
             kargsSub['bForceRecalc']=True
             kargsSub['Backend']=Backend
             kargsSub['Frequency']=kargs['Frequency']
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
+            kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
+            #we check now if some development parameters are being passed
+            for k in ['bForceNoAbsorptionSkullScalp','bForceHomogenousMedium','HomogenousMediumValues','BenchmarkTestFile']:
+                if k in kargs:
+                    kargsSub[k]=kargs[k]
             fieldWorkerProcess = Process(target=SubProcess, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)

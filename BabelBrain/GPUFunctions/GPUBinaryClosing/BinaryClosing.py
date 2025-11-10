@@ -12,9 +12,9 @@ from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -71,6 +71,14 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
 
         # Create kernels from program function
         knl=prgcl.function('binary_erosion')
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+        preamble = '#define _MLX'
+        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files,DeviceName)
+       
+        # Create kernel from program function
+        knl=prgcl['binary_erosion']['kernel']
 
 def erode_kernel(input, structure, output, offsets, border_value, center_is_true, invert, GPUBackend='OpenCL'):
 
@@ -216,6 +224,26 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
 
             # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=np.uint8).reshape(output_section.shape)
+        elif GPUBackend=='MLX':
+            
+            # Move input data from host to device memory
+            input_section_gpu = ctx.array(input_section)
+            structure_gpu = ctx.array(structure)
+            int_params_gpu = ctx.array(int_params)
+            output_section_gpu = ctx.array(output_section)
+
+            # Deploy kernel
+            handle=knl(inputs=[input_section_gpu,structure_gpu,int_params_gpu,output_section_gpu],
+                       grid=[output_section.size,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[1,1,1]], # dummy output is just 1 float, as we never write to it
+                       output_dtypes=[ctx.float32],
+                       use_optimal_threadgroups=True
+                       )[0]
+            ctx.eval(handle)
+
+            # Move kernel output data back to host memory
+            output_section = np.array(output_section_gpu).reshape(output_section.shape)
         else:
             raise ValueError("Unknown gpu backend was selected")
         

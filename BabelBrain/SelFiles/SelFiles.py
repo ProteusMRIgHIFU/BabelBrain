@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QTableView,QVBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QStyle
 from PySide6.QtCore import Slot, Qt,QAbstractTableModel
 
 # Important:
@@ -38,7 +38,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-ListTxSteering=['H317','I12378','ATAC']
+ListTxSteering=['H317','I12378','ATAC','R15148','R15646','IGT64_500']
 
 class TableModel(QAbstractTableModel):
     def __init__(self, data):
@@ -107,15 +107,35 @@ def ValidThermalProfile(fProf):
                 return False,msgDetails
         if 'Repetitions' in entry:
             if type(entry['Repetitions']) is not int:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be integer" % (k,n)
+                msgDetails = "key Repetitions in entry %i of AllDC_PRF_Duration must be integer" % (n)
                 return False,msgDetails
             if entry['Repetitions'] <1:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration must be larger than 1" % (k,n)
+                msgDetails = "key Repetitions in entry %i of AllDC_PRF_Duration must be larger or equal than 1" % (n)
+                return False,msgDetails
+        if 'NumberGroupedSonications' in entry:
+            if type(entry['NumberGroupedSonications']) is not int:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be integer" % (n)
+                return False,msgDetails
+            if entry['NumberGroupedSonications'] <1:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be larger than 1" % (n)
+                return False,msgDetails
+            if 'PauseBetweenGroupedSonications' not in entry:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be present if NumberGroupedSonications is specified" % (n)
+                return False,msgDetails
+        if 'PauseBetweenGroupedSonications' in entry:
+            if type(entry['PauseBetweenGroupedSonications']) is not float:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be float" % (n)
+                return False,msgDetails
+            if entry['PauseBetweenGroupedSonications'] <0.0:
+                msgDetails = "key PauseBetweenGroupedSonications in entry %i of AllDC_PRF_Duration must be larger than 0.0" % (n)
+                return False,msgDetails
+            if 'NumberGroupedSonications' not in entry:
+                msgDetails = "key NumberGroupedSonications in entry %i of AllDC_PRF_Duration must be present if PauseBetweenGroupedSonications is specified" % (n)
                 return False,msgDetails
         for k in entry:
-            if k not in ['DC','PRF','Duration','DurationOff','Repetitions']:
-                msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', or 'Repetitions'" % (k,n)
-                return False,msgDetail
+            if k not in ['DC','PRF','Duration','DurationOff','Repetitions','NumberGroupedSonications','PauseBetweenGroupedSonications']:
+                msgDetails = "key %s in entry %i of AllDC_PRF_Duration is unknown. It must be either 'DC', 'PRF', 'Duration',  'DurationOff', 'Repetitions', 'NumberGroupedSonications' or 'PauseBetweenGroupedSonications'" % (k,n)
+                return False,msgDetails
     return True,msgDetails
 
 class SelFiles(QDialog):
@@ -142,6 +162,13 @@ class SelFiles(QDialog):
         self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.SelectTransducer)
         self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
+                
+        self.ui.SelTrajectorypushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelT1WpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelCTpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelTProfilepushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.ui.SelSimbNIBSpushButton.setIcon(self.style().standardIcon(QStyle.SP_DirOpenIcon))
+                                        
 
         if len(Trajectory)>0:
             self.ui.TrajectorylineEdit.setText(Trajectory)
@@ -187,6 +214,12 @@ class SelFiles(QDialog):
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
+    def GetAllTransducers(self):
+        """
+        Returns a list of all transducers available in BabelBrain
+        """
+        return [self.ui.TransducerTypecomboBox.itemText(i) for i in range(self.ui.TransducerTypecomboBox.count())]
+
     def SelectComputingEngine(self,GPU='CPU',Backend=''):
         for sel,dev in enumerate(self._GPUs):
             if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
@@ -210,6 +243,7 @@ class SelFiles(QDialog):
             print('Available Metal Devices',devices)
             for dev in devices:
                 AllDevices.append([dev,'Metal'])
+                AllDevices.append([dev,'MLX'])
         else:
             #we try to import CUDA and OpenCL in Win/Linux systems, if it fails, it means some drivers are not correctly installed
             try:
@@ -327,46 +361,69 @@ class SelFiles(QDialog):
     
     @Slot()
     def SelectTrajectory(self):
+        curfile=self.ui.TrajectorylineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fTraj=QFileDialog.getOpenFileName(self,
-            "Select trajectory", os.getcwd(), "Trajectory (*.txt)")[0]
+            "Select trajectory", bdir, "Trajectory (*.txt)")[0]
         if len(fTraj)>0:
             self.ui.TrajectorylineEdit.setText(fTraj)
             self.ui.TrajectorylineEdit.setCursorPosition(len(fTraj))
 
     @Slot()
     def SelectT1W(self):
+        curfile=self.ui.T1WlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fT1W=QFileDialog.getOpenFileName(self,
-            "Select T1W", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
+            "Select T1W",bdir, "Nifti (*.nii *.nii.gz)")[0]
         if len(fT1W)>0:
             self.ui.T1WlineEdit.setText(fT1W)
             self.ui.T1WlineEdit.setCursorPosition(len(fT1W))
 
     @Slot()
     def SelectCT(self):
+        curfile=self.ui.CTlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fCT=QFileDialog.getOpenFileName(self,
-            "Select CT", os.getcwd(), "Nifti (*.nii *.nii.gz)")[0]
+            "Select CT", bdir, "Nifti (*.nii *.nii.gz)")[0]
         if len(fCT)>0:
             self.ui.CTlineEdit.setText(fCT)
             self.ui.CTlineEdit.setCursorPosition(len(fCT))
 
     @Slot()
     def SelectThermalProfile(self):
-        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
+        curfile=self.ui.ThermalProfilelineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",bdir,"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
             print('fThermalProfile',fThermalProfile)
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
 
     @Slot()
     def SelectMultiPointProfile(self):
-        fMultiPointProfile=QFileDialog.getOpenFileName(self,"Select multi point profile",os.getcwd(),"yaml (*.yaml)")[0]
+        curfile=self.ui.MultiPointlineEdit.text()
+        bdir=os.path.dirname(curfile)
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
+        fMultiPointProfile=QFileDialog.getOpenFileName(self,"Select multi point profile",bdir,"yaml (*.yaml)")[0]
         if len(fMultiPointProfile)>0:
             print('fMultiPointProfile',fMultiPointProfile)
             self.ui.MultiPointlineEdit.setText(fMultiPointProfile)
 
     @Slot()
     def SelectSimbNIBS(self):
+        bdir=self.ui.SimbNIBSlineEdit.text()
+        if not os.path.isdir(bdir):
+            bdir=os.getcwd()
         fSimbNIBS=QFileDialog.getExistingDirectory(self,"Select SimbNIBS directory",
-                    os.getcwd())
+                    bdir)
         if len(fSimbNIBS)>0:
             self.ui.SimbNIBSlineEdit.setText(fSimbNIBS)
             self.ui.SimbNIBSlineEdit.setCursorPosition(len(fSimbNIBS))
@@ -401,7 +458,8 @@ class SelFiles(QDialog):
     @Slot()
     def ResetOriginalCTCombo(self):
         if self.ui.CTTypecomboBox.currentText() != 'NO':
-            self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
+            if self.ui.CTTypecomboBox.currentText() in ORIGINAL_BABELBRAIN_SELECTION:
+                self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
         
         
     @Slot()

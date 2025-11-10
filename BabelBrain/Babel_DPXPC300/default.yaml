@@ -1,0 +1,41 @@
+TxDiam:                   64.0e-3    #in m
+FocalLength:              150.0e-3  #in m
+NaturalOutPlaneDistance:  144.9e-3  # in m
+MinimalTPODistance:       50.0e-3  # in m
+MaximalTPODistance:       120.0e-3  # in m
+USFrequencies:
+    - 300000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm
+InDiameters: #inner diameter of rings
+    - 7.7e-3
+    - 0.0308
+    - 0.0435
+    - 0.0532
+OutDiameters:  #outer diameter of rings
+    - 0.0308
+    - 0.0435
+    - 0.0532
+    - 0.0613
+PlanTUS: #This information is to interface with the PlanTUS tool
+    300000.0: 
+        FocalDistanceList:
+            - 61.3
+            - 67.7
+            - 75.4 
+            - 82.1
+            - 89.5
+            - 94.4 
+            - 102.5
+            - 107.8 
+            - 110.3 
+        FHMLList:
+            - 41.8
+            - 46.7
+            - 54.5
+            - 61.6
+            - 65.3
+            - 74.4
+            - 78.1
+            - 85.0
+            - 90.1

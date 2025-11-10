@@ -66,8 +66,10 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
         savedCTType = f"CTType=CT,"
     elif CTType == 2:
         savedCTType = f"CTType=ZTE,"
-    else: #3
+    elif CTType == 3:
         savedCTType = f"CTType=PETRA,"
+    else: #4
+        savedCTType = f"CTType=Density,"
     
     # HU Threshold info to be saved
     if HUT is None:
@@ -318,8 +320,18 @@ def BiasCorrecAndCoreg(InputT1,
     try:
         img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
     except:
-        img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
-        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        try:
+            print('Error: mask and image do not have the same spacing under tolerance, first attempt to fix')
+            img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        except:
+            print('Error: mask and image do not have the same spacing under tolerance, second attempt to fix')
+            imgnib=file_manager.sitk_to_nibabel(img)
+            img_mask=file_manager.sitk_to_nibabel(img_mask)
+            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(),affine=imgnib.affine)
+            img_mask=file_manager.nibabel_to_sitk(img_mask)
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+
     img_out_nib = file_manager.sitk_to_nibabel(img_out)
     file_manager.save_file(file_data=img_out_nib,
                            filename=T1fnameBiasCorrec,
@@ -348,7 +360,11 @@ def ConvertZTE_PETRA_pCT(InputT1,
                          bIsPetra=False,
                          PetraMRIPeakDistance=50,
                          PetraNPeaks=2,
-                         bGeneratePETRAHistogram=False):
+                         bGeneratePETRAHistogram=False,
+                         PETRASlope=-2929.6,
+                         PETRAOffset=3274.9,
+                         ZTESlope=-2085.0,
+                         ZTEOffset=2329.0):
     print('converting ZTE/PETRA to pCT with range',file_manager.pseudo_CT_range)
 
     SimbsPath = file_manager.simNIBS_dir
@@ -452,9 +468,11 @@ def ConvertZTE_PETRA_pCT(InputT1,
         arrCT[arrSkin!=0]=42.0 #soft tissue
 
         if bIsPetra:
-            arrCT[arr2!=0]=-2929.6*arrZTE[arr2!=0]+ 3274.9
+            print('PETRA conversion with slope and offset',PETRASlope,PETRAOffset)
+            arrCT[arr2!=0]=PETRASlope*arrZTE[arr2!=0]+ PETRAOffset
         else:
-            arrCT[arr2!=0]=-2085*arrZTE[arr2!=0]+ 2329.0
+            print('ZTE conversion with slope and offset',ZTESlope,ZTEOffset)
+            arrCT[arr2!=0]=ZTESlope*arrZTE[arr2!=0]+ ZTEOffset
 
         arrCT[arrCT<-1000]=-1000 #air
         arrCT[arrCT>3300]=-1000 #air 

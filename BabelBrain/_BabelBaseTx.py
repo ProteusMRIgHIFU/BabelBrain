@@ -146,7 +146,7 @@ class BabelBaseTx(QWidget):
             self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
-            print(LocTarget)
+            print('LocTarget',LocTarget)
 
             for d in [Water,Skull]:
                 for t in ['p_amp','MaterialMap']:
@@ -159,20 +159,18 @@ class BabelBaseTx(QWidget):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
+            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
+            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
             IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            ISkull=Skull['p_amp']**2/2/DensityMap/SoSMap
 
-            ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
-
-            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-            
-            ISkull[Skull['MaterialMap']!=3]=0
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                ISkull[Skull['MaterialMap']<3]=0
             cxr,cyr,czr=np.where(ISkull==ISkull.max())
             cxr=cxr[0]
             cyr=cyr[0]
@@ -230,19 +228,28 @@ class BabelBaseTx(QWidget):
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
-                for c in [self._imContourf1,self._imContourf2,self._contour1,self._contour2]:
-                    for coll in c.collections:
-                        coll.remove()
+                listObjects=[self._imContourf1,self._imContourf2]
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    listObjects+=[self._contour1,self._contour2]
+                for c in listObjects:
+                    try: #this is for old Matplotlib
+                        for coll in c.collections:
+                            coll.remove()
+                    except:
+                        c.remove()
                 del self._imContourf1
                 del self._imContourf2
-                del self._contour1
-                del self._contour2
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    del self._contour1
+                    del self._contour2
 
             self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
 
             self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
 
             self._figAcField.canvas.draw_idle()
         else:
@@ -262,7 +269,8 @@ class BabelBaseTx(QWidget):
             self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax1)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
             static_ax1.set_aspect('equal')
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
@@ -272,7 +280,8 @@ class BabelBaseTx(QWidget):
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
             static_ax2.set_aspect('equal')
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')

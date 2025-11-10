@@ -199,7 +199,7 @@ class SingleTx(BabelBaseTx):
    
     def GetExport(self):
         Export=super(SingleTx,self).GetExport()
-        for k in ['FocalLength','Diameter','XMechanic','YMechanic','ZMechanic']:
+        for k in ['FocalLength','Diameter','XMechanic','YMechanic','SkinDistance']:
             if hasattr(self.Widget,k+'SpinBox'):
                 Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
@@ -255,13 +255,7 @@ class RunAcousticSim(QObject):
         kargs['ZIntoSkin']=ZIntoSkin
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
-        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
-        kargs['bPETRA'] = False
-        if kargs['bUseCT']:
-            if self._mainApp.Config['CTType']==3:
-                kargs['bPETRA']=True
+        kargs|=self._mainApp.CommomAcOptions()
 
         # Start mask generation as separate process.
         bNoError=True
