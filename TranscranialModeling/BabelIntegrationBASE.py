@@ -1316,7 +1316,8 @@ class SimulationConditionsBASE(object):
         
     def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
                          bForceHomogenousMedium=False,
-                         BenchmarkTestFile=''):
+                         BenchmarkTestFile='',
+                         DomeType=False):
         '''
         Update simulation conditions, including calculation of spatial/temporal steps,
         domain size, and material maps.
@@ -1333,6 +1334,8 @@ class SimulationConditionsBASE(object):
             If True, force a homogenous medium (default is False).
         BenchmarkTestFile : str, optional
             Path to a benchmark test file (default is '').
+        DomeType: bool, optional
+            If True, the whole transducer should fit inside the simulation domain (default is False).
         '''
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
@@ -1439,6 +1442,7 @@ class SimulationConditionsBASE(object):
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
             self._N2=self._SkullMaskDataOrig.shape[1]+self._YLOffset+self._YROffset -self._YShrink_L-self._YShrink_R
             self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R 
+            print('self._N3',self._N3,self._ZLOffset,self._ZROffset,self._ZShrink_L,self._ZShrink_R)
 
 
             self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
@@ -1456,15 +1460,21 @@ class SimulationConditionsBASE(object):
             yfield-=yfield[self._FocalSpotLocation[1]]
             zfield-=zfield[self._FocalSpotLocation[2]]
             
-            zfield+=self._FocalLength
+            if DomeType==False:
+                zfield+=self._FocalLength
+            else:
+                print('Dome operation, range Z', zfield[self._PMLThickness],zfield[-self._PMLThickness])
             TopZ=zfield[self._PMLThickness]
             
-            if self._FocalLength!=0:
-                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
-                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
-                RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
+            if DomeType==False:
+                if self._FocalLength!=0:
+                    DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
+                    Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
+                    RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
+                else:
+                    RadiusFace=self._Aperture/2*1.10
             else:
-                RadiusFace=self._Aperture/2*1.10
+                RadiusFace=self._Aperture/2*1.02
 
             if len(BenchmarkTestFile)>0:
             #we adjust dimensions to benchmark 1
@@ -1475,15 +1485,23 @@ class SimulationConditionsBASE(object):
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
-            
-            ypp,xpp=np.meshgrid(yfield,xfield)
-            
-            RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
-            for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
+
+            if DomeType==False:
+                ypp,xpp=np.meshgrid(yfield,xfield)        
+                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
                 IndXMap,IndYMap=np.nonzero(RegionMap)
+            else:
+                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield,indexing='ij')
+                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2+(zpp-self._TxMechanicalAdjustmentZ)**2)<=RadiusFace**2 #we select the circle on the incident field
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|\
+                        ((((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
+                        (zpp==TopZ))
+                RegionMap[zpp>0]=False #only the negative part
+                IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
-            
             def fgen(var):
                 sn={'X':'1','Y':'2','Z':'3'}
                 pcode=\
@@ -1504,7 +1522,7 @@ if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness):
     self._{0}ROffset+=Ind{0}Map.max()-(self._N{1}-self._PMLThickness)+1
     print('{0}Offset',self._{0}ROffset)
     self.bMapFit=False
-elif self._bTightNarrowBeamDomain:
+elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
     if self._{0}ROffset==self._PMLThickness:
         self._{0}Shrink_R+=self._N{1}-self._{0}ROffset-Ind{0}Map.max()-1
         print('{0}Shrink_R',self._{0}Shrink_R)
@@ -1515,6 +1533,8 @@ elif self._bTightNarrowBeamDomain:
             
             exec(fgen('X'))
             exec(fgen('Y'))
+            if DomeType:
+                exec(fgen('Z'))
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
@@ -1865,7 +1885,7 @@ elif self._bTightNarrowBeamDomain:
                     
         gc.collect()
     
-    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True):
+    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True,bDoRefocusingVolume=False):
         '''
         Calculate phase and amplitude maps from the simulated sensor data.
 
@@ -1883,7 +1903,10 @@ elif self._bTightNarrowBeamDomain:
             self._PressMapFourier=np.zeros((self._N1,self._N2,self._N3),np.complex64)
             self._PressMapPeak=np.zeros((self._N1,self._N2,self._N3),np.float32)
             if bDoRefocusing:
-                self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
+                if bDoRefocusingVolume:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2,self._N3),np.complex64)
+                else:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
         else:
             self._PhaseMapRefocus=np.zeros((self._N1,self._N2,self._N3),np.float32)
             self._PressMapFourierRefocus=np.zeros((self._N1,self._N2,self._N3),np.complex64)
@@ -1927,7 +1950,7 @@ elif self._bTightNarrowBeamDomain:
             
             if bDoRefocusing:
                 self._SensorBack['Pressure']=np.ascontiguousarray(self._SensorBack['Pressure'])
-                index=self._InputParamBack-1
+                index=self._InputParamBack-1 
                 for n in range(0,self._SensorBack['Pressure'].shape[0],nStep):
                     top=np.min([n+nStep,self._SensorBack['Pressure'].shape[0]])
                     FSignal=fft.fft(self._SensorBack['Pressure'][n:top,:],axis=1)
@@ -1936,8 +1959,11 @@ elif self._bTightNarrowBeamDomain:
                     i=j%self._N1
                     j=j//self._N1
                     FSignal=FSignal[:,IndSpectrum]
-                    assert(np.all(k==self._PMLThickness))
-                    self._PressMapFourierBack[i,j]=FSignal
+                    if bDoRefocusingVolume:
+                        self._PressMapFourierBack[i,j,k]=FSignal
+                    else:
+                        assert(np.all(k==self._PMLThickness))
+                        self._PressMapFourierBack[i,j]=FSignal
                     
         else:
             self._SensorRefocus['Pressure']=np.ascontiguousarray(self._SensorRefocus['Pressure'])
@@ -2251,9 +2277,9 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
-
-        DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
-                                                          self._PMLThickness:-self._PMLThickness]
+        if hasattr(self,'_SourceMapRayleigh'):
+            DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
+                                                            self._PMLThickness:-self._PMLThickness]
         
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))

@@ -70,9 +70,10 @@ class BabelBasePhaseArray(BabelBaseTx):
             spinbox.setMaximum(self.Config['Maximal'+ID+'Steering']*1e3)
             spinbox.setValue(0.0)
 
-        self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
+        if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+            self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
+            self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
+            self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
         
         self.Widget.MultifocusLabel.setVisible(False)
         self.Widget.SelCombinationDropDown.setVisible(False)
@@ -83,8 +84,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
-        self.Widget.ZMechaniclabel.setVisible(False)
+        if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+            self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
+            self.Widget.ZMechaniclabel.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
@@ -165,7 +167,7 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
-                if 'DistanceConeToFocus' in Skull:
+                if 'DistanceConeToFocus' in Skull and hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
@@ -513,8 +515,6 @@ class RunAcousticSim(QObject):
         basePPW=[self._mainApp._BasePPW]
         T0=time.time()
 
-        DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3
-
         kargs={}
         kargs['ID']=ID
         kargs['deviceName']=deviceName
@@ -531,10 +531,15 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
-        kargs['DistanceConeToFocus']=DistanceConeToFocus
+        if hasattr(self._mainApp.AcSim.Widget,'DistanceConeToFocusSpinBox'):
+            DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3
+            kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
         kargs['bDryRun'] = self._bDryRun
         kargs|=self._mainApp.CommomAcOptions()
+        if not hasattr(self._mainApp.AcSim.Widget,'DistanceConeToFocusSpinBox'): #this is dome transducer
+            print('Disabling Rayliegh for dome Tx')
+            kargs['bUseRayleighForWater'] = False
 
         
         queue=Queue()

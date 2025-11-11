@@ -157,6 +157,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.addItem("")
+        self.TransducerTypecomboBox.addItem("")
         self.TransducerTypecomboBox.setObjectName(u"TransducerTypecomboBox")
         self.TransducerTypecomboBox.setGeometry(QRect(90, 34, 116, 30))
         self.TransducerTypecomboBox.setStyleSheet(u"")
@@ -257,6 +258,7 @@ class Ui_Dialog(object):
         self.TransducerTypecomboBox.setItemText(14, QCoreApplication.translate("Dialog", u"R15473", None))
         self.TransducerTypecomboBox.setItemText(15, QCoreApplication.translate("Dialog", u"R15646", None))
         self.TransducerTypecomboBox.setItemText(16, QCoreApplication.translate("Dialog", u"IGT64_500", None))
+        self.TransducerTypecomboBox.setItemText(17, QCoreApplication.translate("Dialog", u"Exablate", None))
 
         self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))
