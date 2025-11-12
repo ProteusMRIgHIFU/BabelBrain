@@ -540,8 +540,10 @@ class RUN_SIM_BASE(object):
                     print (MASKFNAME)
                     if bUseCT:
                         CTFNAME=prefix+target+fstr+ppws+ 'CT.nii.gz'
+                        AIRMASK=prefix+target+fstr+ppws+ 'AirRegions.nii.gz'
                     else:
                         CTFNAME=None
+                        AIRMASK=None
 
                     FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
                     FILENAMESWater=None
@@ -581,6 +583,7 @@ class RUN_SIM_BASE(object):
                                                     BenchmarkTestFile=BenchmarkTestFile,
                                                     InputFocusStart=InputFocusStart,
                                                     OptimizedWeightsFile=OptimizedWeightsFile,
+                                                    AIRMASK=AIRMASK,
                                                     **kargs)
                     print('  Step 1')
 
@@ -693,7 +696,8 @@ class BabelFTD_Simulations_BASE(object):
                                     'ShearAtt':5.0}, #Np/m
                  BenchmarkTestFile='',
                  InputFocusStart='',
-                 OptimizedWeightsFile=''):
+                 OptimizedWeightsFile='',
+                 AIRMASK=None):
         self._MASKFNAME=MASKFNAME
 
         if 'BABEL_PYTEST_QFACTOR' in os.environ:
@@ -737,6 +741,7 @@ class BabelFTD_Simulations_BASE(object):
         self._BenchmarkTestFile=BenchmarkTestFile
         self._InputFocusStart=InputFocusStart
         self._OptimizedWeightsFile=OptimizedWeightsFile
+        self._AIRMASK=AIRMASK
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -758,10 +763,12 @@ class BabelFTD_Simulations_BASE(object):
         self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
+        AirRegions=None
         if self._CTFNAME is not None and not self._bWaterOnly\
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
@@ -876,7 +883,8 @@ class BabelFTD_Simulations_BASE(object):
                                 bSaveDisplacement=self._bSaveDisplacement,
                                 BenchmarkTestFile=self._BenchmarkTestFile,
                                 InputFocusStart=self._InputFocusStart,
-                                OptimizedWeightsFile=self._OptimizedWeightsFile)
+                                OptimizedWeightsFile=self._OptimizedWeightsFile,
+                                AirRegions=AirRegions)
         
         #####
         ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
@@ -1221,7 +1229,8 @@ class SimulationConditionsBASE(object):
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],#coefficients to correct for values lower of CFL =1.0 in water conditions.
                       BenchmarkTestFile='',
                       InputFocusStart='',
-                      OptimizedWeightsFile=''): #file with optimized weights for the Tx  
+                      OptimizedWeightsFile='',
+                      AirRegions=None): #file with optimized weights for the Tx  
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1265,6 +1274,7 @@ class SimulationConditionsBASE(object):
         self._InputFocusStart=InputFocusStart
         self._OptimizedWeightsFile=''
         self._OptimizedWeights=None
+        self._AirRegions=AirRegions
         if len(OptimizedWeightsFile)>0 :
             print('Simulation Using OptimizedWeightsFile',OptimizedWeightsFile)
             if not os.path.isfile(OptimizedWeightsFile):
@@ -1592,6 +1602,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
         self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
+        self._SubAirRegions=None
         if bWaterOnly==False and bForceHomogenousMedium == False and len(BenchmarkTestFile)==0:
             #we add the material map
             if self._XShrink_R==0:
@@ -1633,6 +1644,14 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
+                SubAirRegions=np.zeros_like(self._MaterialMap)
+                SubAirRegions[self._XLOffset:-self._XROffset,
+                              self._YLOffset:-self._YROffset,
+                              self._ZLOffset:-self._ZROffset]=\
+                                self._AirRegions[self._XShrink_L:upperXR,
+                                                                         self._YShrink_L:upperYR,
+                                                                         self._ZShrink_L:upperZR]
+                self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
                 assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
 
@@ -1791,7 +1810,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
             
             self._InputParam=InputParam['IndexSensorMap']
             gc.collect()
@@ -1824,7 +1844,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                  QfactorCorrection=self._QfactorCorrection,
                                                                  QCorrection=self._QCorrection,
                                                                  SensorSubSampling=self._SensorSubSampling,
-                                                                 SensorStart=self._SensorStart)
+                                                                 SensorStart=self._SensorStart,
+                                                                 ReflectorMask=self._SubAirRegions)
                 self._InputParamBack=InputParam['IndexSensorMap']
         else:
             self._SensorRefocus,_,self._DictPeakValueRefocus,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
@@ -1853,7 +1874,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
             self._InputParamRefocus=InputParam['IndexSensorMap']
 
         print('self._DictPeakValue keys',self._DictPeakValue.keys())
