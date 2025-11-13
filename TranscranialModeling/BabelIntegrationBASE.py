@@ -1100,6 +1100,8 @@ class BabelFTD_Simulations_BASE(object):
             kt = ['p_amp','p_complex','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
                 kt.append('MaterialMapCT')
+            if 'AirMask' in DataForSim:
+                kt.append('AirMask')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
                 kt.append('p_complex_refocus')
@@ -2281,6 +2283,11 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         DataForSim['MaterialMap']=MaterialMap[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
+        
+        if self._SubAirRegions is not None:
+            DataForSim['AirMask']=self._SubAirRegions[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset].astype(np.uint8)
         
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==500.0)).flatten()
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==500.0]=OrigMaterialFocalSpot #we switch it back to soft tissue

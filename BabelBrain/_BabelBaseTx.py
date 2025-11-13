@@ -149,7 +149,10 @@ class BabelBaseTx(QWidget):
             print('LocTarget',LocTarget)
 
             for d in [Water,Skull]:
-                for t in ['p_amp','MaterialMap']:
+                keys=['p_amp','MaterialMap']
+                if 'AirMask' in d:
+                    keys.append('AirMask')
+                for t in keys:
                     d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
@@ -231,6 +234,8 @@ class BabelBaseTx(QWidget):
                 listObjects=[self._imContourf1,self._imContourf2]
                 if not self._MainApp.Config['bForceHomogenousMedium']:
                     listObjects+=[self._contour1,self._contour2]
+                    if 'AirMask' in self._Skull:
+                        listObjects+=[self._airmask1,self._airmask2]
                 for c in listObjects:
                     try: #this is for old Matplotlib
                         for coll in c.collections:
@@ -242,14 +247,25 @@ class BabelBaseTx(QWidget):
                 if not self._MainApp.Config['bForceHomogenousMedium']:
                     del self._contour1
                     del self._contour2
+                    if 'AirMask' in self._Skull:
+                        del self._airmask1
+                        del self._airmask2 
 
             self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = self._static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._figAcField.canvas.draw_idle()
         else:
@@ -271,6 +287,10 @@ class BabelBaseTx(QWidget):
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax1.set_aspect('equal')
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
@@ -282,6 +302,10 @@ class BabelBaseTx(QWidget):
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax2.set_aspect('equal')
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')

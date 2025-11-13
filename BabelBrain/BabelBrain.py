@@ -932,10 +932,14 @@ class BabelBrain(QWidget):
         self._T1WData=T1WData
         
         self._MaskData=Data
+        AirMask=None
         if self.Config['bUseCT']:
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
             AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
             CTData=AllBoneHU[np.flip(self._CTnib.get_fdata(),axis=2).astype(int)]
+            if os.path.exists(self._prefix_path+'AirRegions.nii.gz'):
+                AirMask=nibabel.load(self._prefix_path+'AirRegions.nii.gz').get_fdata().astype(np.uint8)
+                AirMask=np.flip(AirMask,axis=2)
         
         self._FinalMask=FinalMask
         voxSize=Data.header.get_zooms()
@@ -969,11 +973,15 @@ class BabelBrain(QWidget):
         extentXY=[x_vec.min(),x_vec.max(),y_vec.max(),y_vec.min()]
 
         CTMaps=[None,None,None]
+        AirMaps=[None,None,None]
         if self.Config['bUseCT']:
-            CTMapXZ=CTData[:,LocFocalPoint[1],:].T
-            CTMapYZ=CTData[LocFocalPoint[0],:,:].T
-            CTMapXY=CTData[:,:,LocFocalPoint[2]].T
-            CTMaps=[CTMapXZ,CTMapYZ,CTMapXY]
+            CTMaps=[CTData[:,LocFocalPoint[1],:].T,
+                    CTData[LocFocalPoint[0],:,:].T,
+                    CTData[:,:,LocFocalPoint[2]].T]
+            if AirMask is not None:
+                AirMaps=[AirMask[:,LocFocalPoint[1],:].T,
+                        AirMask[LocFocalPoint[0],:,:].T,
+                        AirMask[:,:,LocFocalPoint[2]].T]
 
         if hasattr(self,'_figMasks'):
             while ((child := self._layout.takeAt(0)) != None):
@@ -996,9 +1004,10 @@ class BabelBrain(QWidget):
         axes=self.static_canvas.figure.subplots(1,3)
         self._axes=axes
 
-        for CMap,T1WMap,CTMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
+        for CMap,T1WMap,CTMap,AirMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
                                 [T1WXZ,T1WYZ,T1WXY],
                                 CTMaps,
+                                AirMaps,
                                 [extentXZ,extentYZ,extentXY],
                                 axes,
                                 [x_vec,y_vec,x_vec],
@@ -1013,9 +1022,13 @@ class BabelBrain(QWidget):
             self._imMasks.append(static_ax.imshow(CMap,cmap=cm.jet,vmin=0,vmax=vmaxMask,extent=extent,interpolation='none',aspect='equal'))
             if CTMap is not None:
                 Zm = np.ma.masked_where((CMap !=2) &(CMap!=3) , CTMap)
-                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))
+                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.gray,extent=extent,aspect='equal'))               
             else:
                 self._imCtMasks.append(None)
+
+            if AirMap is not None:
+                Zm = np.ma.masked_where(AirMap==0 , AirMap)
+                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.jet,vmin=0,vmax=1,extent=extent,aspect='equal'))
             self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
@@ -1054,6 +1067,11 @@ class BabelBrain(QWidget):
                       (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), 
                       (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), 
                       (1.0, 0.40740740740740755, 0.0, 1.0)]
+                
+        if AirMask is not None:
+            values.append(values[-1]+1)
+            legends.append('Air')
+            colors.append((116/255,20/255,12/255,1.0))
             #we use manual color asignation 
                 
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]

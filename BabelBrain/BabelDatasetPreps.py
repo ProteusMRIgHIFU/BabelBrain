@@ -1008,22 +1008,23 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             S1_file_manager.save_file(file_data=nCT,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
 
-        AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
-        if MedianFilter is None:
-            AirRegions=ndimage.median_filter(AirRegions.astype(np.uint8),7)
-        else:
-            AirRegions=MedianFilter(AirRegions.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+        with CodeTimer("Extracting air regions",unit='s'):
+            AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
+            if MedianFilter is None:
+                AirRegions=ndimage.median_filter(AirRegions.astype(np.uint8),3)
+            else:
+                AirRegions=MedianFilter(AirRegions.astype(np.uint8),3,GPUBackend=MedianCOMPUTING_BACKEND)
 
-        if LabelImage is None:
-            label_img = label(AirRegions==1)
-        else:
-            label_img = LabelImage(AirRegions==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
-        regions= regionprops(label_img)
-        regions=sorted(regions,key=lambda d: d.area)
-        AirRegions[label_img==regions[-1].label]=0 #we turn off air around head
-        AirRegions=nibabel.Nifti1Image(AirRegions, nCT.affine, nCT.header)
-        outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
-        AirRegions.to_filename(outname)
+            if LabelImage is None:
+                label_img = label(AirRegions==1)
+            else:
+                label_img = LabelImage(AirRegions==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            regions= regionprops(label_img)
+            regions=sorted(regions,key=lambda d: d.area)
+            AirRegions[label_img==regions[-1].label]=0 #we turn off air around head
+            AirRegions=nibabel.Nifti1Image(AirRegions, nCT.affine, nCT.header)
+            outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
+            AirRegions.to_filename(outname)
 
     with CodeTimer("final median filter ",unit='s'):
         if CT_or_ZTE_input is not None:
