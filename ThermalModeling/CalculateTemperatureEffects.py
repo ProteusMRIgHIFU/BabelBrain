@@ -626,6 +626,8 @@ def CalculateTemperatureEffects(InputPData,
             return outfname
     dt=0.01
     
+    AirMask = None
+
     if type(InputPData) is str:   
         Input=ReadFromH5py(InputPData)
         WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
@@ -634,10 +636,15 @@ def CalculateTemperatureEffects(InputPData,
         
         pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
         pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+
+        if 'AirMask' in Input:
+            AirMask=np.ascontiguousarray(np.flip(Input['AirMask'],axis=2))
         
     else:
         ALL_ACFIELDSKULL=[]
         Input=ReadFromH5py(InputPData[0])
+        if 'AirMask' in Input:
+            AirMask=np.ascontiguousarray(np.flip(Input['AirMask'],axis=2))
         
         AllInputs=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
                             Input[sel_p].shape[2]),Input[sel_p].dtype)
@@ -1020,6 +1027,8 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['MaterialMap_central']=MaterialMap[:,cy,:]
     SaveDict['MaterialMap']=MaterialMap
     SaveDict['PressureRatio']=PressureRatio
+    if AirMask is not None:
+        SaveDict['AirMask']=AirMask
 
     TI=ResTemp[SelBrain].max()
     
