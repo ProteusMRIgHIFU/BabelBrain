@@ -77,6 +77,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['Frequency']=kargs['Frequency']
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
+            kargsSub['TxSystem']=kargs['TxSystem']
             #we check now if some development parameters are being passed
             for k in ['bForceNoAbsorptionSkullScalp','bForceHomogenousMedium','HomogenousMediumValues','BenchmarkTestFile']:
                 if k in kargs:
