@@ -90,6 +90,8 @@ def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9)
     TxExaNeuro['FocalLength']=Foc
     TxExaNeuro['Aperture']=np.max([TxExaNeuro['VertDisplay'][:,0].max()-TxExaNeuro['VertDisplay'][:,0].min(),
                                       TxExaNeuro['VertDisplay'][:,1].max()-TxExaNeuro['VertDisplay'][:,1].min()]);
+    
+    TxExaNeuro['Amplitude1W']=225707.72534123383
     return TxExaNeuro
 
 

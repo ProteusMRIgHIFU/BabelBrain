@@ -22,6 +22,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
 from .H317 import GenerateH317Tx
 import nibabel
 from multiprocessing import Process,Queue
+from scipy.ndimage import binary_erosion
     
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -298,6 +299,11 @@ class SimulationConditions(SimulationConditionsBASE):
 
         PulseSource = np.zeros((self._TxHighRes['NumberElems'],TimeVectorSource.shape[0]))
 
+        Amplitude=1.0
+        if 'Amplitude1W' in self._Tx:
+            Amplitude=self._Tx['Amplitude1W']
+            print('Using amplitude for 1W',Amplitude)
+
         for n in range(self._TxHighRes['NumberElems']):
             SelCenters=self._TxHighRes['center'][nBase:nBase+self._TxHighRes['elemdims'],:]
             SelCenters=np.vstack((self._TxHighRes['center'][nBase:nBase+self._TxHighRes['elemdims'],:],
@@ -318,12 +324,13 @@ class SimulationConditions(SimulationConditionsBASE):
             nBase+=self._TxHighRes['elemdims']
             nBaseVert+=self._TxHighRes['elemdims']*4
 
-            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgramming[n]))
+            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgramming[n]))*Amplitude
             PulseSource[n,:int(ramp_length_points)]*=ramp
             PulseSource[n,-int(ramp_length_points):]*=np.flip(ramp)
 
             
         self._PulseSource=PulseSource
+        self._PulseAmplitude=Amplitude
         
         ## Now we create the sources for back propagation
         
@@ -332,11 +339,10 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PunctualSource[0,-int(ramp_length_points):]*=np.flip(ramp)
         
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
-        LocForRefocusing=self._FocalSpotLocation.copy()
-        LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
-        LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
-        LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
-        self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
+        XX,YY,ZZ=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
+        SphereSource=((XX-self._XSteering)**2+(YY-self._YSteering)**2+(ZZ-self._ZSteering)**2)<=self._basePPW**2 # an sphere of 1 lambda
+        SphereSource=np.logical_xor(binary_erosion(SphereSource),SphereSource) #we just keep the rim
+        self._SourceMapPunctual[SphereSource]=1
 
     def CreateSensorMap(self):
         '''
@@ -371,7 +377,9 @@ class SimulationConditions(SimulationConditionsBASE):
         for n in range(self._Tx['NumberElems']):
             IndX,IndY,IndZ=self._IndexSensorsBack[n]
             u2back=self._PressMapFourierBack[IndX,IndY,IndZ]
-            self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back[n])
+            # IndX,IndY,IndZ=np.where(self._SourceMap==n+1)
+            # u2back=self._PressMapFourierBack[IndX,IndY,IndZ]
+            self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back)
             
         
     def CreateSourcesRefocus(self,ramp_length=8):
@@ -391,7 +399,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
         for n in range(self._TxHighRes['NumberElems']):
 
-            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgrammingRefocusing[n]))
+            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgrammingRefocusing[n]))*self._PulseAmplitude
             PulseSource[n,:int(ramp_length_points)]*=ramp
             PulseSource[n,-int(ramp_length_points):]*=np.flip(ramp)
         
