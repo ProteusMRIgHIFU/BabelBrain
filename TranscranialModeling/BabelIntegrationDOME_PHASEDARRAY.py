@@ -216,8 +216,7 @@ class SimulationConditions(SimulationConditionsBASE):
         LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
         print('StartSkin',StartSkin)
-        
-        
+
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX
             self._Tx[k][:,1]+=self._TxMechanicalAdjustmentY
@@ -236,7 +235,11 @@ class SimulationConditions(SimulationConditionsBASE):
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
         self.BasePhasedArrayProgramming=np.zeros(self._Tx['NumberElems'],np.complex64)
         self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._Tx['NumberElems'],np.complex64)
-        
+
+        AmplitudeCal=1.0
+        if 'Amplitude1W' in self._Tx:
+            AmplitudeCal=self._Tx['Amplitude1W']
+        Amplitude=np.float32(AmplitudeCal/self._FactorConvPtoU*4*np.pi**2) #this will match using amplitude 1 stres source
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
             ds=np.ones((1))*self._SpatialStep**2
@@ -258,10 +261,10 @@ class SimulationConditions(SimulationConditionsBASE):
             for n in range(self._Tx['NumberElems']):
                 phi=np.angle(np.conjugate(u2back[n]))
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)*Amplitude
                 nBase+=self._Tx['elemdims']
         else:
-             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))*self._SourceAmpPa
+             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))*Amplitude
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
@@ -299,10 +302,10 @@ class SimulationConditions(SimulationConditionsBASE):
 
         PulseSource = np.zeros((self._TxHighRes['NumberElems'],TimeVectorSource.shape[0]))
 
-        Amplitude=1.0
+        AmplitudeCal=1.0
         if 'Amplitude1W' in self._Tx:
-            Amplitude=self._Tx['Amplitude1W']
-            print('Using amplitude for 1W',Amplitude)
+            AmplitudeCal=self._Tx['Amplitude1W']
+            print('Using amplitude for 1W',AmplitudeCal)
 
         for n in range(self._TxHighRes['NumberElems']):
             SelCenters=self._TxHighRes['center'][nBase:nBase+self._TxHighRes['elemdims'],:]
@@ -324,13 +327,13 @@ class SimulationConditions(SimulationConditionsBASE):
             nBase+=self._TxHighRes['elemdims']
             nBaseVert+=self._TxHighRes['elemdims']*4
 
-            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgramming[n]))*Amplitude
+            PulseSource[n,:] = np.sin(2*np.pi*self._Frequency*TimeVectorSource+np.angle(self.BasePhasedArrayProgramming[n]))*AmplitudeCal
             PulseSource[n,:int(ramp_length_points)]*=ramp
             PulseSource[n,-int(ramp_length_points):]*=np.flip(ramp)
 
             
         self._PulseSource=PulseSource
-        self._PulseAmplitude=Amplitude
+        self._PulseAmplitude=AmplitudeCal
         
         ## Now we create the sources for back propagation
         
@@ -339,10 +342,11 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PunctualSource[0,-int(ramp_length_points):]*=np.flip(ramp)
         
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
-        XX,YY,ZZ=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
-        SphereSource=((XX-self._XSteering)**2+(YY-self._YSteering)**2+(ZZ-self._ZSteering)**2)<=self._basePPW**2 # an sphere of 1 lambda
-        SphereSource=np.logical_xor(binary_erosion(SphereSource),SphereSource) #we just keep the rim
-        self._SourceMapPunctual[SphereSource]=1
+        LocForRefocusing=self._FocalSpotLocation.copy()
+        LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
+        LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
+        LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
+        self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
 
     def CreateSensorMap(self):
         '''
@@ -377,8 +381,6 @@ class SimulationConditions(SimulationConditionsBASE):
         for n in range(self._Tx['NumberElems']):
             IndX,IndY,IndZ=self._IndexSensorsBack[n]
             u2back=self._PressMapFourierBack[IndX,IndY,IndZ]
-            # IndX,IndY,IndZ=np.where(self._SourceMap==n+1)
-            # u2back=self._PressMapFourierBack[IndX,IndY,IndZ]
             self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back)
             
         
@@ -405,3 +407,10 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._PulseSourceRefocus=PulseSource
          
+    def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
+                       bApplyCorrectionForDispersion=True,
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False):
+        print('RUN_SIMULATION with Stress Sources')
+        super().RUN_SIMULATION(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,bRefocused=bRefocused,
+                       bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
+                       COMPUTING_BACKEND=COMPUTING_BACKEND,bDoRefocusing=bDoRefocusing,bDoStressSource=True)

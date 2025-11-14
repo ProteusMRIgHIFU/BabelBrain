@@ -245,7 +245,7 @@ class SimulationConditions(SimulationConditionsBASE):
         LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
         print('StartSkin',StartSkin)
-        
+
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
             from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -406,19 +406,6 @@ class SimulationConditions(SimulationConditionsBASE):
         LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
         self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
         
-
-        if self._bDisplay:
-            plt.figure(figsize=(12,4))
-            for n in range(1,4):
-                plt.plot(TimeVectorSource*1e6,PulseSource[int(PulseSource.shape[0]/4)*n,:])
-                plt.title('CW signal, example %i' %(n))
-                
-            plt.xlim(0,50)
-                
-            plt.figure(figsize=(5,4))
-            plt.imshow(self._SourceMap[:,:,LocZ])
-            plt.title('source map - source ids')
-
 
     def BackPropagationRayleigh(self,deviceName='6800'):
         assert(np.all(np.array(self._SourceMapRayleigh.shape)==np.array(self._PressMapFourierBack.shape)))

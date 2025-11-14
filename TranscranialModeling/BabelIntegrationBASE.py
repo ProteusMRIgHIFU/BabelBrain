@@ -1759,7 +1759,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True):
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False):
         '''
         Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
 
@@ -1780,10 +1780,16 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=0 #particle source
-        Ox=np.zeros(self._MaterialMap.shape) 
-        Oy=np.zeros(self._MaterialMap.shape) 
-        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+        if bDoStressSource:
+            TypeSource=2
+            Ox=np.array([1])
+            Oy=np.array([1])
+            Oz=np.array([1])
+        else:
+            TypeSource=0 #particle source
+            Ox=np.zeros(self._MaterialMap.shape) 
+            Oy=np.zeros(self._MaterialMap.shape) 
+            Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
         if bRefocused==False:
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
@@ -1829,9 +1835,6 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                  self._SpatialStep,
                                                                  self._TimeSimulation,
                                                                  self._SensorMapBackPropagation,
-                                                                 Ox=Ox,
-                                                                 Oy=Oy,
-                                                                 Oz=Oz,
                                                                  NDelta=self._PMLThickness,
                                                                  DT=self._TemporalStep,
                                                                  ReflectionLimit=self._ReflectionLimit,
@@ -1842,7 +1845,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                  SelRMSorPeak=1,
                                                                  DefaultGPUDeviceName=GPUName,
                                                                  AlphaCFL=1.0,
-                                                                 TypeSource=TypeSource,
+                                                                 TypeSource=2,
                                                                  QfactorCorrection=self._QfactorCorrection,
                                                                  QCorrection=self._QCorrection,
                                                                  SensorSubSampling=self._SensorSubSampling,
@@ -2270,6 +2273,9 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             DataForSim['p_complex_refocus']=self._PressMapFourierRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
+            DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
+                                       self._YLOffset:-self._YROffset,
+                                       self._ZLOffset:-self._ZROffset].copy()
         if self._DensityCTMap is not None:
             MaterialMap=self._MaterialMapNoCT.copy()
             DataForSim['MaterialMapCT']=self._MaterialMap[self._XLOffset:-self._XROffset,
@@ -2297,6 +2303,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
             DataForSim['p_amp_water']=np.abs(DataForSim['p_complex_water'])
+
+        
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
