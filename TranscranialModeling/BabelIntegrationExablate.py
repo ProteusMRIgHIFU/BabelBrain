@@ -91,7 +91,23 @@ def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9)
     TxExaNeuro['Aperture']=np.max([TxExaNeuro['VertDisplay'][:,0].max()-TxExaNeuro['VertDisplay'][:,0].min(),
                                       TxExaNeuro['VertDisplay'][:,1].max()-TxExaNeuro['VertDisplay'][:,1].min()]);
     
-    TxExaNeuro['Amplitude1W']=225707.72534123383
+    #We use calibration per PPW
+    TxExaNeuro['Amplitude1W']={6:215775.2400433752,
+                                7:217102.38518294977,
+                                8:219502.12978939048,
+                                9:216841.80813398556,
+                                10:214838.89980138713,
+                                11:241676.32380101856,
+                                12:239446.6339836397,
+                                13:236778.14630625723,
+                                14:235598.60482377192,
+                                15:230939.00845080774,
+                                16:228203.36642938704,
+                                17:247228.00527528222,
+                                18:226231.69718295365,
+                                19:241637.3257215121,
+                                20:225525.45465253628}
+    225707.72534123383
     return TxExaNeuro
 
 

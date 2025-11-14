@@ -238,7 +238,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
         AmplitudeCal=1.0
         if 'Amplitude1W' in self._Tx:
-            AmplitudeCal=self._Tx['Amplitude1W']
+            AmplitudeCal=self._Tx['Amplitude1W'][self._basePPW]
         Amplitude=np.float32(AmplitudeCal/self._FactorConvPtoU*4*np.pi**2) #this will match using amplitude 1 stres source
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
@@ -304,7 +304,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
         AmplitudeCal=1.0
         if 'Amplitude1W' in self._Tx:
-            AmplitudeCal=self._Tx['Amplitude1W']
+            AmplitudeCal=self._Tx['Amplitude1W'][self._basePPW]
             print('Using amplitude for 1W',AmplitudeCal)
 
         for n in range(self._TxHighRes['NumberElems']):
