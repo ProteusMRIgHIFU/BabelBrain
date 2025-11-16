@@ -561,9 +561,9 @@ class RunAcousticSim(QObject):
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
         kargs['bDryRun'] = self._bDryRun
         kargs|=self._mainApp.CommomAcOptions()
-        if not hasattr(self._mainApp.AcSim.Widget,'DistanceConeToFocusSpinBox'): #this is dome transducer
-            print('Disabling Rayliegh for dome Tx')
-            kargs['bUseRayleighForWater'] = False
+        # if not hasattr(self._mainApp.AcSim.Widget,'DistanceConeToFocusSpinBox'): #this is dome transducer
+        #     print('Disabling Rayliegh for dome Tx')
+        #     kargs['bUseRayleighForWater'] = False
 
         
         queue=Queue()

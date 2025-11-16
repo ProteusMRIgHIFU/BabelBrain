@@ -1759,7 +1759,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False):
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False,SelRMSorPeak=1):
         '''
         Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
 
@@ -1780,7 +1780,10 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         MaterialList=self.ReturnArrayMaterial()
 
+        print('Using SelRMSorPeak',SelRMSorPeak)
+
         if bDoStressSource:
+            print('RUN_SIMULATION with Stress Sources')
             TypeSource=2
             Ox=np.array([1])
             Oy=np.array([1])
@@ -1791,7 +1794,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             Oy=np.zeros(self._MaterialMap.shape) 
             Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
 
-        if bRefocused==False:
+        if bRefocused==False:      
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
                                                              self._MaterialMap,
                                                              MaterialList,
@@ -1811,7 +1814,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
@@ -1820,6 +1823,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                              SensorSubSampling=self._SensorSubSampling,
                                                              SensorStart=self._SensorStart,
                                                              ReflectorMask=self._SubAirRegions)
+            
+            print('self._DictPeakValue',self._DictPeakValue['Pressure'].max())
             
             self._InputParam=InputParam['IndexSensorMap']
             gc.collect()
@@ -1872,7 +1877,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,

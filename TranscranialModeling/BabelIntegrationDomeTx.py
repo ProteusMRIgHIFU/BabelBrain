@@ -13,15 +13,15 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWat
 import numpy as np
 import os
 
-def computeExaNeuroGeometry():
-    transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'ExaNeuroTransducerGeometry.csv'),delimiter=',',skiprows=0)
+def computeDomeTxGeometry():
+    transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'DomeTxTransducerGeometry.csv'),delimiter=',',skiprows=0)
     assert(transxyz.shape[0]==1024) #number of elements
     assert(transxyz.shape[1]==4) #element, X,Y,Z coordinates in mm, and area in mm2
     transxyz=transxyz[:,:3] #we skip the Tx element coordinates only
     return transxyz*1e-3
 
 
-def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
+def GenerateDomeTxTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
 
     f=Frequency;
     Foc=150e-3*FactorEnlarge
@@ -33,7 +33,7 @@ def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9)
 
     TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'],PPWSurface=PPWSurface)
 
-    transLoc = computeExaNeuroGeometry()
+    transLoc = computeDomeTxGeometry()
 
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc
@@ -48,15 +48,15 @@ def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9)
     phi=np.arctan2(transLocDisplacedZ[:,1],transLocDisplacedZ[:,0])
     phi+=np.deg2rad(RotationZ)
 
-    TxExaNeuro={}
-    TxExaNeuro['center'] = np.zeros((nSubElems*NElems,3))
-    TxExaNeuro['elemcenter'] = np.zeros((len(theta),3))
-    TxExaNeuro['ds'] = np.zeros((nSubElems*NElems,1))
-    TxExaNeuro['normal'] = np.zeros((nSubElems*NElems,3))
-    TxExaNeuro['elemdims']=TxElem['ds'].size
-    TxExaNeuro['NumberElems']=len(theta)
-    TxExaNeuro['VertDisplay'] = np.zeros((nSubElemsVert*NElems,3))
-    TxExaNeuro['FaceDisplay'] = np.zeros((nSubElems*NElems,4),np.int64)
+    TxDomeTx={}
+    TxDomeTx['center'] = np.zeros((nSubElems*NElems,3))
+    TxDomeTx['elemcenter'] = np.zeros((len(theta),3))
+    TxDomeTx['ds'] = np.zeros((nSubElems*NElems,1))
+    TxDomeTx['normal'] = np.zeros((nSubElems*NElems,3))
+    TxDomeTx['elemdims']=TxElem['ds'].size
+    TxDomeTx['NumberElems']=len(theta)
+    TxDomeTx['VertDisplay'] = np.zeros((nSubElemsVert*NElems,3))
+    TxDomeTx['FaceDisplay'] = np.zeros((nSubElems*NElems,4),np.int64)
 
     for n in range(len(theta)):
         rotateMatrixY = np.array([[np.cos(theta[n]),0,np.sin(theta[n])],[0,1,0],[-np.sin(theta[n]),0,np.cos(theta[n])]])
@@ -64,43 +64,44 @@ def GenerateExaNeuroTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9)
         rotateMatrix = rotateMatrixZ@rotateMatrixY
        
         center=(rotateMatrix@TxElem['center'].T).T
-        TxExaNeuro['elemcenter'][n,:]=np.mean(center,axis=0) # the very first subelement is at the center
+        TxDomeTx['elemcenter'][n,:]=np.mean(center,axis=0) # the very first subelement is at the center
         
         normal=(rotateMatrix@TxElem['normal'].T).T
 
         VertDisplay=(rotateMatrix@TxElem['VertDisplay'].T).T
        
-        TxExaNeuro['center'][n*nSubElems:(n+1)*nSubElems,:]=center
-        TxExaNeuro['ds'][n*nSubElems:(n+1)*nSubElems]=TxElem['ds']
-        TxExaNeuro['normal'][n*nSubElems:(n+1)*nSubElems,:]=normal
-        TxExaNeuro['VertDisplay'][n*nSubElemsVert:(n+1)*nSubElemsVert,:]=VertDisplay
-        TxExaNeuro['FaceDisplay'][n*nSubElems:(n+1)*nSubElems,:]=TxElem['FaceDisplay']+n*nSubElemsVert
+        TxDomeTx['center'][n*nSubElems:(n+1)*nSubElems,:]=center
+        TxDomeTx['ds'][n*nSubElems:(n+1)*nSubElems]=TxElem['ds']
+        TxDomeTx['normal'][n*nSubElems:(n+1)*nSubElems,:]=normal
+        TxDomeTx['VertDisplay'][n*nSubElemsVert:(n+1)*nSubElemsVert,:]=VertDisplay
+        TxDomeTx['FaceDisplay'][n*nSubElems:(n+1)*nSubElems,:]=TxElem['FaceDisplay']+n*nSubElemsVert
 
-    TxExaNeuro['VertDisplay'][:,2]
-    TxExaNeuro['center'][:,2]
-    TxExaNeuro['elemcenter'][:,2]
+    TxDomeTx['VertDisplay'][:,2]
+    TxDomeTx['center'][:,2]
+    TxDomeTx['elemcenter'][:,2]
     
-    print('Aperture dimensions (x,y) =',TxExaNeuro['center'][:,0].max()-TxExaNeuro['center'][:,0].min(),
-                                        TxExaNeuro['center'][:,1].max()-TxExaNeuro['center'][:,1].min())
+    print('Aperture dimensions (x,y) =',TxDomeTx['center'][:,0].max()-TxDomeTx['center'][:,0].min(),
+                                        TxDomeTx['center'][:,1].max()-TxDomeTx['center'][:,1].min())
 
-    print('Aperture dimensions (x,y) =',TxExaNeuro['VertDisplay'][:,0].max()-TxExaNeuro['VertDisplay'][:,0].min(),
-                                        TxExaNeuro['VertDisplay'][:,1].max()-TxExaNeuro['VertDisplay'][:,1].min())
+    print('Aperture dimensions (x,y) =',TxDomeTx['VertDisplay'][:,0].max()-TxDomeTx['VertDisplay'][:,0].min(),
+                                        TxDomeTx['VertDisplay'][:,1].max()-TxDomeTx['VertDisplay'][:,1].min())
 
 
-    TxExaNeuro['FocalLength']=Foc
-    TxExaNeuro['Aperture']=np.max([TxExaNeuro['VertDisplay'][:,0].max()-TxExaNeuro['VertDisplay'][:,0].min(),
-                                      TxExaNeuro['VertDisplay'][:,1].max()-TxExaNeuro['VertDisplay'][:,1].min()]);
+    TxDomeTx['FocalLength']=Foc
+    TxDomeTx['Aperture']=np.max([TxDomeTx['VertDisplay'][:,0].max()-TxDomeTx['VertDisplay'][:,0].min(),
+                                      TxDomeTx['VertDisplay'][:,1].max()-TxDomeTx['VertDisplay'][:,1].min()]);
     
-    #We use calibration per PPW
-    TxExaNeuro['Amplitude1W']={6:205506.11571360644,
-                                7:209997.72991584256,
-                                8:217587.76860960564,
-                                9:216673.75412196587,
-                                10:214668.0939407109,
-                                11:221161.01850151876,
-                                12:223025.3680208895}
+    #We use calibration per PPW to generate 1W per element
+    TxDomeTx['Amplitude1W']={'Rayleigh':0.14475482330468514,
+                            'Visco':{220000:{6:74770.266,
+                                             7:73202.98,
+                                             8:72503.875,
+                                             9:73646.11,
+                                            10:74868.305,
+                                            11:85314.6,
+                                            12:86398.17}}}
 
-    return TxExaNeuro
+    return TxDomeTx
 
 
 class RUN_SIM(BabelIntegrationDOME_PHASEDARRAY.RUN_SIM):
@@ -138,8 +139,8 @@ class SimulationConditions(BabelIntegrationDOME_PHASEDARRAY.SimulationConditions
         
     def GenTransducerGeom(self):
 
-        self._Tx=GenerateExaNeuroTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateExaNeuroTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
-        self._TxHighRes=GenerateExaNeuroTx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
+        self._Tx=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._TxHighRes=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
         
         

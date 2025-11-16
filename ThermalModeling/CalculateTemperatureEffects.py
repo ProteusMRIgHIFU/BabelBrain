@@ -191,7 +191,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     print('Location Max Pressure Tissue',cxr,cyr,czr,'\n',
             xfr[cxr],yfr[cyr],zfr[czr],pAmpTissue.max()/1e6)
     
-    if TxSystem in ['Exablate']: #for Dome Txs, we use peak intensity as there is no easy way to do the integral of  "planewave" conditions
+    if TxSystem in ['DomeTx']: #for Dome Txs, we use peak intensity as there is no easy way to do the integral of  "planewave" conditions
         RatioLosses=(pAmpTissue.max()/pAmpWater.max())**2
         print('Total losses ratio using single punctual measurement for dome Tx',RatioLosses,np.log10(RatioLosses)*10)
     else:    

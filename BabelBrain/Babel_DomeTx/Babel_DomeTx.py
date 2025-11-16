@@ -16,23 +16,23 @@ def resource_path():  # needed for bundling
         return os.path.split(Path(__file__))[0]
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'Babel_Exablate'
+        bundle_dir = Path(sys._MEIPASS) / 'Babel_DomeTx'
     else:
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
 
-class Exablate(BabelBasePhaseArray):
+class DomeTx(BabelBasePhaseArray):
     def __init__(self,parent=None,MainApp=None):
         super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
 
 
     def DefaultConfig(self):
-        #Specific parameters for the Exablate -  configured later via a yaml
+        #Specific parameters for the DomeTx -  configured later via a yaml
 
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)
-        print("Exablate configuration:")
+        print("DomeTx configuration:")
         print(config)
 
         self.Config=config

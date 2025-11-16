@@ -236,10 +236,10 @@ class SimulationConditions(SimulationConditionsBASE):
         self.BasePhasedArrayProgramming=np.zeros(self._Tx['NumberElems'],np.complex64)
         self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._Tx['NumberElems'],np.complex64)
 
-        AmplitudeCal=1.0
+        Amplitude=1.0
         if 'Amplitude1W' in self._Tx:
-            AmplitudeCal=self._Tx['Amplitude1W'][self._basePPW]
-        Amplitude=np.float32(AmplitudeCal/self._FactorConvPtoU*4*np.pi**2) #this will match using amplitude 1 stres source
+            Amplitude=self._Tx['Amplitude1W']['Rayleigh']
+            print('using 1W Rayleigh per element ampltiude',Amplitude)
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
             ds=np.ones((1))*self._SpatialStep**2
@@ -261,10 +261,10 @@ class SimulationConditions(SimulationConditionsBASE):
             for n in range(self._Tx['NumberElems']):
                 phi=np.angle(np.conjugate(u2back[n]))
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)*Amplitude
+                u0[nBase:nBase+self._Tx['elemdims']]=np.exp(1j*phi).astype(np.complex64)
                 nBase+=self._Tx['elemdims']
         else:
-             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))*Amplitude
+             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
@@ -272,11 +272,10 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        
-        u0*= self.AdjustWeightAmplitudes()
+        u0*= self.AdjustWeightAmplitudes()*Amplitude
 
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
-        u2=np.reshape(u2,xp.shape)
+        u2=np.reshape(u2,xp.shape)*1.5e6 # in Pa
         
         self._u2RayleighField=u2
 
@@ -304,7 +303,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
         AmplitudeCal=1.0
         if 'Amplitude1W' in self._Tx:
-            AmplitudeCal=self._Tx['Amplitude1W'][self._basePPW]
+            AmplitudeCal=self._Tx['Amplitude1W']['Visco'][self._Frequency][self._basePPW]
             print('Using amplitude for 1W',AmplitudeCal)
 
         for n in range(self._TxHighRes['NumberElems']):
@@ -407,10 +406,5 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._PulseSourceRefocus=PulseSource
          
-    def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
-                       bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False):
-        print('RUN_SIMULATION with Stress Sources')
-        super().RUN_SIMULATION(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,bRefocused=bRefocused,
-                       bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
-                       COMPUTING_BACKEND=COMPUTING_BACKEND,bDoRefocusing=bDoRefocusing,bDoStressSource=True)
+    def RUN_SIMULATION(self,bDoStressSource=False,SelRMSorPeak=1,bApplyCorrectionForDispersion=True,**kargs):
+        super().RUN_SIMULATION(bDoStressSource=True,bApplyCorrectionForDispersion=False,SelRMSorPeak=2,**kargs)

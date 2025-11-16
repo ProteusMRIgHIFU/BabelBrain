@@ -38,13 +38,13 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         from TranscranialModeling.BabelIntegrationSingle import RUN_SIM 
     elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','DPXPC_300','R15287','R15473']:
         from TranscranialModeling.BabelIntegrationANNULAR_ARRAY import RUN_SIM 
-    elif TxSystem in ['H317','H246','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','Exablate']:
+    elif TxSystem in ['H317','H246','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','DomeTx']:
         module_name = f"TranscranialModeling.BabelIntegration{TxSystem}"
         RUN_SIM = importlib.import_module(module_name).RUN_SIM
     else:
         raise ValueError("TX system " + TxSystem + " is not yet supported")
 
-    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','Exablate']:
+    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','DomeTx']:
         if kargs['bDryRun']==False:
             stdout = InOutputWrapper(queue,True)
     else:
@@ -62,7 +62,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         if 'bDryRun' in kargs:
             bDryRun=kargs['bDryRun']
         if kargs['bUseRayleighForWater']==False or bDryRun:
-            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','Exablate']:
+            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','DomeTx']:
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
@@ -72,7 +72,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bWaterOnly=True,
                             bDisplay=False,
                             **kargs)
-        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','Exablate']:
+        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','DomeTx']:
             #we need to combine ac field files for display if using multipoint
             if kargs['MultiPoint'] is not None and kargs['bDryRun'] == False: 
                 kargs['bDryRun'] = True
@@ -110,7 +110,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             finalName=fnames[0].split('__Steer_X')[0]+send
                             combinedNifti.to_filename(finalName)
 
-        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','Exablate']:
+        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','DomeTx']:
             kargs['bDryRun'] = True
             FilesWater=R.RunCases(targets=Target, 
                             bTightNarrowBeamDomain=True,
