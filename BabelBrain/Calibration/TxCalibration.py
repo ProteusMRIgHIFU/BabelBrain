@@ -210,12 +210,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         f.supylabel('Pressure (a.u.)')
         f.suptitle('Comparison of corrected and uncorrected source - SSI = %3.2f (uncorrected) and %3.2f (corrected)' %(SSInow,SSIw),fontsize=14)
         f.tight_layout()
-        if len(AllFigs)>1:
-            f.savefig(rootpath+'-AcProfiles%i.pdf' % (n+1),bbox_inches='tight')
-        else:
-            f.savefig(rootpath+'AcProfiles.pdf',bbox_inches='tight')
-    
-
+        f.savefig(rootpath+'AcProfiles-%02i.pdf' % (n+1),bbox_inches='tight')
  
     def PlotWeight(ax,xd,norm,cmap):
         
@@ -355,7 +350,6 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
                 print('Global average Tx = %3.2f' % (GlobalAverage/Tx['NumberElems']))
             bCalcAvgAmpl=False #we omly need it once
             acplane=np.abs(ForwardSimple(cwvnb_extlay,Tx['center'].astype(np.float32),Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName))
-            # acplane/=acplane.max()
             acplane=acplane.reshape((len(xf),len(zf)))
             AcPlanes.append(acplane)
         maxPlanes=np.max(np.hstack(AcPlanes))
@@ -367,33 +361,41 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     AcPlanes=DoXZ(x)
 
     def PlotXZ(InPlanes):
-        f,axs=plt.subplots(2,8,figsize=(16,6))
-        axs=axs.flatten()
+        AllFigs=[]
         ext=[xf.min()*1e3,xf.max()*1e3,zf.max()*1e3,zf.min()*1e3]
 
-        for l,ax,acplane,nax in zip(Locations,axs,InPlanes,range(len(Locations))): 
+        for l,acplane,n in zip(Locations,InPlanes,range(len(Locations))): 
+            if n % 16 == 0:
+                f,axs=plt.subplots(2,8,figsize=(16,6))
+                axs=axs.flatten()
+                AllFigs.append(f)
+            ax=axs[n % 16]
             im=ax.imshow(acplane.T,cmap=plt.cm.jet,extent=ext,vmax=1.0,vmin=0)
             ax.set_title('TPO = '+str(l) + ' mm',fontsize=8)
 
-            if nax % 8 != 0:
+            if n % 8 != 0:
                 ax.tick_params(labelleft=False)
 
-            if nax < 8:
+            if n < 8:
                 ax.tick_params(labelbottom=False)
 
             ax.tick_params(axis='both', labelsize=9)
 
-        f.subplots_adjust(right=0.83)
-        cbar_ax = f.add_axes([0.85, 0.53, 0.015, 0.35])
-        cb=f.colorbar(im, cax=cbar_ax)
-        cbar_ax.tick_params(labelsize=9)
+        for f in AllFigs:
+            plt.figure(f)
+            f.subplots_adjust(right=0.83)
+            cbar_ax = f.add_axes([0.85, 0.53, 0.015, 0.35])
+            cb=f.colorbar(im, cax=cbar_ax)
+            cbar_ax.tick_params(labelsize=9)
+            plt.suptitle('XZ planes')
 
-    PlotXZ(AcPlanes)
-        
-    plt.suptitle('XZ planes')
+        return AllFigs
     
-   
-    plt.savefig(rootpath+'Acplanes.pdf',bbox_inches='tight')
+    AllFigs=PlotXZ(AcPlanes)
+        
+    for n,f in enumerate(AllFigs):
+        f.savefig(rootpath+'Acplanes-%02i.pdf' %(n+1),bbox_inches='tight')
+        
     AcPlanesReal=[]
     if RealWeight is not None:
         AcPlanesReal=DoXZ(RealWeight)
@@ -414,7 +416,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         PlanesStdError=np.std(AllError)
         PlanesMSE=np.sum(AllError**2)/len(AllError)
     
-    
+    plt.close('all')
     if RealWeight is not None:
         return SSInow,SSIw,PlanesMeanError, PlanesStdError,PlanesMSE
     else:
@@ -681,12 +683,12 @@ def jacobian_reg(b, A, e, regularizer):
 # ----------------------
 # Optimization Wrapper
 # ----------------------
-def optimize_b(A, e, b0, regularizer):
+def optimize_b(A, e, b0, regularizer,amplitudeLimit=100.0):
     options={'maxfun':2000,'disp':0}
     return minimize(
         objective_reg, b0, args=(A, e, regularizer),
         jac=jacobian_reg,
-        bounds=[(1e-6, 100)] * len(b0),
+        bounds=[(1e-6, amplitudeLimit)] * len(b0),
         method='L-BFGS-B',
         options=options
     )
@@ -832,7 +834,7 @@ def RUN_FITTING(TxConfig,
     Frequency=INPUT_PARAMS['Frequency']
 
     # we load commonn optional parameters 
-    bUseRayleighPhase = INPUT_PARAMS['UseRayleighPhase']
+    bUseRayleighPhase = INPUT_PARAMS.get('UseRayleighPhase',True)
     dfPhasefilename = INPUT_PARAMS.get('ExcelFilePhase', None)
     rangePhase_str = INPUT_PARAMS.get('ExcelRangePhase', None)
     if rangePhase_str is not None:
@@ -844,6 +846,7 @@ def RUN_FITTING(TxConfig,
     regularizer=INPUT_PARAMS.get('Regularizer','Grouped')
     config = INPUT_PARAMS.get('Config',1)
     InnerD = INPUT_PARAMS.get('InnerDiameter', 0.0)
+    amplitudeLimit=INPUT_PARAMS.get('AmplitudeLimit', 4.0)
 
     GeometricFocus=TxConfig['FocalLength']
     FocalDepth=TxConfig['NaturalOutPlaneDistance']
@@ -1051,25 +1054,27 @@ def RUN_FITTING(TxConfig,
             x0=np.zeros(A.shape[1]*2,dtype=np.float32)
             np.random.seed(78) # we use the same seed so we can compare between regularizers
             x0[:A.shape[1]]=np.random.random(A.shape[1]).astype(np.float32)+0.1
-            res=optimize_b_complex(A, E, x0,reg)
+            res=optimize_b_complex(A, E, x0,reg,amplitudeLimit=amplitudeLimit)
             res.x=res.x[:A.shape[1]]*np.exp(1j*res.x[A.shape[1]:])
     elif FitType == 'RealImag':
         x0=np.zeros(A.shape[1]*2,dtype=np.float32)
         np.random.seed(78) # we use the same seed so we can compare between regularizers
         x0[:A.shape[1]]=np.random.random(A.shape[1]).astype(np.float32)+0.1
         print('using Real+Imag fitting')
-        res=optimize_b_complex_RI(A, E, x0,reg)
+        res=optimize_b_complex_RI(A, E, x0,reg,amplitudeLimit=amplitudeLimit)
         res.x=res.x[:A.shape[1]]+1j*res.x[A.shape[1]:]
     else:
         assert(FitType=='Amp')
         x0=np.ones(A.shape[1])
-        res=optimize_b(A, E, x0, reg)
+        res=optimize_b(A, E, x0, reg,amplitudeLimit=amplitudeLimit)
 
 
     fname=rootnamepath + os.sep + 'CALIBRATION'
 
     CalResults = {  'CALIBRATION': res.x,
-                     'YAMLConfigFilename': YAMLConfigFilename,
+                    'deviceName':deviceName,
+                    'TxConfig':TxConfig,
+                    'YAMLConfigFilename': YAMLConfigFilename,
                     'Frequency': Frequency,
                     'FocalLength': FocalLength,
                     'Aperture': Aperture,

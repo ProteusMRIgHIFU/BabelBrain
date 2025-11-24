@@ -389,6 +389,8 @@ class BabelBrain(QWidget):
             ComputingBackend=2
         elif Backend=='Metal':
             ComputingBackend=3
+        elif Backend=='MLX':
+            ComputingBackend=4
 
         self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
@@ -399,6 +401,7 @@ class BabelBrain(QWidget):
         self.Config['SimbNIBSType']=SimbNIBSType
         self.Config['TrajectoryType']=TrajectoryType
         self.Config['Mat4Trajectory']=Mat4Trajectory
+        self.Config['OrigMat4Trajectory']=Mat4Trajectory
         self.Config['ThermalProfile']=ThermalProfile
         self.Config['T1W']=T1W
         self.Config['bUseCT']=bUseCT
@@ -490,6 +493,20 @@ class BabelBrain(QWidget):
         self._TrackingTime={'Calculation time domain':0.0,
                             'Calculation time ultrasound':0.0,
                             'Calculation time thermal':0.0}
+        
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.centerOnScreen()
+
+    def centerOnScreen(self):
+        # Get the screen geometry where the window is currently shown
+        screen = self.screen().geometry()
+        # Get the window geometry (including title bar, etc.)
+        frame = self.frameGeometry()
+        # Move the center of the frame to the screen center
+        frame.moveCenter(screen.center())
+        # Move the top-left point of the window to match
+        self.move(frame.topLeft())
         
     def bHasTxWeights(self):
         '''
@@ -752,7 +769,7 @@ class BabelBrain(QWidget):
                                  self._AllTransducers,
                                  parent=self)
         ret=options.exec()
-        if ret !=-1:
+        if hasattr(options,'NewValues'):
             for k in options.NewValues.keys():
                 self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
@@ -1360,14 +1377,17 @@ def main():
                 GPU='CPU'
             else:
                 GPU=prevConfig['ComputingDevice']
+                Backend=''
                 if prevConfig['ComputingBackend']==1:
                     Backend='CUDA'
                 elif prevConfig['ComputingBackend']==2:
                     Backend='OpenCL'
                 elif prevConfig['ComputingBackend']==3:
                     Backend='Metal'
-
-            selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
+                elif prevConfig['ComputingBackend']==4:
+                    Backend='MLX'
+                if len(Backend)>0:
+                    selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
 
         if 'TxSystem' in prevConfig:
             selwidget.SelectTxSystem(prevConfig['TxSystem'])

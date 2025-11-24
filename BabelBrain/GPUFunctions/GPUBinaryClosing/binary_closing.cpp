@@ -1,6 +1,12 @@
+
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
 #define SIGNED_INT32_LIM 2147483648
 #define UNSIGNED_INT32_LIM 4294967296
-
+//MLX_HEADER_END
 #ifdef _CUDA
 extern "C" __global__ void binary_erosion(const unsigned char * x,
                                           const unsigned char * w,
@@ -50,16 +56,20 @@ __kernel void binary_erosion(__global const unsigned char * x,
     ptrdiff_t section_gid = section_xind*section_size_1*section_size_2 + section_yind*section_size_2 + section_zind;
 
 #endif
+//MLX_FUNCTION_START
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
 kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]], 
                            const device unsigned char * w [[ buffer(1) ]], 
-                           const device int * int_params[[ buffer(2) ]],
+                           const device int * int_params [[ buffer(2) ]],
                            device unsigned char * y [[ buffer(3) ]],
                            uint gid[[thread_position_in_grid]])
 {
-    
+    ptrdiff_t section_gid = (ptrdiff_t) gid;
+#endif
+#ifdef _MLX
+    ptrdiff_t section_gid = (ptrdiff_t) thread_position_in_grid.x;
+#endif
+#if defined(_METAL)  ||defined(_MLX)
     ptrdiff_t section_size = int_params[19];
 
     ptrdiff_t output_size_0 = int_params[0];
@@ -67,9 +77,8 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     ptrdiff_t output_size_2 = int_params[2];
     ptrdiff_t output_size = output_size_2 * output_size_1 * output_size_0;
 
-    ptrdiff_t section_gid = (ptrdiff_t) gid;
-    
-#endif
+#endif 
+
 
     ptrdiff_t input_size_0 = int_params[0];
     ptrdiff_t input_size_1 = int_params[1];
@@ -81,8 +90,9 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     int false_val = int_params[7];
     int border_value = int_params[8];
     int center_is_true = int_params[9];
-    const int w_shape[3] = {int_params[10],int_params[11],int_params[12]};
+    const int ww_shape[3] = {int_params[10],int_params[11],int_params[12]};
     const int offsets[3] = {int_params[13],int_params[14],int_params[15]};
+
     ptrdiff_t start_idx = int_params[16];
     int base_32 = int_params[17];
     int padding = int_params[18];
@@ -117,7 +127,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     #ifdef _OPENCL
     __global const unsigned char* data = (__global const unsigned char*)&x[0];
     #endif
-    #ifdef _METAL
+    #if defined(_METAL) || defined(_MLX)
     device const unsigned char* data = (const device unsigned char*)&x[0];
     #endif
 
@@ -130,8 +140,8 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
     y[section_gid] = (unsigned char)true_val;
 
     // loop through neighbouring voxels (ix_0, ix_1, ix_2 are indexes along each dimension)
-    // Extent of neighbouring voxels is determined by w_shape
-    for (int iw_0 = 0; iw_0 < w_shape[0]; iw_0++)
+    // Extent of neighbouring voxels is determined by ww_shape
+    for (int iw_0 = 0; iw_0 < ww_shape[0]; iw_0++)
     {
         ptrdiff_t ix_0 = ind_0 + iw_0;
 
@@ -142,7 +152,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
         }
         ix_0 *= input_stride_0;
 
-        for (int iw_1 = 0; iw_1 < w_shape[1]; iw_1++)
+        for (int iw_1 = 0; iw_1 < ww_shape[1]; iw_1++)
         {
             ptrdiff_t ix_1 = ind_1 + iw_1;
 
@@ -153,7 +163,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
             }
             ix_1 *= input_stride_1;
 
-            for (int iw_2 = 0; iw_2 < w_shape[2]; iw_2++)
+            for (int iw_2 = 0; iw_2 < ww_shape[2]; iw_2++)
             {
                 ptrdiff_t ix_2 = ind_2 + iw_2;
 
@@ -183,7 +193,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
                     #ifdef _OPENCL
                     unsigned char nn = (*(__global unsigned char*)&data[input_idx]) ? true_val : false_val;
                     #endif
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     unsigned char nn = (*(device unsigned char*)&data[input_idx]) ? true_val : false_val;
                     #endif
                     if (!nn) 
@@ -196,4 +206,7 @@ kernel void binary_erosion(const device unsigned char * x [[ buffer(0) ]],
             }
         }
     };
+#ifndef _MLX   
 }
+#endif
+//MLX_FUNCTION_END

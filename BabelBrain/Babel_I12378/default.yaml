@@ -15,3 +15,38 @@ DefaultDistanceConeToFocus:       25.0e-3  # in m
 USFrequencies:
     - 650000.0
 
+
+PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
+    650000.0:
+        FocalDistanceList:
+            - 42.5
+            - 47.1
+            - 51.7
+            - 56.3
+            - 60.9
+            - 65.5
+            - 70.2
+            - 74.8
+            - 79.4
+            - 84.0
+            - 88.6
+            - 93.2
+            - 97.8
+            - 102.5
+            - 107.1
+        FHMLList:
+            - 3.9
+            - 4.2
+            - 4.6
+            - 5.1
+            - 5.5
+            - 6.2
+            - 6.9
+            - 7.6
+            - 8.3
+            - 9.0
+            - 10.2
+            - 11.1
+            - 12.0
+            - 13.2
+            - 14.3

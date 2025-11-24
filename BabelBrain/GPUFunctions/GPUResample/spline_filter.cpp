@@ -1,3 +1,10 @@
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
+//MLX_HEADER_END
+//MLX_FUNCTION_START
 #ifdef _OPENCL
 __kernel void spline_filter_3d(__global float* y, 
                                __global const int* info,
@@ -13,19 +20,19 @@ __kernel void spline_filter_3d(__global float* y,
 #endif
 
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
-
 kernel void spline_filter_3d(device float * y [[ buffer(0) ]], 
                              const device int * info [[ buffer(1) ]],
                              constant int * int_params [[ buffer(2) ]],
                              uint gid[[thread_position_in_grid]])
 {
+    #define _i gid
+#endif
+#if defined(_MLX)
+    #define _i thread_position_in_grid.x
+#endif
+#if defined(_METAL)  ||defined(_MLX) 
     #define axis int_params[0]
     #define n_bound int_params[1]
-
-    #define _i gid
-
     const uint n_signals = info[0];
     const uint n_samples = info[1];
     const device int * shape = info+2;
@@ -93,4 +100,7 @@ kernel void spline_filter_3d(device float * y [[ buffer(0) ]],
                                        y[row + i * elem_stride]);
         }
     }
+#ifndef _MLX   
 }
+#endif
+//MLX_FUNCTION_END

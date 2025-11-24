@@ -56,6 +56,8 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
             gpu_backend = 'OpenCL'
         elif COMPUTING_BACKEND == 3:
             gpu_backend = 'Metal'
+        elif COMPUTING_BACKEND == 4:
+            gpu_backend = 'MLX'
         else:
             raise ValueError('Non valid computing backend was given')
 
@@ -72,7 +74,7 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
 
         # Metal version not ready
-        if gpu_backend != 'Metal':
+        if gpu_backend not in ['Metal','MLX']:
             LabelImage.InitLabel(DeviceName=devicename,GPUBackend=gpu_backend)
             DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
                     

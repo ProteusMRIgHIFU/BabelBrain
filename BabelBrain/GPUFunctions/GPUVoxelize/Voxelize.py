@@ -9,9 +9,9 @@ from numba import jit,njit, prange
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -53,8 +53,11 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global knl
     global mf
     global clp
+    global sel_device_name
 
     kernel_files = [os.path.join(resource_path(),'voxelize.cpp')]
+
+    sel_device_name = DeviceName
 
     if GPUBackend == 'CUDA':
         import cupy as cp
@@ -73,13 +76,17 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mc
 
         kernel_code,sel_device,ctx = InitMetal(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+        kernel_code,sel_device,ctx = InitMLX(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
 
 def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx
     global clp
     global queue
-    
+
     logger.info(f"\nStarting Voxelization")
 
     # Determine number of mesh faces
@@ -153,6 +160,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         # Build program from source code
         mf=clp.mem_flags
         prg=clp.Program(ctx,"#define _OPENCL\n"+constant_defs+kernel_code).build()
+        clExtractPoints=prg.ExtractPoints
+
         
         # Move input data from host to device memory
         vtable_gpu=clp.Buffer(ctx, mf.READ_WRITE, vtable.nbytes)
@@ -166,8 +175,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         clp.enqueue_copy(queue, vtable,vtable_gpu)
         queue.finish()
         vtable=np.frombuffer(vtable,np.uint32)
-    else:
-        assert(GPUBackend=='Metal')
+    elif GPUBackend=='Metal':
 
         metal_def='''
         #define _METAL
@@ -177,6 +185,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         '''.format(gx=gx,gy=gy,gz=gz)
 
         # Build program from source code
+
         prg = ctx.kernel(metal_def+constant_defs+kernel_code)
 
         # Move input data from host to device memory
@@ -194,6 +203,49 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         if 'arm64' not in platform.platform():
             ctx.sync_buffers((vtable_gpu,triangles_gpu))
         vtable=np.frombuffer(vtable_gpu,dtype=np.uint32)
+    elif GPUBackend=='MLX':
+
+        metal_def='''
+        #define _MLX
+        #define gx {gx}
+        #define gy {gy}
+        #define gz {gz}
+        '''.format(gx=gx,gy=gy,gz=gz)
+
+         # Build program from source code
+       
+        prg_voxelize=ctx.fast.metal_kernel(
+                        name='voxelize_triangle_solid',
+                        input_names=['triangle_data'],
+                        input_rw_status=[False],
+                        output_names=["voxel_table"],
+                        atomic_outputs=True,
+                        source=kernel_code['voxelize_triangle_solid']['code']+'\n',
+                        header=metal_def+'\n'+constant_defs+'\n'+kernel_code['voxelize_triangle_solid']['header']+'\n')
+
+        prg_ExtractPoints=ctx.fast.metal_kernel(
+                        name='ExtractPoints',
+                        input_names=['voxel_table','int_params','Points'],
+                        input_rw_status=[False,False,True],
+                        output_names=["globalcount"],
+                        atomic_outputs=True,
+                        source=kernel_code['ExtractPoints']['code']+'\n',
+                        header=metal_def+'\n'+constant_defs+'\n'+kernel_code['ExtractPoints']['header']+'\n')
+
+        # Move input data from host to device memory
+        # vtable_gpu=ctx.zeros(vtable_size//4,ctx.uint32)
+        triangles_gpu=ctx.array(triangles)
+
+        # Deploy kernel
+        vtable_gpu=prg_voxelize(inputs=[triangles_gpu],
+                       grid=[n_triangles,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[vtable_size//4]], 
+                       output_dtypes=[ctx.uint32],
+                       use_optimal_threadgroups=True,
+                       init_value=0,
+                        )[0]
+        vtable=np.array(vtable_gpu)
 
     # Create points array 
     totalPoints=calctotalpoints((gx,gy,gz),vtable)[0]
@@ -258,7 +310,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
         
             # Deploy kernel
-            prg.ExtractPoints(queue,[ntotal],None,vtable_gpu,
+            clExtractPoints(queue,[ntotal],None,vtable_gpu,
                                                 globalcount_gpu,
                                                 points_section_gpu,
                                                 int_params_gpu,
@@ -292,6 +344,28 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             points_section=np.frombuffer(points_section_gpu,dtype=np.float32).reshape(points_section.shape)
             globalcount=np.frombuffer(globalcount_gpu,dtype=np.uint32)
             logger.info(f"globalcount: {globalcount}")
+        elif GPUBackend=='MLX' :
+            # Move input data from host to device memory
+            points_section_gpu=ctx.zeros(points_section.size)
+            # globalcount_gpu=ctx.array(globalcount)
+            int_params_gpu = ctx.array(int_params)
+
+            globalcount_gpu=prg_ExtractPoints(inputs=[vtable_gpu,int_params_gpu,points_section_gpu],
+                       grid=[ntotal,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[globalcount.size]], 
+                       output_dtypes=[ctx.uint32],
+                       use_optimal_threadgroups=True,
+                       init_value=0,
+                        )[0]
+
+            ctx.eval(globalcount_gpu)
+            
+            # Move kernel output data back to host memory
+            points_section=np.array(points_section_gpu).reshape(points_section.shape)
+            globalcount+=np.array(globalcount_gpu)
+
+            logger.info(f"globalcount: {globalcount}")
 
         try:
             Points[prev_start_ind:int(globalcount[0]),:]=points_section[:int(globalcount[0])-prev_start_ind,:]
@@ -299,7 +373,8 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             print(e)
             raise ValueError("Error running voxelization for specified parameters, suggest lowering PPW")
         prev_start_ind=int(globalcount[0])
-        
+        print('prev_start_ind', prev_start_ind)
+
     print('globalcount',globalcount)
  
     Points[:,0]+=0.5

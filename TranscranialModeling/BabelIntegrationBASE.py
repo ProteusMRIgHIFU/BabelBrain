@@ -20,6 +20,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
 import SimpleITK as sitk
 from scipy import interpolate
+import scipy
 import warnings
 import time
 import gc
@@ -58,8 +59,12 @@ def resource_path():  # needed for bundling
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
 _MapPichardo = ReadFromH5py(os.path.join(resource_path(), 'MapPichardo.h5'))
-_PichardoSOS=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
-_PichardoAtt=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
+if scipy.__version__>"1.14.0":
+    interp2d=interpolate.RectBivariateSpline
+else:
+    interp2d=interpolate.interp2d
+_PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
+_PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
 def FitSpeedCorticalShear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
@@ -343,22 +348,103 @@ def DensityToSSoSPichardo(density):
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
     return density*0.422 + 680.515  
     
+def make_affine_itk_friendly(affine, eps=1e-12, report=True):
+    """
+    Return a copy of `affine` whose top-left 3x3 is orthonormal
+    up to column scaling (i.e. preserves voxel sizes).
+    - affine: (4,4) array
+    - eps: tiny tolerance for near-zero scales
+    - report: if True, returns diagnostics along with affine
+    """
+    A = affine.copy()
+    M = A[:3, :3].astype(float)
 
-def SaveNiftiEnforcedISO(nii,fn):
-    nii.to_filename(fn)
+    # Column norms = voxel scales (for NIfTI affine convention)
+    scales = np.linalg.norm(M, axis=0)  # length for each axis vector (3,)
+    # Protect against zero/near-zero scale
+    tiny = scales < eps
+    if np.any(tiny):
+        raise ValueError(f"Detected near-zero scale(s) on axes: {np.where(tiny)[0].tolist()}")
+
+    # Direction matrix (each column is the direction cosine)
+    D = M / scales[np.newaxis, :]  # shape (3,3)
+
+    # Find nearest orthonormal matrix to D using SVD
+    U, svals, Vt = np.linalg.svd(D)
+    R = U @ Vt
+
+    # Ensure right-handed coordinate system unless original had reflection
+    det_original = np.linalg.det(D)
+    det_R = np.linalg.det(R)
+    if det_R < 0:
+        # Fix reflection: flip sign of last column of U then recompute
+        U[:, -1] *= -1
+        R = U @ Vt
+        det_R = np.linalg.det(R)
+
+    # Reconstruct matrix preserving scales (columns)
+    M_new = R * scales[np.newaxis, :]
+
+    # Place back
+    A_clean = A.copy()
+    A_clean[:3, :3] = M_new
+
+    if not report:
+        return A_clean
+
+    # Diagnostics
+    # 1) How non-orthonormal original was: check D^T D vs I
+    orig_gram = D.T @ D
+    orig_offdiag = orig_gram - np.eye(3)
+    orig_max_off = np.max(np.abs(orig_offdiag))
+
+    # 2) After cleaning: check orthonormality of R (should be ~I)
+    R_gram = R.T @ R
+    R_offdiag = R_gram - np.eye(3)
+    R_max_off = np.max(np.abs(R_offdiag))
+
+    # 3) Change in matrix
+    max_abs_change = np.max(np.abs(M_new - M))
+    max_rel_change = np.max(np.abs((M_new - M) / (np.where(np.abs(M) > 0, M, 1.0))))
+
+    return {
+        "affine": A_clean,
+        "scales_before": scales,
+        "det_direction_before": det_original,
+        "det_direction_after": det_R,
+        "orig_max_offdiag": float(orig_max_off),
+        "R_max_offdiag": float(R_max_off),
+        "max_abs_change_in_3x3": float(max_abs_change),
+        "max_rel_change_in_3x3": float(max_rel_change),
+    }
+
+def SaveNiftiEnforcedISO(nii_in,fn):
+    fn_unc=fn.split('.gz')[0] #we save uncompressed for faster operation
+    nii_in.to_filename(fn_unc)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
-    res = float(np.round(np.array(nii.header.get_zooms()).mean(),5))
+    res = float(np.round(np.array(nii_in.header.get_zooms()).mean(),5))
     try:
-        pre=sitk.ReadImage(fn)
+        pre=sitk.ReadImage(fn_unc)
         pre.SetSpacing([res,res,res])
         sitk.WriteImage(pre, newfn)
-        os.remove(fn)
+        os.remove(fn_unc)
     except:
-        res = '%6.5f' % (res)
-        cmd='flirt -in "'+fn + '" -ref "'+ fn + '" -applyisoxfm ' +res + ' -nosearch -out "' +fn.split('__.nii.gz')[0]+'.nii.gz'+'"'
-        print(cmd)
-        assert(os.system(cmd)==0)
-        os.remove(fn)
+        try: #lets try with a clean affine
+            print('Affine matrix was not exactly orthonormal, fixing affine matrix')
+            aff_clean = make_affine_itk_friendly(nii_in.affine, report=False)
+            nii = nibabel.Nifti1Image(nii_in.get_fdata(), aff_clean, header=nii_in.header)
+            nii.to_filename(fn_unc)
+            pre=sitk.ReadImage(fn_unc)
+            pre.SetSpacing([res,res,res])
+            sitk.WriteImage(pre, newfn)
+            os.remove(fn_unc)
+        except: #last resource is to use flirt
+            res = '%6.5f' % (res)
+            cmd='flirt -in "'+fn_unc + '" -ref "'+ fn_unc + '" -applyisoxfm ' +res + ' -nosearch -out "' + newfn +'"'
+            print(cmd)
+            assert(os.system(cmd)==0)
+            os.remove(fn_unc)
+
 
 def ResaveNormalized(RPath,Mask):
     assert('_Sub.nii.gz' in RPath)
@@ -375,6 +461,9 @@ def ResaveNormalized(RPath,Mask):
     PosResults=Results.affine.dot(Indexes)
 
     IndexesMask=np.round(np.linalg.inv(Mask.affine).dot(PosResults)).astype(int)
+    IndexesMask[0,IndexesMask[0,:]>=MaskData.shape[0]]=MaskData.shape[0]-1
+    IndexesMask[1,IndexesMask[1,:]>=MaskData.shape[1]]=MaskData.shape[1]-1
+    IndexesMask[2,IndexesMask[2,:]>=MaskData.shape[2]]=MaskData.shape[2]-1
 
     SubMask=MaskData[IndexesMask[0,:],IndexesMask[1,:],IndexesMask[2,:]].reshape(ResultsData.shape)
     ResultsData[SubMask<4]=0
@@ -588,7 +677,7 @@ class BabelFTD_Simulations_BASE(object):
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
-                 QCorrection=3,
+                 QCorrection=3.0,
                  MappingMethod='Webb-Marsac',
                  CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
@@ -606,6 +695,10 @@ class BabelFTD_Simulations_BASE(object):
                  InputFocusStart='',
                  OptimizedWeightsFile=''):
         self._MASKFNAME=MASKFNAME
+
+        if 'BABEL_PYTEST_QFACTOR' in os.environ:
+            QCorrection=float(os.environ['BABEL_PYTEST_QFACTOR'])
+            print('BABEL_PYTEST_QFACTOR Overwritting QCorrection factor', QCorrection)
         
         if bNoShear:
             self._Shear=0.0
@@ -806,9 +899,19 @@ class BabelFTD_Simulations_BASE(object):
                                            entry['LongAtt'],
                                            entry['ShearAtt'])
         elif self._CTFNAME is not None and not self._bWaterOnly:
-            lMaterials =['Skin','Brain']
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                lMaterials=['Water','Water']
+            else:
+                lMaterials=['Skin','Brain']
             if bBrainSegmentation:
-                lMaterials+=['WhiteMatter','GrayMatter','CSF']
+                if 'BABEL_PYTEST_PAPER' in os.environ:
+                    lMaterials+=['Water','Water','Water']
+                else:
+                    lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
@@ -831,12 +934,21 @@ class BabelFTD_Simulations_BASE(object):
                 
 
         elif not self._bWaterOnly:
-             lMaterials =['Skin','Cortical','Trabecular','Brain']
-             if bBrainSegmentation:
-                lMaterials+=['WhiteMatter','GrayMatter','CSF']
-             for k in lMaterials:
+            if 'BABEL_PYTEST_PAPER' in os.environ:
+                #we skin and Brain as water
+                print('*'*30)
+                print('Modeling soft tissue as water')
+                print('*'*30)
+                lMaterials=['Water','Cortical','Trabecular','Water']
+            else:
+                lMaterials=['Skin','Cortical','Trabecular','Brain']
+            if bBrainSegmentation:
+                if 'BABEL_PYTEST_PAPER' in os.environ:
+                    lMaterials+=['Water','Water','Water']
+                else:
+                    lMaterials+=['WhiteMatter','GrayMatter','CSF']
+            for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
-                Water=MatFreq[self._Frequency]['Water']
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,

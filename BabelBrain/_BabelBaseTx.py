@@ -232,8 +232,11 @@ class BabelBaseTx(QWidget):
                 if not self._MainApp.Config['bForceHomogenousMedium']:
                     listObjects+=[self._contour1,self._contour2]
                 for c in listObjects:
-                    for coll in c.collections:
-                        coll.remove()
+                    try: #this is for old Matplotlib
+                        for coll in c.collections:
+                            coll.remove()
+                    except:
+                        c.remove()
                 del self._imContourf1
                 del self._imContourf2
                 if not self._MainApp.Config['bForceHomogenousMedium']:

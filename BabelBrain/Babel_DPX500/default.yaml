@@ -22,3 +22,21 @@ Corrections:
         - 1.03596820e+00 
         - -8.90691139e-02
         - -1.54865609e-04
+PlanTUS: #This information is to interface with the PlanTUS tool
+    500000.0: 
+        FocalDistanceList:
+            - 51.7
+            - 57.6
+            - 65.3
+            - 74.8
+            - 86.6
+            - 99.9
+            - 118.5
+        FHMLList:
+            - 18.0
+            - 21.4
+            - 28.0
+            - 34.0
+            - 42.7
+            - 53.9
+            - 68.8

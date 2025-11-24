@@ -20,3 +20,25 @@ CaseDiameter:                 70.00 #mm
 CaseHeight:                   34.00 #mm
 USFrequencies:
     - 650000.0
+PlanTUS: #This information is to interface with the PlanTUS tool
+    650000.0:
+        BSonix35mm:
+            FocalDistanceList:
+                - 35.0
+            FHMLList:
+                - 15.2
+        BSonix55mm:
+            FocalDistanceList:
+                - 55.0
+            FHMLList:
+                - 24.8
+        BSonix65mm:
+            FocalDistanceList:
+                - 65.0
+            FHMLList:
+                - 30.1
+        BSonix80mm:
+            FocalDistanceList:
+                - 80.0
+            FHMLList:
+                - 42.5

@@ -60,7 +60,7 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
         # max_buffer_size = min(max_buffer_size_1,max_buffer_size_2)
         return step
 
-    elif GPUBackend == 'Metal':
+    elif GPUBackend in ['Metal','MLX']:
         ''' 
         Need a way to determine max buffer size using metalcompute, default to 240000000 for now
         
@@ -152,10 +152,11 @@ def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fa
     
     # Obtain list of available devices and select one 
     SelDevice=None
-    for device in Platforms[0].get_devices():
-        print(device.name)
-        if DeviceName in device.name:
-            SelDevice=device
+    for p in Platforms:
+        for device in p.get_devices():
+            print(device.name)
+            if DeviceName in device.name:
+                SelDevice=device
     if SelDevice is None:
         raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
     else:
@@ -235,3 +236,227 @@ def InitMetal(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fal
         prgcl = ctx.kernel(complete_kernel)
 
     return prgcl, SelDevice, ctx
+
+import re
+
+
+def _find_param_block(code, start_idx):
+    """
+    Given an index positioned at the '(' that starts the parameter list,
+    return the substring of the parameters (without outer parentheses)
+    and the end index of the closing ')'.
+    """
+    depth = 0
+    i = start_idx
+    n = len(code)
+    # we expect code[i] == '('
+    while i < n:
+        c = code[i]
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+            if depth == 0:
+                # parameters are between start_idx+1 and i-1 inclusive
+                return code[start_idx+1:i], i
+        i += 1
+    return None, None  # unmatched parentheses
+
+def _split_args(argblock):
+    """
+    Split the parameter list into individual arguments, ignoring commas
+    inside [[ ... ]], < ... >, and (...) nests.
+    """
+    parts = []
+    buf = []
+    sq = 0      # [[ ]] nesting depth
+    ang = 0     # < > nesting depth
+    par = 0     # ( ) nesting depth
+    i = 0
+    n = len(argblock)
+    while i < n:
+        ch = argblock[i]
+        # handle double square brackets [[ ... ]]
+        if ch == '[' and i+1 < n and argblock[i+1] == '[':
+            sq += 1
+            buf.append(ch); buf.append(argblock[i+1])
+            i += 2
+            continue
+        if ch == ']' and i+1 < n and argblock[i+1] == ']':
+            sq = max(0, sq-1)
+            buf.append(ch); buf.append(argblock[i+1])
+            i += 2
+            continue
+        # track other brackets
+        if ch == '<' and sq == 0:
+            ang += 1
+        elif ch == '>' and sq == 0 and ang > 0:
+            ang -= 1
+        elif ch == '(' and sq == 0:
+            par += 1
+        elif ch == ')' and sq == 0 and par > 0:
+            par -= 1
+
+        if ch == ',' and sq == 0 and ang == 0 and par == 0:
+            part = ''.join(buf).strip()
+            if part:
+                parts.append(part)
+            buf = []
+        else:
+            buf.append(ch)
+        i += 1
+
+    tail = ''.join(buf).strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+def _parse_one_arg(arg):
+    """
+    Parse a single argument line (attributes may be present).
+    Returns dict with name, type, storage, const, and attributes (list of strings).
+    """
+    # Extract Metal attributes [[ ... ]]
+    attributes = re.findall(r'\[\[(.*?)\]\]', arg)
+    arg_clean = re.sub(r'\[\[.*?\]\]', '', arg).strip()
+
+    if not arg_clean:
+        return None
+
+    # Get the variable name as the trailing identifier (if any)
+    m_name = re.search(r'(\w+)\s*$', arg_clean)
+    name = m_name.group(1) if m_name else None
+    pre = arg_clean[:m_name.start()].strip() if m_name else arg_clean
+
+    # Qualifiers (order-agnostic)
+    const_flag = bool(re.search(r'\bconst\b', pre))
+    storage_match = re.search(r'\b(device|threadgroup|constant)\b', pre)
+    storage = storage_match.group(1) if storage_match else None
+
+    # Remove qualifiers to leave the type
+    typ = re.sub(r'\bconst\b', '', pre)
+    typ = re.sub(r'\b(device|threadgroup|constant)\b', '', typ)
+    # Normalize whitespace around * and inside type
+    typ = re.sub(r'\s+', ' ', typ).strip()
+
+    return {
+        "name": name,
+        "type": typ,
+        "storage": storage,
+        "const": const_flag,
+        "attributes": attributes
+    }
+
+def parse_metal_functions(code):
+    """
+    Find Metal kernel functions only (lines starting with 'kernel void ...'),
+    robust to attributes like [[buffer(0)]], and extract argument details.
+    """
+    results = []
+    # Find 'kernel void <name>(' occurrences
+    # sig = re.compile(r'kernel\s+void\s+(\w+)\s*\(')
+    sig = re.compile(r'(?<!_)kernel\s+void\s+(\w+)\s*\(')
+
+    for m in sig.finditer(code):
+        func_name = m.group(1)
+        # m.end()-1 should be the '('
+        param_str, end_idx = _find_param_block(code, m.end()-1)
+        if param_str is None:
+            continue  # skip malformed
+
+        # Split arguments safely
+        arg_parts = _split_args(param_str)
+
+        # Parse each argument
+        arg_info = []
+        for part in arg_parts:
+            parsed = _parse_one_arg(part)
+            if parsed:
+                if 'thread_position_in_grid' not in parsed['attributes'][0]:
+                    arg_info.append(parsed)
+
+        results.append({
+            "name": func_name,
+            "args": arg_info
+        })
+
+    return results
+    
+def parse_mlx_functions(filename):
+    functions = {}
+    current_id = None
+    buffer = []
+    bCollect = False
+    bCollectHeader=False
+    bufferHeader=[]
+    header=''
+
+    with open(filename, "r") as f:
+        for line in f:
+            line_stripped = line.strip()
+
+            # Check for section start
+            if line_stripped.startswith("//MLX_FUNCTION_START"):
+                bCollect = True
+                buffer = []
+                
+            # Check for section end
+            elif line_stripped == "//MLX_FUNCTION_END":
+                funccode = "".join(buffer).strip()
+                fdetails=parse_metal_functions(funccode)[0]
+                fdetails['code']=funccode
+                
+                functions[fdetails['name']] = fdetails
+                buffer = []
+                bCollect = False
+            elif line_stripped.startswith("//MLX_HEADER_START"):
+                bCollectHeader = True
+                bufferHeader = []
+            elif line_stripped == "//MLX_HEADER_END":
+                bCollectHeader = False
+                header += "".join(bufferHeader).strip()
+                bufferHeader = []
+            # If inside a section, collect content
+            elif bCollect:
+                buffer.append(line)
+            elif bCollectHeader:
+                bufferHeader.append(line)
+
+    return functions,header
+
+def InitMLX(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+    import mlx.core as mx
+
+    if preamble is None:
+        preamble = ''
+
+    if kernel_files is None:
+        kernel_files = []
+
+    # Build program from source code
+    header = preamble
+    functions = {}
+    for k_file in kernel_files:
+        subfunc,subheader = parse_mlx_functions(k_file)
+        header += '\n' + subheader
+        for k in subfunc:
+            functions[k] = subfunc[k]
+    for k in functions:
+        input_names = []
+        input_rw_status = []
+        for arg in functions[k]['args']:
+            input_names.append(arg['name'])
+            input_rw_status.append(arg['const']==False)
+        functions[k]['input_names'] = input_names
+        functions[k]['input_rw_status'] = input_rw_status
+        functions[k]['header'] = header+'\n'
+    if build_later==False:
+        for k in functions:
+            functions[k]['kernel'] = mx.fast.metal_kernel(
+                        name=k,
+                        input_names=functions[k]['input_names'],
+                        input_rw_status=functions[k]['input_rw_status'],
+                        output_names=["dummy"],
+                        source=functions[k]['code']+'\n',
+                        header=header+'\n')
+    return functions,None,mx

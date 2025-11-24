@@ -124,7 +124,7 @@ if 'Darwin' in platform.system(): #for Mac
             elif  '.txt' in l:
                 binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
     print('binaries',binaries)
-    if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
+    if 'arm64' not in platform.platform():
         hiddenimports+=['histoprint']
         libdir = compat.base_prefix + "/lib"
         mkllib = filter(lambda x : x.startswith('libmkl_'), listdir(libdir))
@@ -132,6 +132,10 @@ if 'Darwin' in platform.system(): #for Mac
             print("MKL installed as part of numpy, importing that!")
             binaries+= map(lambda l: (libdir + "/" + l, './'), mkllib)
             print(binaries)
+
+    if  'arm64' in platform.platform():
+        hiddenimports+=collect_submodules('mlx')
+
 
     block_cipher = None
 

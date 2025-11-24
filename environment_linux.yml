@@ -40,7 +40,7 @@ dependencies:
   - xz=5.2.10=h5eee18b_1
   - zlib=1.2.13=h5eee18b_0
   - pip:
-      - babelviscofdtd==1.0.10
+      - babelviscofdtd==1.1.5
       - charset-normalizer==3.1.0
       - click==8.1.3
       - contourpy==1.0.7
@@ -70,7 +70,8 @@ dependencies:
       - pillow==9.4.0
       - platformdirs==3.2.0
       - pooch==1.7.0
-      - pwlf==2.5.2
+      - pwlf==2.5.1
+      - pymupdf==1.26.5
       - pydicom==2.3.1
       - pygments==2.14.0
       - pymeshfix==0.16.2
@@ -102,4 +103,5 @@ dependencies:
       - uhi==0.3.3
       - urllib3==1.26.15
       - vtk==9.2.6
+      - xmltodict==1.0.2
 prefix: /home/acoreas/anaconda3/envs/BabelBrainLinux

@@ -67,7 +67,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>TPO Distance (mm)</string>
+    <string>Z Distance (mm)</string>
    </property>
   </widget>
   <widget class="QLabel" name="DistanceSkinLabel">
@@ -128,7 +128,7 @@ to target (mm) :</string>
     <string notr="true">color:rgb(22, 110, 255)</string>
    </property>
    <property name="text">
-    <string>Range TPO distance (mm)</string>
+    <string>Range Z distance (mm)</string>
    </property>
    <property name="indent">
     <number>0</number>

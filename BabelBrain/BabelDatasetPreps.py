@@ -124,8 +124,10 @@ def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MedianCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MedianCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MedianCOMPUTING_BACKEND='Metal'
+    else:
+        MedianCOMPUTING_BACKEND='MLX'
 
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
@@ -138,8 +140,10 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         VoxelizeCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         VoxelizeCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         VoxelizeCOMPUTING_BACKEND='Metal'
+    else:
+        VoxelizeCOMPUTING_BACKEND='MLX'
 
 MapFilter=None
 MapFilterCOMPUTING_BACKEND=''
@@ -151,8 +155,10 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MapFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MapFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MapFilterCOMPUTING_BACKEND='Metal'
+    else:
+        MapFilterCOMPUTING_BACKEND='MLX'
 
 ResampleFilter=None
 ResampleFilterCOMPUTING_BACKEND=''
@@ -164,8 +170,10 @@ def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         ResampleFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         ResampleFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         ResampleFilterCOMPUTING_BACKEND='Metal'
+    else:
+        ResampleFilterCOMPUTING_BACKEND='MLX'
 
 BinaryClosingFilter=None
 BinaryClosingFilterCOMPUTING_BACKEND=''
@@ -177,8 +185,10 @@ def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         BinaryClosingFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         BinaryClosingFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         BinaryClosingFilterCOMPUTING_BACKEND='Metal'
+    else:
+        BinaryClosingFilterCOMPUTING_BACKEND='MLX'
 
 LabelImage=None
 LabelImageCOMPUTING_BACKEND=''
@@ -190,8 +200,10 @@ def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         LabelImageCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         LabelImageCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         LabelImageCOMPUTING_BACKEND='Metal'
+    else:
+        LabelImageCOMPUTING_BACKEND='MLX'
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
@@ -362,7 +374,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 ZTESlope=-2085.0,
                                 ZTEOffset=2329.0,
                                 DensityThreshold=1200.0, #this is in case the input data is rather a density map
-                                DeviceName=''): #created reduced FOV
+                                DeviceName='',
+                                bMaximizeBoneRim=False,
+                                bSaveCTMaximized=False): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -817,6 +831,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
             else:
                 nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+
+            RatioCTVoxels=np.ceil(2.0/np.array(nCT.header.get_zooms())).astype(int) # 1 mm distance
+
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
             if CTType in [1,2,3]:
                 ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
@@ -880,6 +897,89 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         CTBone=ndataCT[nfct]
         CTBone[CTBone<TypeThresold]=TypeThresold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
+
+        if bMaximizeBoneRim:
+            with CodeTimer("Fixing partial volume artifacts edge",unit='s'):
+                interior_high_th=800.0
+                max_boost = 1000.0
+                nPixelsErode=RatioCTVoxels.copy()
+                print('nPixelsErode',nPixelsErode)
+                #we scan 1mm around the edge
+                for ntr in range(len(RatioCTVoxels)):
+                    if RatioCTVoxels[ntr]%2==0:
+                        RatioCTVoxels[ntr]+=1
+                    if RatioCTVoxels[ntr]==1:
+                        RatioCTVoxels[ntr]=3 #minimum 3 voxels
+    
+                interior_mask=nfct.copy().astype(np.uint8)
+
+                # # # Create conservative interior bone mask (higher threshold + erosion)
+                interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
+                with CodeTimer("binary erosion",unit='s'):
+                    interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
+
+
+                # # Precompute interior bone mean (global or local)
+                global_interior_mean = ndataCT[interior_mask_val].mean()
+                print("Global interior bone mean HU:", global_interior_mean)
+
+                # distance transform from interior mask: for each voxel inside coarse mask,
+                # compute distance to nearest interior voxel (in voxels)
+                # We'll compute distance only within the nfct to save time
+                # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
+                inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
+                # compute distance from every voxel to nearest interior voxel (Euclidean)
+                with CodeTimer("distance_transform_edt",unit='s'):
+                    dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
+
+                # # Identify edge voxels: in nfct but not in interior_mask
+                edge_voxels = (nfct == 1) & (interior_mask == 0)
+
+                # # For each edge voxel, compute weight based on distance (close -> high weight)
+                # # weight = exp(-dist / distance_scale)  (so dist=0 => weight=1 ; dist large => ~0)
+                distance_scale=float(RatioCTVoxels[0])/2.0
+                dist = dist_to_interior[edge_voxels]
+                weights = np.exp(-dist / distance_scale)
+
+                # # Local approach: get a local interior mean per edge voxel by sampling interior voxels
+                # # We'll compute a gaussian-blurred interior mean image for locality:
+                interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
+                # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
+                sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
+                with CodeTimer("interior_f gaussian_filter",unit='s'):
+                    blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
+                with CodeTimer("blur_mask gaussian_filter",unit='s'):
+                    blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
+                # # avoid division by zero
+                local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
+
+                # # Now get local interior mean for each edge voxel
+                local_means = local_interior_mean_img[edge_voxels]
+
+                # # Compute corrected HU: blend original toward local interior mean using weight
+                orig_vals = ndataCT[edge_voxels]
+                correct_vals = orig_vals + weights * (local_means - orig_vals)
+
+                # # Optionally clamp boost to avoid unrealistically large jumps
+                delta = correct_vals - orig_vals
+                delta_clipped = np.clip(delta, a_min=None, a_max=max_boost)  # only upper clamp
+                correct_vals = orig_vals + delta_clipped
+
+                CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
+                CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamenonfiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamenonfiltered)
+
+                # ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
+                ndataCT[edge_voxels] = correct_vals
+
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamefiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamefiltered)
+
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
         
