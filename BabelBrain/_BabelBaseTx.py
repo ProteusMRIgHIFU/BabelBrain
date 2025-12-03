@@ -313,9 +313,26 @@ class BabelBaseTx(QWidget):
         pass #to be defined by those Tx capable of multi-point
     
     def CalculateDistancesTarget(self):
+        # Get voxel size
         dx=  np.mean(np.diff(self._Skull['x_vec']))
         voxelsize=np.array([dx,dx,dx])
-        stats=CalcVolumetricMetrics(self._ISkull,voxelsize)
+        
+        # Determine plot to use for calculating distances
+        if hasattr(self.Widget,'SelCombinationDropDown'):
+            # For phased arrays
+            if self.Widget.SelCombinationDropDown.isVisible():
+                # For multifocal sims, use the central focal spot to find mechanical adjustments
+                central_plot_index = self.Widget.SelCombinationDropDown.findText('X:0.0 Y:0.0 Z:0.0')
+            else:
+                # For single focus sims
+                central_plot_index = 0
+                
+            central_focal_spot_plot = self._ISkullCol[central_plot_index]
+        else:
+            # For single focus txs
+            central_focal_spot_plot = self._ISkull
+            
+        stats=CalcVolumetricMetrics(central_focal_spot_plot,voxelsize)
         x_o=np.unique(self._XX)
         y_o=np.unique(self._YY)
         z_o=np.unique(self._ZZX)
