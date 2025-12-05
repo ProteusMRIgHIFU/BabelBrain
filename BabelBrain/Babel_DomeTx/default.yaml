@@ -11,7 +11,7 @@ MaximalYSteering:       20.0e-3  # in m
 
 USFrequencies:
     - 220000.0
-    - 650000.0
+    - 670000.0
 
 
 PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
@@ -50,7 +50,7 @@ PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
             - 68.4
             - 75.0
             - 81.6
-    650000.0:
+    670000.0:
         FocalDistanceList:
             - 90.9
             - 95.2
