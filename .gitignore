@@ -137,8 +137,7 @@ BabelBrain/final
 .vscode/launch.json
 .vscode/settings.json
 report.html
-Tests/
+Tests/config.ini
 assets/style.css
 PyTest_Reports
 runPytestWin.bat
-
