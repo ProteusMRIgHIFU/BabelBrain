@@ -97,6 +97,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['PetraNPeaks']=2
         self._DefaultAdvanced['PetraMRIPeakDistance']=50
         self._DefaultAdvanced['bInvertZTE']=False
+        self._DefaultAdvanced['bExtractAirRegions']=True
         self._DefaultAdvanced['bDisableCTMedianFilter']=False
         self._DefaultAdvanced['bGeneratePETRAHistogram']=False
         self._DefaultAdvanced['BaselineTemperature']=37.0
@@ -361,6 +362,7 @@ class AdvancedOptions(QDialog):
         self.ui.PetraNPeaksSpinBox.setValue(values.PetraNPeaks)
         self.ui.PetraMRIPeakDistancespinBox.setValue(values.PetraMRIPeakDistance)
         self.ui.InvertZTEcheckBox.setChecked(values.bInvertZTE)
+        seil.ui.ExtractAirRegionscheckBox.setChecked(values.bExtractAirRegions)
         self.ui.DisableCTMedianFiltercheckBox.setChecked(values.bDisableCTMedianFilter)
         self.ui.GeneratePETRAHistogramcheckBox.setChecked(values.bGeneratePETRAHistogram)
         self.ui.BaselineTemperatureSpinBox.setValue(values.BaselineTemperature)
@@ -424,6 +426,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.PetraNPeaks=self.ui.PetraNPeaksSpinBox.value()
         self.NewValues.PetraMRIPeakDistance=self.ui.PetraMRIPeakDistancespinBox.value()
         self.NewValues.bInvertZTE=self.ui.InvertZTEcheckBox.isChecked()
+        self.NewValues.bExtractAirRegions=self.ui.ExtractAirRegionscheckBox.isChecked()
         self.NewValues.bDisableCTMedianFilter=self.ui.DisableCTMedianFiltercheckBox.isChecked()
         self.NewValues.bGeneratePETRAHistogram=self.ui.GeneratePETRAHistogramcheckBox.isChecked()
         self.NewValues.BaselineTemperature=self.ui.BaselineTemperatureSpinBox.value()

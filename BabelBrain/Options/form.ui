@@ -62,7 +62,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>3</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -921,6 +921,22 @@ to skin (mm)</string>
       </property>
      </widget>
     </widget>
+    <widget class="QCheckBox" name="ExtractAirRegionscheckBox">
+     <property name="geometry">
+      <rect>
+       <x>202</x>
+       <y>349</y>
+       <width>150</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
+     </property>
+     <property name="text">
+      <string>Generate air regions</string>
+     </property>
+    </widget>
     <zorder>frame_3</zorder>
     <zorder>label_5</zorder>
     <zorder>ElastixOptimizercomboBox</zorder>
@@ -947,6 +963,7 @@ to skin (mm)</string>
     <zorder>FocalLengthLabel_10</zorder>
     <zorder>FocalLengthLabel_11</zorder>
     <zorder>SegmentBrainTissuecheckBox</zorder>
+    <zorder>ExtractAirRegionscheckBox</zorder>
    </widget>
    <widget class="QWidget" name="tab_2">
     <attribute name="title">
@@ -1636,8 +1653,12 @@ for large thermal simulation</string>
   </widget>
  </widget>
  <tabstops>
-  <tabstop>TrabecularProportionSpinBox</tabstop>
   <tabstop>ElastixOptimizercomboBox</tabstop>
+  <tabstop>TrabecularProportionSpinBox</tabstop>
+  <tabstop>SegmentBrainTissuecheckBox</tabstop>
+  <tabstop>FocalLengthSpinBox</tabstop>
+  <tabstop>SkinDistanceSpinBox</tabstop>
+  <tabstop>DiameterSpinBox</tabstop>
   <tabstop>SimNIBSRootpushButton</tabstop>
   <tabstop>SimbNINBSRootlineEdit</tabstop>
   <tabstop>PlanTUSRootpushButton</tabstop>
@@ -1650,11 +1671,12 @@ for large thermal simulation</string>
   <tabstop>FreeSurferRootlineEdit</tabstop>
   <tabstop>RUNPlanTUSpushButton</tabstop>
   <tabstop>ForceBlendercheckBox</tabstop>
-  <tabstop>FOVDiameterSpinBox</tabstop>
   <tabstop>ManualFOVcheckBox</tabstop>
+  <tabstop>InvertZTEcheckBox</tabstop>
+  <tabstop>ExtractAirRegionscheckBox</tabstop>
+  <tabstop>FOVDiameterSpinBox</tabstop>
   <tabstop>FOVLengthSpinBox</tabstop>
   <tabstop>DisableCTMedianFiltercheckBox</tabstop>
-  <tabstop>InvertZTEcheckBox</tabstop>
   <tabstop>PetraNPeaksSpinBox</tabstop>
   <tabstop>PetraMRIPeakDistancespinBox</tabstop>
   <tabstop>GeneratePETRAHistogramcheckBox</tabstop>
@@ -1662,16 +1684,16 @@ for large thermal simulation</string>
   <tabstop>ZTEOffsetSpinBox</tabstop>
   <tabstop>PETRASlopeSpinBox</tabstop>
   <tabstop>PETRAOffsetSpinBox</tabstop>
-  <tabstop>ResetpushButton</tabstop>
+  <tabstop>tabWidget</tabstop>
   <tabstop>ContinuepushButton</tabstop>
   <tabstop>CancelpushButton</tabstop>
   <tabstop>SaveStresscheckBox</tabstop>
   <tabstop>SaveDisplacementcheckBox</tabstop>
-  <tabstop>TxOptimizedWeightspushButton</tabstop>
-  <tabstop>TxOptimizedWeightsLineEdit</tabstop>
   <tabstop>YAMLCalibrationpushButton</tabstop>
   <tabstop>YAMLCalibrationLineEdit</tabstop>
   <tabstop>ExecuteCalibrationButton</tabstop>
+  <tabstop>TxOptimizedWeightspushButton</tabstop>
+  <tabstop>TxOptimizedWeightsLineEdit</tabstop>
   <tabstop>BaselineTemperatureSpinBox</tabstop>
   <tabstop>LimitBHTEIterationsPerProcessSpinBox</tabstop>
   <tabstop>bForceHomogenousMediumcheckBox</tabstop>
@@ -1686,8 +1708,7 @@ for large thermal simulation</string>
   <tabstop>HomogenousAbsorptionSpinBox</tabstop>
   <tabstop>HomogenousInitTempSpinBox</tabstop>
   <tabstop>bForceNoAbsorptionSkullScalpcheckBox</tabstop>
-  <tabstop>tabWidget</tabstop>
-  <tabstop>SegmentBrainTissuecheckBox</tabstop>
+  <tabstop>ResetpushButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>
