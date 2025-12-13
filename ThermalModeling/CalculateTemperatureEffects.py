@@ -292,7 +292,7 @@ def CalculateTemperatureEffects(InputPData,
                                                         (Input['x_vec'][1]-Input['x_vec'][0]),
                                                         TotalDurationSteps,
                                                         nStepsOn,
-                                                        cy,
+                                                        -1, #disabling slice monitor for memory saving
                                                         nFactorMonitoring=nFactorMonitoring,
                                                         dt=dt,
                                                         DutyCycle=DutyCycle,
@@ -308,7 +308,7 @@ def CalculateTemperatureEffects(InputPData,
                                                       (Input['x_vec'][1]-Input['x_vec'][0]),
                                                       TotalDurationSteps,
                                                       nStepsOnOffList,
-                                                      cy,
+                                                      -1, #disabling slice monitor for memory saving
                                                       nFactorMonitoring=nFactorMonitoring,
                                                       dt=dt,
                                                       Backend=Backend,
@@ -343,7 +343,7 @@ def CalculateTemperatureEffects(InputPData,
                                                             (Input['x_vec'][1]-Input['x_vec'][0]),
                                                             TotalDurationSteps,
                                                             nStepsOn,
-                                                            cy,
+                                                            -1, #disabling slice monitor for memory saving
                                                             nFactorMonitoring=nFactorMonitoring,
                                                             dt=dt,
                                                             DutyCycle=DutyCycle,
@@ -359,7 +359,7 @@ def CalculateTemperatureEffects(InputPData,
                                                             (Input['x_vec'][1]-Input['x_vec'][0]),
                                                             TotalDurationSteps,
                                                             nStepsOnOffList,
-                                                            cy,
+                                                            -1, #disabling slice monitor for memory saving
                                                             nFactorMonitoring=nFactorMonitoring,
                                                             dt=dt,
                                                             Backend=Backend,
@@ -376,7 +376,7 @@ def CalculateTemperatureEffects(InputPData,
                                                         (Input['x_vec'][1]-Input['x_vec'][0]),
                                                         TotalDurationStepsOff,
                                                         0,
-                                                        cy,
+                                                        -1, #disabling slice monitor for memory saving,
                                                         nFactorMonitoring=nFactorMonitoring,
                                                         dt=dt,
                                                         DutyCycle=DutyCycle,
@@ -392,7 +392,6 @@ def CalculateTemperatureEffects(InputPData,
         else:
             TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
 
-    SaveDict['MonitorSlice']=MonitorSlice[:,:,int(nStepsOn/nFactorMonitoring)-1]
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
     SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
     SaveDict['mSkull']=np.array([mxSkull,mySkull,mzSkull]).astype(int)
