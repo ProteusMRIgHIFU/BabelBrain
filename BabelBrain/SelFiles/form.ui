@@ -558,6 +558,11 @@ Density?</string>
     </item>
     <item>
      <property name="text">
+      <string>H301</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
       <string>DomeTx</string>
      </property>
     </item>
