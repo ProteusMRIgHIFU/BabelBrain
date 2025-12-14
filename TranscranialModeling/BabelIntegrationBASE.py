@@ -503,6 +503,7 @@ class RUN_SIM_BASE(object):
                 bForceHomogenousMedium=False,
                 BenchmarkTestFile='',
                 OptimizedWeightsFile='',
+                bExtractAirRegions=True,
                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
                                     'LongSoS':1500.0, #m/s
                                     'LongAtt':5.0,
@@ -540,7 +541,11 @@ class RUN_SIM_BASE(object):
                     print (MASKFNAME)
                     if bUseCT:
                         CTFNAME=prefix+target+fstr+ppws+ 'CT.nii.gz'
-                        AIRMASK=prefix+target+fstr+ppws+ 'AirRegions.nii.gz'
+                        if bExtractAirRegions:
+                            AIRMASK=prefix+target+fstr+ppws+ 'AirRegions.nii.gz'
+                            print('Using air mask regions',AIRMASK)
+                        else:
+                            AIRMASK=None
                     else:
                         CTFNAME=None
                         AIRMASK=None
@@ -768,7 +773,8 @@ class BabelFTD_Simulations_BASE(object):
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
-            AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
+            if self._AIRMASK:
+                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
@@ -1646,14 +1652,15 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
-                SubAirRegions=np.zeros_like(self._MaterialMap)
-                SubAirRegions[self._XLOffset:-self._XROffset,
-                              self._YLOffset:-self._YROffset,
-                              self._ZLOffset:-self._ZROffset]=\
-                                self._AirRegions[self._XShrink_L:upperXR,
-                                                                         self._YShrink_L:upperYR,
-                                                                         self._ZShrink_L:upperZR]
-                self._SubAirRegions=SubAirRegions
+                if self._AirRegions is not None:
+                    SubAirRegions=np.zeros_like(self._MaterialMap)
+                    SubAirRegions[self._XLOffset:-self._XROffset,
+                                self._YLOffset:-self._YROffset,
+                                self._ZLOffset:-self._ZROffset]=\
+                                    self._AirRegions[self._XShrink_L:upperXR,
+                                                                            self._YShrink_L:upperYR,
+                                                                            self._ZShrink_L:upperZR]
+                    self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
                 assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
 

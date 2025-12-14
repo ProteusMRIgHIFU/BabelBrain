@@ -362,7 +362,7 @@ class AdvancedOptions(QDialog):
         self.ui.PetraNPeaksSpinBox.setValue(values.PetraNPeaks)
         self.ui.PetraMRIPeakDistancespinBox.setValue(values.PetraMRIPeakDistance)
         self.ui.InvertZTEcheckBox.setChecked(values.bInvertZTE)
-        seil.ui.ExtractAirRegionscheckBox.setChecked(values.bExtractAirRegions)
+        self.ui.ExtractAirRegionscheckBox.setChecked(values.bExtractAirRegions)
         self.ui.DisableCTMedianFiltercheckBox.setChecked(values.bDisableCTMedianFilter)
         self.ui.GeneratePETRAHistogramcheckBox.setChecked(values.bGeneratePETRAHistogram)
         self.ui.BaselineTemperatureSpinBox.setValue(values.BaselineTemperature)

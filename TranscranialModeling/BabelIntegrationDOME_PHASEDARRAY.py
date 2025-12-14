@@ -303,7 +303,8 @@ class SimulationConditions(SimulationConditionsBASE):
 
         AmplitudeCal=1.0
         if 'Amplitude1W' in self._Tx:
-            AmplitudeCal=self._Tx['Amplitude1W']['Visco'][self._Frequency][self._basePPW]
+            print(self._Tx['Amplitude1W']['Visco'])
+            AmplitudeCal=self._Tx['Amplitude1W']['Visco'][int(self._Frequency)][self._basePPW]
             print('Using amplitude for 1W',AmplitudeCal)
 
         for n in range(self._TxHighRes['NumberElems']):

@@ -99,8 +99,8 @@ def GenerateDomeTxTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
                                              9:73646.11,
                                             10:74868.305,
                                             11:85314.6,
-                                            12:86398.17}},
-                            'Visco':{670000:{6:129235.35,
+                                            12:86398.17},
+                                     670000:{6:129235.35,
                                              7:133529.17}}}
 
     return TxDomeTx

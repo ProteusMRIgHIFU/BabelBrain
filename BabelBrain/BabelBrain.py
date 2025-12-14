@@ -937,7 +937,7 @@ class BabelBrain(QWidget):
             self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
             AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
             CTData=AllBoneHU[np.flip(self._CTnib.get_fdata(),axis=2).astype(int)]
-            if os.path.exists(self._prefix_path+'AirRegions.nii.gz'):
+            if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path+'AirRegions.nii.gz'):
                 AirMask=nibabel.load(self._prefix_path+'AirRegions.nii.gz').get_fdata().astype(np.uint8)
                 AirMask=np.flip(AirMask,axis=2)
         
@@ -1154,6 +1154,7 @@ class BabelBrain(QWidget):
         kargs['bSaveDisplacement']=self.Config['bSaveDisplacement']
         kargs['bForceHomogenousMedium']=self.Config['bForceHomogenousMedium']
         kargs['HomogenousMediumValues']=self.Config['HomogenousMediumValues']
+        kargs['bExtractAirRegions']=self.Config['bExtractAirRegions']   
         kargs['bPETRA'] = False
         if kargs['bUseCT']:
             if self.Config['CTType']==3:
