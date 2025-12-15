@@ -61,10 +61,12 @@ DbToNeper=1/(20*np.log10(np.exp(1)))
 _MapPichardo = ReadFromH5py(os.path.join(resource_path(), 'MapPichardo.h5'))
 if scipy.__version__>"1.14.0":
     interp2d=interpolate.RectBivariateSpline
+    _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'],kx=1,ky=1)
+    _PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'],kx=1,ky=1)
 else:
     interp2d=interpolate.interp2d
-_PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
-_PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
+    _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
+    _PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
 def FitSpeedCorticalShear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
