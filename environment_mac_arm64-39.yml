@@ -37,7 +37,7 @@ dependencies:
       - appdirs==1.4.4
       - async-timeout==4.0.2
       - attrs==22.1.0
-      - babelviscofdtd==1.1.5
+      - babelviscofdtd==1.2.0
       - certifi==2022.9.24
       - charset-normalizer==2.1.1
       - chart-studio==1.1.0
@@ -72,7 +72,7 @@ dependencies:
       - matplotlib==3.6.2
       - md4mathjax==0.1.3
       - mergedeep==1.3.4
-      - metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@75a6adb378a8155c9b6765df8626256f42216224
+      - metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@d1111d15818e0d35281265f82b3e5d8ea2a5f96c
       - mkdocs==1.4.2
       - mkdocs-bibtex==2.8.10
       - mkdocs-gitbook==0.0.1

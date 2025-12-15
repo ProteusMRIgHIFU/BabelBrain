@@ -1,0 +1,103 @@
+TxFoc:                    150.0e-3 #Tx focal length
+TxDiam:                   300.0e-3 # Tx aperture diameter
+
+MinimalZSteering:      -50.0e-3  # in m
+MaximalZSteering:       50.0e-3  # in m
+MinimalXSteering:      -20.0e-3  # in m
+MaximalXSteering:       20.0e-3  # in m
+MinimalYSteering:      -20.0e-3  # in m
+MaximalYSteering:       20.0e-3  # in m
+
+
+USFrequencies:
+    - 220000.0
+    - 670000.0
+
+
+PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
+    220000.0:
+        FocalDistanceList:
+            - 51.5
+            - 63.5
+            - 75.5
+            - 87.5
+            - 99.5
+            - 111.5
+            - 123.5
+            - 135.5
+            - 147.5
+            - 159.5
+            - 171.5
+            - 183.5
+            - 195.5
+            - 207.5
+            - 219.5
+            - 231.5
+        FHMLList:
+            - 10.2
+            - 12.0
+            - 14.4
+            - 16.8
+            - 20.4
+            - 24.0
+            - 28.2
+            - 33.0
+            - 38.4
+            - 43.2
+            - 49.2
+            - 55.2
+            - 61.2
+            - 68.4
+            - 75.0
+            - 81.6
+    670000.0:
+        FocalDistanceList:
+            - 90.9
+            - 95.2
+            - 99.5
+            - 103.8
+            - 108.1
+            - 112.4
+            - 116.6
+            - 120.9
+            - 125.2
+            - 129.5
+            - 133.8
+            - 138.1
+            - 142.4
+            - 146.6
+            - 150.9
+            - 155.2
+            - 159.5
+            - 163.8
+            - 168.1
+            - 172.4
+            - 176.6
+            - 180.9
+            - 185.2
+            - 189.5
+        FHMLList:
+            - 6.9
+            - 7.1
+            - 7.3
+            - 7.9
+            - 8.4
+            - 9.0
+            - 9.4
+            - 10.1
+            - 10.7
+            - 11.1
+            - 11.8
+            - 12.4
+            - 13.3
+            - 13.9
+            - 14.8
+            - 15.4
+            - 16.3
+            - 16.9
+            - 17.8
+            - 18.4
+            - 19.3
+            - 20.1
+            - 21.2
+            - 22.3

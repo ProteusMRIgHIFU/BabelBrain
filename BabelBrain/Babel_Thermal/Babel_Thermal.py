@@ -487,7 +487,10 @@ class Babel_Thermal(QWidget):
                     self._ThermalIm.set(clim=[BaselineTemperature,Tmap.max()])
                     if not self._MainApp.Config['bForceHomogenousMedium']:
                         if hasattr(self,'_contour1'):
-                            for c in [self._contour1,self._contour2]:
+                            ListObjects=[self._contour1,self._contour2]
+                            if 'AirMask' in DataThermal:
+                                ListObjects+=[self._airmask1,self._airmask2]
+                            for c in ListObjects:
                                 try: #this is for old Matplotlib
                                     for coll in c.collections:
                                         coll.remove()
@@ -495,8 +498,18 @@ class Babel_Thermal(QWidget):
                                     c.remove()
                             del self._contour1
                             del self._contour2
+                            if 'AirMask' in DataThermal:
+                                del self._airmask1
+                                del self._airmask2
+                            
                             self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
                             self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+
+                            if 'AirMask' in DataThermal:
+                                AirMap=DataThermal['AirMask'][:,SelY,:].T
+                                AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                                self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                                self._airmask2 = self._static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
 
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
@@ -549,6 +562,12 @@ class Babel_Thermal(QWidget):
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
                         self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+
+                    if 'AirMask' in DataThermal:
+                        AirMap=DataThermal['AirMask'][:,SelY,:].T
+                        AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                        self._airmask1 = static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                        self._airmask2 = static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
 
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:

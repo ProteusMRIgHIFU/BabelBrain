@@ -418,6 +418,8 @@ class SimulationConditions(SimulationConditionsBASE):
         ## Now we create the sources for back propagation
         
         self._PunctualSource=np.sin(2*np.pi*self._Frequency*TimeVectorSource).reshape(1,len(TimeVectorSource))
+        self._PunctualSource[0,:int(ramp_length_points)]*=ramp
+        self._PunctualSource[0,-int(ramp_length_points):]*=np.flip(ramp)
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocForRefocusing=self._FocalSpotLocation.copy()
         LocForRefocusing[2]=0.0

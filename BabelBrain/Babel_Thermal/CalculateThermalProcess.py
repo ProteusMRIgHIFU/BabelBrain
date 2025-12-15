@@ -58,7 +58,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
         deviceName=kargs['deviceName']
         AllCases=[]
         #These fields will preseved individually per sonication regime
-        lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','MonitorSlice','TI','TIC','TIS','TempProfileTarget',\
+        lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','TI','TIC','TIS','TempProfileTarget',\
             'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff','DutyCycle','PRF','BaselineTemperature']
         Index=[]
         for combination in AllDC_PRF_Duration:
@@ -77,6 +77,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['Frequency']=kargs['Frequency']
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
+            kargsSub['TxSystem']=kargs['TxSystem']
             #we check now if some development parameters are being passed
             for k in ['bForceNoAbsorptionSkullScalp','bForceHomogenousMedium','HomogenousMediumValues','BenchmarkTestFile']:
                 if k in kargs:

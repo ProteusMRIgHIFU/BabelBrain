@@ -503,6 +503,7 @@ class RUN_SIM_BASE(object):
                 bForceHomogenousMedium=False,
                 BenchmarkTestFile='',
                 OptimizedWeightsFile='',
+                bExtractAirRegions=True,
                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
                                     'LongSoS':1500.0, #m/s
                                     'LongAtt':5.0,
@@ -540,8 +541,14 @@ class RUN_SIM_BASE(object):
                     print (MASKFNAME)
                     if bUseCT:
                         CTFNAME=prefix+target+fstr+ppws+ 'CT.nii.gz'
+                        if bExtractAirRegions:
+                            AIRMASK=prefix+target+fstr+ppws+ 'AirRegions.nii.gz'
+                            print('Using air mask regions',AIRMASK)
+                        else:
+                            AIRMASK=None
                     else:
                         CTFNAME=None
+                        AIRMASK=None
 
                     FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
                     FILENAMESWater=None
@@ -581,6 +588,7 @@ class RUN_SIM_BASE(object):
                                                     BenchmarkTestFile=BenchmarkTestFile,
                                                     InputFocusStart=InputFocusStart,
                                                     OptimizedWeightsFile=OptimizedWeightsFile,
+                                                    AIRMASK=AIRMASK,
                                                     **kargs)
                     print('  Step 1')
 
@@ -693,7 +701,8 @@ class BabelFTD_Simulations_BASE(object):
                                     'ShearAtt':5.0}, #Np/m
                  BenchmarkTestFile='',
                  InputFocusStart='',
-                 OptimizedWeightsFile=''):
+                 OptimizedWeightsFile='',
+                 AIRMASK=None):
         self._MASKFNAME=MASKFNAME
 
         if 'BABEL_PYTEST_QFACTOR' in os.environ:
@@ -737,6 +746,7 @@ class BabelFTD_Simulations_BASE(object):
         self._BenchmarkTestFile=BenchmarkTestFile
         self._InputFocusStart=InputFocusStart
         self._OptimizedWeightsFile=OptimizedWeightsFile
+        self._AIRMASK=AIRMASK
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -758,10 +768,13 @@ class BabelFTD_Simulations_BASE(object):
         self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
+        AirRegions=None
         if self._CTFNAME is not None and not self._bWaterOnly\
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            if self._AIRMASK:
+                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
@@ -876,7 +889,8 @@ class BabelFTD_Simulations_BASE(object):
                                 bSaveDisplacement=self._bSaveDisplacement,
                                 BenchmarkTestFile=self._BenchmarkTestFile,
                                 InputFocusStart=self._InputFocusStart,
-                                OptimizedWeightsFile=self._OptimizedWeightsFile)
+                                OptimizedWeightsFile=self._OptimizedWeightsFile,
+                                AirRegions=AirRegions)
         
         #####
         ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
@@ -1092,6 +1106,8 @@ class BabelFTD_Simulations_BASE(object):
             kt = ['p_amp','p_complex','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
                 kt.append('MaterialMapCT')
+            if 'AirMask' in DataForSim:
+                kt.append('AirMask')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
                 kt.append('p_complex_refocus')
@@ -1221,7 +1237,8 @@ class SimulationConditionsBASE(object):
                       DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],#coefficients to correct for values lower of CFL =1.0 in water conditions.
                       BenchmarkTestFile='',
                       InputFocusStart='',
-                      OptimizedWeightsFile=''): #file with optimized weights for the Tx  
+                      OptimizedWeightsFile='',
+                      AirRegions=None): #file with optimized weights for the Tx  
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1265,6 +1282,7 @@ class SimulationConditionsBASE(object):
         self._InputFocusStart=InputFocusStart
         self._OptimizedWeightsFile=''
         self._OptimizedWeights=None
+        self._AirRegions=AirRegions
         if len(OptimizedWeightsFile)>0 :
             print('Simulation Using OptimizedWeightsFile',OptimizedWeightsFile)
             if not os.path.isfile(OptimizedWeightsFile):
@@ -1316,7 +1334,8 @@ class SimulationConditionsBASE(object):
         
     def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
                          bForceHomogenousMedium=False,
-                         BenchmarkTestFile=''):
+                         BenchmarkTestFile='',
+                         DomeType=False):
         '''
         Update simulation conditions, including calculation of spatial/temporal steps,
         domain size, and material maps.
@@ -1333,6 +1352,8 @@ class SimulationConditionsBASE(object):
             If True, force a homogenous medium (default is False).
         BenchmarkTestFile : str, optional
             Path to a benchmark test file (default is '').
+        DomeType: bool, optional
+            If True, the whole transducer should fit inside the simulation domain (default is False).
         '''
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
@@ -1439,6 +1460,7 @@ class SimulationConditionsBASE(object):
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
             self._N2=self._SkullMaskDataOrig.shape[1]+self._YLOffset+self._YROffset -self._YShrink_L-self._YShrink_R
             self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R 
+            print('self._N3',self._N3,self._ZLOffset,self._ZROffset,self._ZShrink_L,self._ZShrink_R)
 
 
             self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
@@ -1456,15 +1478,21 @@ class SimulationConditionsBASE(object):
             yfield-=yfield[self._FocalSpotLocation[1]]
             zfield-=zfield[self._FocalSpotLocation[2]]
             
-            zfield+=self._FocalLength
+            if DomeType==False:
+                zfield+=self._FocalLength
+            else:
+                print('Dome operation, range Z', zfield[self._PMLThickness],zfield[-self._PMLThickness])
             TopZ=zfield[self._PMLThickness]
             
-            if self._FocalLength!=0:
-                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
-                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
-                RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
+            if DomeType==False:
+                if self._FocalLength!=0:
+                    DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
+                    Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
+                    RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
+                else:
+                    RadiusFace=self._Aperture/2*1.10
             else:
-                RadiusFace=self._Aperture/2*1.10
+                RadiusFace=self._Aperture/2*1.02
 
             if len(BenchmarkTestFile)>0:
             #we adjust dimensions to benchmark 1
@@ -1475,15 +1503,23 @@ class SimulationConditionsBASE(object):
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
-            
-            ypp,xpp=np.meshgrid(yfield,xfield)
-            
-            RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
-            for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
+
+            if DomeType==False:
+                ypp,xpp=np.meshgrid(yfield,xfield)        
+                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
                 IndXMap,IndYMap=np.nonzero(RegionMap)
+            else:
+                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield,indexing='ij')
+                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2+(zpp-self._TxMechanicalAdjustmentZ)**2)<=RadiusFace**2 #we select the circle on the incident field
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|\
+                        ((((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
+                        (zpp==TopZ))
+                RegionMap[zpp>0]=False #only the negative part
+                IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
-            
             def fgen(var):
                 sn={'X':'1','Y':'2','Z':'3'}
                 pcode=\
@@ -1504,7 +1540,7 @@ if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness):
     self._{0}ROffset+=Ind{0}Map.max()-(self._N{1}-self._PMLThickness)+1
     print('{0}Offset',self._{0}ROffset)
     self.bMapFit=False
-elif self._bTightNarrowBeamDomain:
+elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
     if self._{0}ROffset==self._PMLThickness:
         self._{0}Shrink_R+=self._N{1}-self._{0}ROffset-Ind{0}Map.max()-1
         print('{0}Shrink_R',self._{0}Shrink_R)
@@ -1515,6 +1551,8 @@ elif self._bTightNarrowBeamDomain:
             
             exec(fgen('X'))
             exec(fgen('Y'))
+            if DomeType:
+                exec(fgen('Z'))
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
@@ -1572,6 +1610,7 @@ elif self._bTightNarrowBeamDomain:
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
         self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
+        self._SubAirRegions=None
         if bWaterOnly==False and bForceHomogenousMedium == False and len(BenchmarkTestFile)==0:
             #we add the material map
             if self._XShrink_R==0:
@@ -1613,6 +1652,15 @@ elif self._bTightNarrowBeamDomain:
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
+                if self._AirRegions is not None:
+                    SubAirRegions=np.zeros_like(self._MaterialMap)
+                    SubAirRegions[self._XLOffset:-self._XROffset,
+                                self._YLOffset:-self._YROffset,
+                                self._ZLOffset:-self._ZROffset]=\
+                                    self._AirRegions[self._XShrink_L:upperXR,
+                                                                            self._YShrink_L:upperYR,
+                                                                            self._ZShrink_L:upperZR]
+                    self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
                 assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
 
@@ -1718,7 +1766,7 @@ elif self._bTightNarrowBeamDomain:
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True):
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False,SelRMSorPeak=1):
         '''
         Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
 
@@ -1739,12 +1787,21 @@ elif self._bTightNarrowBeamDomain:
         '''
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=0 #particle source
-        Ox=np.zeros(self._MaterialMap.shape) 
-        Oy=np.zeros(self._MaterialMap.shape) 
-        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+        print('Using SelRMSorPeak',SelRMSorPeak)
 
-        if bRefocused==False:
+        if bDoStressSource:
+            print('RUN_SIMULATION with Stress Sources')
+            TypeSource=2
+            Ox=np.array([1])
+            Oy=np.array([1])
+            Oz=np.array([1])
+        else:
+            TypeSource=0 #particle source
+            Ox=np.zeros(self._MaterialMap.shape) 
+            Oy=np.zeros(self._MaterialMap.shape) 
+            Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+
+        if bRefocused==False:      
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
                                                              self._MaterialMap,
                                                              MaterialList,
@@ -1764,14 +1821,17 @@ elif self._bTightNarrowBeamDomain:
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
+            
+            print('self._DictPeakValue',self._DictPeakValue['Pressure'].max())
             
             self._InputParam=InputParam['IndexSensorMap']
             gc.collect()
@@ -1787,9 +1847,6 @@ elif self._bTightNarrowBeamDomain:
                                                                  self._SpatialStep,
                                                                  self._TimeSimulation,
                                                                  self._SensorMapBackPropagation,
-                                                                 Ox=Ox,
-                                                                 Oy=Oy,
-                                                                 Oz=Oz,
                                                                  NDelta=self._PMLThickness,
                                                                  DT=self._TemporalStep,
                                                                  ReflectionLimit=self._ReflectionLimit,
@@ -1800,11 +1857,12 @@ elif self._bTightNarrowBeamDomain:
                                                                  SelRMSorPeak=1,
                                                                  DefaultGPUDeviceName=GPUName,
                                                                  AlphaCFL=1.0,
-                                                                 TypeSource=TypeSource,
+                                                                 TypeSource=2,
                                                                  QfactorCorrection=self._QfactorCorrection,
                                                                  QCorrection=self._QCorrection,
                                                                  SensorSubSampling=self._SensorSubSampling,
-                                                                 SensorStart=self._SensorStart)
+                                                                 SensorStart=self._SensorStart,
+                                                                 ReflectorMask=self._SubAirRegions)
                 self._InputParamBack=InputParam['IndexSensorMap']
         else:
             self._SensorRefocus,_,self._DictPeakValueRefocus,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
@@ -1826,14 +1884,15 @@ elif self._bTightNarrowBeamDomain:
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
             self._InputParamRefocus=InputParam['IndexSensorMap']
 
         print('self._DictPeakValue keys',self._DictPeakValue.keys())
@@ -1865,7 +1924,7 @@ elif self._bTightNarrowBeamDomain:
                     
         gc.collect()
     
-    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True):
+    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True,bDoRefocusingVolume=False):
         '''
         Calculate phase and amplitude maps from the simulated sensor data.
 
@@ -1883,7 +1942,10 @@ elif self._bTightNarrowBeamDomain:
             self._PressMapFourier=np.zeros((self._N1,self._N2,self._N3),np.complex64)
             self._PressMapPeak=np.zeros((self._N1,self._N2,self._N3),np.float32)
             if bDoRefocusing:
-                self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
+                if bDoRefocusingVolume:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2,self._N3),np.complex64)
+                else:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
         else:
             self._PhaseMapRefocus=np.zeros((self._N1,self._N2,self._N3),np.float32)
             self._PressMapFourierRefocus=np.zeros((self._N1,self._N2,self._N3),np.complex64)
@@ -1927,7 +1989,7 @@ elif self._bTightNarrowBeamDomain:
             
             if bDoRefocusing:
                 self._SensorBack['Pressure']=np.ascontiguousarray(self._SensorBack['Pressure'])
-                index=self._InputParamBack-1
+                index=self._InputParamBack-1 
                 for n in range(0,self._SensorBack['Pressure'].shape[0],nStep):
                     top=np.min([n+nStep,self._SensorBack['Pressure'].shape[0]])
                     FSignal=fft.fft(self._SensorBack['Pressure'][n:top,:],axis=1)
@@ -1936,8 +1998,11 @@ elif self._bTightNarrowBeamDomain:
                     i=j%self._N1
                     j=j//self._N1
                     FSignal=FSignal[:,IndSpectrum]
-                    assert(np.all(k==self._PMLThickness))
-                    self._PressMapFourierBack[i,j]=FSignal
+                    if bDoRefocusingVolume:
+                        self._PressMapFourierBack[i,j,k]=FSignal
+                    else:
+                        assert(np.all(k==self._PMLThickness))
+                        self._PressMapFourierBack[i,j]=FSignal
                     
         else:
             self._SensorRefocus['Pressure']=np.ascontiguousarray(self._SensorRefocus['Pressure'])
@@ -2220,6 +2285,9 @@ elif self._bTightNarrowBeamDomain:
             DataForSim['p_complex_refocus']=self._PressMapFourierRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
+            DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
+                                       self._YLOffset:-self._YROffset,
+                                       self._ZLOffset:-self._ZROffset].copy()
         if self._DensityCTMap is not None:
             MaterialMap=self._MaterialMapNoCT.copy()
             DataForSim['MaterialMapCT']=self._MaterialMap[self._XLOffset:-self._XROffset,
@@ -2234,6 +2302,11 @@ elif self._bTightNarrowBeamDomain:
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
         
+        if self._SubAirRegions is not None:
+            DataForSim['AirMask']=self._SubAirRegions[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset].astype(np.uint8)
+        
         TargetLocation=np.array(np.where(DataForSim['MaterialMap']==500.0)).flatten()
         DataForSim['MaterialMap'][DataForSim['MaterialMap']==500.0]=OrigMaterialFocalSpot #we switch it back to soft tissue
         
@@ -2242,6 +2315,8 @@ elif self._bTightNarrowBeamDomain:
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
             DataForSim['p_amp_water']=np.abs(DataForSim['p_complex_water'])
+
+        
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
@@ -2251,9 +2326,9 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
-
-        DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
-                                                          self._PMLThickness:-self._PMLThickness]
+        if hasattr(self,'_SourceMapRayleigh'):
+            DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
+                                                            self._PMLThickness:-self._PMLThickness]
         
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))
