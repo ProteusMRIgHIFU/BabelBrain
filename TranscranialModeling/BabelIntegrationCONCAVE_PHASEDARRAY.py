@@ -240,11 +240,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         self.GenTransducerGeom()
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
+        ZDomainStart = self.CalculateDomainZReference()
 
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
@@ -267,7 +263,7 @@ class SimulationConditions(SimulationConditionsBASE):
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX
             self._Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+            self._Tx[k][:,2]+=self._TxMechanicalAdjustmentZ+ZDomainStart
 
         Correction=0.0
         while np.max(self._Tx['center'][:,2])>=self._ZDim[self._ZSourceLocation]:

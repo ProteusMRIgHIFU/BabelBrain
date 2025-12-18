@@ -211,11 +211,6 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         self.GenTransducerGeom()
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
 
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX

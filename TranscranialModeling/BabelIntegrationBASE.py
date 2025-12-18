@@ -207,7 +207,20 @@ def primeCheck(n):
         return True
     
 
-def DensityToHUBony(CTIn):
+def DensityToHUBony(ct_in):
+    '''
+    Convert CT values to bone density using piecewise linear fitting.
+    
+    Parameters
+    ----------
+    ct_in : array-like or float
+        CT values (Hounsfield units) for bone.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Predicted bone density (kg/m³).
+    '''
     CTtoDensity=np.array([[-9.47030278e+02,  1.22500000e+00],
        [ 5.20388482e+01,  1.06000000e+03],
        [ 2.02749650e+02,  1.16000000e+03],
@@ -218,14 +231,32 @@ def DensityToHUBony(CTIn):
        [ 1.65990448e+03,  2.15000000e+03]])
     pwf=pwlf.PiecewiseLinFit(CTtoDensity[:,1],CTtoDensity[:,0])
     pwf.fit_with_breaks(CTtoDensity[:,1])
-    return pwf.predict(CTIn)
+    return pwf.predict(ct_in)
     
 
-def HUtoDensityKWave(HUin):
+def HUtoDensityKWave(hu_in):
+    '''
+    Convert Hounsfield Units to density using k-Wave model.
+    
+    Adapted from hounsfield2density.m from k_wave
+    References:
+    - Phys. Med. Biol., 41, pp. 111-124 (1996).
+    - Acoust. Res. Lett. Online, 1(2), pp. 37-42 (2000).
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     #Adapted from hounsfield2density.m fromk k_wave
     # Phys. Med. Biol., 41, pp. 111-124 (1996).
     # Acoust. Res. Lett. Online, 1(2), pp. 37-42 (2000). 
-    HU = HUin+1000
+    HU = hu_in+1000
     density = np.zeros_like(HU)
 
     # apply conversion in several parts using linear fits to the data
@@ -242,7 +273,26 @@ def HUtoDensityKWave(HUin):
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
 
-def HUtoDensityAirTissue(HUIn):
+def HUtoDensityAirTissue(hu_in):
+    '''
+    Convert Hounsfield Units to density using linear air-tissue model.
+    
+    Linear fitting using reference points:
+    - DensityAir = 1.293 kg/m³
+    - DensityTissue = 1041 kg/m³
+    - HUAir = -1000
+    - HUTissue = 27
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     # linear fitting using
     # DensityAir=1.293 
     # DensityTissue=1041
@@ -250,52 +300,202 @@ def HUtoDensityAirTissue(HUIn):
     # HUTissue=27
     
     pf=np.array([1.01237293, 1.01366593e+03])
-    return np.polyval(pf,HUIn)
+    return np.polyval(pf,hu_in)
 
-def HUtoDensityMarsac(HUin):
+def HUtoDensityMarsac(hu_in):
+    '''
+    Convert Hounsfield Units to density using Marsac model.
+    
+    Linear normalization between air and bone density limits.
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     rhomin=1000.0
     rhomax=2700.0
-    return rhomin+ (rhomax-rhomin)*HUin/HUin.max()
+    return rhomin+ (rhomax-rhomin)*hu_in/hu_in.max()
 
-def HUtoDensityUCLLowEnergy(HuIn):
+def HUtoDensityUCLLowEnergy(hu_in):
+    '''
+    Convert Hounsfield Units to density using UCL low-energy calibration model.
+    
+    Uses calibration data from https://github.com/ucl-bug/petra-to-ct
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³) interpolated from calibration table.
+    '''
     #using calibration reported in https://github.com/ucl-bug/petra-to-ct 
     f = h5py.File(os.path.join(resource_path(),'ct-calibration-low-dose-30-March-2023-v1.h5'),'r')
     ct_calibration=f['ct_calibration'][:][0,:,:].T
-    return np.interp(HuIn,ct_calibration[0,:],ct_calibration[1,:])
+    return np.interp(hu_in,ct_calibration[0,:],ct_calibration[1,:])
 
-def DensitytoLSOSMarsac(Density):
+def DensitytoLSOSMarsac(density):
+    '''
+    Convert tissue density to longitudinal speed of sound using Marsac model.
+    
+    Linear mapping between minimum and maximum sound velocities based on density range.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     cmin=1500.0
     cmax=3000.0
-    return cmin+ (cmax-cmin)*(Density-Density.min())/(Density.max()-Density.min())
+    return cmin+ (cmax-cmin)*(density-density.min())/(density.max()-density.min())
 
-def DensityToLAttMcDannold(Density,Frequency):
+def DensityToLAttMcDannold(density, frequency):
+    '''
+    Convert density to longitudinal attenuation using McDannold model.
+    
+    Uses polynomial fitting and frequency scaling from McDannold reference.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz). Attenuation is scaled relative to 660 kHz reference.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
     FreqReference =660e3
     poly=np.flip(np.array([5.71e3,-9.02, 5.40e-3,-1.41e-6,1.36e-10]))
-    return np.polyval(poly,Density)*Frequency/FreqReference #we assume a linear relatinship
+    return np.polyval(poly,density)*frequency/FreqReference #we assume a linear relatinship
 
-def DensityToLSOSMcDannold(Density):
+def DensityToLSOSMcDannold(density):
+    '''
+    Convert density to longitudinal speed of sound using McDannold model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     poly=np.flip(np.array([1.24e-3,-7.63e-7,1.69e-10,5.31e-16,-2.79e-18]))
-    return 1.0/np.polyval(poly,Density)
+    return 1.0/np.polyval(poly,density)
 
-def HUtoPorosity(HUin):
-    Phi = 1.0 - HUin/HUin.max()
+def HUtoPorosity(hu_in):
+    '''
+    Convert Hounsfield Units to bone porosity.
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Porosity values (0-1).
+    '''
+    Phi = 1.0 - hu_in/hu_in.max()
     return Phi
 
-def PorositytoDensity(Phi):
-    Density = 1000.0 * Phi + 2200*(1.0-Phi)
+def PorositytoDensity(phi):
+    '''
+    Convert bone porosity to density.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Tissue density (kg/m³).
+    '''
+    Density = 1000.0 * phi + 2200*(1.0-phi)
     return Density
 
-def PorositytoLSOS(Phi):
-    SoS = 1500 * Phi + 3100*(1.0-Phi)
+def PorositytoLSOS(phi):
+    '''
+    Convert bone porosity to longitudinal speed of sound.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
+    SoS = 1500 * phi + 3100*(1.0-phi)
     return SoS
 
-def PorositytoLAtt(Phi,Frequency):
-    amin= 2.302555836 *Frequency/1e6
-    amax= 92.10223344 *Frequency/1e6
-    Att = amin + (amax - amin)*(Phi**0.5)
+def PorositytoLAtt(phi, frequency):
+    '''
+    Convert bone porosity to longitudinal attenuation.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
+    amin= 2.302555836 *frequency/1e6
+    amax= 92.10223344 *frequency/1e6
+    Att = amin + (amax - amin)*(phi**0.5)
     return Att
 
-def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
+def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
+    '''
+    Convert Hounsfield Units to attenuation using Webb model.
+    
+    Parameters from Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
+    DOI: 10.1109/TUFFC.2020.3039743
+    
+    Parameters
+    ----------
+    hu : array-like or float
+        Hounsfield Unit values.
+    frequency : float
+        Acoustic frequency (Hz).
+    params : list, optional
+        Scanner parameters [Scanner, Energy, Kernel, Other, Resolution].
+        Default is ['GE','120','B','','0.49, 0.63'] for GE 120 kVp BonePlus kernel.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Attenuation values (Np/m × 100).
+    '''
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
     # DOI: 10.1109/TUFFC.2020.3039743
@@ -305,17 +505,28 @@ def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
 
     df=pd.read_csv(os.path.join(resource_path(),'WebbHU_Att.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
     
-    sel=df.loc[[Params]]
+    sel=df.loc[[params]]
 
     print('Using Webb Att mapping with Params (Alpha_0, Beta, c)', 
-          Params, 
+          params, 
           sel.iloc[0]['Alpha_0']*100,
           sel.iloc[0]['Beta'],
           sel.iloc[0]['c'])
 
-    return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
+    return (sel.iloc[0]['Alpha_0']*(frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(hu*(sel.iloc[0]['c'])))*100
 
 def SpeedofSoundWebbDataset():
+    '''
+    Load and return Webb dataset for Hounsfield Unit to speed of sound mapping.
+    
+    Data from Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    DOI: 10.1109/TUFFC.2018.2827899
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by scanner parameters with speed of sound calibration data.
+    '''
     lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
     dict_dtypes = {x : 'str'  for x in lst_str_cols}
 
@@ -323,34 +534,120 @@ def SpeedofSoundWebbDataset():
     return df
 
 
-def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
+def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
+    '''
+    Convert Hounsfield Units to longitudinal speed of sound using Webb model.
+    
+    Parameters from Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    DOI: 10.1109/TUFFC.2018.2827899
+    
+    Parameters
+    ----------
+    hu : array-like or float
+        Hounsfield Unit values.
+    params : list, optional
+        Scanner parameters [Scanner, Energy, Kernel, Other, Resolution].
+        Default is ['GE','120','B','','0.5, 0.6'] for GE 120 kVp BonePlus kernel.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
     df=SpeedofSoundWebbDataset()
     
-    sel=df.loc[[Params]]
+    sel=df.loc[[params]]
 
     print('Using Webb  SOS mapping with Params (slope, intercept)', 
-          Params, 
+          params, 
           sel.iloc[0]['Slope'],
           sel.iloc[0]['Intercept']*1000.0)
 
-    return sel.iloc[0]['Slope']*HU + sel.iloc[0]['Intercept']*1000.0
+    return sel.iloc[0]['Slope']*hu + sel.iloc[0]['Intercept']*1000.0
 
 
-def DensityToLSOSPichardo(Density,Frequency):
-    return _PichardoSOS(Density,Frequency/1e6)
+def DensityToLSOSPichardo(density, frequency):
+    '''
+    Convert density to longitudinal speed of sound using Pichardo model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
+    return _PichardoSOS(density, frequency/1e6)
 
-def DensityToLAttPichardo(Density,Frequency):
-    return _PichardoAtt(Density,Frequency/1e6)
+def DensityToLAttPichardo(density, frequency):
+    '''
+    Convert density to longitudinal attenuation using Pichardo model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
+    return _PichardoAtt(density, frequency/1e6)
 
 def DensityToSSoSPichardo(density):
+    '''
+    Convert density to shear speed of sound using Pichardo model.
+    
+    Based on Physics in Medicine & Biology, vol. 62, no. 17, p 6938, 2017.
+    Uses average of values at two reported frequencies.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Shear speed of sound (m/s).
+    '''
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
     return density*0.422 + 680.515  
     
 def make_affine_itk_friendly(affine, eps=1e-12, report=True):
+    '''
+    Create an orthonormal affine matrix with preserved voxel sizes.
+    
+    Return a copy of affine whose top-left 3x3 is orthonormal up to column scaling 
+    (i.e. preserves voxel sizes).
+    
+    Parameters
+    ----------
+    affine : (4, 4) np.ndarray
+        Affine transformation matrix.
+    eps : float, optional
+        Tiny tolerance for near-zero scales (default is 1e-12).
+    report : bool, optional
+        If True, returns diagnostics along with affine (default is True).
+    
+    Returns
+    -------
+    np.ndarray or tuple
+        If report is False: (4, 4) orthonormalized affine matrix.
+        If report is True: tuple of (orthonormalized affine, diagnostics dict).
+    '''
     """
     Return a copy of `affine` whose top-left 3x3 is orthonormal
     up to column scaling (i.e. preserves voxel sizes).
@@ -420,7 +717,20 @@ def make_affine_itk_friendly(affine, eps=1e-12, report=True):
         "max_rel_change_in_3x3": float(max_rel_change),
     }
 
-def SaveNiftiEnforcedISO(nii_in,fn):
+def SaveNiftiEnforcedISO(nii_in, fn):
+    '''
+    Save NIfTI image with isotropic voxel spacing using SimpleITK.
+    
+    Attempts to enforce isotropic spacing; if affine is not orthonormal,
+    attempts to fix it or falls back to flirt registration.
+    
+    Parameters
+    ----------
+    nii_in : nibabel.Nifti1Image
+        Input NIfTI image to save.
+    fn : str
+        Output filename path.
+    '''
     fn_unc=fn.split('.gz')[0] #we save uncompressed for faster operation
     nii_in.to_filename(fn_unc)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
@@ -448,21 +758,34 @@ def SaveNiftiEnforcedISO(nii_in,fn):
             os.remove(fn_unc)
 
 
-def ResaveNormalized(RPath,Mask):
-    assert('_Sub.nii.gz' in RPath)
-    NRPath=RPath.replace('_Sub.nii.gz','_Sub_NORM.nii.gz')
+def ResaveNormalized(rpath, mask):
+    '''
+    Resave simulation results with normalization based on mask.
+    
+    Normalizes result values to [0, 1] range and masks out regions outside mask region 4+.
+    Saves to file with _NORM suffix.
+    
+    Parameters
+    ----------
+    rpath : str
+        Path to input result file (must contain '_Sub.nii.gz').
+    mask : nibabel.Nifti1Image
+        Mask image for normalization region selection.
+    '''
+    assert('_Sub.nii.gz' in rpath)
+    NRPath=rpath.replace('_Sub.nii.gz','_Sub_NORM.nii.gz')
 
-    Results=nibabel.load(RPath)
+    Results=nibabel.load(rpath)
 
     ResultsData=Results.get_fdata()
-    MaskData=Mask.get_fdata()
+    MaskData=mask.get_fdata()
     ii,jj,kk=np.mgrid[0:ResultsData.shape[0],0:ResultsData.shape[1],0:ResultsData.shape[2]]
 
     Indexes=np.c_[(ii.flatten().T,jj.flatten().T,kk.flatten().T,np.ones((kk.size,1)))].T
 
     PosResults=Results.affine.dot(Indexes)
 
-    IndexesMask=np.round(np.linalg.inv(Mask.affine).dot(PosResults)).astype(int)
+    IndexesMask=np.round(np.linalg.inv(mask.affine).dot(PosResults)).astype(int)
     IndexesMask[0,IndexesMask[0,:]>=MaskData.shape[0]]=MaskData.shape[0]-1
     IndexesMask[1,IndexesMask[1,:]>=MaskData.shape[1]]=MaskData.shape[1]-1
     IndexesMask[2,IndexesMask[2,:]>=MaskData.shape[2]]=MaskData.shape[2]-1
@@ -478,7 +801,26 @@ bGPU_INITIALIZED = False
 ###
 
 class RUN_SIM_BASE(object):
-    def CreateSimObject(self,**kargs):
+    '''
+    Base class for running acoustic and thermal simulations.
+    
+    Provides framework for creating simulation objects and running simulation cases
+    with various configuration parameters.
+    '''
+    def CreateSimObject(self, **kwargs):
+        '''
+        Create simulation object with specified parameters.
+        
+        Parameters
+        ----------
+        **kwargs
+            Extra parameters needed for a given transducer system.
+        
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         #this passes extra parameters needed for a given Tx
         raise NotImplementedError("Need to implement this")
 
@@ -798,8 +1140,8 @@ class BabelFTD_Simulations_BASE(object):
                         print('Using 120 Kvp CT settings')
                         DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 print('Using CT combination', self._CTMapCombo)
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=self._CTMapCombo)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
                 if self._bDensity == False:
                     DensityCTIT = PorositytoDensity(Porosity)
@@ -1669,29 +2011,30 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
-        self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
+        self._MaterialMapRef=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
         self._SubAirRegions=None
+        #we add the material map
+        if self._XShrink_R==0:
+            upperXR=self._SkullMaskDataOrig.shape[0]
+        else:
+            upperXR=-self._XShrink_R
+        if self._YShrink_R==0:
+            upperYR=self._SkullMaskDataOrig.shape[1]
+        else:
+            upperYR=-self._YShrink_R
+        if self._ZShrink_R==0:
+            upperZR=self._SkullMaskDataOrig.shape[2]
+        else:
+            upperZR=-self._ZShrink_R
+            
+        self._MaterialMapRef[self._XLOffset:-self._XROffset,
+                            self._YLOffset:-self._YROffset,
+                            self._ZLOffset:-self._ZROffset]=\
+                            self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
+                                                                        self._YShrink_L:upperYR,
+                                                                        self._ZShrink_L:upperZR]
         if bWaterOnly==False and bForceHomogenousMedium == False and len(BenchmarkTestFile)==0:
-            #we add the material map
-            if self._XShrink_R==0:
-                upperXR=self._SkullMaskDataOrig.shape[0]
-            else:
-                upperXR=-self._XShrink_R
-            if self._YShrink_R==0:
-                upperYR=self._SkullMaskDataOrig.shape[1]
-            else:
-                upperYR=-self._YShrink_R
-            if self._ZShrink_R==0:
-                upperZR=self._SkullMaskDataOrig.shape[2]
-            else:
-                upperZR=-self._ZShrink_R
-                
-            self._MaterialMap[self._XLOffset:-self._XROffset,
-                              self._YLOffset:-self._YROffset,
-                              self._ZLOffset:-self._ZROffset]=\
-                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
-                                                                         self._YShrink_L:upperYR,
-                                                                         self._ZShrink_L:upperZR]
+            self._MaterialMap=self._MaterialMapRef
             bBrainSegmentation = np.any(self._MaterialMap>5)
             if self._DensityCTMap is not None:
                 assert(self._DensityCTMap.dtype==np.uint32)
@@ -1732,6 +2075,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
 
             #We remove tissue layers
             self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
+        else:
+            self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
         
         #####
         ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
@@ -2117,6 +2462,33 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             This method must be implemented in a subclass.
         '''
         raise NotImplementedError("Need to implement this")
+    
+    def CalculateDomainZReference(self):
+        '''
+        Calculate Z-axis domain correction based on skin surface location.
+        
+        Compares the skin surface Z-position at the target location with the 
+        global minimum skin surface Z-position to determine domain correction needed.
+        
+        Returns
+        -------
+        float
+            Domain correction value (m) representing the difference between global 
+            and local skin surface positions along the Z-axis.
+        '''
+         #the skin starts in the top voxel of the subdomain
+    
+        TargetLocation =self._FocalSpotLocation
+        LineOfSight=self._MaterialMapRef[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+
+        [mx,my,mz]=np.where(self._MaterialMapRef>0)
+        GlobalStartSkin=mz.min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('GlobalStartSkin',GlobalStartSkin)
+        print('LineOfSightStartSkin',StartSkin)
+        print('TxMechanicalAdjustmentZ',self._TxMechanicalAdjustmentZ)
+        DomainCorrection=GlobalStartSkin-StartSkin
+        return DomainCorrection
         
     def PlotResultsPlanePartial(self):
         '''

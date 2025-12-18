@@ -282,13 +282,6 @@ class SimulationConditions(SimulationConditionsBASE):
         # and we select the set based on input
         self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
         
-        
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
-        
         if self._TxMechanicalAdjustmentZ <0:
             zCorrec= self._TxMechanicalAdjustmentZ
         else:

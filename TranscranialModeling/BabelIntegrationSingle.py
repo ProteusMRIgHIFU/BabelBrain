@@ -253,35 +253,16 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
+        ZDomainStart = self.CalculateDomainZReference()
         
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
+        print('Init Location of back Tx in Z',  self._TxRC['center'][:,2].min())
+       
 
-            fig = plt.figure()
-            ax = Axes3D(fig)
-            
-            ax.add_collection3d(Poly3DCollection(self._TxRC['VertDisplay'][self._TxRC['FaceDisplay']]*1e3)) #we plot the units in mm
-                #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
-        
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','VertDisplay','elemcenter']:
                 Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                 Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ+ZDomainStart
         Correction=0.0
         while np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
