@@ -1464,6 +1464,27 @@ class SimulationConditionsBASE(object):
             self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R 
             print('self._N3',self._N3,self._ZLOffset,self._ZROffset,self._ZShrink_L,self._ZShrink_R)
 
+            if self._XShrink_R==0:
+                upperXR=self._SkullMaskDataOrig.shape[0]
+            else:
+                upperXR=-self._XShrink_R
+            if self._YShrink_R==0:
+                upperYR=self._SkullMaskDataOrig.shape[1]
+            else:
+                upperYR=-self._YShrink_R
+            if self._ZShrink_R==0:
+                upperZR=self._SkullMaskDataOrig.shape[2]
+            else:
+                upperZR=-self._ZShrink_R
+
+            TempMaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
+            TempMaterialMap[self._XLOffset:-self._XROffset,
+                              self._YLOffset:-self._YROffset,
+                              self._ZLOffset:-self._ZROffset]=\
+                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
+                                                                         self._YShrink_L:upperYR,
+                                                                         self._ZShrink_L:upperZR]
+
 
             self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
             self._FocalSpotLocation=self._FocalSpotLocationOrig.copy()
@@ -1487,12 +1508,15 @@ class SimulationConditionsBASE(object):
             TopZ=zfield[self._PMLThickness]
             
             if DomeType==False:
+                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
                 if self._FocalLength!=0:
                     DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
-                    Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
                     RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
                 else:
                     RadiusFace=self._Aperture/2*1.10
+
+                #corrected Alpha
+                Alpha = np.arctan(RadiusFace/DistanceToFocus)
             else:
                 RadiusFace=self._Aperture/2*1.02
 
@@ -1507,11 +1531,19 @@ class SimulationConditionsBASE(object):
             print('yfield',yfield.min(),yfield.max())
 
             if DomeType==False:
-                ypp,xpp=np.meshgrid(yfield,xfield)        
-                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
+                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield-self._FocalLength-self._TxMechanicalAdjustmentZ,indexing='ij')
+                #we select the cone on the incident field
+                RegionMap=(((xpp-self._TxMechanicalAdjustmentX)**2+
+                           (ypp-self._TxMechanicalAdjustmentY)**2)<=(zpp*np.tan(Alpha))**2) &\
+                          (zpp <= 0) & (zpp >=-(self._FocalLength+self._ExtraDepthAdjust))  
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                    RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
-                IndXMap,IndYMap=np.nonzero(RegionMap)
+                    RegionMap=(RegionMap)|\
+                        (((xpp-self._TxMechanicalAdjustmentX-EX)**2+
+                           (ypp-self._TxMechanicalAdjustmentY-EY)**2)<=(zpp*np.tan(Alpha))**2) &\
+                          (zpp <= 0) & (zpp >=-(self._FocalLength+self._ExtraDepthAdjust))  
+                    
+                RegionMap = (RegionMap)&(TempMaterialMap!=0)
+                IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             else:
                 xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield,indexing='ij')
                 RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2+(zpp-self._TxMechanicalAdjustmentZ)**2)<=RadiusFace**2 #we select the circle on the incident field
@@ -1553,8 +1585,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             
             exec(fgen('X'))
             exec(fgen('Y'))
-            if DomeType:
-                exec(fgen('Z'))
+            # if DomeType:
+            exec(fgen('Z'))
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
@@ -1570,6 +1602,32 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                     bCompleteForShrinking=True
 
             #we overwrite the values if benchmark is being selected
+
+        if 'BABELBRAIN_SEL_MASK' in os.environ:
+            affineSub=self._SkullMaskNii.affine.copy()
+
+            LargeMask=np.zeros(self._SkullMaskDataOrig.shape,np.uint8)
+            LargeMask[self._XShrink_L:upperXR,
+                        self._YShrink_L:upperYR,
+                        self._ZShrink_L:upperZR]=\
+                        RegionMap[self._XLOffset:-self._XROffset,
+                                    self._YLOffset:-self._YROffset,
+                                    self._ZLOffset:-self._ZROffset]
+            LargeMask=np.flip(LargeMask,axis=2)
+
+            MaskCalcRegions=np.zeros(self._SkullMaskDataOrig.shape,bool)
+            MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
+            MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
+            [mx,my,mz]=np.where(MaskCalcRegions)
+            locm=np.array([[mx[0],my[0],mz[0],1]]).T
+            NewOrig=affineSub @ locm
+            affineSub[0:3,3]=NewOrig[0:3,0]
+            mx=np.unique(mx.flatten())
+            my=np.unique(my.flatten())
+            mz=np.unique(mz.flatten())
+            debugmask=nibabel.Nifti1Image(LargeMask[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],
+                                          affine=affineSub)
+            debugmask.to_filename(os.environ['BABELBRAIN_SEL_MASK'])
             
         self._XDim=xfield
         self._YDim=yfield
