@@ -1206,7 +1206,7 @@ class BabelFTD_Simulations_BASE(object):
                 QCorrArr[6:]=self._QCorrection
             else:
                 QCorrArr=np.ones(3+len(DensityCTIT))
-                QCorrArr[3:]=self._QCorrection
+                QCorrArr[2:]=self._QCorrection #This will match r0.4.3
 
 
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
