@@ -1890,7 +1890,7 @@ class SimulationConditionsBASE(object):
                 xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfRezero,indexing='ij')
                 #we select the cone on the incident field
                 RegionMap=(((xpp-self._TxMechanicalAdjustmentX)**2+
-                           (ypp-self._TxMechanicalAdjustmentY)**2)<=(zpp*np.tan(Alpha))**2) &\
+                           (ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2) &\
                           (zpp <= 0) & (zpp >=ZConeLimit)
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
                     RegionMap=(RegionMap)|\
@@ -1960,7 +1960,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             if self.bMapFit:
                 if self._bTightNarrowBeamDomain==False:
                     bCompleteForShrinking=True
-                elif self._nCountShrink>=8:
+                elif self._nCountShrink>=15:
                     bCompleteForShrinking=True
 
             #we overwrite the values if benchmark is being selected
