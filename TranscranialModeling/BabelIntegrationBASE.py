@@ -1895,7 +1895,7 @@ class SimulationConditionsBASE(object):
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
                     RegionMap=(RegionMap)|\
                         (((xpp-self._TxMechanicalAdjustmentX-EX)**2+
-                           (ypp-self._TxMechanicalAdjustmentY-EY)**2)<=(zpp*np.tan(Alpha))**2) &\
+                           (ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
                           (zpp <= 0) & (zpp >=ZConeLimit)  
                     
                 # RegionMap = (RegionMap)&(TempMaterialMap!=0)
@@ -1931,7 +1931,7 @@ elif self._bTightNarrowBeamDomain:
         self._{0}Shrink_L+=Ind{0}Map.min()-self._{0}LOffset
         print('{0}Shrink_L',self._{0}Shrink_L)
     self._nCountShrink+=1
-if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness):
+if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness) and ("{0}" != "Z" or ("{0}" == "Z" and not self._bTightNarrowBeamDomain )) :
     print('** Rayleigh map not fitting in the upper part of N{1}, increasing it ...',self._{0}ROffset)
     self._{0}ROffset+=Ind{0}Map.max()-(self._N{1}-self._PMLThickness)+1
     print('{0}Offset',self._{0}ROffset)
@@ -1952,7 +1952,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
-                self._ZShrink_R+=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)
+                self._ZShrink_R=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)-self._ZROffset
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
                 print('ZShrink_R',self._ZShrink_R,self._nCountShrink)
