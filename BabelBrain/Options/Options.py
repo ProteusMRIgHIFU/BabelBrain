@@ -198,12 +198,16 @@ class AdvancedOptions(QDialog):
         TxSystem = self.parent().Config['TxSystem']
         if 'MinimalTPODistance' in BabelTxConfig or\
            'MinimalZSteering' in BabelTxConfig or\
-           'BSonix35mm' in BabelTxConfig: 
+           'BSonix35mm' in BabelTxConfig or\
+           'DomeTx' in TxSystem: 
             self.ui.FocalLengthLabel.setEnabled(False)
             self.ui.DiameterLabel.setEnabled(False)
             self.ui.FocalLengthSpinBox.setEnabled(False)
             self.ui.DiameterSpinBox.setEnabled(False)
-        if 'MinimalZSteering' in BabelTxConfig and 'TxFoc' in BabelTxConfig:
+        if 'DomeTx' in TxSystem: 
+            self.ui.SkinDistanceSpinBox.setEnabled(False)
+            self.ui.RUNPlanTUSpushButton.setEnabled(False)
+        if 'MinimalZSteering' in BabelTxConfig and 'TxFoc' in BabelTxConfig and TxSystem not in ['DomeTx'] :
             self.ui.DistanceTxLabel.setText('Distance Cone to\nFocus (mm)')
             self.ui.SkinDistanceSpinBox.setMinimum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.minimum())
             self.ui.SkinDistanceSpinBox.setMaximum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.maximum())
