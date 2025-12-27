@@ -93,15 +93,14 @@ def GenerateDomeTxTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
     
     #We use calibration per PPW to generate 1W per element
     TxDomeTx['Amplitude1W']={'Rayleigh':0.14475482330468514,
-                            'Visco':{220000:{6:74770.266,
-                                             7:73202.98,
-                                             8:72503.875,
-                                             9:73646.11,
-                                            10:74868.305,
-                                            11:85314.6,
-                                            12:86398.17},
-                                     670000:{6:129235.35,
-                                             7:133529.17}}}
+                            'Visco':{220000:{6:74065.04,
+                                             7:79050.414,
+                                             8:84021.836,
+                                             9:88933.47,
+                                            10:94068.0,
+                                            11:91529.37,
+                                            12:97344.266},
+                                     670000:{6:166890.38}}}
 
     return TxDomeTx
 

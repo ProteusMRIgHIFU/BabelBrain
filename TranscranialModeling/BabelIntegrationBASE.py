@@ -178,7 +178,7 @@ def GetSmallestSOS(frequency,bShear=False):
     
     if bShear:
         SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
-        print('GetSmallestSOS',SoS)
+    print('GetSmallestSOS',SoS)
     return SoS
 
 def LLSoSITRUST(density):
