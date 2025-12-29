@@ -217,6 +217,11 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
         RatioLosses=AcousticEnergyTissue/AcousticEnergyWaterMaxLoc
         print('Total losses ratio and in dB',RatioLosses,np.log10(RatioLosses)*10)
 
+        RatioLossesPeak=(pAmpTissue.max()/pAmpWater.max())**2
+        print('Total losses ratio using single punctual measurement',RatioLossesPeak,np.log10(RatioLossesPeak)*10)
+
+
+
         if RatioLosses > (RatioLossesLoc+0.2):
             print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
             RatioLosses=RatioLossesLoc

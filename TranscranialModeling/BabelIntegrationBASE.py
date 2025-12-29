@@ -1952,7 +1952,11 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
-                self._ZShrink_R=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)-self._ZROffset
+                ChangeRedZ=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)-self._ZROffset
+                if DomeType:
+                    self._ZShrink_R+=ChangeRedZ
+                else:
+                    self._ZShrink_R=ChangeRedZ
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
                 print('ZShrink_R',self._ZShrink_R,self._nCountShrink)
