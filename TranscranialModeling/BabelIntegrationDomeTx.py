@@ -21,7 +21,7 @@ def computeDomeTxGeometry():
     return transxyz*1e-3
 
 
-def GenerateDomeTxTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
+def GenerateDomeTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
 
     f=Frequency;
     Foc=150e-3*FactorEnlarge
@@ -140,8 +140,11 @@ class SimulationConditions(BabelIntegrationDOME_PHASEDARRAY.SimulationConditions
         
     def GenTransducerGeom(self):
 
-        self._Tx=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
-        self._TxHighRes=GenerateDomeTxTx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
+        self._Tx=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        if self._Frequency == 220e3:
+            self._TxHighRes=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
+        else:
+            self._TxHighRes=self._TxOrig
         
         

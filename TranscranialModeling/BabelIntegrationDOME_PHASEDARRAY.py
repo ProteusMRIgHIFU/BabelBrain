@@ -403,4 +403,4 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PulseSourceRefocus=PulseSource
          
     def RUN_SIMULATION(self,bDoStressSource=False,SelRMSorPeak=1,bApplyCorrectionForDispersion=True,**kargs):
-        super().RUN_SIMULATION(bDoStressSource=True,bApplyCorrectionForDispersion=False,SelRMSorPeak=2,**kargs)
+        super().RUN_SIMULATION(bDoStressSource=True,bApplyCorrectionForDispersion=False,SelRMSorPeak=1,**kargs)

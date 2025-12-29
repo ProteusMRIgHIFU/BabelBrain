@@ -181,7 +181,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     print('Location Max Pessure Water',cxw,cyw,czw,'\n',
             xf[cxw],yf[cyw],zf[czw]-zf[0],pAmpWater.max()/1e6)
     
-    pAmpTissue=np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
+    pAmpTissue=pAmp.copy()#np.ascontiguousarray(np.flip(Input['p_amp'],axis=2))
     pAmpTissue[SelBrain==False]=0.0
 
     cxr,cyr,czr=np.where(pAmpTissue==pAmpTissue.max())
