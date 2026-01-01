@@ -276,7 +276,14 @@ class AdvancedOptions(QDialog):
                 msgBox.exec()
                 self.ui.YAMLCalibrationLineEdit.setFocus()
                 return
-        
+            
+        #we delete output files
+        rootnamepath=inputInfo['OutputResultsPath']
+        files=sorted(glob(os.path.join(rootnamepath,'Plots-AcProfiles*.pdf')))+\
+                      sorted(glob(os.path.join(rootnamepath,'Plots-Acplanes*.pdf')))+\
+                      [os.path.join(rootnamepath,'Plots-weight.pdf')]
+        for f in files:
+            os.remove(f)
         
         self.RUN_FITTING_Parallel(self._TxConfig,
               self.ui.YAMLCalibrationLineEdit.text(),
