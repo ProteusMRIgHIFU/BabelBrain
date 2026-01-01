@@ -1,3 +1,5 @@
+#be sure of specifying a supported device for calibration (ring array type): CTX_500, CTX_250, CTX_250_2ch, DPX_500, DPXPC_300, R15287, R15473
+Device: R15287 
 ExcelFileProfiles: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/Radboud/Imasonic_15287_1002.xlsx
 ExcelRangeProfiles: Sheet1!A1:N282
 # select an OutputResultsPath that is individual for Tx configuration and frequency

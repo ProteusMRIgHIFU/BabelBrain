@@ -187,15 +187,19 @@ class AdvancedOptions(QDialog):
     
         self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
 
+        TxSystem = self.parent().Config['TxSystem']
+
         self.ui.ExecuteCalibrationButton.clicked.connect(self.ExecuteCalibration)
 
+        if TxSystem not in ['CTX_500', 'CTX_250', 'CTX_250_2ch', 'DPX_500', 'DPXPC_300', 'R15287', 'R15473']:
+            self.ui.frameCalibration.setEnabled(False)
         self.CalQueue = None
         self.CalProcess = None
         self.Caltimer = QTimer(self)
         self.Caltimer.timeout.connect(self.check_queue)
 
         BabelTxConfig=self.parent().AcSim.Config
-        TxSystem = self.parent().Config['TxSystem']
+       
         if 'MinimalTPODistance' in BabelTxConfig or\
            'MinimalZSteering' in BabelTxConfig or\
            'BSonix35mm' in BabelTxConfig or\
@@ -246,9 +250,6 @@ class AdvancedOptions(QDialog):
                 bError=True
         if bError:
             self.ui.TxOptimizedWeightsLineEdit.setText("")
-                
-
-
 
     @Slot()
     def ExecuteCalibration(self):
@@ -257,15 +258,24 @@ class AdvancedOptions(QDialog):
             msgBox = QMessageBox()
             msgBox.setText("Please select the YAML file with calibration input fields.")
             msgBox.exec()
-            self.ui.ExcelAcousticProfilesLineEdit.setFocus()
+            self.ui.YAMLCalibrationLineEdit.setFocus()
             return
         if not os.path.isfile(self.ui.YAMLCalibrationLineEdit.text()):
             msgBox = QMessageBox()
             msgBox.setText("The indicated YAML file with the with calibration input fields does not exist.")
             msgBox.exec()
-            self.ui.ExcelAcousticProfilesLineEdit.setFocus()
+            self.ui.YAMLCalibrationLineEdit.setFocus()
             return
         
+        yamlFile=self.ui.YAMLCalibrationLineEdit.text()
+        with open(yamlFile,'r') as f:
+            inputInfo=yaml.safe_load(f)
+            if inputInfo['Device']!=self._TxSystem:
+                msgBox = QMessageBox()
+                msgBox.setText(f"The Device field in the YAML file ({inputInfo['Device']})\ndoes not match the current transducer in BabelBrain:{self._TxSystem}.")
+                msgBox.exec()
+                self.ui.YAMLCalibrationLineEdit.setFocus()
+                return
         
         
         self.RUN_FITTING_Parallel(self._TxConfig,
@@ -408,7 +418,8 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
-        self.ui.TxWeightLabel.setText("Optimized Weights for Transducer: " +  self._TxSystem)
+        if self._TxSystem in ['CTX_500', 'CTX_250', 'CTX_250_2ch', 'DPX_500', 'DPXPC_300', 'R15287', 'R15473']:
+            self.ui.TxWeightLabel.setText("Optimized Weights for Transducer: " +  self._TxSystem)
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
         
     @Slot()
