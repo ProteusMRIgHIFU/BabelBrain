@@ -1,4 +1,4 @@
-TxFoc:                    65.0e-3 #Tx focal length
+FocalLength:                    65.0e-3 #Tx focal length
 TxDiam:                   65.95e-3 # Tx aperture diameter
 
 MinimalZSteering:      -30.0e-3  # in m

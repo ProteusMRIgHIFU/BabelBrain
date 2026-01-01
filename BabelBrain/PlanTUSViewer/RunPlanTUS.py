@@ -222,8 +222,8 @@ class RUN_PLAN_TUS(QObject):
             
         elif 'MinimalZSteering' in BabelTxConfig: #phased arrays
             Diameter=BabelTxConfig['TxDiam']
-            if 'TxFoc' in BabelTxConfig: #shell Tx
-                Focus=BabelTxConfig['TxFoc']
+            if 'FocalLength' in BabelTxConfig: #shell Tx
+                Focus=BabelTxConfig['FocalLength']
                 plane_offset=(Focus-np.sqrt(Focus**2-Diameter**2/4))*1e3
                 max_distance_plane =Focus*1e3-plane_offset 
                 assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus']*1e3)

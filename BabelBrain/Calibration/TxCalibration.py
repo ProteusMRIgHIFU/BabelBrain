@@ -823,6 +823,7 @@ def RUN_FITTING(TxConfig,
         INPUT_PARAMS = yaml.safe_load(f)
 
     print('Calibration INPUT_PARAMS',INPUT_PARAMS)
+    print('TxConfig',TxConfig)
 
     # First we load the mandatory parameters
     dffilename=INPUT_PARAMS['ExcelFileProfiles']

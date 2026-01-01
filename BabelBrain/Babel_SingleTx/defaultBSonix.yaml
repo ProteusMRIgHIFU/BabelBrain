@@ -1,17 +1,17 @@
 BSonix35mm:
-    TxFoc:                    43.0e-3 #Tx focal length
+    FocalLength:                    43.0e-3 #Tx focal length
     TxDiam:                   48.0e-3 #Tx aperture diameter
     AdjustDistanceSkin:       3.0e-3  
 BSonix55mm:
-    TxFoc:                    68.5e-3 #Tx focal length
+    FocalLength:                    68.5e-3 #Tx focal length
     TxDiam:                   61.0e-3 #Tx aperture diameter
     AdjustDistanceSkin:       5.68e-3  
 BSonix65mm:
-    TxFoc:                    74.0e-3 #Tx focal length
+    FocalLength:                    74.0e-3 #Tx focal length
     TxDiam:                   61.0e-3 # Tx aperture diameter 
     AdjustDistanceSkin:       2.5e-3 
 BSonix80mm:
-    TxFoc:                    87.5e-3 #Tx focal length
+    FocalLength:                    87.5e-3 #Tx focal length
     TxDiam:                   61.0e-3 #Tx aperture diameter
     AdjustDistanceSkin:       1.5e-3
 MaxNegativeDistance:          10.0 #mm

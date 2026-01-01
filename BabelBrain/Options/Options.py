@@ -207,7 +207,7 @@ class AdvancedOptions(QDialog):
         if 'DomeTx' in TxSystem: 
             self.ui.SkinDistanceSpinBox.setEnabled(False)
             self.ui.RUNPlanTUSpushButton.setEnabled(False)
-        if 'MinimalZSteering' in BabelTxConfig and 'TxFoc' in BabelTxConfig and TxSystem not in ['DomeTx'] :
+        if 'MinimalZSteering' in BabelTxConfig and 'FocalLength' in BabelTxConfig and TxSystem not in ['DomeTx'] :
             self.ui.DistanceTxLabel.setText('Distance Cone to\nFocus (mm)')
             self.ui.SkinDistanceSpinBox.setMinimum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.minimum())
             self.ui.SkinDistanceSpinBox.setMaximum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.maximum())
@@ -265,6 +265,8 @@ class AdvancedOptions(QDialog):
             msgBox.exec()
             self.ui.ExcelAcousticProfilesLineEdit.setFocus()
             return
+        
+        
         
         self.RUN_FITTING_Parallel(self._TxConfig,
               self.ui.YAMLCalibrationLineEdit.text(),
