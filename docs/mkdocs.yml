@@ -24,6 +24,7 @@ nav:
   - MRI sequences : MRISequences/MRISequences.md
   - Results files : results/results.md
   - Advanced options: Advanced/advanced.md
+  - PlanTUS: Advanced/PlanTUS.md
   - Tx calibration: Advanced/TransducerCalibration.md
   - Appendix : Appendix/Appendix.md
 

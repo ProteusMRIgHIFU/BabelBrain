@@ -1,6 +1,6 @@
 Transducer calibration 
 -----
-Starting in r0.8.0, there is the possibility to calibrate devices such as the CTX-500 and similar based on the reported **intensity** data on axial steering. For example, most reports show an as the one below detailing the steering capabilities of the device:
+Starting in r0.8.0, there is the possibility to calibrate ring-type devices such as the CTX-500 and similar based on the reported **intensity** data on axial steering. For example, most reports show an as the one below detailing the steering capabilities of the device:
 
 <img src="TxCalibration-1.png" height=350px>
 
@@ -13,7 +13,7 @@ Obtain from the vendor an Excel file with the intensity profile data used to pro
 
 # Procedure
 ## 1. Identify range of data
-Identify the range of cells needed to produce the plot. The selected table should contain the Z axis distance from the outplane in the first column and the intensity values in the next columns corresponding to each steering in Z. 
+Identify the range of cells for intensity data needed to produce the plot. The selected table should contain the Z axis distance from the outplane in the first column and the intensity values in the next columns corresponding to each steering in Z. 
 
 On the example above, the first cell would be **T20**:
 
@@ -27,7 +27,9 @@ and the last cell would be **AJ81**:
 ## 2. Prepare YAML file with input information for calibration
 Details of the Excel sheet and cell range is specified via a simple YAML file as the one shown below
 
-```
+```YAML
+#be sure of specifying a supported device for calibration (ring array type): CTX_500, CTX_250, CTX_250_2ch, DPX_500, DPXPC_300, R15287, R15473
+Device: CTX_500 
 ExcelFileProfiles: /Users/spichardo/Documents/CTX-500-117 4-Ch. Focal Steering.xlsx
 ExcelRangeProfiles: Sheet1!T20:AJ81
 # select an OutputResultsPath that is individual for Tx configuration and frequency
@@ -37,7 +39,7 @@ Lambda: 1.0e-4
 Frequency: 5.0e+5 
 ```
 
-where `ExcelFileProfiles` is the file path of the Excel sheet with the report data, `ExcelRangeProfiles` is the Excel range of cells (including sheet name) of the acoustic profile data as detailed above, `OutputResultsPath` is the path where the calibration and some verification plots will be saved (if path doesn't exist, it will be created), `Lambda` is a regularization parameter (10$^{-4}$ should work for most transducers) and `Frequency` is the ultrasound operating frequency (be sure of specifying a frequency supported by the device).
+where `Device` is the device type to calibrate; this should match the device selected when BabelBrain was started. `ExcelFileProfiles` is the file path of the Excel sheet with the report data. `ExcelRangeProfiles` is the Excel range of cells (including sheet name) of the acoustic profile data as detailed above. `OutputResultsPath` is the path where the calibration and some verification plots will be saved (if path doesn't exist, it will be created). `Lambda` is a regularization parameter (10$^{-4}$ should work for most transducers) and `Frequency` is the ultrasound operating frequency (be sure of specifying a frequency supported by the device).
 
 Be sure that the `OutputResultsPath` is unique per transducer and serial number basis, in case more than one transducer of the same model is available.
 

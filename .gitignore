@@ -127,3 +127,5 @@ BabelBrain/BabelBrain.dmg
 **.zip
 **/.DS_Store
 /docs/site/**
+/documentation/**
+/docs/documentation/**
