@@ -19,11 +19,11 @@ By default, the percentage of trabecular is 80% using the line of sight of the t
 ## Segment white matter, gray matter and CSF
 Select this option to use SimNIBS segmentation of brain tissue regions. If selected, the following acoustic properties will be used instead of the one used in the original [BabelBrain paper](https://doi.org/10.1109/TUFFC.2023.3274046):
 
-|Tissue type| density (kg/m$^3$) | speed of sound (m/s) | attenuation (Np/m/MHz)|
-|---|---|---|---|
-| White matter | 1041 | 1537 | 10.2 |
-| Gray matter | 1045 | 1520 | 4.4 |
-| CSF | 1007 | 1507 | 0.09 |
+|Tissue type| density (kg/m$^3$) | speed of sound (m/s) | attenuation (Np/m/MHz)| perfusion (ml/min/kg) | specific heat (J/kg/°C) | therm. conductivity (W/m/°C)| absorption|
+|---|---|---|---|---|---|---|---|
+| White matter | 1041 | 1537 | 10.2 | 212 | 3583 | 0.48 | 0.85 |
+| Gray matter | 1045 | 1520 | 4.4 | 764 | 3696 | 0.55 | 0.85 |
+| CSF | 1007 | 1507 | 0.09 | 0 | 4096 | 0.57 | 0 |
 
 Values were from averages from the IT'IS database and [Labuda *et al.*, 2022](https://doi.org/10.1016/j.ultras.2022.106742)
 
