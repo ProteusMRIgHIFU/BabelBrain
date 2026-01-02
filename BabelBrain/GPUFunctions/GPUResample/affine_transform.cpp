@@ -1,3 +1,8 @@
+//MLX_HEADER_START
+#if defined(_MLX) || defined(_METAL)
+#include <metal_stdlib>
+using namespace metal;
+#endif
 #define SIGNED_INT32_LIM 2147483648
 #define UNSIGNED_INT32_LIM 4294967296
 
@@ -5,7 +10,7 @@ typedef float W;
 typedef float X;
 typedef short Y;
 
-#ifdef _METAL
+#if defined(_METAL) || defined(_MLX)
 ptrdiff_t ptrdiff_t_min(ptrdiff_t a, ptrdiff_t b)
 {
     if (a < b)
@@ -18,7 +23,8 @@ ptrdiff_t ptrdiff_t_min(ptrdiff_t a, ptrdiff_t b)
     }
 }
 #endif
-
+//MLX_HEADER_END
+//MLX_FUNCTION_START
 #ifdef _CUDA
 extern "C" __global__ void affine_transform(const float * x, 
                                             const float * mat,
@@ -98,8 +104,6 @@ __kernel void affine_transform(__global const float * x,
 #endif
 
 #ifdef _METAL
-#include <metal_stdlib>
-using namespace metal;
 kernel void affine_transform(const device float * x [[ buffer(0) ]], 
                              const device float * mat [[ buffer(1) ]],
                              device float * y [[ buffer(2) ]],
@@ -107,6 +111,12 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                              device unsigned int * int_params [[ buffer(4) ]],
                              uint gid[[thread_position_in_grid]]) 
 {
+    size_t _i  = gid; // current index in output section array
+#endif
+#if defined(_MLX)
+    size_t _i = thread_position_in_grid.x;
+#endif
+#if defined(_METAL)  ||defined(_MLX) 
     const float cval = float_params[0];
     const unsigned int order = int_params[0];
     const unsigned int in_dims_0 = int_params[1];
@@ -119,12 +129,11 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
     unsigned int base_32 = int_params[8];
 
     size_t output_idx = output_idx_tmp + (base_32 * UNSIGNED_INT32_LIM);
-    size_t true_gid = gid + output_idx; // overall position in output array
+    size_t true_gid = _i + output_idx; // overall position in output array
     
     const ptrdiff_t xind =  true_gid/(out_dims_1*out_dims_2);
     const ptrdiff_t yind =  (true_gid-xind*out_dims_1*out_dims_2)/out_dims_2;
     const ptrdiff_t zind =  true_gid -xind*out_dims_1*out_dims_2 - yind * out_dims_2;
-    size_t _i  = gid; // current index in output section array
 #endif
 
     W out = 0.0;
@@ -220,7 +229,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[0] = -ci_0[0];
                 }
                 ci_0[0] = 1 + (ci_0[0] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[0] = ptrdiff_t_min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
                 #else
                 ci_0[0] = min(ci_0[0], 2 * xsize_0 - 2 - ci_0[0]);
@@ -238,7 +247,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[1] = -ci_0[1];
                 }
                 ci_0[1] = 1 + (ci_0[1] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[1] = ptrdiff_t_min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
                 #else
                 ci_0[1] = min(ci_0[1], 2 * xsize_0 - 2 - ci_0[1]);
@@ -256,7 +265,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[2] = -ci_0[2];
                 }
                 ci_0[2] = 1 + (ci_0[2] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[2] = ptrdiff_t_min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
                 #else
                 ci_0[2] = min(ci_0[2], 2 * xsize_0 - 2 - ci_0[2]);
@@ -274,7 +283,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                     ci_0[3] = -ci_0[3];
                 }
                 ci_0[3] = 1 + (ci_0[3] - 1) % ((xsize_0 - 1) * 2);
-                #ifdef _METAL
+                #if defined(_METAL) || defined(_MLX)
                 ci_0[3] = ptrdiff_t_min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
                 #else
                 ci_0[3] = min(ci_0[3], 2 * xsize_0 - 2 - ci_0[3]);
@@ -314,7 +323,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[0] = -ci_1[0];
                     }
                     ci_1[0] = 1 + (ci_1[0] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[0] = ptrdiff_t_min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
                     #else
                     ci_1[0] = min(ci_1[0], 2 * xsize_1 - 2 - ci_1[0]);
@@ -332,7 +341,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[1] = -ci_1[1];
                     }
                     ci_1[1] = 1 + (ci_1[1] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[1] = ptrdiff_t_min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
                     #else
                     ci_1[1] = min(ci_1[1], 2 * xsize_1 - 2 - ci_1[1]);
@@ -350,7 +359,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[2] = -ci_1[2];
                     }
                     ci_1[2] = 1 + (ci_1[2] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[2] = ptrdiff_t_min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
                     #else
                     ci_1[2] = min(ci_1[2], 2 * xsize_1 - 2 - ci_1[2]);
@@ -368,7 +377,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                         ci_1[3] = -ci_1[3];
                     }
                     ci_1[3] = 1 + (ci_1[3] - 1) % ((xsize_1 - 1) * 2);
-                    #ifdef _METAL
+                    #if defined(_METAL) || defined(_MLX)
                     ci_1[3] = ptrdiff_t_min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
                     #else
                     ci_1[3] = min(ci_1[3], 2 * xsize_1 - 2 - ci_1[3]);
@@ -408,7 +417,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[0] = -ci_2[0];
                         }
                         ci_2[0] = 1 + (ci_2[0] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[0] = ptrdiff_t_min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
                         #else
                         ci_2[0] = min(ci_2[0], 2 * xsize_2 - 2 - ci_2[0]);
@@ -426,7 +435,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[1] = -ci_2[1];
                         }
                         ci_2[1] = 1 + (ci_2[1] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[1] = ptrdiff_t_min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
                         #else
                         ci_2[1] = min(ci_2[1], 2 * xsize_2 - 2 - ci_2[1]);
@@ -444,7 +453,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[2] = -ci_2[2];
                         }
                         ci_2[2] = 1 + (ci_2[2] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[2] = ptrdiff_t_min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
                         #else
                         ci_2[2] = min(ci_2[2], 2 * xsize_2 - 2 - ci_2[2]);
@@ -462,7 +471,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
                             ci_2[3] = -ci_2[3];
                         }
                         ci_2[3] = 1 + (ci_2[3] - 1) % ((xsize_2 - 1) * 2);
-                        #ifdef _METAL
+                        #if defined(_METAL) || defined(_MLX)
                         ci_2[3] = ptrdiff_t_min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
                         #else
                         ci_2[3] = min(ci_2[3], 2 * xsize_2 - 2 - ci_2[3]);
@@ -502,4 +511,7 @@ kernel void affine_transform(const device float * x [[ buffer(0) ]],
 
     y[_i] = (float)rint((W)out);
 
+#ifndef _MLX   
 }
+#endif
+//MLX_FUNCTION_END

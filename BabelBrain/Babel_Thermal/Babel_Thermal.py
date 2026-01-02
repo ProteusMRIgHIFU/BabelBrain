@@ -155,9 +155,13 @@ class Babel_Thermal(QWidget):
             config = yaml.safe_load(file)
             print("Thermal configuration:")
             for n in range(len(config['AllDC_PRF_Duration'])):
-                #if repetitions is not present in YAML (for all the old cases, we just assign a default of 1)
+                #if repetitions is not present in YAML (for all the old cases, we just assign a default value
                 if 'Repetitions' not in config['AllDC_PRF_Duration'][n]:
                     config['AllDC_PRF_Duration'][n]['Repetitions']=1
+                if 'NumberGroupedSonications' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['NumberGroupedSonications']=1
+                if 'PauseBetweenGroupedSonications' not in config['AllDC_PRF_Duration'][n]:
+                    config['AllDC_PRF_Duration'][n]['PauseBetweenGroupedSonications']=0.0
             print(config)
             self.Config=config
             self.bDisableUpdate=True
@@ -185,7 +189,8 @@ class Babel_Thermal(QWidget):
 
     @Slot()
     def SelectProfile(self):
-        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",os.getcwd(),"yaml (*.yaml)")[0]
+        curdir = os.path.dirname(self._MainApp.Config['ThermalProfile'])
+        fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",curdir,"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
             if self._MainApp.UpdateThermalProfile(fThermalProfile):
                 self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
@@ -311,8 +316,6 @@ class Babel_Thermal(QWidget):
                                                         combination['Repetitions'])+'.h5'
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
-                if self._MainApp.Config['bUseCT']:
-                    self._ThermalResults[-1]['MaterialMap'][self._ThermalResults[-1]['MaterialMap']>=3]=3
             DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
             self._xf=DataThermal['x_vec']
             self._zf=DataThermal['z_vec']
@@ -324,7 +327,7 @@ class Babel_Thermal(QWidget):
             BaselineTemperature=DataThermal['BaselineTemperature']
         else:
             BaselineTemperature=37.0
-
+        
         Loc=DataThermal['TargetLocation']
 
         if self._LastTMap==-1:
@@ -373,11 +376,22 @@ class Babel_Thermal(QWidget):
         SoSMap=    DataThermal['MaterialList']['SoS'][DataThermal['MaterialMap']]
 
         ImpedanceTarget = DensityMap[Loc[0],Loc[1],Loc[2]]*SoSMap[Loc[0],Loc[1],Loc[2]]
-        
-        if self._MainApp.Config['bUseCT']:
-            SelBrain=DataThermal['MaterialMap']==2
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            BrainID=[1]
+        elif self._MainApp.Config['bUseCT']:
+            if self._MainApp._bSegmentedBrain:
+                BrainID=[2,3,4,5]
+            else:
+                BrainID=[2]
         else:
-            SelBrain=DataThermal['MaterialMap']>=4
+            if self._MainApp._bSegmentedBrain:
+                BrainID=[4,5,6,7]
+            else:
+                BrainID=[4]
+
+        SelBrain=np.isin(DataThermal['MaterialMap'],BrainID)
+
+        AcSimMask=self._MainApp.AcSim._Skull['MaterialMap']
 
         IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
         
@@ -402,11 +416,17 @@ class Babel_Thermal(QWidget):
         DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
         MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-BaselineTemperature)*IsppaRatio+BaselineTemperature
-        MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTTCEM=DoseUpdate[0]
+        else:
+            MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
         self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
 
         MTB=DataThermal['TI']*IsppaRatio+BaselineTemperature
-        MTBCEM=DoseUpdate[1]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTBCEM=DoseUpdate[0]
+        else:
+            MTBCEM=DoseUpdate[1]
         self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
         
         MTS=DataThermal['TIS']*IsppaRatio+BaselineTemperature
@@ -414,7 +434,10 @@ class Babel_Thermal(QWidget):
         self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
 
         MTC=DataThermal['TIC']*IsppaRatio+BaselineTemperature
-        MTCCEM=DoseUpdate[2]
+        if self._MainApp.Config['bForceHomogenousMedium']:
+            MTCCEM=DoseUpdate[0]
+        else:
+            MTCCEM=DoseUpdate[2]
         self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
         MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
@@ -442,10 +465,7 @@ class Babel_Thermal(QWidget):
                 IntensityMap[0,:]=0
             Tmap=(DataThermal['TempEndFUS'][:,SelY,:]-BaselineTemperature)*IsppaRatio+BaselineTemperature
 
-            if self._MainApp.Config['bUseCT']:
-                crlims=[0,1,2]
-            else:
-                crlims=[0,1,2,3]
+            crlims=[0,1,2]
 
             if (self._bRecalculated or self._prevDisplay != WhatDisplay) and hasattr(self,'_figIntThermalFields'):
                 children = []
@@ -465,14 +485,32 @@ class Babel_Thermal(QWidget):
                     self._IntensityIm.set(clim=[IntensityMap.min(),IntensityMap.max()])
                     self._ThermalIm.set_data(Tmap.T)
                     self._ThermalIm.set(clim=[BaselineTemperature,Tmap.max()])
-                    if hasattr(self,'_contour1'):
-                        for c in [self._contour1,self._contour2]:
-                            for coll in c.collections:
-                                coll.remove()
-                        del self._contour1
-                        del self._contour2
-                    self._contour1=self._static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
-                    self._contour2=self._static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        if hasattr(self,'_contour1'):
+                            ListObjects=[self._contour1,self._contour2]
+                            if 'AirMask' in DataThermal:
+                                ListObjects+=[self._airmask1,self._airmask2]
+                            for c in ListObjects:
+                                try: #this is for old Matplotlib
+                                    for coll in c.collections:
+                                        coll.remove()
+                                except:
+                                    c.remove()
+                            del self._contour1
+                            del self._contour2
+                            if 'AirMask' in DataThermal:
+                                del self._airmask1
+                                del self._airmask2
+                            
+                            self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                            self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+
+                            if 'AirMask' in DataThermal:
+                                AirMap=DataThermal['AirMask'][:,SelY,:].T
+                                AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                                self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                                self._airmask2 = self._static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
                         obj.remove()
@@ -512,8 +550,8 @@ class Babel_Thermal(QWidget):
                             cmap=plt.cm.jet)
                     static_ax1.set_title('Isppa (W/cm$^2$)')
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
-
-                    self._contour1=static_ax1.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        self._contour1=static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims,colors ='y',linestyles = ':')
 
                     static_ax1.set_ylabel('Distance from skin (mm)')
 
@@ -522,7 +560,14 @@ class Babel_Thermal(QWidget):
                     static_ax2.set_title('Temperature ($^{\circ}$C)')
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
-                    self._contour2=static_ax2.contour(self._XX,self._ZZ,DataThermal['MaterialMap'][:,SelY,:].T,crlims, cmap=plt.cm.gray)
+                    if not self._MainApp.Config['bForceHomogenousMedium']:
+                        self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+
+                    if 'AirMask' in DataThermal:
+                        AirMap=DataThermal['AirMask'][:,SelY,:].T
+                        AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                        self._airmask1 = static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                        self._airmask2 = static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
 
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:
@@ -664,7 +709,8 @@ class Babel_Thermal(QWidget):
         print(OutName)
         
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
-        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
+        if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','CTX_250_2ch',
+                                                    'H246','R15287','R15473','DPXPC_300']:
             if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix
@@ -672,7 +718,6 @@ class Babel_Thermal(QWidget):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         if 'BaselineTemperature' in DataThermal:
             BaselineTemperature=DataThermal['BaselineTemperature']
-            print('Using BaselineTemperature from file',BaselineTemperature)
         else:
             BaselineTemperature=37.0
         Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
@@ -754,9 +799,14 @@ class RunThermalSim(QObject):
         kargs['Isppa']=self._mainApp.ThermalSim.Config['BaseIsppa']
         kargs['Frequency']=self._mainApp._Frequency
         kargs['BaselineTemperature']=self._mainApp.Config['BaselineTemperature']
+        kargs['LimitBHTEIterationsPerProcess']=self._mainApp.Config['LimitBHTEIterationsPerProcess']
+        kargs['bForceHomogenousMedium']=self._mainApp.Config['bForceHomogenousMedium']
+        kargs['HomogenousMediumValues']=self._mainApp.Config['HomogenousMediumValues']
+        kargs['bForceNoAbsorptionSkullScalp']=self._mainApp.Config['bForceNoAbsorptionSkullScalp']
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
-        if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix']:
+        if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','DPXPC_300','CTX_250_2ch',
+                                 'Single','H246','BSonix','R15287','R15473']:
             kargs['sel_p']='p_amp'
         else:
             bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()

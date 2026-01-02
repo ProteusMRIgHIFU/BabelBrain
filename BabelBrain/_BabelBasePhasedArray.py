@@ -70,9 +70,10 @@ class BabelBasePhaseArray(BabelBaseTx):
             spinbox.setMaximum(self.Config['Maximal'+ID+'Steering']*1e3)
             spinbox.setValue(0.0)
 
-        self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
-        self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
+        if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+            self.Widget.DistanceConeToFocusSpinBox.setMinimum(self.Config['MinimalDistanceConeToFocus']*1e3)
+            self.Widget.DistanceConeToFocusSpinBox.setMaximum(self.Config['MaximalDistanceConeToFocus']*1e3)
+            self.Widget.DistanceConeToFocusSpinBox.setValue(self.Config['DefaultDistanceConeToFocus']*1e3)
         
         self.Widget.MultifocusLabel.setVisible(False)
         self.Widget.SelCombinationDropDown.setVisible(False)
@@ -83,8 +84,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
-        self.Widget.ZMechaniclabel.setVisible(False)
+        if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+            self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
+            self.Widget.ZMechaniclabel.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
         self.up_load_ui()
@@ -165,7 +167,7 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
                 self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
-                if 'DistanceConeToFocus' in Skull:
+                if 'DistanceConeToFocus' in Skull and hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
                     self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
@@ -256,7 +258,10 @@ class BabelBasePhaseArray(BabelBaseTx):
                 else:
                     SelP='p_amp'
 
-                for t in [SelP,'MaterialMap']:
+                keys=[SelP,'MaterialMap']
+                if 'AirMask' in Skull:
+                    keys.append('AirMask')
+                for t in keys:
                     Skull[t]=np.ascontiguousarray(np.flip(Skull[t],axis=2))
 
                 for t in ['p_amp','MaterialMap']:
@@ -296,12 +301,13 @@ class BabelBasePhaseArray(BabelBaseTx):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
-            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
-
+            
             DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
             SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
             
+            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
+            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
+
             self._ISkullCol=[]
             self._IWaterCol=[]
             sz=self._AcResults[0]['Water']['p_amp'].shape
@@ -309,7 +315,8 @@ class BabelBasePhaseArray(BabelBaseTx):
             AllWater=np.zeros((sz[0],sz[1],sz[2],len(self._AcResults)))
             for n,entry in enumerate(self._AcResults):
                 ISkull=entry['Skull'][SelP]**2/2/DensityMap/SoSMap/1e4
-                ISkull[Skull['MaterialMap']!=3]=0
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    ISkull[Skull['MaterialMap']<3]=0
                 IWater=entry['Water']['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
                 
                 AllSkull[:,:,:,n]=ISkull
@@ -321,7 +328,6 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self._IWaterCol.append(IWater)
             #now we add the max projection of fields, we add it at the top
             AllSkull=AllSkull.max(axis=3)
-            AllSkull[Skull['MaterialMap']!=3]=0
             AllSkull/=AllSkull.max()
             AllWater=AllWater.max(axis=3)
             AllWater/=AllWater.max()
@@ -381,19 +387,41 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
-                for c in [self._imContourf1,self._imContourf2,self._contour1,self._contour2]:
-                    for coll in c.collections:
-                        coll.remove()
+                listObjects=[self._imContourf1,self._imContourf2]
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    listObjects+=[self._contour1,self._contour2]
+                    if 'AirMask' in self._Skull:
+                        listObjects+=[self._airmask1,self._airmask2]
+                for c in listObjects:
+                    try: #this is for old Matplotlib
+                        for coll in c.collections:
+                            coll.remove()
+                    except:
+                        c.remove()
                 del self._imContourf1
                 del self._imContourf2
-                del self._contour1
-                del self._contour2
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    del self._contour1
+                    del self._contour2
+                    if 'AirMask' in self._Skull:
+                        del self._airmask1
+                        del self._airmask2 
 
             self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,sliceXZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,sliceYZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = self._static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._figAcField.canvas.draw_idle()
         else:
@@ -413,7 +441,12 @@ class BabelBasePhaseArray(BabelBaseTx):
             self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,sliceXZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax1)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax1.set_aspect('equal')
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
@@ -423,7 +456,12 @@ class BabelBasePhaseArray(BabelBaseTx):
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,sliceYZ.T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax2.set_aspect('equal')
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')
@@ -501,8 +539,6 @@ class RunAcousticSim(QObject):
         basePPW=[self._mainApp._BasePPW]
         T0=time.time()
 
-        DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3
-
         kargs={}
         kargs['ID']=ID
         kargs['deviceName']=deviceName
@@ -519,19 +555,13 @@ class RunAcousticSim(QObject):
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
-        kargs['DistanceConeToFocus']=DistanceConeToFocus
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo'] 
-        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
-        kargs['bPETRA'] = False
+        if hasattr(self._mainApp.AcSim.Widget,'DistanceConeToFocusSpinBox'):
+            DistanceConeToFocus=self._mainApp.AcSim.Widget.DistanceConeToFocusSpinBox.value()/1e3
+            kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
         kargs['bDryRun'] = self._bDryRun
-            
-        if kargs['bUseCT']:
-            if self._mainApp.Config['CTType']==3:
-                kargs['bPETRA']=True
-
-        
+        kargs|=self._mainApp.CommomAcOptions()
+ 
         queue=Queue()
         if self._bDryRun == False:
             #in real run, we run this in background

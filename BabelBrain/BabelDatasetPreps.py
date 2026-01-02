@@ -23,12 +23,7 @@ import pymeshfix
 from scipy.spatial.transform import Rotation as R
 from skimage.measure import label, regionprops
 import vtk
-try:
-    import pycork
-except:
-    print("UNABLE TO IMPORT PYCORK, NEED TO 'SELECT FORCE USING BLENDER' IN ADVANCED OPTIONS")
 import pyvista as pv
-import SimpleITK as sitk
 import time
 import gc
 import yaml
@@ -38,11 +33,16 @@ import platform
 import sys
 from linetimer import CodeTimer
 import re
+from glob import glob
+from pathlib import Path
+import tempfile
+import subprocess
+
 try:
     import CTZTEProcessing
 except:
     from . import CTZTEProcessing
-import tempfile
+
 
 try:
     from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
@@ -53,6 +53,20 @@ try:
     from FileManager import FileManager
 except:
     from .FileManager import FileManager
+
+_IS_MAC = platform.system() == 'Darwin'
+
+def resource_path():  # needed for bundling
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    if not _IS_MAC:
+        return os.path.split(Path(__file__))[0]
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundle_dir = Path(sys._MEIPASS)
+    else:
+        bundle_dir = Path(__file__).parent
+
+    return bundle_dir
 
 def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=0.5, taubinPassBand=0.1, boundarySmoothing=True):
     """Smoothes surface model using a Laplacian filter or Taubin's non-shrinking algorithm.
@@ -110,8 +124,10 @@ def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MedianCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MedianCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MedianCOMPUTING_BACKEND='Metal'
+    else:
+        MedianCOMPUTING_BACKEND='MLX'
 
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
@@ -124,8 +140,10 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         VoxelizeCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         VoxelizeCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         VoxelizeCOMPUTING_BACKEND='Metal'
+    else:
+        VoxelizeCOMPUTING_BACKEND='MLX'
 
 MapFilter=None
 MapFilterCOMPUTING_BACKEND=''
@@ -137,8 +155,10 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         MapFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         MapFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         MapFilterCOMPUTING_BACKEND='Metal'
+    else:
+        MapFilterCOMPUTING_BACKEND='MLX'
 
 ResampleFilter=None
 ResampleFilterCOMPUTING_BACKEND=''
@@ -150,8 +170,10 @@ def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         ResampleFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         ResampleFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         ResampleFilterCOMPUTING_BACKEND='Metal'
+    else:
+        ResampleFilterCOMPUTING_BACKEND='MLX'
 
 BinaryClosingFilter=None
 BinaryClosingFilterCOMPUTING_BACKEND=''
@@ -163,8 +185,10 @@ def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         BinaryClosingFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         BinaryClosingFilterCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         BinaryClosingFilterCOMPUTING_BACKEND='Metal'
+    else:
+        BinaryClosingFilterCOMPUTING_BACKEND='MLX'
 
 LabelImage=None
 LabelImageCOMPUTING_BACKEND=''
@@ -176,8 +200,10 @@ def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
         LabelImageCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
         LabelImageCOMPUTING_BACKEND='OpenCL'
-    else:
+    elif COMPUTING_BACKEND==3:
         LabelImageCOMPUTING_BACKEND='Metal'
+    else:
+        LabelImageCOMPUTING_BACKEND='MLX'
 
 def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
@@ -240,25 +266,12 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     if Mesh1.body_count != 1:
         print('Mesh 1 is invalid... trying to fix')
         Mesh1 = FixMesh(Mesh1)
-
     if Mesh2.body_count != 1:
         print('Mesh 2 is invalid... trying to fix')
         Mesh2 = FixMesh(Mesh2)
-    
     # Perform intersection
-    verts_1 = Mesh1.vertices
-    verts_2 = Mesh2.vertices
-    tris_1 = Mesh1.faces
-    tris_2 = Mesh2.faces
-
     if not bForceUseBlender:
-        try:
-            verts, tris = pycork.intersection(verts_1, tris_1, verts_2, tris_2)
-            Mesh1_intersect = trimesh.Trimesh(vertices=verts, faces=tris, process=True)
-        except:
-            #we use blender as backup if it  fails (but pycork does not trigger an easy to catch exception)
-            print('Pycork failed, defaulting to blender')
-            Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+        Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='manifold')
     else:
         Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
 
@@ -277,6 +290,50 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
+def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
+    scriptbase=os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/")
+    if sys.platform == 'linux' or _IS_MAC:
+        if sys.platform == 'linux':
+            shell='bash'
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_linux.sh")
+        elif _IS_MAC:
+            shell='zsh'
+            path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_mac.sh")
+        
+        print("Starting MeshConv")
+        if _IS_MAC:
+            cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + scriptbase + '" "' + reference + '" "' + mesh +'" "' + finalname + '"'
+            print(cmd)
+            result = os.system(cmd)
+        else:
+            result = subprocess.run(
+                    [shell,
+                    path_script,
+                    SimbNINBSRoot,
+                    reference,
+                    mesh,
+                    finalname], capture_output=True, text=True
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            result=result.returncode 
+    else:
+        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_win.bat")
+        
+        print("Starting MeshConv")
+        result = subprocess.run(
+                [path_script,
+                SimbNINBSRoot,
+                reference,
+                mesh,
+                finalname], capture_output=True, text=True,shell=True,
+        )
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        result=result.returncode 
+    print("MeshConv Finished")
+    
+        
 #process first with SimbNIBS
 def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
@@ -299,7 +356,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 prefix='', #Id to add to output file for identification
                                 bPlot=True,
                                 bForceFullRecalculation=False,
-                                bForceUseBlender=False, # we use pycork by default, but we let open to use blender as backup
+                                bForceUseBlender=False, # we use manifol3d by default, but we let open to use blender as backup
                                 factorEnlargeRadius=1.05,
                                 bApplyBOXFOV=False,
                                 FOVDiameter=60.0, # diameter for  manual FOV
@@ -310,11 +367,18 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 PetraNPeaks=2,
                                 bInvertZTE=False,
                                 bGeneratePETRAHistogram=False,
+                                bSegmentBrainTissue=False,
+                                SimbNINBSRoot='',
                                 PETRASlope=-2929.6,
                                 PETRAOffset=3274.9,
                                 ZTESlope=-2085.0,
                                 ZTEOffset=2329.0,
-                                DeviceName=''): #created reduced FOV
+                                DensityThreshold=1200.0, #this is in case the input data is rather a density map
+                                DeviceName='',
+                                bMaximizeBoneRim=False,
+                                bSaveCTMaximized=False,
+                                bExtractAirRegions=True,
+                                RegionAirCT=[-1200,-400]): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -327,6 +391,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     '''
     print('Starting Masking Process')
+    
+    if CTType==4:
+        TypeThresold=DensityThreshold
+    else:
+        TypeThresold=HUThreshold
 
     # Create file manager for step 1
     S1_file_manager = FileManager(simNIBS_dir = SimbNIBSDir,
@@ -337,11 +406,17 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                     prefix = prefix,
                                     current_CT_type = CTType,
                                     coreg = CoregCT_MRI,
-                                    current_HUT = HUThreshold,
+                                    current_HUT = TypeThresold,
                                     current_pCT_range = ZTERange)
 
     inputfilenames = S1_file_manager.input_files
     outputfilenames = S1_file_manager.output_files
+
+    if bSegmentBrainTissue:
+        mshfile = glob(os.path.join(SimbNIBSDir,'*.msh'))
+        if len(mshfile)!=1:
+            raise RuntimeError("There should be one (and only one) .msh file at " + SimbNIBSDir)
+        mshfile=mshfile[0]
 
     #load T1W
     T1Conformal = S1_file_manager.load_file(T1Conformal_nii)
@@ -439,7 +514,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     TransformationCone[0,3]=Location[0]
     TransformationCone[1,3]=Location[1]
     TransformationCone[2,3]=Location[2]+HeightCone
-    Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone.copy())
+    Cone=creation.cone(RadCone,HeightCone)
+    Cone.apply_transform(TransformationCone.copy())
 
     TransformationCone[2,3]=Location[2]
    
@@ -449,7 +525,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     TransformationCone[2,3]=-Location[2]
 
     Cone.apply_transform(TransformationCone)
-    
     
     RMat=RMat[:3,:3]
     
@@ -726,12 +801,17 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                    ResampleFilter,
                                                    ResampleFilterCOMPUTING_BACKEND)
             rCTdata=rCT.get_fdata()
-            hist = np.histogram(rCTdata[rCTdata>HUThreshold],bins=15)
+            hist = np.histogram(rCTdata[rCTdata>TypeThresold],bins=15)
             print('*'*40)
-            print_hist(hist, title="CT HU", symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
-            rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold
+            if CTType in [1,2,3]:
+                title = "CT HU"
+            else:
+                title= "Density"
+            print_hist(hist, title=title, symbols=r"=",fg_colors="0",bg_colors="0",columns=80)
+            if CTType in [1,2,3]:
+                rCTdata[rCTdata>HUCapThreshold]=HUCapThreshold #we threshold only CT-type data
 
-            fct=nibabel.Nifti1Image((rCTdata>HUThreshold).astype(np.float32), affine=rCT.affine)
+            fct=nibabel.Nifti1Image((rCTdata>TypeThresold).astype(np.float32), affine=rCT.affine)
 
             if CTType in [2,3]:
                 S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['pCTfname'])
@@ -753,21 +833,25 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 nCT=processing.resample_from_to(rCT,mask_nifti2,mode='constant',cval=rCTdata.min())
             else:
                 nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
+
+            RatioCTVoxels=np.ceil(2.0/np.array(nCT.header.get_zooms())).astype(int) # 1 mm distance
+
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
-            ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
+            if CTType in [1,2,3]:
+                ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
             
             if not bDisableCTMedianFilter:
-                with CodeTimer("median filter CT",unit='s'):
-                    print('Theshold for bone',HUThreshold)
+                with CodeTimer("median filter CT/Density",unit='s'):
+                    print('Theshold for bone',TypeThresold)
                     if MedianFilter is None:
-                        fct=ndimage.median_filter(ndataCT>HUThreshold,7,mode='constant',cval=0)
+                        fct=ndimage.median_filter(ndataCT>TypeThresold,7,mode='constant',cval=0)
                     else:
-                        fct=MedianFilter(np.ascontiguousarray(ndataCT>HUThreshold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+                        fct=MedianFilter(np.ascontiguousarray(ndataCT>TypeThresold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
             else:
-                fct = ndataCT>HUThreshold
+                fct = ndataCT>TypeThresold
             sf2=np.round((np.ones(3)*5)/mask_nifti2.header.get_zooms()).astype(int)
-            with CodeTimer("binary closing CT",unit='s'):
+            with CodeTimer("binary closing CT/Density",unit='s'):
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
             nfct=fct!=0
 
@@ -780,9 +864,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 regions=sorted(regions,key=lambda d: d.area)
                 nfct=label_img==regions[-1].label
 
+            ndataCTForAir=ndataCT.copy()
             ndataCT[nfct==False]=0
 
-        with CodeTimer("CT binary_dilation",unit='s'):
+        with CodeTimer("CT/Density binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
         with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
             FinalMask[BinMaskConformalCSFRot]=4  
@@ -813,8 +898,91 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         FinalMask[np.isin(label_img,np.array(AllLabels))]=4
             
         CTBone=ndataCT[nfct]
-        CTBone[CTBone<HUThreshold]=HUThreshold #we cut off to avoid problems in acoustic sim
+        CTBone[CTBone<TypeThresold]=TypeThresold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
+
+        if bMaximizeBoneRim:
+            with CodeTimer("Fixing partial volume artifacts edge",unit='s'):
+                interior_high_th=800.0
+                max_boost = 1000.0
+                nPixelsErode=RatioCTVoxels.copy()
+                print('nPixelsErode',nPixelsErode)
+                #we scan 1mm around the edge
+                for ntr in range(len(RatioCTVoxels)):
+                    if RatioCTVoxels[ntr]%2==0:
+                        RatioCTVoxels[ntr]+=1
+                    if RatioCTVoxels[ntr]==1:
+                        RatioCTVoxels[ntr]=3 #minimum 3 voxels
+    
+                interior_mask=nfct.copy().astype(np.uint8)
+
+                # # # Create conservative interior bone mask (higher threshold + erosion)
+                interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
+                with CodeTimer("binary erosion",unit='s'):
+                    interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
+
+
+                # # Precompute interior bone mean (global or local)
+                global_interior_mean = ndataCT[interior_mask_val].mean()
+                print("Global interior bone mean HU:", global_interior_mean)
+
+                # distance transform from interior mask: for each voxel inside coarse mask,
+                # compute distance to nearest interior voxel (in voxels)
+                # We'll compute distance only within the nfct to save time
+                # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
+                inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
+                # compute distance from every voxel to nearest interior voxel (Euclidean)
+                with CodeTimer("distance_transform_edt",unit='s'):
+                    dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
+
+                # # Identify edge voxels: in nfct but not in interior_mask
+                edge_voxels = (nfct == 1) & (interior_mask == 0)
+
+                # # For each edge voxel, compute weight based on distance (close -> high weight)
+                # # weight = exp(-dist / distance_scale)  (so dist=0 => weight=1 ; dist large => ~0)
+                distance_scale=float(RatioCTVoxels[0])/2.0
+                dist = dist_to_interior[edge_voxels]
+                weights = np.exp(-dist / distance_scale)
+
+                # # Local approach: get a local interior mean per edge voxel by sampling interior voxels
+                # # We'll compute a gaussian-blurred interior mean image for locality:
+                interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
+                # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
+                sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
+                with CodeTimer("interior_f gaussian_filter",unit='s'):
+                    blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
+                with CodeTimer("blur_mask gaussian_filter",unit='s'):
+                    blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
+                # # avoid division by zero
+                local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
+
+                # # Now get local interior mean for each edge voxel
+                local_means = local_interior_mean_img[edge_voxels]
+
+                # # Compute corrected HU: blend original toward local interior mean using weight
+                orig_vals = ndataCT[edge_voxels]
+                correct_vals = orig_vals + weights * (local_means - orig_vals)
+
+                # # Optionally clamp boost to avoid unrealistically large jumps
+                delta = correct_vals - orig_vals
+                delta_clipped = np.clip(delta, a_min=None, a_max=max_boost)  # only upper clamp
+                correct_vals = orig_vals + delta_clipped
+
+                CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
+                CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamenonfiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamenonfiltered)
+
+                # ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
+                ndataCT[edge_voxels] = correct_vals
+
+                if bSaveCTMaximized:
+                    with CodeTimer("saving CTnamefiltered",unit='s'):
+                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
+                        nCTNifti.to_filename(CTnamefiltered)
+
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
         
@@ -824,7 +992,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         qx = ResStep *  np.round( (M/A) * (ndataCT[nfct]-minData) )+ minData
         ndataCT[nfct]=qx
         UniqueHU=np.unique(ndataCT[nfct])
-        print('Unique CT values',len(UniqueHU))
+        print('Unique CT/Density values',len(UniqueHU))
         CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
         S1_file_manager.save_file(file_data=None,filename=CTCalfname,UniqueHU=UniqueHU)
 
@@ -840,6 +1008,25 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
 
             S1_file_manager.save_file(file_data=nCT,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
+
+        if bExtractAirRegions:
+            with CodeTimer("Extracting air regions",unit='s'):
+                AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
+                if MedianFilter is None:
+                    AirRegions=ndimage.median_filter(AirRegions.astype(np.uint8),3)
+                else:
+                    AirRegions=MedianFilter(AirRegions.astype(np.uint8),3,GPUBackend=MedianCOMPUTING_BACKEND)
+
+                if LabelImage is None:
+                    label_img = label(AirRegions==1)
+                else:
+                    label_img = LabelImage(AirRegions==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                regions= regionprops(label_img)
+                regions=sorted(regions,key=lambda d: d.area)
+                AirRegions[label_img==regions[-1].label]=0 #we turn off air around head
+                AirRegions=nibabel.Nifti1Image(AirRegions, nCT.affine, nCT.header)
+                outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
+                AirRegions.to_filename(outname)
 
     with CodeTimer("final median filter ",unit='s'):
         if CT_or_ZTE_input is not None:
@@ -902,15 +1089,36 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                     Line=FinalMask[i,j,:Rloc[2]]
                     bone = np.array(np.where((Line==2) | (Line==3))).flatten()
                     if len(bone)>0:
-                        subline=Line[:bone.min()-1]
+                        subline=Line[:bone.min()]
                         subline[subline==4]=1
                         FinalMask[i,j,:len(subline)]=subline
             
             FinalMask=np.flip(FinalMask,axis=2)
 
+    if bSegmentBrainTissue:
 
+        # we just need an empty file to pass matrx size and affine
+        emptyNifti =   nibabel.Nifti1Image(FinalMask*0, affine=baseaffineRot)
 
-    mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)    
+        with CodeTimer("Upscaling final tissue to recover GM and WM masks",unit='s'):
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                ename=os.path.join(tmpdirname,'empty.nii.gz')
+                emptyNifti.to_filename(ename)
+                outname = os.path.join(tmpdirname,'out.nii.gz')
+                RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
+                upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
+        
+        FinalMask2=FinalMask.copy()
+        FinalMask2[upScaleMask==1]=6 #white matter
+        FinalMask2[upScaleMask==2]=7 #gray matter
+        FinalMask2[upScaleMask==3]=8 #CSF
+        for n in range(6):
+            if n!=4:
+                FinalMask2[FinalMask==n]=n
+
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask2, affine=baseaffineRot) 
+    else:
+        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     S1_file_manager.save_file(file_data=mask_nifti2,filename=outname)

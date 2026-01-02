@@ -8,9 +8,9 @@ import sys
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size
+    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -68,6 +68,15 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
 
         # Create kernels from program function
         knl=prgcl.function('mapfilter')
+    elif GPUBackend == 'MLX':
+        import mlx.core as mx
+        clp = mx
+
+        preamble = '#define _MLX\n'
+        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files,DeviceName)
+       
+        # Create kernel from program function
+        knl=prgcl['mapfilter']['kernel']
 
     
 def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
@@ -156,7 +165,7 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
             output_section_gpu.release()
             queue.finish()
 
-        else:
+        elif GPUBackend=='Metal':
             # Move input data from host to device memory
             HUMap_section_gpu = ctx.buffer(HUMap_section) 
             UniqueHU_gpu = ctx.buffer(UniqueHU)
@@ -175,6 +184,26 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
 
             # Move kernel output data back to host memory
             output_section = np.frombuffer(output_section_gpu,dtype=output.dtype).reshape(output_section.shape)
+        elif GPUBackend=='MLX':
+            # Move input data from host to device memory
+            HUMap_section_gpu = ctx.array(HUMap_section) 
+            UniqueHU_gpu = ctx.array(UniqueHU)
+            SelBone_section_gpu = ctx.array(SelBone_section)
+            output_section_gpu = ctx.zeros(output_section.shape, ctx.uint32)
+            int_params_gpu = ctx.array(int_params)
+
+            # Deploy map filter kernel
+            handle=knl(inputs=[HUMap_section_gpu,SelBone_section_gpu,UniqueHU_gpu,output_section_gpu,int_params_gpu],
+                       grid=[HUMap_section.size,1,1],
+                       threadgroup=[1024,1,1],
+                       output_shapes=[[1,1,1]], # dummy output is just 1 float, as we never write to it
+                       output_dtypes=[ctx.float32],
+                       use_optimal_threadgroups=True
+                       )[0]
+            ctx.eval(handle)
+
+            # Move kernel output data back to host memory
+            output_section = np.array(output_section_gpu).reshape(output_section.shape)
   
         # Record results in output array
         output[slice_start:slice_end,:,:] = output_section[:,:,:]

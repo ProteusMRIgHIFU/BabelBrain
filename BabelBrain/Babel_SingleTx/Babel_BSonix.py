@@ -87,7 +87,7 @@ class BSonix(SingleTx):
 
     def UpdateLimits(self):
         model=self.GetTxModel()
-        FocalLength = self.Config[model]['TxFoc']*1e3
+        FocalLength = self.Config[model]['FocalLength']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
@@ -111,7 +111,7 @@ class BSonix(SingleTx):
     def RunSimulation(self):
         extrasuffix=self.GetExtraSuffixAcFields()
         model=self.GetTxModel()
-        FocalLength = self.Config[model]['TxFoc']*1e3
+        FocalLength = self.Config[model]['FocalLength']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
         self._prefix=self._MainApp._prefix_path+model
         self._FullSolName=self._prefix+'_DataForSim.h5' 

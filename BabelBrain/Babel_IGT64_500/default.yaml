@@ -1,0 +1,48 @@
+FocalLength:                    75.0e-3 #Tx focal length
+TxDiam:                   65.0e-3 # Tx aperture diameter
+
+MinimalZSteering:      -30.0e-3  # in m
+MaximalZSteering:       30.0e-3  # in m
+MinimalXSteering:      -20.0e-3  # in m
+MaximalXSteering:       20.0e-3  # in m
+MinimalYSteering:      -20.0e-3  # in m
+MaximalYSteering:       20.0e-3  # in m
+
+MinimalDistanceConeToFocus:       10.0e-3  # in m
+MaximalDistanceConeToFocus:       65.0e-3  # in m 
+DefaultDistanceConeToFocus:       65.0e-3  # in m
+
+USFrequencies:
+    - 500000.0
+
+
+PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
+    500000.0:
+        FocalDistanceList:
+            - 28.0
+            - 34.0
+            - 40.0
+            - 46.0
+            - 52.0
+            - 58.0
+            - 64.0
+            - 70.0
+            - 76.0
+            - 82.0
+            - 88.0
+            - 94.0
+            - 100.0
+        FHMLList:
+            - 6.6
+            - 8.4
+            - 10.2
+            - 12.3
+            - 15.0
+            - 17.7
+            - 20.7
+            - 24.0
+            - 27.3
+            - 30.6
+            - 34.2
+            - 37.8
+            - 41.7

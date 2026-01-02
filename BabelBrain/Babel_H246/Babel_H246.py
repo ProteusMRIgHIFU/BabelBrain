@@ -135,7 +135,7 @@ class H246(BabelBaseTx):
             DistanceSkin =  -Skull['TxMechanicalAdjustmentZ']*1e3
 
             ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "TPO distance=%3.2f\n" %(TPO*1e3)+
+                                    "Z distance=%3.2f\n" %(TPO*1e3)+
                                     "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                     "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                     "DistanceSkin=%3.2f\n" %(DistanceSkin)+
@@ -233,14 +233,8 @@ class RunAcousticSim(QObject):
         kargs['ZSteering']=ZSteering
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
-        kargs['bUseCT']=self._mainApp.Config['bUseCT']
-        kargs['CTMapCombo']=self._mainApp.Config['CTMapCombo']
-        kargs['bUseRayleighForWater']=self._mainApp.Config['bUseRayleighForWater']
-        kargs['bPETRA'] = False
         kargs['ZIntoSkin'] = ZIntoSkin
-        if kargs['bUseCT']:
-            if self._mainApp.Config['CTType']==3:
-                kargs['bPETRA']=True
+        kargs|=self._mainApp.CommomAcOptions()
         # Start mask generation as separate process.
         queue=Queue()
         fieldWorkerProcess = Process(target=CalculateFieldProcess, 

@@ -146,10 +146,13 @@ class BabelBaseTx(QWidget):
             self.ExportStep2Results(Skull)    
 
             LocTarget=Skull['TargetLocation']
-            print(LocTarget)
+            print('LocTarget',LocTarget)
 
             for d in [Water,Skull]:
-                for t in ['p_amp','MaterialMap']:
+                keys=['p_amp','MaterialMap']
+                if 'AirMask' in d:
+                    keys.append('AirMask')
+                for t in keys:
                     d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
 
             DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
@@ -159,20 +162,18 @@ class BabelBaseTx(QWidget):
             Skull['z_vec']*=1e3
             Skull['x_vec']*=1e3
             Skull['y_vec']*=1e3
+            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
+            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            
             Skull['MaterialMap'][Skull['MaterialMap']==3]=2
             Skull['MaterialMap'][Skull['MaterialMap']==4]=3
 
             IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
 
-            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
+            ISkull=Skull['p_amp']**2/2/DensityMap/SoSMap
 
-            ISkull=Skull['p_amp']**2/2/Skull['Material'][4,0]/Skull['Material'][4,1]
-
-            IntWaterLocation=IWater[LocTarget[0],LocTarget[1],LocTarget[2]]
-            IntSkullLocation=ISkull[LocTarget[0],LocTarget[1],LocTarget[2]]
-            
-            ISkull[Skull['MaterialMap']!=3]=0
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                ISkull[Skull['MaterialMap']<3]=0
             cxr,cyr,czr=np.where(ISkull==ISkull.max())
             cxr=cxr[0]
             cyr=cyr[0]
@@ -230,19 +231,41 @@ class BabelBaseTx(QWidget):
 
         if hasattr(self,'_figAcField'):
             if hasattr(self,'_imContourf1'):
-                for c in [self._imContourf1,self._imContourf2,self._contour1,self._contour2]:
-                    for coll in c.collections:
-                        coll.remove()
+                listObjects=[self._imContourf1,self._imContourf2]
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    listObjects+=[self._contour1,self._contour2]
+                    if 'AirMask' in self._Skull:
+                        listObjects+=[self._airmask1,self._airmask2]
+                for c in listObjects:
+                    try: #this is for old Matplotlib
+                        for coll in c.collections:
+                            coll.remove()
+                    except:
+                        c.remove()
                 del self._imContourf1
                 del self._imContourf2
-                del self._contour1
-                del self._contour2
+                if not self._MainApp.Config['bForceHomogenousMedium']:
+                    del self._contour1
+                    del self._contour2
+                    if 'AirMask' in self._Skull:
+                        del self._airmask1
+                        del self._airmask2 
 
             self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = self._static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
 
             self._figAcField.canvas.draw_idle()
         else:
@@ -262,7 +285,12 @@ class BabelBaseTx(QWidget):
             self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax1)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][:,SelY,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask1 = static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax1.set_aspect('equal')
             static_ax1.set_xlabel('X mm')
             static_ax1.set_ylabel('Z mm')
@@ -272,7 +300,12 @@ class BabelBaseTx(QWidget):
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
             h=plt.colorbar(self._imContourf1,ax=static_ax2)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2,3], cmap=plt.cm.gray)
+            if not self._MainApp.Config['bForceHomogenousMedium']:
+                self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
+                if 'AirMask' in self._Skull:
+                    AirMap=self._Skull['AirMask'][SelX,:,:].T
+                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
+                    self._airmask2 = static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
             static_ax2.set_aspect('equal')
             static_ax2.set_xlabel('Y mm')
             static_ax2.set_ylabel('Z mm')
@@ -304,9 +337,26 @@ class BabelBaseTx(QWidget):
         pass #to be defined by those Tx capable of multi-point
     
     def CalculateDistancesTarget(self):
+        # Get voxel size
         dx=  np.mean(np.diff(self._Skull['x_vec']))
         voxelsize=np.array([dx,dx,dx])
-        stats=CalcVolumetricMetrics(self._ISkull,voxelsize)
+        
+        # Determine plot to use for calculating distances
+        if hasattr(self.Widget,'SelCombinationDropDown'):
+            # For phased arrays
+            if self.Widget.SelCombinationDropDown.isVisible():
+                # For multifocal sims, use the central focal spot to find mechanical adjustments
+                central_plot_index = self.Widget.SelCombinationDropDown.findText('X:0.0 Y:0.0 Z:0.0')
+            else:
+                # For single focus sims
+                central_plot_index = 0
+                
+            central_focal_spot_plot = self._ISkullCol[central_plot_index]
+        else:
+            # For single focus txs
+            central_focal_spot_plot = self._ISkull
+            
+        stats=CalcVolumetricMetrics(central_focal_spot_plot,voxelsize)
         x_o=np.unique(self._XX)
         y_o=np.unique(self._YY)
         z_o=np.unique(self._ZZX)

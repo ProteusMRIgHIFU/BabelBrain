@@ -10,13 +10,21 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_H246/default.yaml','./Babel_H246'),
         ('Babel_CTX500/default.yaml','./Babel_CTX500'),
         ('Babel_CTX250/default.yaml','./Babel_CTX250'),
+        ('Babel_CTX250_2ch/default.yaml','./Babel_CTX250_2ch'),
         ('Babel_DPX500/default.yaml','./Babel_DPX500'),
+        ('Babel_DPXPC300/default.yaml','./Babel_DPXPC300'),
         ('Babel_SingleTx/default.yaml','./Babel_SingleTx'),
         ('Babel_SingleTx/defaultBSonix.yaml','./Babel_SingleTx'),
         ('Babel_REMOPD/default.yaml','./Babel_REMOPD'),
         ('Babel_I12378/default.yaml','./Babel_I12378'),
         ('Babel_ATAC/default.yaml','./Babel_ATAC'),
         ('Babel_R15148/default.yaml','./Babel_R15148'),
+        ('Babel_R15287/default.yaml','./Babel_R15287'),
+        ('Babel_R15473/default.yaml','./Babel_R15473'),
+        ('Babel_R15646/default.yaml','./Babel_R15646'),
+        ('Babel_IGT64_500/default.yaml','./Babel_IGT64_500'),
+        ('Babel_DomeTx/default.yaml','./Babel_DomeTx'),
+        ('Babel_H301/default.yaml','./Babel_H301'),
         ('default.yaml','./'),
         ('version.txt','./'),
         ('version-gui.txt','./'),
@@ -25,20 +33,25 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('rigid_template.txt','./'),
         ('Babel_H317/form.ui','./Babel_H317'),
         ('Babel_H246/form.ui','./Babel_H246'),
-        ('Babel_CTX500/form.ui','./Babel_CTX500'),
+        ('_Babel_RingTx/form.ui','./_Babel_RingTx'),
         ('Babel_SingleTx/form.ui','./Babel_SingleTx'),
         ('Babel_SingleTx/formBx.ui','./Babel_SingleTx'),
         ('Babel_REMOPD/form.ui','./Babel_REMOPD'),
+        ('Babel_DomeTx/form.ui','./Babel_DomeTx'),
         ('GUIComponents/scrollbars.ui','./GUIComponents'),
         ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
         ('../TranscranialModeling/I12378.csv','./TranscranialModeling'),
         ('../TranscranialModeling/ATACArray.csv','./TranscranialModeling'),
+        ('../TranscranialModeling/DomeTxTransducerGeometry.csv','./TranscranialModeling'),
         ('../TranscranialModeling/R15148_1001.mat','./TranscranialModeling'),
+        ('../TranscranialModeling/R15646.csv','./TranscranialModeling'),
         ('../TranscranialModeling/MapPichardo.h5','./TranscranialModeling'),
         ('../TranscranialModeling/WebbHU_SoS.csv','./TranscranialModeling'),
         ('../TranscranialModeling/WebbHU_Att.csv','./TranscranialModeling'),
         ('../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5','./TranscranialModeling'),
         ('../TranscranialModeling/REMOPD_ElementPosition.mat','./TranscranialModeling'),
+        ('../TranscranialModeling/IGT64_500.csv','./TranscranialModeling'),
+        ('../TranscranialModeling/H301.csv','./TranscranialModeling'),
         ('Babel_Thermal/form.ui','./Babel_Thermal'),
         ('GPUFunctions/GPUBinaryClosing/binary_closing.cpp','./GPUFunctions/GPUBinaryClosing'),
         ('GPUFunctions/GPULabel/label.cpp','./GPUFunctions/GPULabel'),
@@ -52,12 +65,43 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
 with open('version.txt','r') as f:
     version=f.readlines()[0].strip()
 
+commonhidden=['Babel_H317.Babel_H317',
+              'Babel_H246.Babel_H246',
+              'Babel_CTX500.Babel_CTX500',
+              'Babel_CTX250.Babel_CTX250',
+              'Babel_CTX250_2ch.Babel_CTX250_2ch', 
+              'Babel_DPX500.Babel_DPX500',
+              'Babel_DPXPC300.Babel_DPXPC300',
+              'Babel_SingleTx.Babel_SingleTx',
+              'Babel_SingleTx.Babel_BSonix',
+              'Babel_REMOPD.Babel_REMOPD',
+              'Babel_I12378.Babel_I12378',
+              'Babel_ATAC.Babel_ATAC',
+              'Babel_R15148.Babel_R15148',
+              'Babel_R15287.Babel_R15287',
+              'Babel_R15473.Babel_R15473',
+              'Babel_R15646.Babel_R15646',
+              'Babel_IGT64_500.Babel_IGT64_500',
+              'Babel_DomeTx.Babel_IDomeTx',
+              'Babel_H301.Babel_H301',
+              'TranscranialModeling.BabelIntegrationCONCAVE_PHASEDARRAY',
+              'TranscranialModeling.BabelIntegrationH317',
+              'TranscranialModeling.BabelIntegrationH246',
+              'TranscranialModeling.BabelIntegrationREMOPD',
+              'TranscranialModeling.BabelIntegrationI12378',
+              'TranscranialModeling.BabelIntegrationATAC',
+              'TranscranialModeling.BabelIntegrationR15148',
+              'TranscranialModeling.BabelIntegrationR15646',
+              'TranscranialModeling.BabelIntegrationIGT64_500',
+              'TranscranialModeling.BabelIntegrationDomeTx',
+              'TranscranialModeling.BabelIntegrationH301']
+
 if 'Darwin' in platform.system(): #for Mac
     tmp_ret = collect_all('BabelViscoFDTD')
     binaries = tmp_ret[1]
     datas=tmp_ret[0]
     tmp_ret = collect_all('trimesh')
-    hiddenimports=tmp_ret[2]
+    hiddenimports=commonhidden+tmp_ret[2]
     datas+=tmp_ret[0]
 
     tmp_ret = collect_all('itk')
@@ -84,8 +128,14 @@ if 'Darwin' in platform.system(): #for Mac
                 binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
             elif  '.txt' in l:
                 binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.py' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.sh' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.bat' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
     print('binaries',binaries)
-    if 'Darwin' in platform.system() and 'arm64' not in platform.platform():
+    if 'arm64' not in platform.platform():
         hiddenimports+=['histoprint']
         libdir = compat.base_prefix + "/lib"
         mkllib = filter(lambda x : x.startswith('libmkl_'), listdir(libdir))
@@ -93,6 +143,10 @@ if 'Darwin' in platform.system(): #for Mac
             print("MKL installed as part of numpy, importing that!")
             binaries+= map(lambda l: (libdir + "/" + l, './'), mkllib)
             print(binaries)
+
+    if  'arm64' in platform.platform():
+        hiddenimports+=collect_submodules('mlx')
+
 
     block_cipher = None
 
@@ -161,6 +215,8 @@ elif 'Windows' in platform.system(): #for Windows
                         'fastrlock',\
                         'skimage',\
                         'pyopencl',\
+                        'pwlf',\
+                        'openpyxl'\
                         ]
 
     for mp in missing_package_info:
@@ -171,6 +227,7 @@ elif 'Windows' in platform.system(): #for Windows
         binaries += modinfo[1]
         hiddenimports += modinfo[2]
         
+    hiddenimports+=commonhidden
     binaries+=[(os.environ['CONDA_PREFIX']+'/Library/bin/nvrtc-builtins64_117.dll','./')]
     datas+=commonDatas
     datas+=[('ExternalBin/elastix/run_win.bat','./ExternalBin/elastix'),
@@ -214,7 +271,11 @@ elif 'Windows' in platform.system(): #for Windows
         datas=datas,
         hiddenimports=hiddenimports,
         hookspath=[],
-        hooksconfig={},
+        hooksconfig={
+            "matplotlib": {
+                "backends": ["TkAgg","Qt5Agg","AGG","PDF","PS","SVG","PGF"],  # collect multiple backends
+            },
+        },
         runtime_hooks=[],
         excludes=[],
         win_no_prefer_redirects=False,
@@ -255,6 +316,7 @@ else: #for Linux
     datas = []
     binaries = []
     hiddenimports = []
+    hiddenimports += commonhidden
 
     missing_package_info = ['BabelViscoFDTD',\
                         'cupy','cupyx','cupy_backends',
@@ -312,7 +374,11 @@ else: #for Linux
         datas=datas,
         hiddenimports=hiddenimports,
         hookspath=[],
-        hooksconfig={},
+        hooksconfig={
+            "matplotlib": {
+                "backends": ["TkAgg","Qt5Agg","AGG","PDF","PS","SVG","PGF"],  # collect multiple backends
+            },
+        },
         runtime_hooks=[],
         excludes=[],
         win_no_prefer_redirects=False,

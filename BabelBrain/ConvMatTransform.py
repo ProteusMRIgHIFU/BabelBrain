@@ -16,7 +16,7 @@ FixedParameters: 0 0 0
 
 templateBSight=\
 '''# Version: 13
-# Coordinate system: NIfTI:Aligned
+# Coordinate system: NIfTI:S:Scanner
 # Created by: Brainsight 2.5
 # Units: millimetres, degrees, milliseconds, and microvolts
 # Encoding: UTF-8
@@ -26,7 +26,6 @@ templateBSight=\
 '''
 
 import re
-
 def read_itk_affine_transform(filename):
     with open(filename) as f:
         tfm_file_lines = f.readlines()
@@ -67,12 +66,41 @@ def itk_to_BSight(itk_transform):
     transform_from_parent_RAS[:3,:3]=np.diagflat([-1,-1,-1])@transform_from_parent_RAS[:3,:3]
     return transform_from_parent_RAS
 
+def test_inverse():
+    # make a random but valid 4x4 affine
+    rng = np.random.default_rng(42)
+    R = rng.normal(size=(3,3))
+    U, _, Vt = np.linalg.svd(R)          # make it a proper rotation
+    R = U @ Vt
+    T = rng.normal(size=3)
+
+    M_ras = np.eye(4)
+    M_ras[:3,:3] = R
+    M_ras[:3, 3] = T
+
+    # forward + backward
+    M_itk = BSight_to_itk(M_ras)
+    M_ras_back = itk_to_BSight(M_itk)
+
+    # # backward + forward
+    # M_itk2 = rng.normal(size=(4,4))
+    # M_itk2[3] = [0,0,0,1]   # force affine
+    # M_ras2 = itk_to_BSight(M_itk2)
+    # M_itk2_back = BSight_to_itk(M_ras2)
+
+    # check closeness
+    print("M_itk:\n", M_ras)
+    print("M_itk_back:\n", M_ras_back)
+    assert np.allclose(M_ras, M_ras_back, atol=1e-3)
+    # assert np.allclose(M_itk2, M_itk2_back, atol=1e-3)
+    print("✔️ Both functions are true inverses!")
+
+
 def BSight_to_itk(BSight_transform):
     ras2lps = np.diag([-1, -1, 1, 1])
     in_trans=BSight_transform.copy()
     in_trans[:3,:3]=np.diagflat([-1,-1,-1])@in_trans[:3,:3]
     transform_to_LPS = ras2lps @  np.linalg.inv(in_trans) @ ras2lps
-
     return transform_to_LPS
 
 
@@ -90,24 +118,51 @@ def GetBrainSightHeader(fname):
     dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:-2]}
     return dct
 
-def ReadTrajectoryBrainsight(fname):
+def ReadTrajectoryBrainsight(fname,bGetID=False):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
       'm0n0','m0n1','m0n2',
       'm1n0','m1n1','m1n2',
       'm2n0','m2n1','m2n2']
+    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python')
+    ID=df['Target name'][0]
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:]).iloc[0].to_numpy()
     Mat4=np.eye(4)
     Mat4[:3,3]=df[:3]
     Mat4[:3,0]=df[3:6]
     Mat4[:3,1]=df[6:9]
     Mat4[:3,2]=df[9:]
+    if bGetID:
+        return Mat4, ID
+    else:
+        return Mat4
+
+def write_insight_transform_from_ras(transform, filename):
+    """
+    Write an Insight Transform (.tfm) file from a 4x4 RAS transform matrix (as in 3D Slicer).
     
-    return Mat4
+    Parameters
+    ----------
+    transform : array_like (4x4)
+        Transform matrix in LPS coordinates.
+    filename : str
+        Output filename for the .tfm file.
+    """
 
+    lps_matrix = transform
+    rotation_scale = lps_matrix[0:3, 0:3].flatten(order="C")  # column-major
+    translation = lps_matrix[0:3, 3]
 
+    # Write Insight Transform File
+    with open(filename, "w") as f:
+        f.write("#Insight Transform File V1.0\n")
+        f.write("#Transform 0\n")
+        f.write("Transform: AffineTransform_double_3_3\n")
+        params = " ".join(f"{p:.12g}" for p in np.concatenate((rotation_scale, translation)))
+        f.write(f"Parameters: {params}\n")
+        f.write("FixedParameters: 0 0 0\n")
+        
 if __name__ == "__main__":
-
     class MyParser(argparse.ArgumentParser):
         def error(self, message):
             sys.stderr.write('error: %s\n' % message)
@@ -161,6 +216,8 @@ if __name__ == "__main__":
         print(transform)
         outname=Infname.split('.txt')[0]+'_Slicer.txt'
 
+        transform[:3,:3]=transform[:3,:3].T
+
         outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
                                         m0n2=transform[2,0],
@@ -173,8 +230,9 @@ if __name__ == "__main__":
                                         X=transform[0,3],
                                         Y=transform[1,3],
                                         Z=transform[2,3])
-        
-    
+       
+
     print(outString)
     with open(outname,'w') as f:
         f.write(outString)
+

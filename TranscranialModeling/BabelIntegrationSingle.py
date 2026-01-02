@@ -19,6 +19,7 @@ import scipy
 from trimesh import creation 
 import trimesh
 import matplotlib.pyplot as plt
+from scipy.io import loadmat
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, SpeedofSoundWater
 
 ###########################################
@@ -252,35 +253,16 @@ class SimulationConditions(SimulationConditionsBASE):
         self._TxRC=self.GenTx()
         self._TxRCOrig=self.GenTx(bOrigDimensions=True)
         
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
+        ZDomainStart = self.CalculateDomainZReference()
         
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
+        print('Init Location of back Tx in Z',  self._TxRC['center'][:,2].min())
+       
 
-            fig = plt.figure()
-            ax = Axes3D(fig)
-            
-            ax.add_collection3d(Poly3DCollection(self._TxRC['VertDisplay'][self._TxRC['FaceDisplay']]*1e3)) #we plot the units in mm
-                #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._TxRC['Aperture']/2*1e3-5,self._TxRC['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
-        
         for Tx in [self._TxRC,self._TxRCOrig]:
             for k in ['center','VertDisplay','elemcenter']:
                 Tx[k][:,0]+=self._TxMechanicalAdjustmentX
                 Tx[k][:,1]+=self._TxMechanicalAdjustmentY
-                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ-StartSkin
+                Tx[k][:,2]+=self._TxMechanicalAdjustmentZ+ZDomainStart
         Correction=0.0
         while np.max(self._TxRC['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
@@ -296,7 +278,8 @@ class SimulationConditions(SimulationConditionsBASE):
             raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         #we apply an homogeneous pressure 
-       
+        print('Location of back Tx in Z',  self._TxRC['center'][:,2].min())
+        print('Location of source layer Z',self._ZDim[self._ZSourceLocation])
         
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
@@ -307,35 +290,25 @@ class SimulationConditions(SimulationConditionsBASE):
         yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
+        u0*=self.AdjustWeightAmplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
                          self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
-        
+
         self._u2RayleighField=u2
-        
         self._SourceMapRayleigh=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleigh[:self._PMLThickness,:]=0
         self._SourceMapRayleigh[-self._PMLThickness:,:]=0
         self._SourceMapRayleigh[:,:self._PMLThickness]=0
         self._SourceMapRayleigh[:,-self._PMLThickness:]=0
-        if self._bDisplay:
-            plt.figure(figsize=(6,3))
-            plt.subplot(1,2,1)
-            plt.imshow(np.abs(self._SourceMapRayleigh)/1e6,
-                       vmin=np.abs(self._SourceMapRayleigh[RegionMap]).min()/1e6,cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Incident map to be forwarded propagated (MPa)')
-
-            plt.subplot(1,2,2)
-            
-            plt.imshow((np.abs(u2[:,self._FocalSpotLocation[1],:]).T+
-                                       self._MaterialMap[self._FocalSpotLocation[0],:,:].T*
-                                       np.abs(u2[self._FocalSpotLocation[0],:,:]).max()/10)/1e6,
-                                       extent=[self._YDim.min(),self._YDim.max(),self._ZDim.max(),self._ZDim.min()],
-                                       cmap=plt.cm.jet)
-            plt.colorbar()
-            plt.title('Acoustic field with Rayleigh with skull and brain (MPa)')
+        
+        if len(self._BenchmarkTestFile)>0 and len(self._InputFocusStart)>0:
+            print('Loading input focus from',self._InputFocusStart)
+            #we load the input focus from the file
+            InputFocus=loadmat(self._InputFocusStart)
+            self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
+                                  self._PMLThickness:-self._PMLThickness]=InputFocus['sourceplane']
         
     def CreateSources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field

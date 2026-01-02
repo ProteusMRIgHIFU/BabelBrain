@@ -20,6 +20,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
 import SimpleITK as sitk
 from scipy import interpolate
+import scipy
 import warnings
 import time
 import gc
@@ -28,6 +29,7 @@ import os
 import pandas as pd
 import h5py
 from linetimer import CodeTimer
+import pwlf
 
 try:
     import mkl_fft as fft
@@ -57,8 +59,14 @@ def resource_path():  # needed for bundling
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
 _MapPichardo = ReadFromH5py(os.path.join(resource_path(), 'MapPichardo.h5'))
-_PichardoSOS=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
-_PichardoAtt=interpolate.interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
+if scipy.__version__>"1.14.0":
+    interp2d=interpolate.RectBivariateSpline
+    _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'],kx=1,ky=1)
+    _PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'],kx=1,ky=1)
+else:
+    interp2d=interpolate.interp2d
+    _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
+    _PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
 def FitSpeedCorticalShear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
@@ -130,7 +138,7 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
 MatFreq={}
-for f in np.arange(100e3,1025e3,5e3):
+for f in np.arange(100e3,1125e3,5e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
@@ -142,8 +150,19 @@ for f in np.arange(100e3,1025e3,5e3):
                                              FitSpeedTrabecularShear(f),
                                              FitAttTrabecularLong_Multiple(f) , 
                                              FitAttBoneShear(f)])
-    Material['Skin']=      np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
-    Material['Brain']=     np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
+    Material['Skin']=           np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
+    Material['Brain']=          np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
+   
+    #for gm and wm attenuation, average of these 2 reports
+    # white matter	0.558	dB/cm/MHz	0.25-0.75				fit to line for ITIS Foundation from .25 to .75 MHz, intercept=0
+    # white matter	1.21	dB/cm/MHz 	3.5 to 10		20C		Labuda (2022) - From sectional 2D maps
+    # gray matter	0.094	dB/cm/MHz	0.25-0.75				fit to line for ITIS Foundation from .25 to .75 MHz, intercept=0
+    # gray matter	0.67	dB/cm/MHz 	3.5 to 10		20C		Labuda (2022) - From sectional 2D maps
+
+    #Labuda et al. 2022 for SoS and attenuation, ITIS for density 
+    Material['WhiteMatter']=    np.array([1041.0, 1537.0, 0.0   ,  10.1772968*f/1000e3 , 0])
+    Material['GrayMatter']=     np.array([1045.0, 1520.0, 0.0   ,  4.397881647*f/1000e3 , 0])
+    Material['CSF']=            np.array([1007.0, 1507.0, 0.0   , 0.0990*f/1000e3 , 0])
 
     MatFreq[f]=Material
 
@@ -159,7 +178,7 @@ def GetSmallestSOS(frequency,bShear=False):
     
     if bShear:
         SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
-        print('GetSmallestSOS',SoS)
+    print('GetSmallestSOS',SoS)
     return SoS
 
 def LLSoSITRUST(density):
@@ -188,11 +207,56 @@ def primeCheck(n):
         return True
     
 
-def HUtoDensityKWave(HUin):
+def DensityToHUBony(ct_in):
+    '''
+    Convert CT values to bone density using piecewise linear fitting.
+    
+    Parameters
+    ----------
+    ct_in : array-like or float
+        CT values (Hounsfield units) for bone.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Predicted bone density (kg/m³).
+    '''
+    CTtoDensity=np.array([[-9.47030278e+02,  1.22500000e+00],
+       [ 5.20388482e+01,  1.06000000e+03],
+       [ 2.02749650e+02,  1.16000000e+03],
+       [ 8.10468261e+02,  1.53000000e+03],
+       [ 1.00399419e+03,  1.66000000e+03],
+       [ 1.23490136e+03,  1.82000000e+03],
+       [ 1.41901214e+03,  1.99000000e+03],
+       [ 1.65990448e+03,  2.15000000e+03]])
+    pwf=pwlf.PiecewiseLinFit(CTtoDensity[:,1],CTtoDensity[:,0])
+    pwf.fit_with_breaks(CTtoDensity[:,1])
+    return pwf.predict(ct_in)
+    
+
+def HUtoDensityKWave(hu_in):
+    '''
+    Convert Hounsfield Units to density using k-Wave model.
+    
+    Adapted from hounsfield2density.m from k_wave
+    References:
+    - Phys. Med. Biol., 41, pp. 111-124 (1996).
+    - Acoust. Res. Lett. Online, 1(2), pp. 37-42 (2000).
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     #Adapted from hounsfield2density.m fromk k_wave
     # Phys. Med. Biol., 41, pp. 111-124 (1996).
     # Acoust. Res. Lett. Online, 1(2), pp. 37-42 (2000). 
-    HU = HUin+1000
+    HU = hu_in+1000
     density = np.zeros_like(HU)
 
     # apply conversion in several parts using linear fits to the data
@@ -209,7 +273,26 @@ def HUtoDensityKWave(HUin):
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
 
-def HUtoDensityAirTissue(HUIn):
+def HUtoDensityAirTissue(hu_in):
+    '''
+    Convert Hounsfield Units to density using linear air-tissue model.
+    
+    Linear fitting using reference points:
+    - DensityAir = 1.293 kg/m³
+    - DensityTissue = 1041 kg/m³
+    - HUAir = -1000
+    - HUTissue = 27
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     # linear fitting using
     # DensityAir=1.293 
     # DensityTissue=1041
@@ -217,52 +300,202 @@ def HUtoDensityAirTissue(HUIn):
     # HUTissue=27
     
     pf=np.array([1.01237293, 1.01366593e+03])
-    return np.polyval(pf,HUIn)
+    return np.polyval(pf,hu_in)
 
-def HUtoDensityMarsac(HUin):
+def HUtoDensityMarsac(hu_in):
+    '''
+    Convert Hounsfield Units to density using Marsac model.
+    
+    Linear normalization between air and bone density limits.
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³).
+    '''
     rhomin=1000.0
     rhomax=2700.0
-    return rhomin+ (rhomax-rhomin)*HUin/HUin.max()
+    return rhomin+ (rhomax-rhomin)*hu_in/hu_in.max()
 
-def HUtoDensityUCLLowEnergy(HuIn):
+def HUtoDensityUCLLowEnergy(hu_in):
+    '''
+    Convert Hounsfield Units to density using UCL low-energy calibration model.
+    
+    Uses calibration data from https://github.com/ucl-bug/petra-to-ct
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Density values (kg/m³) interpolated from calibration table.
+    '''
     #using calibration reported in https://github.com/ucl-bug/petra-to-ct 
     f = h5py.File(os.path.join(resource_path(),'ct-calibration-low-dose-30-March-2023-v1.h5'),'r')
     ct_calibration=f['ct_calibration'][:][0,:,:].T
-    return np.interp(HuIn,ct_calibration[0,:],ct_calibration[1,:])
+    return np.interp(hu_in,ct_calibration[0,:],ct_calibration[1,:])
 
-def DensitytoLSOSMarsac(Density):
+def DensitytoLSOSMarsac(density):
+    '''
+    Convert tissue density to longitudinal speed of sound using Marsac model.
+    
+    Linear mapping between minimum and maximum sound velocities based on density range.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     cmin=1500.0
     cmax=3000.0
-    return cmin+ (cmax-cmin)*(Density-Density.min())/(Density.max()-Density.min())
+    return cmin+ (cmax-cmin)*(density-density.min())/(density.max()-density.min())
 
-def DensityToLAttMcDannold(Density,Frequency):
+def DensityToLAttMcDannold(density, frequency):
+    '''
+    Convert density to longitudinal attenuation using McDannold model.
+    
+    Uses polynomial fitting and frequency scaling from McDannold reference.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz). Attenuation is scaled relative to 660 kHz reference.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
     FreqReference =660e3
     poly=np.flip(np.array([5.71e3,-9.02, 5.40e-3,-1.41e-6,1.36e-10]))
-    return np.polyval(poly,Density)*Frequency/FreqReference #we assume a linear relatinship
+    return np.polyval(poly,density)*frequency/FreqReference #we assume a linear relatinship
 
-def DensityToLSOSMcDannold(Density):
+def DensityToLSOSMcDannold(density):
+    '''
+    Convert density to longitudinal speed of sound using McDannold model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     poly=np.flip(np.array([1.24e-3,-7.63e-7,1.69e-10,5.31e-16,-2.79e-18]))
-    return 1.0/np.polyval(poly,Density)
+    return 1.0/np.polyval(poly,density)
 
-def HUtoPorosity(HUin):
-    Phi = 1.0 - HUin/HUin.max()
+def HUtoPorosity(hu_in):
+    '''
+    Convert Hounsfield Units to bone porosity.
+    
+    Parameters
+    ----------
+    hu_in : array-like or float
+        Hounsfield Unit values.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Porosity values (0-1).
+    '''
+    Phi = 1.0 - hu_in/hu_in.max()
     return Phi
 
-def PorositytoDensity(Phi):
-    Density = 1000.0 * Phi + 2200*(1.0-Phi)
+def PorositytoDensity(phi):
+    '''
+    Convert bone porosity to density.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Tissue density (kg/m³).
+    '''
+    Density = 1000.0 * phi + 2200*(1.0-phi)
     return Density
 
-def PorositytoLSOS(Phi):
-    SoS = 1500 * Phi + 3100*(1.0-Phi)
+def PorositytoLSOS(phi):
+    '''
+    Convert bone porosity to longitudinal speed of sound.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
+    SoS = 1500 * phi + 3100*(1.0-phi)
     return SoS
 
-def PorositytoLAtt(Phi,Frequency):
-    amin= 2.302555836 *Frequency/1e6
-    amax= 92.10223344 *Frequency/1e6
-    Att = amin + (amax - amin)*(Phi**0.5)
+def PorositytoLAtt(phi, frequency):
+    '''
+    Convert bone porosity to longitudinal attenuation.
+    
+    Parameters
+    ----------
+    phi : array-like or float
+        Porosity values (0-1).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
+    amin= 2.302555836 *frequency/1e6
+    amax= 92.10223344 *frequency/1e6
+    Att = amin + (amax - amin)*(phi**0.5)
     return Att
 
-def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
+def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
+    '''
+    Convert Hounsfield Units to attenuation using Webb model.
+    
+    Parameters from Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
+    DOI: 10.1109/TUFFC.2020.3039743
+    
+    Parameters
+    ----------
+    hu : array-like or float
+        Hounsfield Unit values.
+    frequency : float
+        Acoustic frequency (Hz).
+    params : list, optional
+        Scanner parameters [Scanner, Energy, Kernel, Other, Resolution].
+        Default is ['GE','120','B','','0.49, 0.63'] for GE 120 kVp BonePlus kernel.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Attenuation values (Np/m × 100).
+    '''
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Table IV in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control 68, no. 5 (2020): 1532-1545.
     # DOI: 10.1109/TUFFC.2020.3039743
@@ -272,17 +505,28 @@ def HUtoAttenuationWebb(HU,Frequency,Params=['GE','120','B','','0.49, 0.63']):
 
     df=pd.read_csv(os.path.join(resource_path(),'WebbHU_Att.csv'),keep_default_na=False,index_col=lst_str_cols,dtype=dict_dtypes)
     
-    sel=df.loc[[Params]]
+    sel=df.loc[[params]]
 
     print('Using Webb Att mapping with Params (Alpha_0, Beta, c)', 
-          Params, 
+          params, 
           sel.iloc[0]['Alpha_0']*100,
           sel.iloc[0]['Beta'],
           sel.iloc[0]['c'])
 
-    return (sel.iloc[0]['Alpha_0']*(Frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(HU*(sel.iloc[0]['c'])))*100
+    return (sel.iloc[0]['Alpha_0']*(frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(hu*(sel.iloc[0]['c'])))*100
 
 def SpeedofSoundWebbDataset():
+    '''
+    Load and return Webb dataset for Hounsfield Unit to speed of sound mapping.
+    
+    Data from Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    DOI: 10.1109/TUFFC.2018.2827899
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by scanner parameters with speed of sound calibration data.
+    '''
     lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
     dict_dtypes = {x : 'str'  for x in lst_str_cols}
 
@@ -290,34 +534,120 @@ def SpeedofSoundWebbDataset():
     return df
 
 
-def HUtoLongSpeedofSoundWebb(HU,Params=['GE','120','B','','0.5, 0.6']):
+def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
+    '''
+    Convert Hounsfield Units to longitudinal speed of sound using Webb model.
+    
+    Parameters from Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
+    DOI: 10.1109/TUFFC.2018.2827899
+    
+    Parameters
+    ----------
+    hu : array-like or float
+        Hounsfield Unit values.
+    params : list, optional
+        Scanner parameters [Scanner, Energy, Kernel, Other, Resolution].
+        Default is ['GE','120','B','','0.5, 0.6'] for GE 120 kVp BonePlus kernel.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
     #these values are for 120 kVp, BonePlus Kernel, axial res = 0.49, slice res=0.63 in GE Scanners
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
     df=SpeedofSoundWebbDataset()
     
-    sel=df.loc[[Params]]
+    sel=df.loc[[params]]
 
     print('Using Webb  SOS mapping with Params (slope, intercept)', 
-          Params, 
+          params, 
           sel.iloc[0]['Slope'],
           sel.iloc[0]['Intercept']*1000.0)
 
-    return sel.iloc[0]['Slope']*HU + sel.iloc[0]['Intercept']*1000.0
+    return sel.iloc[0]['Slope']*hu + sel.iloc[0]['Intercept']*1000.0
 
 
-def DensityToLSOSPichardo(Density,Frequency):
-    return _PichardoSOS(Density,Frequency/1e6)
+def DensityToLSOSPichardo(density, frequency):
+    '''
+    Convert density to longitudinal speed of sound using Pichardo model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
+    return _PichardoSOS(density, frequency/1e6)
 
-def DensityToLAttPichardo(Density,Frequency):
-    return _PichardoAtt(Density,Frequency/1e6)
+def DensityToLAttPichardo(density, frequency):
+    '''
+    Convert density to longitudinal attenuation using Pichardo model.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    frequency : float
+        Acoustic frequency (Hz).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal attenuation (Np/m).
+    '''
+    return _PichardoAtt(density, frequency/1e6)
 
 def DensityToSSoSPichardo(density):
+    '''
+    Convert density to shear speed of sound using Pichardo model.
+    
+    Based on Physics in Medicine & Biology, vol. 62, no. 17, p 6938, 2017.
+    Uses average of values at two reported frequencies.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Shear speed of sound (m/s).
+    '''
     #using Physics in Medicine & Biology, vol. 62, bo. 17,p 6938, 2017, we average the values for the two reported frequencies
     return density*0.422 + 680.515  
     
 def make_affine_itk_friendly(affine, eps=1e-12, report=True):
+    '''
+    Create an orthonormal affine matrix with preserved voxel sizes.
+    
+    Return a copy of affine whose top-left 3x3 is orthonormal up to column scaling 
+    (i.e. preserves voxel sizes).
+    
+    Parameters
+    ----------
+    affine : (4, 4) np.ndarray
+        Affine transformation matrix.
+    eps : float, optional
+        Tiny tolerance for near-zero scales (default is 1e-12).
+    report : bool, optional
+        If True, returns diagnostics along with affine (default is True).
+    
+    Returns
+    -------
+    np.ndarray or tuple
+        If report is False: (4, 4) orthonormalized affine matrix.
+        If report is True: tuple of (orthonormalized affine, diagnostics dict).
+    '''
     """
     Return a copy of `affine` whose top-left 3x3 is orthonormal
     up to column scaling (i.e. preserves voxel sizes).
@@ -387,7 +717,20 @@ def make_affine_itk_friendly(affine, eps=1e-12, report=True):
         "max_rel_change_in_3x3": float(max_rel_change),
     }
 
-def SaveNiftiEnforcedISO(nii_in,fn):
+def SaveNiftiEnforcedISO(nii_in, fn):
+    '''
+    Save NIfTI image with isotropic voxel spacing using SimpleITK.
+    
+    Attempts to enforce isotropic spacing; if affine is not orthonormal,
+    attempts to fix it or falls back to flirt registration.
+    
+    Parameters
+    ----------
+    nii_in : nibabel.Nifti1Image
+        Input NIfTI image to save.
+    fn : str
+        Output filename path.
+    '''
     fn_unc=fn.split('.gz')[0] #we save uncompressed for faster operation
     nii_in.to_filename(fn_unc)
     newfn=fn.split('__.nii.gz')[0]+'.nii.gz'
@@ -415,21 +758,34 @@ def SaveNiftiEnforcedISO(nii_in,fn):
             os.remove(fn_unc)
 
 
-def ResaveNormalized(RPath,Mask):
-    assert('_Sub.nii.gz' in RPath)
-    NRPath=RPath.replace('_Sub.nii.gz','_Sub_NORM.nii.gz')
+def ResaveNormalized(rpath, mask):
+    '''
+    Resave simulation results with normalization based on mask.
+    
+    Normalizes result values to [0, 1] range and masks out regions outside mask region 4+.
+    Saves to file with _NORM suffix.
+    
+    Parameters
+    ----------
+    rpath : str
+        Path to input result file (must contain '_Sub.nii.gz').
+    mask : nibabel.Nifti1Image
+        Mask image for normalization region selection.
+    '''
+    assert('_Sub.nii.gz' in rpath)
+    NRPath=rpath.replace('_Sub.nii.gz','_Sub_NORM.nii.gz')
 
-    Results=nibabel.load(RPath)
+    Results=nibabel.load(rpath)
 
     ResultsData=Results.get_fdata()
-    MaskData=Mask.get_fdata()
+    MaskData=mask.get_fdata()
     ii,jj,kk=np.mgrid[0:ResultsData.shape[0],0:ResultsData.shape[1],0:ResultsData.shape[2]]
 
     Indexes=np.c_[(ii.flatten().T,jj.flatten().T,kk.flatten().T,np.ones((kk.size,1)))].T
 
     PosResults=Results.affine.dot(Indexes)
 
-    IndexesMask=np.round(np.linalg.inv(Mask.affine).dot(PosResults)).astype(int)
+    IndexesMask=np.round(np.linalg.inv(mask.affine).dot(PosResults)).astype(int)
     IndexesMask[0,IndexesMask[0,:]>=MaskData.shape[0]]=MaskData.shape[0]-1
     IndexesMask[1,IndexesMask[1,:]>=MaskData.shape[1]]=MaskData.shape[1]-1
     IndexesMask[2,IndexesMask[2,:]>=MaskData.shape[2]]=MaskData.shape[2]-1
@@ -445,7 +801,26 @@ bGPU_INITIALIZED = False
 ###
 
 class RUN_SIM_BASE(object):
-    def CreateSimObject(self,**kargs):
+    '''
+    Base class for running acoustic and thermal simulations.
+    
+    Provides framework for creating simulation objects and running simulation cases
+    with various configuration parameters.
+    '''
+    def CreateSimObject(self, **kwargs):
+        '''
+        Create simulation object with specified parameters.
+        
+        Parameters
+        ----------
+        **kwargs
+            Extra parameters needed for a given transducer system.
+        
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         #this passes extra parameters needed for a given Tx
         raise NotImplementedError("Need to implement this")
 
@@ -467,6 +842,18 @@ class RUN_SIM_BASE(object):
                 bWaterOnly=False,
                 bDryRun=False,
                 bUseRayleighForWater=False,
+                bSaveStress=False,
+                bSaveDisplacement=False,
+                bForceHomogenousMedium=False,
+                BenchmarkTestFile='',
+                OptimizedWeightsFile='',
+                bExtractAirRegions=True,
+                HomogenousMediumValues={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':5.0,
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':0.0}, #Np/m
+                InputFocusStart='',
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -498,8 +885,14 @@ class RUN_SIM_BASE(object):
                     print (MASKFNAME)
                     if bUseCT:
                         CTFNAME=prefix+target+fstr+ppws+ 'CT.nii.gz'
+                        if bExtractAirRegions:
+                            AIRMASK=prefix+target+fstr+ppws+ 'AirRegions.nii.gz'
+                            print('Using air mask regions',AIRMASK)
+                        else:
+                            AIRMASK=None
                     else:
                         CTFNAME=None
+                        AIRMASK=None
 
                     FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
                     FILENAMESWater=None
@@ -532,6 +925,14 @@ class RUN_SIM_BASE(object):
                                                     bDoRefocusing=bDoRefocusing,
                                                     CTFNAME=CTFNAME,
                                                     bDisplay=bDisplay,
+                                                    bSaveStress=bSaveStress,
+                                                    bSaveDisplacement=bSaveDisplacement,
+                                                    bForceHomogenousMedium=bForceHomogenousMedium,
+                                                    HomogenousMediumValues=HomogenousMediumValues,
+                                                    BenchmarkTestFile=BenchmarkTestFile,
+                                                    InputFocusStart=InputFocusStart,
+                                                    OptimizedWeightsFile=OptimizedWeightsFile,
+                                                    AIRMASK=AIRMASK,
                                                     **kargs)
                     print('  Step 1')
 
@@ -628,12 +1029,29 @@ class BabelFTD_Simulations_BASE(object):
                  ZIntoSkin=0.0, # For simulations mimicking compressing skin (in simulation we will remove tissue layers)
                  bDoRefocusing=True,
                  bWaterOnly=False,
-                 QCorrection=3,
+                 QCorrection=3.0,
                  MappingMethod='Webb-Marsac',
                  CTMapCombo=('GE','120','B','','0.5, 0.6'),
                  bPETRA = False, #Specify if CT is derived from PETRA
-                 CTFNAME=None):
+                 bDensity = False, #Specify if a density map is directly passed
+                 CTFNAME=None,
+                 bSaveStress=False,
+                 bSaveDisplacement=False,
+                 bForceHomogenousMedium=False,
+                 HomogenousMediumValues={'Density':1000.0, #kg/m3 
+                                    'LongSoS':1500.0, #m/s
+                                    'LongAtt':25.0, #Np/m
+                                    'ShearSoS':0.0, #m/s
+                                    'ShearAtt':5.0}, #Np/m
+                 BenchmarkTestFile='',
+                 InputFocusStart='',
+                 OptimizedWeightsFile='',
+                 AIRMASK=None):
         self._MASKFNAME=MASKFNAME
+
+        if 'BABEL_PYTEST_QFACTOR' in os.environ:
+            QCorrection=float(os.environ['BABEL_PYTEST_QFACTOR'])
+            print('BABEL_PYTEST_QFACTOR Overwritting QCorrection factor', QCorrection)
         
         if bNoShear:
             self._Shear=0.0
@@ -661,9 +1079,18 @@ class BabelFTD_Simulations_BASE(object):
         self._MappingMethod=MappingMethod
         self._CTMapCombo=CTMapCombo
         self._bPETRA = bPETRA
+        self._bDensity = bDensity
         self._ExtraDepthAdjust = 0.0 
         self._ExtraAdjustX = ExtraAdjustX 
         self._ExtraAdjustY = ExtraAdjustY
+        self._bSaveStress = bSaveStress
+        self._bSaveDisplacement = bSaveDisplacement
+        self._bForceHomogenousMedium=bForceHomogenousMedium
+        self._HomogenousMediumValues =HomogenousMediumValues
+        self._BenchmarkTestFile=BenchmarkTestFile
+        self._InputFocusStart=InputFocusStart
+        self._OptimizedWeightsFile=OptimizedWeightsFile
+        self._AIRMASK=AIRMASK
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -675,71 +1102,111 @@ class BabelFTD_Simulations_BASE(object):
     def Step1_InitializeConditions(self): #in case it is desired to move up or down in the Z direction the focal spot
         self._SkullMask=nibabel.load(self._MASKFNAME)
         SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(),axis=2)
+
+        bBrainSegmentation = np.any(SkullMaskDataOrig>5)
+        if bBrainSegmentation:
+            print('Using segmented white matter, gray matter and CSF')
         voxelS=np.array(self._SkullMask.header.get_zooms())*1e-3
         Dims=np.array(SkullMaskDataOrig.shape)*voxelS
         
         self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
-        if self._CTFNAME is not None and not self._bWaterOnly:
+        AirRegions=None
+        if self._CTFNAME is not None and not self._bWaterOnly\
+                                     and not self._bForceHomogenousMedium\
+                                     and len(self._BenchmarkTestFile)==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            if self._AIRMASK:
+                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
+            
+            if self._bDensity:
+                print('Density map specified, converting Density to HU')
+                DensityCTIT= AllBoneHU.copy()
+                print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
+                AllBoneHU = DensityToHUBony(DensityCTIT)
+                print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
+            
             Porosity=HUtoPorosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
-                if self._bPETRA:
-                    print('Using PETRA to low energy 70 Kvp CT settings')
-                    DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
-                else:
-                    print('Using 120 Kvp CT settings')
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    if self._bPETRA:
+                        print('Using PETRA to low energy 70 Kvp CT settings')
+                        DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
+                    else:
+                        print('Using 120 Kvp CT settings')
+                        DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 print('Using CT combination', self._CTMapCombo)
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,Params=self._CTMapCombo)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,Params=self._CTMapCombo)
+                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=self._CTMapCombo)
+                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
-                DensityCTIT = PorositytoDensity(Porosity)
+                if self._bDensity == False:
+                    DensityCTIT = PorositytoDensity(Porosity)
                 LSoSIT = PorositytoLSOS(Porosity)
                 LAttIT = PorositytoLAtt(Porosity,self._Frequency)
             elif  self._MappingMethod=='Pichardo':
-                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
                 LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold':
-                DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             #these are more experimental
             elif self._MappingMethod=='Marsac-Aubry':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
                 LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
             elif self._MappingMethod=='Pichardo-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
                 LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
-                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                if self._bDensity == False:
+                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
                 LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
                 LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
             else:
                 raise ValueError('Unknown mapping method -' +self._MappingMethod )
             
-            DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
+            if bBrainSegmentation:
+                DensityCTMap+=6  #The material index needs to add 3 to account water, skin, brain (non specific), white matter, gray matter and CSF
+            else:
+                DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
             print("maximum CT index map value",DensityCTMap.max())
             print(" CT Map unique values",np.unique(DensityCTMap).shape)
 
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
             QCorrArr =1.0
+        elif self._bForceHomogenousMedium:
+            QCorrArr = np.ones(2)
+        elif len(self._BenchmarkTestFile)>0:
+            InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
+            assert(len(InputDataBenchmark['Materials'])==len(np.unique(InputDataBenchmark['MaterialMap'])))
+            QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
         elif  self._CTFNAME is None:
-            QCorrArr = np.ones(5)
+            if bBrainSegmentation:
+                QCorrArr = np.ones(8)
+            else:
+                QCorrArr = np.ones(5)
         else:
-            QCorrArr=np.ones(3+len(DensityCTIT))
-            QCorrArr[2:]=self._QCorrection
+            if bBrainSegmentation:
+                QCorrArr=np.ones(6+len(DensityCTIT))
+                QCorrArr[6:]=self._QCorrection
+            else:
+                QCorrArr=np.ones(3+len(DensityCTIT))
+                QCorrArr[2:]=self._QCorrection #This will match r0.4.3
 
 
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
@@ -761,17 +1228,49 @@ class BabelFTD_Simulations_BASE(object):
                                 DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],
                                 ExtraDepthAdjust=self._ExtraDepthAdjust,
                                 ExtraAdjustX=self._ExtraAdjustX,
-                                ExtraAdjustY=self._ExtraAdjustY)
-        if  self._CTFNAME is not None and not self._bWaterOnly:
+                                ExtraAdjustY=self._ExtraAdjustY,
+                                bSaveStress=self._bSaveStress,
+                                bSaveDisplacement=self._bSaveDisplacement,
+                                BenchmarkTestFile=self._BenchmarkTestFile,
+                                InputFocusStart=self._InputFocusStart,
+                                OptimizedWeightsFile=self._OptimizedWeightsFile,
+                                AirRegions=AirRegions)
+        
+        #####
+        ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
+        #####
+        
+        if self._bForceHomogenousMedium and not self._bWaterOnly:
+            print('Forcing using homogenous material with', self._HomogenousMediumValues)
+            self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
+                                           self._HomogenousMediumValues['LongSoS'],
+                                           self._HomogenousMediumValues['ShearSoS'],
+                                           self._HomogenousMediumValues['LongAtt'],
+                                           self._HomogenousMediumValues['ShearAtt']) 
+        elif len(self._BenchmarkTestFile) > 0 and not self._bWaterOnly:
+            print('Forcing using benchmark materials', InputDataBenchmark['Materials'])
+            self._SIM_SETTINGS.ResetMaterial() #we remove the default water material
+            for entry in InputDataBenchmark['Materials']:
+                self._SIM_SETTINGS.AddMaterial(entry['Density'], 
+                                           entry['LongSoS'],
+                                           entry['ShearSoS'],
+                                           entry['LongAtt'],
+                                           entry['ShearAtt'])
+        elif self._CTFNAME is not None and not self._bWaterOnly:
             if 'BABEL_PYTEST_PAPER' in os.environ:
                 #we skin and Brain as water
                 print('*'*30)
                 print('Modeling soft tissue as water')
                 print('*'*30)
-                Materials=['Water','Water']
+                lMaterials=['Water','Water']
             else:
-                Materials=['Skin','Brain']
-            for k in Materials:
+                lMaterials=['Skin','Brain']
+            if bBrainSegmentation:
+                if 'BABEL_PYTEST_PAPER' in os.environ:
+                    lMaterials+=['Water','Water','Water']
+                else:
+                    lMaterials+=['WhiteMatter','GrayMatter','CSF']
+            for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -798,17 +1297,26 @@ class BabelFTD_Simulations_BASE(object):
                 print('*'*30)
                 print('Modeling soft tissue as water')
                 print('*'*30)
-                Materials=['Water','Cortical','Trabecular','Water']
+                lMaterials=['Water','Cortical','Trabecular','Water']
             else:
-                Materials=['Skin','Cortical','Trabecular','Brain']
-            for k in Materials:
+                lMaterials=['Skin','Cortical','Trabecular','Brain']
+            if bBrainSegmentation:
+                if 'BABEL_PYTEST_PAPER' in os.environ:
+                    lMaterials+=['Water','Water','Water']
+                else:
+                    lMaterials+=['WhiteMatter','GrayMatter','CSF']
+            for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,
                                             SelM[3],
                                             SelM[4]*self._Shear)
-        self._SIM_SETTINGS.UpdateConditions(self._SkullMask,AlphaCFL=self._AlphaCFL,bWaterOnly=self._bWaterOnly)
+        self._SIM_SETTINGS.UpdateConditions(self._SkullMask,
+                                            AlphaCFL=self._AlphaCFL,
+                                            bWaterOnly=self._bWaterOnly,
+                                            bForceHomogenousMedium=self._bForceHomogenousMedium,
+                                            BenchmarkTestFile=self._BenchmarkTestFile)
         gc.collect()
 
     def GenerateSTLTx(self,prefix):
@@ -830,6 +1338,10 @@ class BabelFTD_Simulations_BASE(object):
 
     def Step4_Run_Simulation(self,GPUName='GP100',bApplyCorrectionForDispersion=True,COMPUTING_BACKEND=1):
         SelMapsRMSPeakList=['Pressure']
+        if self._bSaveStress:
+            SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
+        if self._bSaveDisplacement:
+            SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
         self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
                                           COMPUTING_BACKEND=COMPUTING_BACKEND,
@@ -850,6 +1362,10 @@ class BabelFTD_Simulations_BASE(object):
         
     def Step7_Run_Simulation_Refocus(self,GPUName='GP100',COMPUTING_BACKEND=1,bApplyCorrectionForDispersion=True):
         SelMapsRMSPeakList=['Pressure']
+        if self._bSaveStress:
+            SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
+        if self._bSaveDisplacement:
+            SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
         self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,
                                           SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
@@ -934,6 +1450,8 @@ class BabelFTD_Simulations_BASE(object):
             kt = ['p_amp','p_complex','MaterialMap']
             if 'MaterialMapCT' in DataForSim:
                 kt.append('MaterialMapCT')
+            if 'AirMask' in DataForSim:
+                kt.append('AirMask')
             if self._bDoRefocusing:
                 kt.append('p_amp_refocus')
                 kt.append('p_complex_refocus')
@@ -1058,7 +1576,13 @@ class SimulationConditionsBASE(object):
                       ExtraDepthAdjust= 0.0, #for any need to stretch the cone used to calculate the cross section are
                       ExtraAdjustX =[0.0],
                       ExtraAdjustY =[0.0],
-                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721]):  #coefficients to correct for values lower of CFL =1.0 in wtaer conditions.
+                      bSaveStress=False,
+                      bSaveDisplacement=False,
+                      DispersionCorrection=[-2307.53581298, 6875.73903172, -7824.73175146, 4227.49417250, -975.22622721],#coefficients to correct for values lower of CFL =1.0 in water conditions.
+                      BenchmarkTestFile='',
+                      InputFocusStart='',
+                      OptimizedWeightsFile='',
+                      AirRegions=None): #file with optimized weights for the Tx  
         self._Materials=[[baseMaterial[0],baseMaterial[1],baseMaterial[2],baseMaterial[3],baseMaterial[4]]]
         self._basePPW=basePPW
         self._PMLThickness=PMLThickness
@@ -1096,31 +1620,97 @@ class SimulationConditionsBASE(object):
         self._ExtraAdjustX =ExtraAdjustX
         self._ExtraAdjustY =ExtraAdjustY
         self._ZTxCorrecton=ZTxCorrecton
+        self._bSaveStress=bSaveStress
+        self._bSaveDisplacement=bSaveDisplacement
+        self._BenchmarkTestFile=BenchmarkTestFile
+        self._InputFocusStart=InputFocusStart
+        self._OptimizedWeightsFile=''
+        self._OptimizedWeights=None
+        self._AirRegions=AirRegions
+        if len(OptimizedWeightsFile)>0 :
+            print('Simulation Using OptimizedWeightsFile',OptimizedWeightsFile)
+            if not os.path.isfile(OptimizedWeightsFile):
+                raise FileNotFoundError("OptimizedWeightsFile %s does not exist." %(OptimizedWeightsFile))
+            self._OptimizedWeightsFile=OptimizedWeightsFile
+            self._OptimizedWeights = ReadFromH5py(OptimizedWeightsFile)['CALIBRATION']
 
-        
-        
-        
+ 
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
+        '''
+        Add a material to the simulation.
+
+        Parameters
+        ----------
+        Density : float
+            Density of the material (kg/m3).
+        LSoS : float
+            Longitudinal speed of sound (m/s).
+        SSoS : float
+            Shear speed of sound (m/s).
+        LAtt : float
+            Longitudinal attenuation (Np/m).
+        SAtt : float
+            Shear attenuation (Np/m).
+        '''
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
+        
+    def ResetMaterial(self): 
+        '''
+        Reset the material list to empty.
+        '''
+        self._Materials=[]
         
         
     @property
     def Wavelength(self):
+        '''
+        Get the current simulation wavelength.
+        '''
         return self._Wavelength
         
         
     @property
     def SpatialStep(self):
+        '''
+        Get the current spatial step size.
+        '''
         return self._SpatialStep
         
-    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False):
+    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
+                         bForceHomogenousMedium=False,
+                         BenchmarkTestFile='',
+                         DomeType=False):
         '''
-        Update simulation conditions
+        Update simulation conditions, including calculation of spatial/temporal steps,
+        domain size, and material maps.
+
+        Parameters
+        ----------
+        SkullMaskNii : nibabel.Nifti1Image
+            Nifti image containing the skull mask.
+        AlphaCFL : float, optional
+            CFL number for stability (default is 1.0).
+        bWaterOnly : bool, optional
+            If True, simulate water only (default is False).
+        bForceHomogenousMedium : bool, optional
+            If True, force a homogenous medium (default is False).
+        BenchmarkTestFile : str, optional
+            Path to a benchmark test file (default is '').
+        DomeType: bool, optional
+            If True, the whole transducer should fit inside the simulation domain (default is False).
         '''
         MatArray=self.ReturnArrayMaterial()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
-        SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
+        if len(BenchmarkTestFile)==0:
+            SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
+        else:
+            InputDataBenchmark=ReadFromH5py(BenchmarkTestFile)
+            SmallestSOS=1e6
+            for e in InputDataBenchmark['Materials']:
+                SmallestSOS=np.min((SmallestSOS,e['LongSoS']))
+                if e['ShearSoS']!=0:
+                    SmallestSOS=np.min((SmallestSOS,e['ShearSoS']))
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
         print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
@@ -1143,7 +1733,7 @@ class SimulationConditionsBASE(object):
 
         #now we make it to be an integer division of the period
         self._PPP=np.ceil(1/self._Frequency/TemporalStep)
-        #we add to catch the weird case it ends in 23, to avoid having a sensor that needs so many points
+        #we add to catch the weird case it ends in large prime number, to avoid having a sensor that needs so many points
         if self._PPP==31:
             self._PPP=32
         elif self._PPP==34:
@@ -1209,11 +1799,38 @@ class SimulationConditionsBASE(object):
         bCompleteForShrinking=False
         self._nCountShrink=0
         print('self._ExtraAdjustX, self._ExtraAdjustY',self._ExtraAdjustX,self._ExtraAdjustY)
-        while not self.bMapFit or not bCompleteForShrinking:
+        while (True):
             self.bMapFit=True
             self._N1=self._SkullMaskDataOrig.shape[0]+self._XLOffset+self._XROffset -self._XShrink_L-self._XShrink_R
             self._N2=self._SkullMaskDataOrig.shape[1]+self._YLOffset+self._YROffset -self._YShrink_L-self._YShrink_R
             self._N3=self._SkullMaskDataOrig.shape[2]+self._ZLOffset+self._ZROffset -self._ZShrink_L-self._ZShrink_R 
+            print('self._N1',self._N1,self._XLOffset,self._XROffset,self._XShrink_L,self._XShrink_R)
+            print('self._N2',self._N2,self._YLOffset,self._YROffset,self._YShrink_L,self._XShrink_R)
+            print('self._N3',self._N3,self._ZLOffset,self._ZROffset,self._ZShrink_L,self._ZShrink_R)
+
+            if self._XShrink_R==0:
+                upperXR=self._SkullMaskDataOrig.shape[0]
+            else:
+                upperXR=-self._XShrink_R
+            if self._YShrink_R==0:
+                upperYR=self._SkullMaskDataOrig.shape[1]
+            else:
+                upperYR=-self._YShrink_R
+            if self._ZShrink_R==0:
+                upperZR=self._SkullMaskDataOrig.shape[2]
+            else:
+                upperZR=-self._ZShrink_R
+
+            TempMaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
+            TempMaterialMap[self._XLOffset:-self._XROffset,
+                              self._YLOffset:-self._YROffset,
+                              self._ZLOffset:-self._ZROffset]=\
+                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
+                                                                         self._YShrink_L:upperYR,
+                                                                         self._ZShrink_L:upperZR]
+            [mx,my,mz]=np.where(TempMaterialMap>0)
+            FirstVoxelTissueZ=np.min(mz)
+            print('FirstVoxelTissueZ',FirstVoxelTissueZ )
 
 
             self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
@@ -1231,26 +1848,74 @@ class SimulationConditionsBASE(object):
             yfield-=yfield[self._FocalSpotLocation[1]]
             zfield-=zfield[self._FocalSpotLocation[2]]
             
-            zfield+=self._FocalLength
-            TopZ=zfield[self._PMLThickness]
-            if self._FocalLength!=0:
-                DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
-                Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
-                RadiusFace=DistanceToFocus*np.tan(Alpha)*1.10 # we make a bit larger to be sure of covering all incident beam
+            if DomeType==False:
+                zfield+=self._FocalLength
             else:
-                RadiusFace=self._Aperture/2*1.10
+                print('Dome operation, range Z', zfield[self._PMLThickness],zfield[-self._PMLThickness])
+            TopZ=zfield[self._PMLThickness]
+
+            if DomeType==False:
+                if self._FocalLength!=0:
+                    Alpha=np.arcsin(self._Aperture/2/(self._FocalLength+self._ExtraDepthAdjust))
+                    DistanceToFocus=self._FocalLength-TopZ+self._TxMechanicalAdjustmentZ+self._ExtraDepthAdjust
+                    RadiusFace=DistanceToFocus*np.tan(Alpha) # we make a bit larger to be sure of covering all incident beam
+                    if RadiusFace>self._Aperture/2:
+                        RadiusFace=self._Aperture/2
+                    RadiusFace*=1.1
+                    #corrected Alpha
+                    Alpha = np.arctan(RadiusFace/DistanceToFocus)
+                    ZReZero=-self._FocalLength-self._TxMechanicalAdjustmentZ-+self._ExtraDepthAdjust
+                    ZConeLimit=-DistanceToFocus
+                else:
+                    RadiusFace=self._Aperture/2*1.10
+                    #corrected Alpha
+                    Alpha = np.arctan(RadiusFace/(-TopZ+self._TxMechanicalAdjustmentZ)) #instead of focal length we use target location from the layer when source is located
+                    ZReZero=0
+                    ZConeLimit=TopZ-self._TxMechanicalAdjustmentZ
+            else:
+                RadiusFace=self._Aperture/2*1.02
+
+            if len(BenchmarkTestFile)>0:
+            #we adjust dimensions to benchmark 1
+                print('Forcing radiusface to fit benchmark 1, current value', RadiusFace)
+                if RadiusFace>0.035:
+                    warnings.warn('RadiusFace too large, setting to 35 mm')
+                RadiusFace=0.035
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
-            
-            ypp,xpp=np.meshgrid(yfield,xfield)
-            
-            RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2 #we select the circle on the incident field
-            for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                RegionMap=(RegionMap)|(((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2)
-                IndXMap,IndYMap=np.nonzero(RegionMap)
+
+            if DomeType==False:
+                zfRezero=zfield+ZReZero
+                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfRezero,indexing='ij')
+                #we select the cone on the incident field
+                RegionMap=(((xpp-self._TxMechanicalAdjustmentX)**2+
+                           (ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2) &\
+                          (zpp <= 0) & (zpp >=ZConeLimit)
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|\
+                        (((xpp-self._TxMechanicalAdjustmentX-EX)**2+
+                           (ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
+                          (zpp <= 0) & (zpp >=ZConeLimit)  
+                    
+                # RegionMap = (RegionMap)&(TempMaterialMap!=0)
+                print("zfRezero[FirstVoxelTissueZ]",zfRezero[FirstVoxelTissueZ])
+                RegionMap = (RegionMap) & (zpp>=zfRezero[FirstVoxelTissueZ])
+                IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
+            else:
+                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield,indexing='ij')
+                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2+(zpp-self._TxMechanicalAdjustmentZ)**2)<=RadiusFace**2 #we select the circle on the incident field
+                for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    RegionMap=(RegionMap)|\
+                        ((((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
+                        (zpp==TopZ))
+                RegionMap[zpp>0]=False #only the negative part
+                IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             print('RegionMap',np.sum(RegionMap))
-            
+
+            if bCompleteForShrinking:
+                break
+
             def fgen(var):
                 sn={'X':'1','Y':'2','Z':'3'}
                 pcode=\
@@ -1266,12 +1931,12 @@ elif self._bTightNarrowBeamDomain:
         self._{0}Shrink_L+=Ind{0}Map.min()-self._{0}LOffset
         print('{0}Shrink_L',self._{0}Shrink_L)
     self._nCountShrink+=1
-if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness):
+if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness) and ("{0}" != "Z" or ("{0}" == "Z" and not self._bTightNarrowBeamDomain )) :
     print('** Rayleigh map not fitting in the upper part of N{1}, increasing it ...',self._{0}ROffset)
     self._{0}ROffset+=Ind{0}Map.max()-(self._N{1}-self._PMLThickness)+1
     print('{0}Offset',self._{0}ROffset)
     self.bMapFit=False
-elif self._bTightNarrowBeamDomain:
+elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
     if self._{0}ROffset==self._PMLThickness:
         self._{0}Shrink_R+=self._N{1}-self._{0}ROffset-Ind{0}Map.max()-1
         print('{0}Shrink_R',self._{0}Shrink_R)
@@ -1282,10 +1947,16 @@ elif self._bTightNarrowBeamDomain:
             
             exec(fgen('X'))
             exec(fgen('Y'))
+            # if DomeType:
+            exec(fgen('Z'))
 
             if self._bTightNarrowBeamDomain:
                 nStepsZReduction=int(self._zLengthBeyonFocalPointWhenNarrow/self._SpatialStep)
-                self._ZShrink_R+=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)
+                ChangeRedZ=self._N3-(self._FocalSpotLocation[2]+nStepsZReduction)-self._ZROffset
+                if DomeType:
+                    self._ZShrink_R+=ChangeRedZ
+                else:
+                    self._ZShrink_R=ChangeRedZ
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
                 print('ZShrink_R',self._ZShrink_R,self._nCountShrink)
@@ -1293,9 +1964,11 @@ elif self._bTightNarrowBeamDomain:
             if self.bMapFit:
                 if self._bTightNarrowBeamDomain==False:
                     bCompleteForShrinking=True
-                elif self._nCountShrink>=8:
+                elif self._nCountShrink>=15:
                     bCompleteForShrinking=True
-        
+
+            #we overwrite the values if benchmark is being selected
+
         self._XDim=xfield
         self._YDim=yfield
         self._ZDim=zfield
@@ -1336,32 +2009,69 @@ elif self._bTightNarrowBeamDomain:
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
         self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
-        self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
-        if bWaterOnly==False:
-            if self._XShrink_R==0:
-                upperXR=self._SkullMaskDataOrig.shape[0]
-            else:
-                upperXR=-self._XShrink_R
-            if self._YShrink_R==0:
-                upperYR=self._SkullMaskDataOrig.shape[1]
-            else:
-                upperYR=-self._YShrink_R
-            if self._ZShrink_R==0:
-                upperZR=self._SkullMaskDataOrig.shape[2]
-            else:
-                upperZR=-self._ZShrink_R
-                
-            self._MaterialMap[self._XLOffset:-self._XROffset,
-                              self._YLOffset:-self._YROffset,
-                              self._ZLOffset:-self._ZROffset]=\
-                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
-                                                                         self._YShrink_L:upperYR,
-                                                                         self._ZShrink_L:upperZR]
+        self._MaterialMapRef=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
+        self._SubAirRegions=None
+        #we add the material map
+        if self._XShrink_R==0:
+            upperXR=self._SkullMaskDataOrig.shape[0]
+        else:
+            upperXR=-self._XShrink_R
+        if self._YShrink_R==0:
+            upperYR=self._SkullMaskDataOrig.shape[1]
+        else:
+            upperYR=-self._YShrink_R
+        if self._ZShrink_R==0:
+            upperZR=self._SkullMaskDataOrig.shape[2]
+        else:
+            upperZR=-self._ZShrink_R
+
+        if 'BABELBRAIN_SEL_MASK' in os.environ:
+            affineSub=self._SkullMaskNii.affine.copy()
+
+            LargeMask=np.zeros(self._SkullMaskDataOrig.shape,np.uint8)
+            LargeMask[self._XShrink_L:upperXR,
+                        self._YShrink_L:upperYR,
+                        self._ZShrink_L:upperZR]=\
+                        RegionMap[self._XLOffset:-self._XROffset,
+                                    self._YLOffset:-self._YROffset,
+                                    self._ZLOffset:-self._ZROffset]
+            LargeMask=np.flip(LargeMask,axis=2)
+
+            MaskCalcRegions=np.zeros(self._SkullMaskDataOrig.shape,bool)
+            MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
+            MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
+            [mx,my,mz]=np.where(MaskCalcRegions)
+            locm=np.array([[mx[0],my[0],mz[0],1]]).T
+            NewOrig=affineSub @ locm
+            affineSub[0:3,3]=NewOrig[0:3,0]
+            mx=np.unique(mx.flatten())
+            my=np.unique(my.flatten())
+            mz=np.unique(mz.flatten())
+            debugmask=nibabel.Nifti1Image(LargeMask[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],
+                                          affine=affineSub)
+            debugmask.to_filename(os.environ['BABELBRAIN_SEL_MASK'])
+            
+            
+        self._MaterialMapRef[self._XLOffset:-self._XROffset,
+                            self._YLOffset:-self._YROffset,
+                            self._ZLOffset:-self._ZROffset]=\
+                            self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
+                                                                        self._YShrink_L:upperYR,
+                                                                        self._ZShrink_L:upperZR]
+        if bWaterOnly==False and bForceHomogenousMedium == False and len(BenchmarkTestFile)==0:
+            self._MaterialMap=self._MaterialMapRef
+            bBrainSegmentation = np.any(self._MaterialMap>5)
             if self._DensityCTMap is not None:
                 assert(self._DensityCTMap.dtype==np.uint32)
                 BoneRegion=(self._MaterialMap==2) | (self._MaterialMap==3)
                 self._MaterialMapNoCT=self._MaterialMap.copy()
-                self._MaterialMap[self._MaterialMap>=4]=2 # Brain region is in material 2
+                if bBrainSegmentation:
+                    #we re arrange labels
+                    self._MaterialMap[self._MaterialMap==4]=2 
+                    self._MaterialMap[self._MaterialMap==5]=2 #we define target as regular brain (we wil need to fix this later)
+                    self._MaterialMap[self._MaterialMap>=6]-=3   
+                else:
+                    self._MaterialMap[self._MaterialMap>=4]=2 # Brain region is in material 2
                 SubCTMap=np.zeros_like(self._MaterialMap)
                 SubCTMap[self._XLOffset:-self._XROffset,
                               self._YLOffset:-self._YROffset,
@@ -1370,31 +2080,104 @@ elif self._bTightNarrowBeamDomain:
                                                                          self._YShrink_L:upperYR,
                                                                          self._ZShrink_L:upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
+                if self._AirRegions is not None:
+                    SubAirRegions=np.zeros_like(self._MaterialMap)
+                    SubAirRegions[self._XLOffset:-self._XROffset,
+                                self._YLOffset:-self._YROffset,
+                                self._ZLOffset:-self._ZROffset]=\
+                                    self._AirRegions[self._XShrink_L:upperXR,
+                                                                            self._YShrink_L:upperYR,
+                                                                            self._ZShrink_L:upperZR]
+                    self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
-                assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().max())
+                assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
 
             else:
-                self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
+                if bBrainSegmentation:
+                    self._MaterialMap[self._MaterialMap>=5]-=1 
+                else:
+                    self._MaterialMap[self._MaterialMap==5]=4 # this is to make the focal spot location as brain tissue
 
             #We remove tissue layers
             self._MaterialMap[:,:,:self._ZSourceLocation+1] = 0 # we remove tissue layers by putting water
+        else:
+            self._MaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32) # note the 32 bit size
         
+        #####
+        ##### bForceHomogenousMedium and BenchmarkTestFile are only for testing
+        #####
+        if bForceHomogenousMedium:
+            self._MaterialMap[:,:,:]=1
+        if len(BenchmarkTestFile)>0 and not bWaterOnly:
+            assert(np.all(np.array(self._MaterialMap.shape)==np.array(InputDataBenchmark['MaterialMap'].shape)))
+            assert(self._MaterialMap.dtype==InputDataBenchmark['MaterialMap'].dtype)
+            
+            self._MaterialMap=InputDataBenchmark['MaterialMap']
+            
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
         print('Number of steps sensor',np.floor(self._TimeSimulation/self._TemporalStep/self._SensorSubSampling)-self._SensorStart)
         
+        
+    def AdjustWeightAmplitudes(self):
+        '''
+        Adjust the weight amplitudes to be used in the simulation
+        '''
+        if self._OptimizedWeights is not None:
+            print('Using optimized weights from file %s' %(self._OptimizedWeightsFile))
+            if self._OptimizedWeights.size != self._TxRC['center'].shape[0]:
+                raise ValueError("OptimizedWeightsFile %s has %i subelements, but the Tx has %i elements." %(self._OptimizedWeightsFile,self._OptimizedWeights.size,self._TxRC['center'].shape[0]))
+            return self._OptimizedWeights.reshape((self._TxRC['center'].shape[0],1)).astype(np.complex64)
+        else:
+            return 1.0
 
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
+        '''
+        Calculate the Rayleigh fields in the forward direction.
+
+        Parameters
+        ----------
+        deviceName : str, optional
+            Name of the device to use for computation (default is '6800').
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
            
     def ReturnArrayMaterial(self):
+        '''
+        Return the array of materials used in the simulation.
+
+        Returns
+        -------
+        np.ndarray
+            Array of material properties.
+        '''
         return np.array(self._Materials)
 
     def CreateSources(self,ramp_length=4):
+        '''
+        Create the source signals for the simulation.
+
+        Parameters
+        ----------
+        ramp_length : int, optional
+            Length of the ramp for the source signal (default is 4).
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
  
     def CreateSensorMap(self):
-        
+        '''
+        Create the sensor map and back-propagation sensor map for the simulation.
+        '''
         self._SensorMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         # for the back propagation, we only use the entering face
         self._SensorMapBackPropagation=np.zeros((self._N1,self._N2,self._N3),np.uint32)    
@@ -1413,15 +2196,42 @@ elif self._bTightNarrowBeamDomain:
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True):
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False,SelRMSorPeak=1):
+        '''
+        Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
+
+        Parameters
+        ----------
+        GPUName : str, optional
+            Name of the GPU device to use (default is 'SUPER').
+        SelMapsRMSPeakList : list of str, optional
+            List of field names to extract RMS/peak values for (default is ['Pressure']).
+        bRefocused : bool, optional
+            If True, run the refocused simulation (default is False).
+        bApplyCorrectionForDispersion : bool, optional
+            If True, apply dispersion correction to results (default is True).
+        COMPUTING_BACKEND : int, optional
+            Backend to use for computation (default is 1).
+        bDoRefocusing : bool, optional
+            If True, perform backpropagation/refocusing (default is True).
+        '''
         MaterialList=self.ReturnArrayMaterial()
 
-        TypeSource=0 #particle source
-        Ox=np.zeros(self._MaterialMap.shape) 
-        Oy=np.zeros(self._MaterialMap.shape) 
-        Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+        print('Using SelRMSorPeak',SelRMSorPeak)
 
-        if bRefocused==False:
+        if bDoStressSource:
+            print('RUN_SIMULATION with Stress Sources')
+            TypeSource=2
+            Ox=np.array([1])
+            Oy=np.array([1])
+            Oz=np.array([1])
+        else:
+            TypeSource=0 #particle source
+            Ox=np.zeros(self._MaterialMap.shape) 
+            Oy=np.zeros(self._MaterialMap.shape) 
+            Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+
+        if bRefocused==False:      
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
                                                              self._MaterialMap,
                                                              MaterialList,
@@ -1441,14 +2251,17 @@ elif self._bTightNarrowBeamDomain:
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
+            
+            print('self._DictPeakValue',self._DictPeakValue['Pressure'].max())
             
             self._InputParam=InputParam['IndexSensorMap']
             gc.collect()
@@ -1464,24 +2277,22 @@ elif self._bTightNarrowBeamDomain:
                                                                  self._SpatialStep,
                                                                  self._TimeSimulation,
                                                                  self._SensorMapBackPropagation,
-                                                                 Ox=Ox,
-                                                                 Oy=Oy,
-                                                                 Oz=Oz,
                                                                  NDelta=self._PMLThickness,
                                                                  DT=self._TemporalStep,
                                                                  ReflectionLimit=self._ReflectionLimit,
                                                                  COMPUTING_BACKEND=COMPUTING_BACKEND,
                                                                  USE_SINGLE=True,
-                                                                 SelMapsRMSPeakList=SelMapsRMSPeakList,
+                                                                 SelMapsRMSPeakList=['Pressure'],
                                                                  SelMapsSensorsList=['Pressure'],
                                                                  SelRMSorPeak=1,
                                                                  DefaultGPUDeviceName=GPUName,
                                                                  AlphaCFL=1.0,
-                                                                 TypeSource=TypeSource,
+                                                                 TypeSource=2,
                                                                  QfactorCorrection=self._QfactorCorrection,
                                                                  QCorrection=self._QCorrection,
                                                                  SensorSubSampling=self._SensorSubSampling,
-                                                                 SensorStart=self._SensorStart)
+                                                                 SensorStart=self._SensorStart,
+                                                                 ReflectorMask=self._SubAirRegions)
                 self._InputParamBack=InputParam['IndexSensorMap']
         else:
             self._SensorRefocus,_,self._DictPeakValueRefocus,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
@@ -1503,15 +2314,18 @@ elif self._bTightNarrowBeamDomain:
                                                              USE_SINGLE=True,
                                                              SelMapsRMSPeakList=SelMapsRMSPeakList,
                                                              SelMapsSensorsList=['Pressure'],
-                                                             SelRMSorPeak=1,
+                                                             SelRMSorPeak=SelRMSorPeak,
                                                              DefaultGPUDeviceName=GPUName,
                                                              AlphaCFL=1.0,
                                                              TypeSource=TypeSource,
                                                              QfactorCorrection=self._QfactorCorrection,
                                                              QCorrection=self._QCorrection,
                                                              SensorSubSampling=self._SensorSubSampling,
-                                                             SensorStart=self._SensorStart)
+                                                             SensorStart=self._SensorStart,
+                                                             ReflectorMask=self._SubAirRegions)
             self._InputParamRefocus=InputParam['IndexSensorMap']
+
+        print('self._DictPeakValue keys',self._DictPeakValue.keys())
 
         if bApplyCorrectionForDispersion:
             CFLWater=self._TemporalStep/self.DominantMediumTemporalStep
@@ -1540,7 +2354,17 @@ elif self._bTightNarrowBeamDomain:
                     
         gc.collect()
     
-    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True):
+    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True,bDoRefocusingVolume=False):
+        '''
+        Calculate phase and amplitude maps from the simulated sensor data.
+
+        Parameters
+        ----------
+        bRefocused : bool, optional
+            If True, calculate for the refocused simulation (default is False).
+        bDoRefocusing : bool, optional
+            If True, also process backpropagation data (default is True).
+        '''
         
         t0=time.time()
         if bRefocused==False:
@@ -1548,7 +2372,10 @@ elif self._bTightNarrowBeamDomain:
             self._PressMapFourier=np.zeros((self._N1,self._N2,self._N3),np.complex64)
             self._PressMapPeak=np.zeros((self._N1,self._N2,self._N3),np.float32)
             if bDoRefocusing:
-                self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
+                if bDoRefocusingVolume:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2,self._N3),np.complex64)
+                else:
+                    self._PressMapFourierBack=np.zeros((self._N1,self._N2),np.complex64)
         else:
             self._PhaseMapRefocus=np.zeros((self._N1,self._N2,self._N3),np.float32)
             self._PressMapFourierRefocus=np.zeros((self._N1,self._N2,self._N3),np.complex64)
@@ -1592,7 +2419,7 @@ elif self._bTightNarrowBeamDomain:
             
             if bDoRefocusing:
                 self._SensorBack['Pressure']=np.ascontiguousarray(self._SensorBack['Pressure'])
-                index=self._InputParamBack-1
+                index=self._InputParamBack-1 
                 for n in range(0,self._SensorBack['Pressure'].shape[0],nStep):
                     top=np.min([n+nStep,self._SensorBack['Pressure'].shape[0]])
                     FSignal=fft.fft(self._SensorBack['Pressure'][n:top,:],axis=1)
@@ -1601,8 +2428,11 @@ elif self._bTightNarrowBeamDomain:
                     i=j%self._N1
                     j=j//self._N1
                     FSignal=FSignal[:,IndSpectrum]
-                    assert(np.all(k==self._PMLThickness))
-                    self._PressMapFourierBack[i,j]=FSignal
+                    if bDoRefocusingVolume:
+                        self._PressMapFourierBack[i,j,k]=FSignal
+                    else:
+                        assert(np.all(k==self._PMLThickness))
+                        self._PressMapFourierBack[i,j]=FSignal
                     
         else:
             self._SensorRefocus['Pressure']=np.ascontiguousarray(self._SensorRefocus['Pressure'])
@@ -1625,17 +2455,70 @@ elif self._bTightNarrowBeamDomain:
             self._InPeakValueRefocus=self._DictPeakValueRefocus['Pressure']
             self._PressMapFourierRefocus*=2/self._SensorRefocus['time'].size
             print('Elapsed time doing phase and amp extraction from Fourier (s)',time.time()-t0)
-            
-        
-            
+             
     def BackPropagationRayleigh(self,deviceName='6800'):
+        '''
+        Perform Rayleigh backpropagation for refocusing.
+
+        Parameters
+        ----------
+        deviceName : str, optional
+            Name of the device to use for computation (default is '6800').
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this") 
         
     def CreateSourcesRefocus(self,ramp_length=4):
+        '''
+        Create the source signals for the refocused simulation.
+
+        Parameters
+        ----------
+        ramp_length : int, optional
+            Length of the ramp for the source signal (default is 4).
+
+        Raises
+        ------
+        NotImplementedError
+            This method must be implemented in a subclass.
+        '''
         raise NotImplementedError("Need to implement this")
+    
+    def CalculateDomainZReference(self):
+        '''
+        Calculate Z-axis domain correction based on skin surface location.
+        
+        Compares the skin surface Z-position at the target location with the 
+        global minimum skin surface Z-position to determine domain correction needed.
+        
+        Returns
+        -------
+        float
+            Domain correction value (m) representing the difference between global 
+            and local skin surface positions along the Z-axis.
+        '''
+         #the skin starts in the top voxel of the subdomain
+    
+        TargetLocation =self._FocalSpotLocation
+        LineOfSight=self._MaterialMapRef[TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+
+        [mx,my,mz]=np.where(self._MaterialMapRef>0)
+        GlobalStartSkin=mz.min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
+        print('GlobalStartSkin',GlobalStartSkin)
+        print('LineOfSightStartSkin',StartSkin)
+        print('TxMechanicalAdjustmentZ',self._TxMechanicalAdjustmentZ)
+        DomainCorrection=GlobalStartSkin-StartSkin
+        return DomainCorrection
         
     def PlotResultsPlanePartial(self):
-  
+        '''
+        Plot partial results (peak, Fourier, and in-peak amplitude) for a central plane.
+        '''
         if self._bDisplay:
             plt.figure(figsize=(18,6))
             plt.subplot(1,3,1)
@@ -1659,7 +2542,14 @@ elif self._bTightNarrowBeamDomain:
             plt.title('BabelViscoFDTD InPeak amp. (MPa)')
             
     def PlotResultsPlane(self,bDoRefocusing=True):
-  
+        '''
+        Plot results for the main and (optionally) refocused simulations.
+
+        Parameters
+        ----------
+        bDoRefocusing : bool, optional
+            If True, plot refocused results as well (default is True).
+        '''
         if self._bDisplay:
             if bDoRefocusing:
                 plt.figure(figsize=(18,12))
@@ -1734,6 +2624,21 @@ elif self._bTightNarrowBeamDomain:
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
     def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False):
+        '''
+        Return simulation results including pressure, phase, overlays, and data for saving.
+
+        Parameters
+        ----------
+        bDoRefocusing : bool, optional
+            If True, include refocused results (default is True).
+        bUseRayleighForWater : bool, optional
+            If True, use Rayleigh field for water-only simulation (default is False).
+
+        Returns
+        -------
+        tuple
+            Contains Rayleigh field, overlays, pressure/phase maps, and simulation data.
+        '''
         if self._XShrink_R==0:
             upperXR=self._SkullMaskDataOrig.shape[0]
         else:
@@ -1820,6 +2725,12 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['p_amp']=self._InPeakValue[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
+        if self._bSaveStress or self._bSaveDisplacement:
+            for k in self._DictPeakValue:
+                if k != 'Pressure':
+                    DataForSim[k] = self._DictPeakValue[k][self._XLOffset:-self._XROffset,
+                                            self._YLOffset:-self._YROffset,
+                                            self._ZLOffset:-self._ZROffset]
         DataForSim['p_complex']=self._PressMapFourier[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
@@ -1831,6 +2742,9 @@ elif self._bTightNarrowBeamDomain:
             DataForSim['p_complex_refocus']=self._PressMapFourierRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
+            DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
+                                       self._YLOffset:-self._YROffset,
+                                       self._ZLOffset:-self._ZROffset].copy()
         if self._DensityCTMap is not None:
             MaterialMap=self._MaterialMapNoCT.copy()
             DataForSim['MaterialMapCT']=self._MaterialMap[self._XLOffset:-self._XROffset,
@@ -1838,20 +2752,28 @@ elif self._bTightNarrowBeamDomain:
                                    self._ZLOffset:-self._ZROffset].copy()
         else:
             MaterialMap=self._MaterialMap.copy()
-        MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=5.0
+        OrigMaterialFocalSpot=MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]
+        MaterialMap[self._FocalSpotLocation[0],self._FocalSpotLocation[1],self._FocalSpotLocation[2]]=500.0
         
         DataForSim['MaterialMap']=MaterialMap[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset].copy()
         
-        TargetLocation=np.array(np.where(DataForSim['MaterialMap']==5.0)).flatten()
-        DataForSim['MaterialMap'][DataForSim['MaterialMap']==5.0]=4.0 #we switch it back to soft tissue
+        if self._SubAirRegions is not None:
+            DataForSim['AirMask']=self._SubAirRegions[self._XLOffset:-self._XROffset,
+                                   self._YLOffset:-self._YROffset,
+                                   self._ZLOffset:-self._ZROffset].astype(np.uint8)
+        
+        TargetLocation=np.array(np.where(DataForSim['MaterialMap']==500.0)).flatten()
+        DataForSim['MaterialMap'][DataForSim['MaterialMap']==500.0]=OrigMaterialFocalSpot #we switch it back to soft tissue
         
         if bUseRayleighForWater:
             DataForSim['p_complex_water']=self._u2RayleighField[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
             DataForSim['p_amp_water']=np.abs(DataForSim['p_complex_water'])
+
+        
         for k in DataForSim:
             DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
@@ -1861,6 +2783,9 @@ elif self._bTightNarrowBeamDomain:
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
+        if hasattr(self,'_SourceMapRayleigh'):
+            DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
+                                                            self._PMLThickness:-self._PMLThickness]
         
         
         assert(np.all(np.array(RayleighWaterOverlay.shape)==np.array(FullSolutionPressure.shape)))
@@ -1874,4 +2799,3 @@ elif self._bTightNarrowBeamDomain:
                 FullSolutionPhaseRefocus,\
                 RayleighWaterPhase
                 
-        

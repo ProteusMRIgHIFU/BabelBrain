@@ -1,0 +1,13 @@
+#be sure of specifying a supported device for calibration (ring array type): CTX_500, CTX_250, CTX_250_2ch, DPX_500, DPXPC_300, R15287, R15473
+Device: CTX_500 
+ExcelFileProfiles: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/CTX-500/DTU/CTX-500-117 4-Ch. Focal Steering.xlsx
+ExcelRangeProfiles: Sheet1!T20:AJ81
+# select an OutputResultsPath that is individual for Tx configuration and frequency
+OutputResultsPath: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/CTX-500/DTU/CTX-500-117 4-Ch. Focal Steering
+Lambda: 1.0e-4
+UseRayleighPhase: True
+# PLEASE BE SURE OF SELECTING A VALID FREQUENCY FOR YOUR DEVICE, also, be sure of format of frequency (i.e 5.0e+5)
+Frequency: 5.0e+5 
+# If using phase reprogramming from an Excel file, uncomment the following lines
+# ExcelFilePhase: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/CTX-500/DTU/CTX-500-117 4-Ch. Focal Steering/Phase.xlsx
+# ExcelRangePhase: Sheet1!A1:B60

@@ -192,6 +192,8 @@ class FileManager:
             saved_CT_type = "CTType=ZTE,"
         elif self.CT_type == 3:
             saved_CT_type = "CTType=PETRA,"
+        elif self.CT_type == 4:
+            saved_CT_type = "CTType=Density,"
         else:
             logger.warning("hash saving method not set up for this pseudo CT type")
             saved_CT_type = "CTType=Unknown,"
@@ -242,6 +244,8 @@ class FileManager:
             current_CT_type = "ZTE"
         elif self.CT_type == 3:
             current_CT_type = "PETRA"
+        elif self.CT_type == 4:
+            current_CT_type = "Density"
         else:
             logger.warning("checksum verification not set up for this pseudo CT type")
 

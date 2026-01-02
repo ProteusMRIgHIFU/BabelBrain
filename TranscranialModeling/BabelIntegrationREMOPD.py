@@ -27,7 +27,6 @@ from linetimer import CodeTimer
 
 PITCH = 3.08e-3 
 KERF = 0.5e-3
-FREQ=300e3
 APERTURE = 0.058
 minPPPArray=60.08
 DimensionElem = PITCH-KERF
@@ -38,7 +37,7 @@ def computeREMOPDGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
-def GenerateSingleElem(PPW=12.0):
+def GenerateSingleElem(FREQ=300e3,PPW=12.0):
     #60.08 PPW produces close to integer steps for both pitch and kerf
     
     Tx = {}
@@ -86,10 +85,10 @@ def GenerateSingleElem(PPW=12.0):
     return Tx
     
 
-def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0):
+def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
    
     #%This is the indiv tx element
-    TxElem=GenerateSingleElem()
+    TxElem=GenerateSingleElem(FREQ=Frequency)
 
 
     transLoc = computeREMOPDGeometry()
@@ -281,14 +280,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ)[self._TxSet]
-        
-        
-        #We replicate as in the GUI as need to account for water pixels there in calculations where to truly put the Tx
-        TargetLocation =np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
-        LineOfSight=self._SkullMaskDataOrig[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()*self._SkullMaskNii.header.get_zooms()[2]/1e3
-        print('StartSkin',StartSkin)
+        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
         
         if self._TxMechanicalAdjustmentZ <0:
             zCorrec= self._TxMechanicalAdjustmentZ
@@ -364,6 +356,8 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
+        u0*=self.AdjustWeightAmplitudes()
+        
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
                          self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -417,6 +411,8 @@ class SimulationConditions(SimulationConditionsBASE):
         ## Now we create the sources for back propagation
         
         self._PunctualSource=np.sin(2*np.pi*self._Frequency*TimeVectorSource).reshape(1,len(TimeVectorSource))
+        self._PunctualSource[0,:int(ramp_length_points)]*=ramp
+        self._PunctualSource[0,-int(ramp_length_points):]*=np.flip(ramp)
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocForRefocusing=self._FocalSpotLocation.copy()
         LocForRefocusing[2]=0.0
