@@ -124,6 +124,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **New**: Offline processing (**OfflineBatchExamples/PETRA-ZTE PCA fit to pseudoCT**) to calculate principal component analysis (PCA) fitting to convert ZTE/PETRA to pseudo CT. 
   - **Fix**: Small corrections for Brainsonix focal spot dimensions for 65 mm- and 85 mm-focal lengths.
   - **Fix**: Correct that some skin tissue voxels were still labelled as brain tissue.
+  - **Fix**: DurationOff =0 in protocols could produce memory allocation errors
   - **Improvement**: Unit-testing expanded and improved.
 
 - 0.4.1 -  Sep 15th, 2024
