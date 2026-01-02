@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/pipeline/Preliminary_steps.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Advanced/TransducerCalibration.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Preliminary steps - BabelBrain</title>
+        <title>Tx calibration - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/fontawesome.min.css" rel="stylesheet">
         <link href="../css/brands.min.css" rel="stylesheet">
@@ -43,16 +43,16 @@
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
                             <li class="nav-item">
-                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
+                                <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
                             <li class="nav-item">
-                                <a href="Preliminary_steps.html" class="nav-link active" aria-current="page">Preliminary steps</a>
+                                <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
                             <li class="nav-item">
-                                <a href="Planning.html" class="nav-link">Planning</a>
+                                <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
                             </li>
                             <li class="nav-item">
-                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                                <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
                             <li class="nav-item">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
@@ -61,13 +61,13 @@
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                                <a href="advanced.html" class="nav-link">Advanced options</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                                <a href="PlanTUS.html" class="nav-link">PlanTUS</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                                <a href="TransducerCalibration.html" class="nav-link active" aria-current="page">Tx calibration</a>
                             </li>
                             <li class="nav-item">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
@@ -81,12 +81,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="pipeline.html" class="nav-link">
+                                <a rel="prev" href="PlanTUS.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="Planning.html" class="nav-link">
+                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -108,13 +108,31 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-bs-level="1"><a href="#preliminary-steps" class="nav-link">Preliminary steps</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#anatomical-imaging" class="nav-link">Anatomical Imaging</a>
+            <li class="nav-item" data-bs-level="2"><a href="#transducer-calibration" class="nav-link">Transducer calibration</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#pre-processing" class="nav-link">Pre-processing</a>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#requirements" class="nav-link">Requirements</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#procedure" class="nav-link">Procedure</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#1-identify-range-of-data" class="nav-link">1. Identify range of data</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#2-prepare-yaml-file-with-input-information-for-calibration" class="nav-link">2. Prepare YAML file with input information for calibration</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#3-run-transducer-calibration-in-babelbrain" class="nav-link">3. Run transducer calibration in BabelBrain</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#4-important-notes" class="nav-link">4. Important notes</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -125,41 +143,47 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="preliminary-steps">Preliminary steps</h1>
-<h2 id="anatomical-imaging">Anatomical Imaging</h2>
-<ul>
-<li>Collect T1W (and optionally T2W) imaging of a participant. T1W scan <strong>must</strong> be 1-mm isotropic scans.</li>
-<li><em>Optional</em>: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. </li>
-<li><em>Optional</em>:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by 
-<a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a> (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a>, both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult <a href="../MRISequences/MRISequences.html">MRI Sequences</a> for GE and Siemens scan settings recomendations </li>
-</ul>
-<h2 id="pre-processing">Pre-processing</h2>
-<ul>
-<li>Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x <code>charm</code> processing tool with  settings optimized for skull segmentation</li>
-<li>
-<p><strong>New</strong> (Feb 6th, 2024): Use new recommended charm settings for a better skull segmentation:</p>
-<ul>
-<li>Download all files for CHARM FAT Atlas Integration at this <a href="https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings">location</a> </li>
-<li>Copy the downloaded  custom atlas directory <code>charm_fat_atlas_mni</code> in: <code>&lt;path_to_simnibs&gt;/simnibs/segmentation/atlases/</code></li>
-<li>Place <code>settings_fat.ini</code> and <code>shared_gmm_fat.txt</code> in a directory of your choice</li>
-<li>
-<p>Run with Custom Atlas:</p>
-<p><code>charm  &lt;ID&gt; T1.nii.gz T2.nii.gz --usesettings &lt;path_to_settings_fat.ini&gt; --noneck</code></p>
-</li>
-</ul>
-<p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual.</p>
-<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
-</li>
-<li>
-<p>Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
-<p>For example, with FSL, a simple csv file (<code>mni.csv</code>) can be created with the coordinates in MNI such as <code>-32.0 -20.0 65.0</code>. Then run the following commands</p>
-<p><code>flirt -in &lt;path to T1W nifti&gt; -ref $FSLDIR/data/standard/MNI152_T1_1mm -omat anat2mni.xfm -out anat_norm</code></p>
-<p><code>std2imgcoord -img &lt;path to T1W nifti&gt;  -std $FSLDIR/data/standard/MNI152_T1_1mm.nii -xfm anat2mni.xfm mni.csv &gt; natspace.csv</code></p>
-<p>The file <code>natspace.csv</code> will contain the MNI coordinates converted to T1W space. Please note that often visual inspections could be required to confirm the location.</p>
-</li>
-</ul>
-<p>If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the <code>headreco</code> or <code>charm</code> tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that <code>charm</code> tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.</p>
-<p>If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.</p></div>
+<h2 id="transducer-calibration">Transducer calibration</h2>
+<p>Starting in r0.8.0, there is the possibility to calibrate ring-type devices such as the CTX-500 and similar based on the reported <strong>intensity</strong> data on axial steering. For example, most reports show an as the one below detailing the steering capabilities of the device:</p>
+<p><img src="TxCalibration-1.png" height=350px></p>
+<p>This procedure in BabelBrain enables the modelling the specific response of individual transducers, improving precision of simulations.</p>
+<h1 id="requirements">Requirements</h1>
+<p>Obtain from the vendor an Excel file with the intensity profile data used to produce the intensity report shown above, for example:</p>
+<p><img src="TxCalibration-2.png" height=450px></p>
+<h1 id="procedure">Procedure</h1>
+<h2 id="1-identify-range-of-data">1. Identify range of data</h2>
+<p>Identify the range of cells for intensity data needed to produce the plot. The selected table should contain the Z axis distance from the outplane in the first column and the intensity values in the next columns corresponding to each steering in Z. </p>
+<p>On the example above, the first cell would be <strong>T20</strong>:</p>
+<p><img src="TxCalibration-3.png" height=250px></p>
+<p>and the last cell would be <strong>AJ81</strong>:</p>
+<p><img src="TxCalibration-4.png" height=250px></p>
+<p><strong>VERY IMPORTANT</strong>: Be sure of selecting the cell matching the last steering condition at the deepest Z value, <strong>and nothing else</strong>.</p>
+<h2 id="2-prepare-yaml-file-with-input-information-for-calibration">2. Prepare YAML file with input information for calibration</h2>
+<p>Details of the Excel sheet and cell range is specified via a simple YAML file as the one shown below</p>
+<pre><code class="language-YAML">#be sure of specifying a supported device for calibration (ring array type): CTX_500, CTX_250, CTX_250_2ch, DPX_500, DPXPC_300, R15287, R15473
+Device: CTX_500 
+ExcelFileProfiles: /Users/spichardo/Documents/CTX-500-117 4-Ch. Focal Steering.xlsx
+ExcelRangeProfiles: Sheet1!T20:AJ81
+# select an OutputResultsPath that is individual for Tx configuration and frequency
+OutputResultsPath: /Users/spichardo/Documents/CTX-500-117 4-Ch. Focal Steering
+Lambda: 1.0e-4
+# PLEASE BE SURE OF SELECTING A VALID FREQUENCY FOR YOUR DEVICE, also, be sure of format of frequency (i.e 5.0e+5)
+Frequency: 5.0e+5 
+</code></pre>
+<p>where <code>Device</code> is the device type to calibrate; this should match the device selected when BabelBrain was started. <code>ExcelFileProfiles</code> is the file path of the Excel sheet with the report data. <code>ExcelRangeProfiles</code> is the Excel range of cells (including sheet name) of the acoustic profile data as detailed above. <code>OutputResultsPath</code> is the path where the calibration and some verification plots will be saved (if path doesn't exist, it will be created). <code>Lambda</code> is a regularization parameter (10<span class="arithmatex"><span class="MathJax_Preview">^{-4}</span><script type="math/tex">^{-4}</script></span> should work for most transducers) and <code>Frequency</code> is the ultrasound operating frequency (be sure of specifying a frequency supported by the device).</p>
+<p>Be sure that the <code>OutputResultsPath</code> is unique per transducer and serial number basis, in case more than one transducer of the same model is available.</p>
+<h2 id="3-run-transducer-calibration-in-babelbrain">3. Run transducer calibration in BabelBrain</h2>
+<p>Open BabelBrain and select the correct transducer model</p>
+<p><img src="TxCalibration-5.png" height=250px></p>
+<p>Click on the <code>Advanced Options</code> action, select the <code>Transcranial Ultrasound</code> tab, and click on the <code>YAML file for calibration inputs</code> to select the YAML file defined above.</p>
+<p><img src="TxCalibration-6.png" height=350px></p>
+<p>Run the calibration with the <code>Execute</code> button and wait for a 1 or 2 min. Once completed, BabelBrain will show results of the fitting procedure where the user can evaluate the improvement to match better the experimental profiles compared to an idealized transducer response as shown below.</p>
+<p><img src="TxCalibration-7.png" height=450px></p>
+<p>If results are satisfactory, select <code>confirm and accept calibration</code>. The Advanced Options dialog will populate the path to the calibration file (<code>CALIBRATION.h5</code>) indicated in the <code>OutputResultsPath</code> path. Select <code>Ok</code> in the Advanced Options dialog to store this calibration info. </p>
+<h2 id="4-important-notes">4. Important notes</h2>
+<p>Once accepted and saved as an option, any new acoustic simulation in Step 2 will use the fitted transducer response. This calibration information will be preserved between BabelBrain sessions. If there is need to reset the calibration to the default transducer response, open the Advance Options dialog and clear the path to the calibration file and save with <code>Ok</code>.</p>
+<p>BabelBrain will manage the calibration per transducer model basis. For example, if more than one transducer model is available (for example, CTX 500 and DPX 500), individual calibrations can be run and saved. Every time BabelBrain is opened with the different transducer model, BabelBrain will load the specific calibration file for each transducer.</p>
+<p>A current <strong>limitation</strong> is that if multiples transducers of the same model are available, and it is desired to run a calibration for each of them, the user should modify the path to the calibration file (<code>CALIBRATION.h5</code>) each time they run simulations and remember that this calibration is saved for the next time BabelBrain is opened.</p></div>
             </div>
         </div>
 

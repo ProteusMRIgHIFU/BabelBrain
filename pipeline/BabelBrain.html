@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,16 +10,17 @@
         <link rel="shortcut icon" href="../img/favicon.ico">
         <title>BabelBrain simulation - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
-        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
-
-        <script src="../js/jquery-1.10.2.min.js" defer></script>
-        <script src="../js/bootstrap.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
-        <script>hljs.initHighlightingOnLoad();</script> 
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script>hljs.highlightAll();</script> 
     </head>
 
     <body>
@@ -27,7 +28,7 @@
             <div class="container">
                 <a class="navbar-brand" href="../index.html">BabelBrain</a>
                 <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -35,41 +36,47 @@
                 <div id="navbar-collapse" class="navbar-collapse collapse">
                         <!-- Main navigation -->
                         <ul class="nav navbar-nav">
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../index.html" class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="Planning.html" class="nav-link">Planning</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                            <li class="nav-item">
+                                <a href="BabelBrain.html" class="nav-link active" aria-current="page">BabelBrain simulation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
+                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
-                    <ul class="nav navbar-nav ml-auto">
+                    <ul class="nav navbar-nav ms-md-auto">
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
                                 <i class="fa fa-search"></i> Search
                             </a>
                         </li>
@@ -90,68 +97,68 @@
 
         <div class="container">
             <div class="row">
-                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
             <span class="fa fa-angle-down"></span>
         </button>
     </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#babelbrain-simulation" class="nav-link">BabelBrain Simulation</a>
+            <li class="nav-item" data-bs-level="1"><a href="#babelbrain-simulation" class="nav-link">BabelBrain Simulation</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#input-data" class="nav-link">Input data</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#step-1-domain-generation" class="nav-link">STEP 1 - Domain generation</a>
+            <li class="nav-item" data-bs-level="2"><a href="#input-data" class="nav-link">Input data</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#step-2-transcranial-ultrasound-simulation" class="nav-link">STEP 2 - Transcranial ultrasound simulation</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="3"><a href="#common-features-to-all-transducers" class="nav-link">Common features to all transducers</a>
+            <li class="nav-item" data-bs-level="2"><a href="#step-1-domain-generation" class="nav-link">STEP 1 - Domain generation</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="3"><a href="#distance-of-the-maximal-depth" class="nav-link">Distance of the maximal depth</a>
+            <li class="nav-item" data-bs-level="2"><a href="#step-2-transcranial-ultrasound-simulation" class="nav-link">STEP 2 - Transcranial ultrasound simulation</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#common-features-to-all-transducers" class="nav-link">Common features to all transducers</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="3"><a href="#mechanical-corrections" class="nav-link">Mechanical corrections</a>
+            <li class="nav-item" data-bs-level="3"><a href="#distance-of-the-maximal-depth" class="nav-link">Distance of the maximal depth</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="3"><a href="#modified-trajectory-very-important" class="nav-link">Modified trajectory - VERY IMPORTANT</a>
+            <li class="nav-item" data-bs-level="3"><a href="#mechanical-corrections" class="nav-link">Mechanical corrections</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="3"><a href="#transducers" class="nav-link">Transducers</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-level="4"><a href="#ctx_250-ctx_500-and-dpx_500" class="nav-link">CTX_250, CTX_500 and DPX_500</a>
+            <li class="nav-item" data-bs-level="3"><a href="#modified-trajectory-very-important" class="nav-link">Modified trajectory - VERY IMPORTANT</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="4"><a href="#h246" class="nav-link">H246</a>
+            <li class="nav-item" data-bs-level="3"><a href="#transducers" class="nav-link">Transducers</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="4"><a href="#single" class="nav-link">Single</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="4"><a href="#h317-i12378-and-atac-and-r15148" class="nav-link">H317, I12378 and ATAC and R15148</a>
+            <li class="nav-item" data-bs-level="4"><a href="#bsonix" class="nav-link">BSonix</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="4"><a href="#single" class="nav-link">Single</a>
+            <li class="nav-item" data-bs-level="4"><a href="#h246" class="nav-link">H246</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="4"><a href="#bsonix" class="nav-link">BSonix</a>
+            <li class="nav-item" data-bs-level="4"><a href="#shell-focusing-ring-type-arrays" class="nav-link">Shell focusing ring-type arrays</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="4"><a href="#remopd" class="nav-link">REMOPD</a>
+            <li class="nav-item" data-bs-level="4"><a href="#shell-focusing-phased-arrays" class="nav-link">Shell focusing phased arrays</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="4"><a href="#remopd" class="nav-link">REMOPD</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -159,7 +166,7 @@
             </li>
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#step-3-thermal-simulation" class="nav-link">STEP 3 - Thermal simulation</a>
+            <li class="nav-item" data-bs-level="2"><a href="#step-3-thermal-simulation" class="nav-link">STEP 3 - Thermal simulation</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -286,23 +293,25 @@ Corrections on Z, which appear in the GUI for most transducers as <strong>Distan
 <p>When running in tandem with Brainsight, this trajectory will be loaded automatically along with the results as shown below</p>
 <p><img src="Simulation-16.png" height=450px></p>
 <h3 id="transducers">Transducers</h3>
-<h4 id="ctx_250-ctx_500-and-dpx_500">CTX_250, CTX_500 and DPX_500</h4>
-<p><img src="Simulation-7.png" height=450px></p>
-<p>For the CTX_250, CTX_500 and DPX_500 transducers, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. </p>
-<p>The initial "TPO Distance" (an adjustable parameter in the TPO NeuroFUS device) is calculated based on the distance skin to the target. </p>
-<p>It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Adjust both mechanical corrections as described above and combined with the TPO Distance to ensure your target is correctly engaged.</p>
-<h4 id="h246">H246</h4>
-<p>The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.</p>
-<p><img src="Simulation-9.png" height=450px></p>
-<h4 id="h317-i12378-and-atac-and-r15148">H317, I12378 and ATAC and R15148</h4>
-<p>These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the <code>Distance cone to Focus</code> that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.</p>
-<p><img src="Simulation-10.png" height=450px></p>
 <h4 id="single">Single</h4>
 <p>The "Single" transducer is a generic device with a configurable diameter and focal length. Because this is a more general-purpose device, it is not assumed that the transducer is in direct contact with the skin. The transducer is always initially centered at the target, which means that there could be some space between the transducer out plane and the skin. The user can adjust the mechanical distance on the Z axis until the point of the out plane of the transducer reaches the skin.</p>
 <p><img src="Simulation-11.png" height=450px></p>
 <h4 id="bsonix">BSonix</h4>
 <p>These are commercial transducers with fixed focal lengths as reported in <a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>. The user can select focal length of 35, 55, 65 and 80 mm. Similar to the CTX_500, it is assumed the device is in direct contact with the skin, with the option to move the transducer away from the skin to simulate placing a coupling pad. </p>
 <p><img src="Simulation-13.png" height=450px></p>
+<h4 id="h246">H246</h4>
+<p>The H246 transducer has a similar operation as the CTX_500. The steps presented above apply similarly. As the H246 transducer has a much longer focal length, consider extending the maximal depth of simulations.</p>
+<p><img src="Simulation-9.png" height=450px></p>
+<h4 id="shell-focusing-ring-type-arrays">Shell focusing ring-type arrays</h4>
+<h5 id="ctx_250-ctx_250-2ch-ctx_500-dpx_500-dpxpc_300-r15287-and-r15473">CTX_250, CTX_250-2ch, CTX_500, DPX_500, DPXPC_300, R15287 and R15473</h5>
+<p><img src="Simulation-7.png" height=450px></p>
+<p>For focusing ring-type arrays, the initial assumption is that this type of transducer will be placed in direct contact with the skin and that the focusing distance will be adjusted according to the desired target. </p>
+<p>The initial "Z Distance" is initially calculated based on the distance from the outplane to the target. For CTX and DPX devices, this corresponds to the TPO setting.</p>
+<p>It is recommended to simulate with the default values to evaluate the degree of focus shift caused by the skull. Adjust both mechanical corrections as described above and combined with the Z Distance to ensure your target is correctly engaged.</p>
+<h4 id="shell-focusing-phased-arrays">Shell focusing phased arrays</h4>
+<h5 id="h317-i12378-atac-r15148-r15646-and-igt64_500">H317, I12378, ATAC, R15148, R15646 and IGT64_500</h5>
+<p>These transducers assume that a coupling cone is in contact with the skin. The user interface shows small differences compared to CTX_500 and H246. There is a parameter for the <code>Distance cone to Focus</code> that depends on the acoustic cone used for coupling. Because these transducers are phased arrays, the user interface shows also the option to perform electronic refocusing and multifocus.</p>
+<p><img src="Simulation-10.png" height=450px></p>
 <h4 id="remopd">REMOPD</h4>
 <p>This transducer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.</p>
 <p><img src="Simulation-14.png" height=450px></p>
@@ -426,21 +435,22 @@ Corrections on Z, which appear in the GUI for most transducers as <strong>Distan
             <hr>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
         <script>
             var base_url = "..",
                 shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
         </script>
-        <script src="../js/base.js" defer></script>
-        <script src="../mathjax-config.js" defer></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
-        <script src="../search/main.js" defer></script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>From here you can search these documents. Enter your search terms below.</p>
@@ -460,7 +470,7 @@ Corrections on Z, which appear in the GUI for most transducers as <strong>Distan
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <table class="table">

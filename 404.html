@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,16 +10,17 @@
         <link rel="shortcut icon" href="/BabelBrain/img/favicon.ico">
         <title>BabelBrain</title>
         <link href="/BabelBrain/css/bootstrap.min.css" rel="stylesheet">
-        <link href="/BabelBrain/css/font-awesome.min.css" rel="stylesheet">
+        <link href="/BabelBrain/css/fontawesome.min.css" rel="stylesheet">
+        <link href="/BabelBrain/css/brands.min.css" rel="stylesheet">
+        <link href="/BabelBrain/css/solid.min.css" rel="stylesheet">
+        <link href="/BabelBrain/css/v4-font-face.min.css" rel="stylesheet">
         <link href="/BabelBrain/css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
-
-        <script src="/BabelBrain/js/jquery-1.10.2.min.js" defer></script>
-        <script src="/BabelBrain/js/bootstrap.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
-        <script>hljs.initHighlightingOnLoad();</script> 
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script>hljs.highlightAll();</script> 
     </head>
 
     <body>
@@ -27,7 +28,7 @@
             <div class="container">
                 <a class="navbar-brand" href="/BabelBrain/index.html">BabelBrain</a>
                 <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -35,41 +36,47 @@
                 <div id="navbar-collapse" class="navbar-collapse collapse">
                         <!-- Main navigation -->
                         <ul class="nav navbar-nav">
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/index.html" class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/installation.html" class="nav-link">Installation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/pipeline/Planning.html" class="nav-link">Planning</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="/BabelBrain/Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
+                                <a href="/BabelBrain/Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/BabelBrain/Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="/BabelBrain/Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
-                    <ul class="nav navbar-nav ml-auto">
+                    <ul class="nav navbar-nav ms-md-auto">
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
                                 <i class="fa fa-search"></i> Search
                             </a>
                         </li>
@@ -96,21 +103,22 @@
             <hr>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
+        <script src="/BabelBrain/js/bootstrap.bundle.min.js"></script>
         <script>
             var base_url = "/BabelBrain/",
                 shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
         </script>
-        <script src="/BabelBrain/js/base.js" defer></script>
-        <script src="/BabelBrain/mathjax-config.js" defer></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
-        <script src="/BabelBrain/search/main.js" defer></script>
+        <script src="/BabelBrain/js/base.js"></script>
+        <script src="/BabelBrain/mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="/BabelBrain/search/main.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>From here you can search these documents. Enter your search terms below.</p>
@@ -130,7 +138,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <table class="table">

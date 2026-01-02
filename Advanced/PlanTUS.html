@@ -6,9 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/pipeline/Preliminary_steps.html">
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Advanced/PlanTUS.html">
         <link rel="shortcut icon" href="../img/favicon.ico">
-        <title>Preliminary steps - BabelBrain</title>
+        <title>PlanTUS - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
         <link href="../css/fontawesome.min.css" rel="stylesheet">
         <link href="../css/brands.min.css" rel="stylesheet">
@@ -43,16 +43,16 @@
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
                             <li class="nav-item">
-                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
+                                <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
                             <li class="nav-item">
-                                <a href="Preliminary_steps.html" class="nav-link active" aria-current="page">Preliminary steps</a>
+                                <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
                             <li class="nav-item">
-                                <a href="Planning.html" class="nav-link">Planning</a>
+                                <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
                             </li>
                             <li class="nav-item">
-                                <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
+                                <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
                             <li class="nav-item">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
@@ -61,13 +61,13 @@
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                                <a href="advanced.html" class="nav-link">Advanced options</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                                <a href="PlanTUS.html" class="nav-link active" aria-current="page">PlanTUS</a>
                             </li>
                             <li class="nav-item">
-                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                                <a href="TransducerCalibration.html" class="nav-link">Tx calibration</a>
                             </li>
                             <li class="nav-item">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
@@ -81,12 +81,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="pipeline.html" class="nav-link">
+                                <a rel="prev" href="advanced.html" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="Planning.html" class="nav-link">
+                                <a rel="next" href="TransducerCalibration.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -108,13 +108,23 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-bs-level="1"><a href="#preliminary-steps" class="nav-link">Preliminary steps</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#anatomical-imaging" class="nav-link">Anatomical Imaging</a>
+            <li class="nav-item" data-bs-level="2"><a href="#plantus-integration" class="nav-link">PlanTUS integration</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-bs-level="2"><a href="#pre-processing" class="nav-link">Pre-processing</a>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#limitations" class="nav-link">Limitations</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#requirements" class="nav-link">Requirements</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#extra-libraries-in-simnibs-environment" class="nav-link">Extra libraries in SimNIBS environment</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#execution-of-plantus" class="nav-link">Execution of PlanTUS</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -125,41 +135,80 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="preliminary-steps">Preliminary steps</h1>
-<h2 id="anatomical-imaging">Anatomical Imaging</h2>
+<h2 id="plantus-integration">PlanTUS integration</h2>
+<p>Starting in r0.8.0, there is an experimental feature to integrate with the excellent tool <a href="https://doi.org/10.1016/j.brs.2025.08.013">PlanTUS</a> developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University that helps to refine trajectories using heatmaps of incident angles, distance, degree of intersection and skin-skull angle.</p>
+<p><img src="PlanTUS-1.png" height=350px></p>
+<p>This procedure in BabelBrain can update the trajectory defined originally in 3DSlicer or Brainsight to improve, for example, incident angle.</p>
+<h1 id="limitations">Limitations</h1>
 <ul>
-<li>Collect T1W (and optionally T2W) imaging of a participant. T1W scan <strong>must</strong> be 1-mm isotropic scans.</li>
-<li><em>Optional</em>: CT scan of the participant. Depending on the study being conducted, counting with a CT scan improves the precision of the simulation. </li>
-<li><em>Optional</em>:: ZTE or PETRA scan of the participant. A pseudo-CT scan can be reconstructed using an ultrashort echo time  (ZTE in GE, PETRA in Siemens) MRI scan. Details on MRI scan parameters and methods for pseudo-CT reconstruction (using the "classical" approach) can be found in the work presented by 
-<a href="https://ieeexplore.ieee.org/document/9856605/" target="_blank">Miscouridou et al.</a> (DOI: 10.1109/TUFFC.2022.3198522) and in the GitHub repository <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a>, both from the UCL group. The user needs only to provide the Nifti file of the ZTE/PETRA scan. BabelBrain will do the transformation to pseudo-CT. A Nifti file with the pseudo-CT will be generated. Consult <a href="../MRISequences/MRISequences.html">MRI Sequences</a> for GE and Siemens scan settings recomendations </li>
+<li>Operational to most devices excepting generic simple single element transducers; BSonix devices are supported (to be improved in future release). Currently, operation with single element devices will not produce a correct result.</li>
+<li>Because some dependencies, only macOS and Linux are currently supported (to be improved in future release).</li>
+<li>Multiple dependencies to external libraries (dependencies to be reduced in future release)</li>
 </ul>
-<h2 id="pre-processing">Pre-processing</h2>
+<p>In macOS and if using the binary distribution, it is recommended to run from the terminal to identify error messages during the execution that otherwise are not yet captured in the BabelBrain log window. For example</p>
+<pre><code class="language-bash">/Applications/BabelBrain.app/Contents/MacOS/BabelBrain 
+</code></pre>
+<h1 id="requirements">Requirements</h1>
+<p>In this initial integration, the integration needs the following extra packages:</p>
 <ul>
-<li>Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x <code>charm</code> processing tool with  settings optimized for skull segmentation</li>
-<li>
-<p><strong>New</strong> (Feb 6th, 2024): Use new recommended charm settings for a better skull segmentation:</p>
+<li><a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/">FSL</a>.</li>
+<li><a href="https://humanconnectome.org/software/connectome-workbench">Workbench connectome</a>. If on macOS <strong>Download the <a href="https://humanconnectome.org/storage/app/media/workbench/workbench-macub-v2.0.1.zip">zip version of version 2.0.1</a>. DO NOT DOWNLOAD the DMG version as currently that version is not properly signed and macOS will refuse to run it</strong>.</li>
+<li><a href="https://surfer.nmr.mgh.harvard.edu">Freesurfer</a>. Tested with version 7.4.1.</li>
+<li><a href="https://github.com/spichardo/PlanTUS">PlanTUS fork</a> needed to automate tasks.</li>
+</ul>
+<p>Download all the tools above and take note of paths for PlanTUS fork location and binary files of FSL, Workbench (location of <code>wb_command</code> binary) and Freesurfer.</p>
+<p>Take also note of path to SimNIBS root path; for example <code>/Users/spichardo/Applications/SimNIBS-4.5</code>.</p>
+<h2 id="extra-libraries-in-simnibs-environment">Extra libraries in SimNIBS environment</h2>
+<p>Activate SimNIBS Python environment, for example:</p>
+<pre><code class="language-bash">source &lt;path_to_SimNIBS_root&gt;/simnibs_env/bin/activate
+</code></pre>
+<p>Install extra libraries with</p>
+<pre><code class="language-bash">pip install nilearn btk pynput
+</code></pre>
+<h2 id="execution-of-plantus">Execution of PlanTUS</h2>
 <ul>
-<li>Download all files for CHARM FAT Atlas Integration at this <a href="https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings">location</a> </li>
-<li>Copy the downloaded  custom atlas directory <code>charm_fat_atlas_mni</code> in: <code>&lt;path_to_simnibs&gt;/simnibs/segmentation/atlases/</code></li>
-<li>Place <code>settings_fat.ini</code> and <code>shared_gmm_fat.txt</code> in a directory of your choice</li>
+<li>Define location in Brainsight/Slicer and export trajectory/linear transformation.</li>
+<li>Do not worry to adjust the trajectory manually as is usually done, as we expect to use the one calculated with PlanTUS. Just focus on the <strong>target location</strong>.</li>
+</ul>
+<p><img src="PlanTUS-2.png" height=450px></p>
+<ul>
 <li>
-<p>Run with Custom Atlas:</p>
-<p><code>charm  &lt;ID&gt; T1.nii.gz T2.nii.gz --usesettings &lt;path_to_settings_fat.ini&gt; --noneck</code></p>
+<p>Specify paths to tools in the Advanced Dialog
+<img src="advanced-2-PlanTUS.png" height=250px></p>
+</li>
+<li>
+<p>These paths will remain saved between BabelBrain sessions.</p>
+</li>
+<li>
+<p>Click on <code>RUN PlanTUS</code> button. Execution will take only a couple of minutes. If all paths are correctly set, a multiple view window will show different heatmaps as below:</p>
 </li>
 </ul>
-<p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual.</p>
-<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
+<p><img src="PlanTUS-3.png" height=350px></p>
+<ul>
+<li>
+<p>All views are linked to inspect all heatmaps simultaneously (similar as in connectome workbench).</p>
 </li>
 <li>
-<p>Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
-<p>For example, with FSL, a simple csv file (<code>mni.csv</code>) can be created with the coordinates in MNI such as <code>-32.0 -20.0 65.0</code>. Then run the following commands</p>
-<p><code>flirt -in &lt;path to T1W nifti&gt; -ref $FSLDIR/data/standard/MNI152_T1_1mm -omat anat2mni.xfm -out anat_norm</code></p>
-<p><code>std2imgcoord -img &lt;path to T1W nifti&gt;  -std $FSLDIR/data/standard/MNI152_T1_1mm.nii -xfm anat2mni.xfm mni.csv &gt; natspace.csv</code></p>
-<p>The file <code>natspace.csv</code> will contain the MNI coordinates converted to T1W space. Please note that often visual inspections could be required to confirm the location.</p>
+<p>Click on “Selection Mode” and select a feasible location on the head’s surface. For example, one that minimizes incident angle. A small spherical marker will appear on the selected location as shown below</p>
 </li>
 </ul>
-<p>If no CT or ZTE scans are available, a mask representing the skull bone will be generated from the <code>headreco</code> or <code>charm</code> tools output. Be sure of inspecting the generated mask Nifti file to ensure the mask is correctly calculated. Our experience indicates that <code>charm</code> tool produces a better skull mask extraction. When using only T1W and T2W as inputs, BabelBrain uses a generic mask to represent the skull bone (including regions of trabecular and cortical bone). Average values of speed of sound and attenuation are assigned to these bone layers. Consult the appendix section for details on the values used.</p>
-<p>If a CT or ZTE scan is provided, a mapping of density, speed of sound and attenuation will be produced. Consult the appendix section for details on the mapping procedure.</p></div>
+<p><img src="PlanTUS-4.png" height=350px></p>
+<ul>
+<li>Click on <code>Click on Generate Trajectory</code>.</li>
+<li>A visualization of the transducer at the selected location will be shown</li>
+</ul>
+<p><img src="PlanTUS-5.png" height=300px></p>
+<ul>
+<li>When closing this window, a prompt will appear asking to update the target definition</li>
+</ul>
+<p><img src="PlanTUS-6.png" height=150px></p>
+<ul>
+<li>When running Step 1 in BabelBrain, you will see the new trajectory is the one selected with PlanTUS. </li>
+</ul>
+<p><img src="PlanTUS-7.png" height=400px></p>
+<ul>
+<li>This trajectory will be saved in the same directory as the original with the “_PlanTUS” suffix added in the filename</li>
+</ul></div>
             </div>
         </div>
 

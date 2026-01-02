@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,16 +10,17 @@
         <link rel="shortcut icon" href="../img/favicon.ico">
         <title>Overall pipeline - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
-        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
-
-        <script src="../js/jquery-1.10.2.min.js" defer></script>
-        <script src="../js/bootstrap.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
-        <script>hljs.initHighlightingOnLoad();</script> 
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script>hljs.highlightAll();</script> 
     </head>
 
     <body>
@@ -27,7 +28,7 @@
             <div class="container">
                 <a class="navbar-brand" href="../index.html">BabelBrain</a>
                 <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -35,41 +36,47 @@
                 <div id="navbar-collapse" class="navbar-collapse collapse">
                         <!-- Main navigation -->
                         <ul class="nav navbar-nav">
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../index.html" class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="pipeline.html" class="nav-link">Overall pipeline</a>
+                            <li class="nav-item">
+                                <a href="pipeline.html" class="nav-link active" aria-current="page">Overall pipeline</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="Planning.html" class="nav-link">Planning</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
+                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
-                    <ul class="nav navbar-nav ml-auto">
+                    <ul class="nav navbar-nav ms-md-auto">
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
                                 <i class="fa fa-search"></i> Search
                             </a>
                         </li>
@@ -90,20 +97,20 @@
 
         <div class="container">
             <div class="row">
-                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
             <span class="fa fa-angle-down"></span>
         </button>
     </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#pipeline-description" class="nav-link">Pipeline description</a>
+            <li class="nav-item" data-bs-level="1"><a href="#pipeline-description" class="nav-link">Pipeline description</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#overall-workflow" class="nav-link">Overall workflow</a>
+            <li class="nav-item" data-bs-level="2"><a href="#overall-workflow" class="nav-link">Overall workflow</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -117,22 +124,157 @@
 <h1 id="pipeline-description">Pipeline description</h1>
 <p>BabelBrain takes 3D imaging data (MRI and, if available, CT) along with a trajectory indicating the location and orientation of an ultrasound transducer to target a location in the brain.</p>
 <p><img src="Basics-1.png"></p>
-<p>Currently, ten types of transducers are supported:</p>
-<ul>
-<li><strong>Single</strong>. This is a simple focusing single-element transducer. The user can specify diameter, focal length and a frequency between 100 kHz and 1 MHz.</li>
-<li><strong>H317</strong>. This is a 128-element phased array with a focal length of 135 mm and F#=0.9. The device is capable to operate at 250, 700 and 825 kHz.</li>
-<li><strong>CTX_250</strong>. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 250 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 25 to 60 mm from the outplane of the device.</li>
-<li><strong>CTX_500</strong>. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 63.2 mm and F# = 0.98, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 33 to 80 mm from the outplane of the device.</li>
-<li><strong>DPX_500</strong>. This is a device commercialized by the company BrainBox that has 4 ring elements, with a focal length of 144.9 mm and F# = 2.26, and operates at 500 kHz. The system can steer the focal spot location (measured by the center of half-peak intensity or -3dB) from 50 to 120 mm from the outplane of the device.</li>
-<li><strong>H246</strong>. This is a flat ring-type device that has 2 annular elements, with a diameter of 33.6 mm and operates at 500 kHz. It offers some degree of focusing by using two transducer elements.</li>
-<li><strong>BSonix</strong>. These are devices commercialized by the company Brainsonix at fixed focal lengths of 35, 55, 65 and 80 mm as reported in
-<a href="https://doi.org/10.1109/TUFFC.2020.3006781" target="_blank">Schafer et al.</a>.</li>
-<li><strong>I12378</strong>. This is a 128-element device operating at 650 kHz with a focal length of 72 mm and F#=0.7.</li>
-<li><strong>ATAC</strong>. This is a 128-element device operating at 1 MHz with a focal length 53.2 mm and F#=0.9.</li>
-<li><strong>REMOPD</strong>. This is a 256-element flat 2D array commercialized by the company Fraunhofer IBMT capable to operate at 300 and 490 kHz with a diameter of 58 mm.</li>
-<li><strong>R15148</strong>. This is a 128 elements focused device with focal length of 80 mm, diameter of 103 mm, and operates at 500 kHz.</li>
-</ul>
-<p>The specific capabilities of each transducer are considered during the simulations. </p>
+<p>Currently, 17 types of transducers are supported:</p>
+<table>
+<thead>
+<tr>
+<th>Device model</th>
+<th>Type</th>
+<th>Frequency/ies (kHz)</th>
+<th># Elements</th>
+<th>Focusing length (mm)</th>
+<th>Diameter (mm)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single</strong></td>
+<td>Single element shell</td>
+<td>User-defined</td>
+<td>1</td>
+<td>User-defined</td>
+<td>User-defined</td>
+</tr>
+<tr>
+<td><strong>BSonix</strong></td>
+<td>Set of 4, shell single element</td>
+<td>650</td>
+<td>1</td>
+<td>33, 55, 65, 80</td>
+<td>48, 61, 61, 61</td>
+</tr>
+<tr>
+<td><strong>H246</strong></td>
+<td>Flat annular array</td>
+<td>500</td>
+<td>2</td>
+<td>-</td>
+<td>33.6</td>
+</tr>
+<tr>
+<td><strong>CTX_250</strong></td>
+<td>Shell annular array</td>
+<td>250</td>
+<td>4</td>
+<td>63.2</td>
+<td>64.5</td>
+</tr>
+<tr>
+<td><strong>CTX_250-2ch</strong></td>
+<td>Shell annular array</td>
+<td>250</td>
+<td>2</td>
+<td>63.2</td>
+<td>64.5</td>
+</tr>
+<tr>
+<td><strong>CTX_500</strong></td>
+<td>Shell annular array</td>
+<td>500</td>
+<td>4</td>
+<td>63.2</td>
+<td>64.5</td>
+</tr>
+<tr>
+<td><strong>DPX_500</strong></td>
+<td>Shell annular array</td>
+<td>500</td>
+<td>4</td>
+<td>144.9</td>
+<td>64</td>
+</tr>
+<tr>
+<td><strong>DPXPC_300</strong></td>
+<td>Shell annular array</td>
+<td>300</td>
+<td>4</td>
+<td>144.9</td>
+<td>64</td>
+</tr>
+<tr>
+<td><strong>R15287</strong></td>
+<td>Shell annular array</td>
+<td>300</td>
+<td>10</td>
+<td>65</td>
+<td>75</td>
+</tr>
+<tr>
+<td><strong>R15473</strong></td>
+<td>Shell annular array</td>
+<td>300</td>
+<td>10</td>
+<td>65</td>
+<td>100</td>
+</tr>
+<tr>
+<td><strong>H317</strong></td>
+<td>Shell phased array</td>
+<td>250, 700, 825</td>
+<td>128</td>
+<td>135</td>
+<td>150</td>
+</tr>
+<tr>
+<td><strong>I12378</strong></td>
+<td>Shell phased array</td>
+<td>650</td>
+<td>128</td>
+<td>72</td>
+<td>103</td>
+</tr>
+<tr>
+<td><strong>R15148</strong></td>
+<td>Shell phased array</td>
+<td>500</td>
+<td>128</td>
+<td>80</td>
+<td>103</td>
+</tr>
+<tr>
+<td><strong>ATAC</strong></td>
+<td>Shell phased array</td>
+<td>650</td>
+<td>128</td>
+<td>72</td>
+<td>103</td>
+</tr>
+<tr>
+<td><strong>R15646</strong></td>
+<td>Shell phased array</td>
+<td>650</td>
+<td>64</td>
+<td>65</td>
+<td>66</td>
+</tr>
+<tr>
+<td><strong>IGT64_500</strong></td>
+<td>Shell phased array</td>
+<td>500</td>
+<td>64</td>
+<td>75</td>
+<td>65</td>
+</tr>
+<tr>
+<td><strong>REMOPD</strong></td>
+<td>Flat phased array</td>
+<td>300, 480, 490</td>
+<td>256</td>
+<td>-</td>
+<td>58</td>
+</tr>
+</tbody>
+</table>
 <h2 id="overall-workflow">Overall workflow</h2>
 <p>The typical TUS workflow working with BabelBrain is shown below</p>
 <p><img src="Pipeline-2.png" height=600px></p>
@@ -144,21 +286,22 @@
             <hr>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
         <script>
             var base_url = "..",
                 shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
         </script>
-        <script src="../js/base.js" defer></script>
-        <script src="../mathjax-config.js" defer></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
-        <script src="../search/main.js" defer></script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>From here you can search these documents. Enter your search terms below.</p>
@@ -178,7 +321,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <table class="table">

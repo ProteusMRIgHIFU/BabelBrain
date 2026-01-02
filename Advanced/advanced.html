@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,16 +10,17 @@
         <link rel="shortcut icon" href="../img/favicon.ico">
         <title>Advanced options - BabelBrain</title>
         <link href="../css/bootstrap.min.css" rel="stylesheet">
-        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css">
-
-        <script src="../js/jquery-1.10.2.min.js" defer></script>
-        <script src="../js/bootstrap.min.js" defer></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/rust.min.js"></script>
-        <script>hljs.initHighlightingOnLoad();</script> 
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script>hljs.highlightAll();</script> 
     </head>
 
     <body>
@@ -27,7 +28,7 @@
             <div class="container">
                 <a class="navbar-brand" href="../index.html">BabelBrain</a>
                 <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -35,41 +36,47 @@
                 <div id="navbar-collapse" class="navbar-collapse collapse">
                         <!-- Main navigation -->
                         <ul class="nav navbar-nav">
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../index.html" class="nav-link">Home</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../installation.html" class="nav-link">Installation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../pipeline/pipeline.html" class="nav-link">Overall pipeline</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../pipeline/Preliminary_steps.html" class="nav-link">Preliminary steps</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../pipeline/Planning.html" class="nav-link">Planning</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../pipeline/BabelBrain.html" class="nav-link">BabelBrain simulation</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
                                 <a href="../results/results.html" class="nav-link">Results files</a>
                             </li>
-                            <li class="navitem active">
-                                <a href="advanced.html" class="nav-link">Advanced options</a>
+                            <li class="nav-item">
+                                <a href="advanced.html" class="nav-link active" aria-current="page">Advanced options</a>
                             </li>
-                            <li class="navitem">
+                            <li class="nav-item">
+                                <a href="PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
                             </li>
                         </ul>
 
-                    <ul class="nav navbar-nav ml-auto">
+                    <ul class="nav navbar-nav ms-md-auto">
                         <li class="nav-item">
-                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
                                 <i class="fa fa-search"></i> Search
                             </a>
                         </li>
@@ -79,7 +86,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
+                                <a rel="next" href="PlanTUS.html" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -90,57 +97,69 @@
 
         <div class="container">
             <div class="row">
-                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
             <span class="fa fa-angle-down"></span>
         </button>
     </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="2"><a href="#advanced-features" class="nav-link">Advanced features</a>
+            <li class="nav-item" data-bs-level="2"><a href="#advanced-features" class="nav-link">Advanced features</a>
               <ul class="nav flex-column">
               </ul>
             </li>
             
-            <li class="nav-item" data-level="1"><a href="#domain-generation" class="nav-link">Domain Generation</a>
+            <li class="nav-item" data-bs-level="1"><a href="#domain-generation" class="nav-link">Domain Generation</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#elastix-co-registration-optimizer" class="nav-link">Elastix co-registration Optimizer</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#proportion-of-trabecular-bone" class="nav-link">Proportion of trabecular bone</a>
+            <li class="nav-item" data-bs-level="2"><a href="#elastix-co-registration-optimizer" class="nav-link">Elastix co-registration Optimizer</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#force-using-blender-for-constructive-solid-geometry" class="nav-link">Force using Blender for Constructive Solid Geometry</a>
+            <li class="nav-item" data-bs-level="2"><a href="#proportion-of-trabecular-bone" class="nav-link">Proportion of trabecular bone</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#manual-subvolume" class="nav-link">Manual Subvolume</a>
+            <li class="nav-item" data-bs-level="2"><a href="#segment-white-matter-gray-matter-and-csf" class="nav-link">Segment white matter, gray matter and CSF</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#invert-zte" class="nav-link">Invert ZTE</a>
+            <li class="nav-item" data-bs-level="2"><a href="#plantus-integration" class="nav-link">PlanTUS integration</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#petra-conversion" class="nav-link">PETRA conversion</a>
+            <li class="nav-item" data-bs-level="2"><a href="#force-using-blender-for-constructive-solid-geometry" class="nav-link">Force using Blender for Constructive Solid Geometry</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#manual-subvolume" class="nav-link">Manual Subvolume</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#invert-zte" class="nav-link">Invert ZTE</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#generate-air-regions" class="nav-link">Generate air regions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#petra-conversion-parameters" class="nav-link">PETRA conversion parameters</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#linear-zte-and-petra-conversion-formulas" class="nav-link">Linear ZTE and PETRA conversion formulas</a>
               <ul class="nav flex-column">
               </ul>
             </li>
               </ul>
             </li>
             
-            <li class="nav-item" data-level="1"><a href="#transcranial-ultrasound" class="nav-link">Transcranial Ultrasound</a>
+            <li class="nav-item" data-bs-level="1"><a href="#transcranial-ultrasound" class="nav-link">Transcranial Ultrasound</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#ctx-500-correction" class="nav-link">CTX-500 Correction</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
               </ul>
             </li>
         </ul>
@@ -153,24 +172,79 @@
 <p>If any of these options are modified, they will remain persistent on the next BabelBrain sessions. Select <code>Reset to defaults</code> to restore original values.</p>
 <p><img src="advanced-1.png" height=450px></p>
 <h1 id="domain-generation">Domain Generation</h1>
-<p><img src="advanced-2.png" height=250px></p>
+<p><img src="advanced-2.png" height=500px></p>
 <h2 id="elastix-co-registration-optimizer">Elastix co-registration Optimizer</h2>
 <p>The default optimizer for Elastix, AdaptiveStochasticGradientDescent, works <em>almost</em> for every combination of CT-&gt;T1W and ZTE/PETRA-&gt;T1W. However, as much more testing has started to accumulate, we noticed that the CT-&gt;T1W was not working in some cases. We tested different options in Elastix, and the <strong>FiniteDifferenceGradientDescent</strong> and <strong>QuasiNewtonLBFGS</strong> seem to work well as a replacement. If the coregistration from CT to T1W is not working as expected, try one of these two other options. <strong>FiniteDifferenceGradientDescent</strong> seems to work better.</p>
 <h2 id="proportion-of-trabecular-bone">Proportion of trabecular bone</h2>
 <p>By default, the percentage of trabecular is 80% using the line of sight of the trajectory. If the trajectory crosses very thin regions like the parietal bone, there may be a chance all region is considered trabecular, which may not be desired. A warning message will be printed out in the terminal output in that case. In such cases as the parietal bone, consider reducing a lower value of trabecular, such as 0.1 or 0.2.</p>
+<h2 id="segment-white-matter-gray-matter-and-csf">Segment white matter, gray matter and CSF</h2>
+<p>Select this option to use SimNIBS segmentation of brain tissue regions. If selected, the following acoustic properties will be used instead of the one used in the original <a href="https://doi.org/10.1109/TUFFC.2023.3274046">BabelBrain paper</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Tissue type</th>
+<th>density (kg/m<span class="arithmatex"><span class="MathJax_Preview">^3</span><script type="math/tex">^3</script></span>)</th>
+<th>speed of sound (m/s)</th>
+<th>attenuation (Np/m/MHz)</th>
+<th>perfusion (ml/min/kg)</th>
+<th>specific heat (J/kg/°C)</th>
+<th>therm. conductivity (W/m/°C)</th>
+<th>absorption</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>White matter</td>
+<td>1041</td>
+<td>1537</td>
+<td>10.2</td>
+<td>212</td>
+<td>3583</td>
+<td>0.48</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>Gray matter</td>
+<td>1045</td>
+<td>1520</td>
+<td>4.4</td>
+<td>764</td>
+<td>3696</td>
+<td>0.55</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CSF</td>
+<td>1007</td>
+<td>1507</td>
+<td>0.09</td>
+<td>0</td>
+<td>4096</td>
+<td>0.57</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Values were from averages from the IT'IS database and <a href="https://doi.org/10.1016/j.ultras.2022.106742">Labuda <em>et al.</em>, 2022</a></p>
+<p>Brain tissue segmentation will be shown after executing Step 1.</p>
+<p><img src="advanced-4.png" height=250px></p>
+<h2 id="plantus-integration">PlanTUS integration</h2>
+<p>See section for <a href="PlanTUS.html">PlanTUS integration</a></p>
 <h2 id="force-using-blender-for-constructive-solid-geometry">Force using Blender for Constructive Solid Geometry</h2>
 <p>While pycork seems to do a great replacement, we identified that in some instances when using the subvolume feature there was a crash in the low pycork library. Forcing using Blender instead can help to run those special cases.</p>
 <h2 id="manual-subvolume">Manual Subvolume</h2>
 <p>This feature is intended to give a bit more control for scenarios where the trajectory is regions where the skin mask may cause some issues, especially in targets near the back of the head. For most targets, there is no need to make any adjustments, but we have spotted a few cases (i.e., EEG-P7 location) in which the skin mask of the back of the head was pushing the whole domain and causing issues to place correctly the transducer. For these scenarios, adjusting a subvolume to extract for the simulations can mitigate these issues. This can also help to reduce image size for high-resolution cases.</p>
 <h2 id="invert-zte">Invert ZTE</h2>
 <p>In GE scanners, the oZTEo produces inverted MR images and can't be disabled. While we recommend using 3dRadial-based sequences for ZTE scans, 3dRadial may not be available in all scanners. If oZTEo is used, please activate this new option, otherwise an error will occur during the processing.</p>
-<h2 id="petra-conversion">PETRA conversion</h2>
+<h2 id="generate-air-regions">Generate air regions</h2>
+<p>Create masks for air regions if using CT, PETRA or ZTE input. Highly recommended to model far field reflective standing waves.</p>
+<h2 id="petra-conversion-parameters">PETRA conversion parameters</h2>
 <p>The number of bins (default of 2) and minimal distance of bins (default to 50) are now configurable. This helps to match the functionality of the UCL's <a href="https://github.com/ucl-bug/petra-to-ct" target="_blank">petra-to-ct</a> tool. Adjust this if the PETRA conversion is not selecting correctly the bone region. There is also an option to create the histogram as done in the UCL's tool.</p>
+<h2 id="linear-zte-and-petra-conversion-formulas">Linear ZTE and PETRA conversion formulas</h2>
+<p>Adjust these linear conversion formulas between ZTE/PETRA signal and pseudo CT if re-fitting done at your local site as reported for (ZTE)[https://doi.org/10.1109/TUFFC.2022.3198522] or (PETRA)[https://doi.org/10.48550/arXiv.2508.01050].</p>
 <h1 id="transcranial-ultrasound">Transcranial Ultrasound</h1>
-<p><img src="advanced-3.png" height=250px></p>
-<h2 id="ctx-500-correction">CTX-500 Correction</h2>
-<p>Starting R0.4.0, BabelBrain introduced a parabollic correction to the Rayleigh's integral-based modeling of the CTX-500 transducer. This small correction ensures that the TPO setting (center of FLHM focal spot at -3dB) matches better how the experimental unit operates. There are two options: <strong>Original</strong> and <strong>July 2024</strong>. The <strong>Original</strong> setting matches how the CTX-500 unit was modelled in previous releases (&lt;= 0.3.5) and <strong>July 2024</strong> has the new correction. Please note that the correction is only a couple mm when focusing at the deepest target.</p>
-<p>The newer <strong>CTX 250</strong> and <strong>CTX 500</strong> transducers (introduced in R0.4.0) have already this correction by default.</p></div>
+<p><img src="advanced-3.png" height=350px></p>
+<p>See section for <a href="TransducerCalibration.html">Transducer Calibration</a></p></div>
             </div>
         </div>
 
@@ -178,21 +252,22 @@
             <hr>
             <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
         <script>
             var base_url = "..",
                 shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
         </script>
-        <script src="../js/base.js" defer></script>
-        <script src="../mathjax-config.js" defer></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" defer></script>
-        <script src="../search/main.js" defer></script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>From here you can search these documents. Enter your search terms below.</p>
@@ -212,7 +287,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <table class="table">
