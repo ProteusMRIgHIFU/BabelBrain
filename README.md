@@ -63,6 +63,53 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.8.0 - Jan 2nd, 2026
+  - **New**: PlanTUS integration. Experimental feature to integrate the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University. ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/PlanTUS.html)).
+
+    <img src="figures/PlanTUS-1.png" height=200px>
+
+  - **New**: Procedure to calibrate individual ring-type transducer ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/TransducerCalibration.html)).
+
+    <img src="figures/Plots-AcProfiles-01.png" height=300px>
+
+  - **New**: Dome-type transducer support. A 1024-element large hemispherical device (diameter= 30 cm)is now supported for 220 kHz and 670 kHz. Please consider using a GPU system with a lot of memory (>=32 GB) for 670 kHz simulation.
+  
+    <img src="figures/DomeTx.png" height=300px>
+    
+  - **New**: Air region masks. If using CT/ZTE/PETRA scans as inputs, this feature enables calculating reflection from these regions, which is useful for deep locations or nearby air-filled regions. Feature accessible in the Advanced options dialog.
+  
+    <img src="figures/Air-regions.png" height=200px>
+
+  - **New**: Brain tissue types support in simulations. Feature accessible in the Advanced options dialog.
+
+    <img src="figures/advanced-4.png" height=200px>
+
+  - **New**: Density maps added as new type of bone imaging input.
+  - **New**: New transducer - **H301**. This transducer has 128 elements, focal length of 150 mm, diameter of 150 mm, and operates at frequency of 1100 kHz.
+  - **New**: New transducer - **IGT64_500**. This transducer has 64 elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 500 kHz.
+  - **New**: New transducer - **R15287**. This transducer has 10 ring elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 300 kHz.
+  - **New**: Support to grouped sonications for more complex thermal modeling scenarios. For example
+    ```YAML
+    BaseIsppa: 5.0 # W/cm2
+    AllDC_PRF_Duration: #All combinations of timing that will be considered
+        -   DC: 0.5
+            PRF: 10.0
+            Duration: 0.03
+            DurationOff: 0.67
+            Repetitions: 254
+            NumberGroupedSonications: 4
+            PauseBetweenGroupedSonications: 360.0
+    ```
+  - **Improvement**: Unit testing improved and regression-type analysis added to Pytest settings.
+  - **Improvement**: OpenCL devices and platforms scan extended. This allows to select CPU if OpenCL drivers are installed.
+  - **Improvement**: Replacement of pycork CSG library for much more improved trimesh library.
+  - **Fix**: Tx positioning in regions far from ROI pushed the Tx back. In some conditions, the Tx placement was put back off from the scalp if the scalp regions outside the field of view appear before.
+  - **Fix**: Far off distance of simulation domain was slightly cut out (e.g, 36 mm instead of 40 mm).
+  - **Fix**: Calculate mechanical adjustments for multifocal simulations.
+  - **Fix**: Maximum temperature calculation in Skull was wrong when using CT/ZTE/PETRA.
+  - **Fix**: Improve NIfTI saving with enforced isotropic spacing. In some weird cases, it was not enforcing isotropic conditions as it was supposed to do.
+  - **Fix**: Support for new 3DSlicer transform matrix convention.
+  - **Fix**: Some cases were still leaving a small layer of scalp tissue as brain.
 - 0.4.3 -  Feb 21st, 2025
   - **Fix**: Export CSV for REMOPD and Single transducer was trying to export a wrong parameter.
 - 0.4.2 -  Jan 26th, 2025
@@ -90,7 +137,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **New**: The REMOPD phased array device can now operate at 300 and 490 kHz.
 
   - **New**: Repetitions of TUS exposures in treatment profiles. For scenarios where repeated exposures are required, the extra field `Repetitions` can be added. For example:
-    ```
+    ```YAML
     BaseIsppa: 5.0 # W/cm2
     AllDC_PRF_Duration: #All combinations of timing that will be considered
     -   DC: 0.3

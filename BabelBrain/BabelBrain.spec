@@ -24,7 +24,7 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_R15646/default.yaml','./Babel_R15646'),
         ('Babel_IGT64_500/default.yaml','./Babel_IGT64_500'),
         ('Babel_DomeTx/default.yaml','./Babel_DomeTx'),
-        ('Babel_H301/default.yaml','./Babel_301'),
+        ('Babel_H301/default.yaml','./Babel_H301'),
         ('default.yaml','./'),
         ('version.txt','./'),
         ('version-gui.txt','./'),
@@ -37,6 +37,7 @@ commonDatas=[('Babel_H317/default.yaml','./Babel_H317'),
         ('Babel_SingleTx/form.ui','./Babel_SingleTx'),
         ('Babel_SingleTx/formBx.ui','./Babel_SingleTx'),
         ('Babel_REMOPD/form.ui','./Babel_REMOPD'),
+        ('Babel_DomeTx/form.ui','./Babel_DomeTx'),
         ('GUIComponents/scrollbars.ui','./GUIComponents'),
         ('../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv','./TranscranialModeling'),
         ('../TranscranialModeling/I12378.csv','./TranscranialModeling'),
@@ -126,6 +127,12 @@ if 'Darwin' in platform.system(): #for Mac
             elif 'Windows' in platform.system() and 'windows' in l:
                 binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
             elif  '.txt' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.py' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.sh' in l:
+                binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
+            elif  '.bat' in l:
                 binaries+=[(l,'.'+os.sep+os.path.dirname(l))]
     print('binaries',binaries)
     if 'arm64' not in platform.platform():
