@@ -49,6 +49,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from matplotlib.pyplot import cm
 import matplotlib.patches as mpatches
+from matplotlib.colors import ListedColormap
 from nibabel import processing
 from superqt import QLabeledDoubleRangeSlider
 
@@ -1040,7 +1041,8 @@ class BabelBrain(QWidget):
 
             if AirMap is not None:
                 Zm = np.ma.masked_where(AirMap==0 , AirMap)
-                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cm.jet,vmin=0,vmax=1,extent=extent,aspect='equal'))
+                cmap = ListedColormap(['black', (223/255,199/255,224/255,1.0)]) 
+                self._imCtMasks.append(static_ax.imshow(Zm,cmap=cmap,vmin=0,vmax=1,extent=extent,aspect='equal'))
             self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
@@ -1083,7 +1085,8 @@ class BabelBrain(QWidget):
         if AirMask is not None:
             values.append(values[-1]+1)
             legends.append('Air')
-            colors.append((116/255,20/255,12/255,1.0))
+            colors.append((223/255,199/255,224/255,1.0))
+            		
             #we use manual color asignation 
                 
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
