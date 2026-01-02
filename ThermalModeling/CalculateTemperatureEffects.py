@@ -370,26 +370,35 @@ def RunBHTECycles(nCurrent,
             
         
         #for cooling off, we do not need to do steering, just running with no energy
-        FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
-                                                        MaterialMap,
-                                                        MaterialList,
-                                                        dx,
-                                                        TotalDurationStepsOff,
-                                                        0,
-                                                        cy,
-                                                        nFactorMonitoring=nFactorMonitoring,
-                                                        dt=dt,
-                                                        DutyCycle=DutyCycle,
-                                                        Backend=Backend,
-                                                        initT0=ResTemp,
-                                                        initDose=ResDose,
-                                                        MonitoringPointsMap=MonitoringPointsMap,
-                                                        stableTemp=stableTemp) 
-    
-        if nCurrent==0:
-            TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+        if TotalDurationStepsOff>0:
+            FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
+                                                            MaterialMap,
+                                                            MaterialList,
+                                                            dx,
+                                                            TotalDurationStepsOff,
+                                                            0,
+                                                            cy,
+                                                            nFactorMonitoring=nFactorMonitoring,
+                                                            dt=dt,
+                                                            DutyCycle=DutyCycle,
+                                                            Backend=Backend,
+                                                            initT0=ResTemp,
+                                                            initDose=ResDose,
+                                                            MonitoringPointsMap=MonitoringPointsMap,
+                                                            stableTemp=stableTemp) 
+            if nCurrent==0:
+                TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
+            else:
+                TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
         else:
-            TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+            FinalTemp=ResTemp
+            FinalDose=ResDose
+            if nCurrent==0:
+                TemperaturePoints=TemperaturePointsOn
+            else:
+                TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn))
+    
+        
 
         print('nCurrent,TotalIterations',nCurrent,TotalIterations)
 
