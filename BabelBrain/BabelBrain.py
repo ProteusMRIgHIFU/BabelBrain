@@ -713,10 +713,11 @@ class BabelBrain(QWidget):
 
         self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateParamsMaskFloat)
         self.Widget.USPPWSpinBox.valueChanged.connect(self.UpdateParamsMaskFloat)
+
+        if self.AcSim.Config['USFrequencies'][0]<=350e3: #we set default to 9 PPW for low frequencies
+            self.Widget.USPPWSpinBox.setValue(9)
         
         self.Widget.AdvancedOptions.clicked.connect(self.ShowAdvancedOptions)
-
-
 
         #Then we update the GUI and control parameters
         self.UpdateMaskParameters()
@@ -753,12 +754,23 @@ class BabelBrain(QWidget):
 
     def UpdateMaskParameters(self):
         '''
-        Update of GUI elements and parameters to be used in LFIU
+        Update of GUI elements and parameters to be used in TUS
         '''
         self.Widget.USMaskkHzDropDown.setProperty('UserData',float(self.Widget.USMaskkHzDropDown.currentText())*1e3)
 
         for obj in [self.Widget.USPPWSpinBox]:
             obj.setProperty('UserData',obj.value())
+
+        if self.Config['TxSystem']=='DomeTx':
+            #for the DomeTx we have only some limited PPW
+            if float(self.Widget.USMaskkHzDropDown.currentText())!=220:
+                self.Widget.USPPWSpinBox.setValue(6)
+                self.Widget.USPPWSpinBox.setMinimum(6)
+                self.Widget.USPPWSpinBox.setMaximum(6)
+            else:
+                self.Widget.USPPWSpinBox.setMinimum(6)
+                self.Widget.USPPWSpinBox.setMaximum(12)
+                self.Widget.USPPWSpinBox.setValue(9)
 
     @Slot()
     def ShowAdvancedOptions(self):

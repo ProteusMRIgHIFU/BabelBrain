@@ -66,7 +66,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 - 0.8.0 - Jan 2nd, 2026
   - **New**: PlanTUS integration. Experimental feature to integrate the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University. ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/PlanTUS.html)).
 
-    <img src="figures/PlanTUS-1.png" height=200px>
+    <img src="figures/PlanTUS-1.png" height=250px>
 
   - **New**: Procedure to calibrate individual ring-type transducer ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/TransducerCalibration.html)).
 
@@ -74,20 +74,23 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
   - **New**: Dome-type transducer support. A 1024-element large hemispherical device (diameter= 30 cm)is now supported for 220 kHz and 670 kHz. Please consider using a GPU system with a lot of memory (>=32 GB) for 670 kHz simulation.
   
-    <img src="figures/DomeTx.png" height=300px>
+    <img src="figures/DomeTx.png" height=250px>
     
   - **New**: Air region masks. If using CT/ZTE/PETRA scans as inputs, this feature enables calculating reflection from these regions, which is useful for deep locations or nearby air-filled regions. Feature accessible in the Advanced options dialog.
   
-    <img src="figures/Air-regions.png" height=200px>
+    <img src="figures/Air-regions.png" height=150px>
 
   - **New**: Brain tissue types support in simulations. Feature accessible in the Advanced options dialog.
 
-    <img src="figures/advanced-4.png" height=200px>
+    <img src="figures/advanced-4.png" height=150px>
 
   - **New**: Density maps added as new type of bone imaging input.
-  - **New**: New transducer - **H301**. This transducer has 128 elements, focal length of 150 mm, diameter of 150 mm, and operates at frequency of 1100 kHz.
-  - **New**: New transducer - **IGT64_500**. This transducer has 64 elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 500 kHz.
-  - **New**: New transducer - **R15287**. This transducer has 10 ring elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 300 kHz.
+  - **New**: Transducer - **H301**. This transducer has 128 elements, focal length of 150 mm, diameter of 150 mm, and operates at frequency of 1100 kHz.
+  - **New**: Transducer - **IGT64_500**. This transducer has 64 elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 500 kHz.
+  - **New**: Transducer - **R15287**. This transducer has 10 ring elements, focal length of 75 mm, diameter of 65 mm, and operates at frequency of 300 kHz.
+  - **New**: Transducer - **R15646**. This transducer has 64 elements, focal length of 65 mm, diameter of 65.95 mm, and operates at frequency of 650 kHz. 
+  - **New**: Transducer - **DPXPC_300**. This transducer has 4 ring elements, focal length of 150 mm, diameter of 65 mm, and operates at frequency of 300 kHz.
+  
   - **New**: Support to grouped sonications for more complex thermal modeling scenarios. For example
     ```YAML
     BaseIsppa: 5.0 # W/cm2
@@ -100,6 +103,8 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
             NumberGroupedSonications: 4
             PauseBetweenGroupedSonications: 360.0
     ```
+     <img src="figures/ExtendedGroupedSon.png" height=250px>
+
   - **Improvement**: Unit testing improved and regression-type analysis added to Pytest settings.
   - **Improvement**: OpenCL devices and platforms scan extended. This allows to select CPU if OpenCL drivers are installed.
   - **Improvement**: Replacement of pycork CSG library for much more improved trimesh library.
