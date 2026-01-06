@@ -63,10 +63,12 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
-- 0.8.0 - Jan 2nd, 2026
+- 0.8.0 - Jan 6th, 2026
   - **New**: PlanTUS integration. Experimental feature to integrate the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University. ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/PlanTUS.html)).
 
     <img src="figures/PlanTUS-1.png" height=250px>
+
+    Please note that this feature is for the time being only available for macOS and Linux - future release will make it available for Windows.
 
   - **New**: Procedure to calibrate individual ring-type transducer ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/TransducerCalibration.html)).
 
@@ -108,6 +110,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **Improvement**: Unit testing improved and regression-type analysis added to Pytest settings.
   - **Improvement**: OpenCL devices and platforms scan extended. This allows to select CPU if OpenCL drivers are installed.
   - **Improvement**: Replacement of pycork CSG library for much more improved trimesh library.
+  - **Improvement**: 9 PPW is selected by default for simulations with frequency lower than 300 kHz
   - **Fix**: Tx positioning in regions far from ROI pushed the Tx back. In some conditions, the Tx placement was put back off from the scalp if the scalp regions outside the field of view appear before.
   - **Fix**: Far off distance of simulation domain was slightly cut out (e.g, 36 mm instead of 40 mm).
   - **Fix**: Calculate mechanical adjustments for multifocal simulations.
@@ -115,6 +118,8 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **Fix**: Improve NIfTI saving with enforced isotropic spacing. In some weird cases, it was not enforcing isotropic conditions as it was supposed to do.
   - **Fix**: Support for new 3DSlicer transform matrix convention.
   - **Fix**: Some cases were still leaving a small layer of scalp tissue as brain.
+  - **Known issues**: Voxelization task in Step 1 switched to CPU when having an OpenCL GPU, making this step a little slower.
+
 - 0.4.3 -  Feb 21st, 2025
   - **Fix**: Export CSV for REMOPD and Single transducer was trying to export a wrong parameter.
 - 0.4.2 -  Jan 26th, 2025
@@ -126,7 +131,7 @@ A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
   - **Fix**: Correct that some skin tissue voxels were still labelled as brain tissue.
   - **Fix**: DurationOff =0 in protocols could produce memory allocation errors
   - **Improvement**: Unit-testing expanded and improved.
-
+  
 - 0.4.1 -  Sep 15th, 2024
   - **Fix** : Correcting Mechanical Index (MI) report in Step 3. We identified that a wrong mask was used to find the highest value of pressure used to report the MI. This error was only applicable to the MI. The fix now uses the same location as used for the maximal Isppa in the brain. Results from studies using versions of BabelBrain prior to 0.4.1 can retrospectively calculate the correct MI using the formula `MI=SQRT(Selected_Isppa * 1e4 * 2 * 1041 * 1562)/1e6/SQRT(Frequency_MHz)`, where `Selected_Isppa` is the intensity in W/cm2 as used in Step 3 and `Frequency_MHz` is the selected frequency in MHz.
   
