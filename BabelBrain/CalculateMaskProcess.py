@@ -68,7 +68,8 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         BinaryClosing.InitBinaryClosing(DeviceName=devicename,GPUBackend=gpu_backend)
         
         DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
-        DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
+        if COMPUTING_BACKEND != 2: #something got broken with the OpenCL version , #disabling temporarily
+            DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
         DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
         DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
         DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
