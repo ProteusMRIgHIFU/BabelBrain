@@ -269,6 +269,16 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     if Mesh2.body_count != 1:
         print('Mesh 2 is invalid... trying to fix')
         Mesh2 = FixMesh(Mesh2)
+
+    for mesh in [Mesh1,Mesh2]:
+        if not mesh.is_volume:
+            print("Mesh still broken, one last try to fix it")
+            mesh.remove_duplicate_faces()
+            mesh.remove_degenerate_faces()
+            mesh.remove_unreferenced_vertices()
+            mesh.merge_vertices()
+            mesh.fix_normals()
+            trimesh.repair.fill_holes(mesh) 
     # Perform intersection
     if not bForceUseBlender:
         Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='manifold')
