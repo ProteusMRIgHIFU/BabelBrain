@@ -1,4 +1,4 @@
-BabelBrain v0.8.0
+BabelBrain v0.8.1
 =============
 Samuel Pichardo, Ph.D  
 Associate Professor  
@@ -63,6 +63,8 @@ A Pyinstaller specification file is ready for use. To build either the macOS or 
 A new application ready to use will be created at `BabelBrain/BabelBrain/dist/`
 
 # Version log
+- 0.8.1 - Jan 8th, 2026
+  - **Fix**: Small correction for very rare cases where the existing mesh correction does not yield closed volumes in Step 1. This was spotted in a particular case using the Ernie dataset from SimNIBS.
 - 0.8.0 - Jan 6th, 2026
   - **New**: PlanTUS integration. Experimental feature to integrate the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University. ([documentation](https://proteusmrighifu.github.io/BabelBrain/Advanced/PlanTUS.html)).
 
