@@ -1131,6 +1131,8 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
     SaveDict['TargetLocation']=Input['TargetLocation']
     SaveDict['ZIntoSkinPixels']=Input['ZIntoSkinPixels']
+    SaveDict['Frequency']=Frequency
+    SaveDict['TxSystem']=TxSystem
     SaveDict['RatioLosses']=RatioLosses
     SaveDict['DurationUS']=DurationUS
     SaveDict['DurationOff']=DurationOff

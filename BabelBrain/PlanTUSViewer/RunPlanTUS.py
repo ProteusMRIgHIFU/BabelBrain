@@ -231,7 +231,7 @@ class RUN_PLAN_TUS(QObject):
                 additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']*1e3-self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             else: #flat array as the REMOPD
                 plane_offset=0.0
-                additional_offset=self.OptionsDlg.ui.Widget.SkinDistanceSpinBox.value()
+                additional_offset=self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             transducer_diameter=BabelTxConfig['TxDiam']*1e3
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']

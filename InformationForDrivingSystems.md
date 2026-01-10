@@ -8,14 +8,36 @@ numbersections: true
 # Introduction
 This document presents information aimed for the development of interfaces to drive ultrasound equipment using BabelBrain output data.
 
-Files generated at the end of execution of Thermal Modeling (Step 3) can be used to program driving equipment. In specific, the HDF5 file ending with the `...DataForSim-ThermalField_AllCombinations.h5` suffix, which concentrates all the necessary information. Below it is detailed the useful entries in this HDF5 file, such as `/RatioLosses`, that can be used to program the driving equipment.
+Files generated at the end of execution of Thermal Modeling (Step 3) can be used to program driving equipment. In specific, the HDF5 file ending with the "`...DataForSim-ThermalField_AllCombinations.h5`" suffix, which concentrates all the necessary information. 
 
-There are four majors components that can be used to program the driving equipment:
+Please note that the BLOSC compression module must be available for HDF5. In Python, besides installing `h5py`, it will be needed to have installed the `hdf5plugin` library. These are easily installable with 
 
-1. Intensity calibration 
+```BASH
+pip install h5py hdf5plugin
+```
+
+To read data from the file, be sure of importing both libraries as in the example below:
+```Python
+import h5py
+import hdf5plugin
+with h5py.File('Superficial_REMOPD_300kHz_9PPW_DataForSim-ThermalField_AllCombinations.h5') as F:
+    Frequency=F['/Frequency'][()]
+```
+
+
+ Below it is detailed the useful entries in this HDF5 file, such as `/Frequency`, that can be used to program the driving equipment.
+
+These are the main components that can be used to program the driving equipment:
+
+1. Operating frequency and transducer model
+2. Intensity calibration 
 2. Steering conditions (if applicable)
 3. Timing parameters
 4. Phase data (if applicable)
+
+# Operating frequency and transducer model
+* The `/Frequency`  entry (in Hz) indicates the ultrasound carrier frequency.
+* The `/TxSystem` entry (string) indicates the transducer model used in simulations (i.e., CTX-500, H317, REMOPD, etc.)
 
 # Intensity calibration
 The  `/RatioLosses` entry is a scalar value between 0.0 and 1.0 describing the energy loss  after considering all mechanisms (reflection and attenuation) that is used in BabelBrain to calculate the $I_{\text{SPPA Water}}$ needed to achieve a desired $I_{\text{SPPA Brain}}$. For example, let's assume the user is aiming to achieve $I_{\text{SPPA Brain}} = 5 \text{ W/cm}^2$ and that the `/RatioLosses` entry has a value of 0.105. In that case,
@@ -42,15 +64,15 @@ The `/ZSteering` entry is relative to the surface of the device, and it is alway
 Phased arrays can steer in 3 directions and follow an analogous convention as for the concentric annular arrays. They can also a spherical cap (i.e. H317) or flat device (i.e. REMOPD)
 
 ### Spherical cap
-* `/ZSteering` is relative to the natural focus. If `/ZSteering` is positive, that means the steering is deeper, farther away from the transducer. If `/ZSteering` is negative, that means the steering is shallower, closer to the transducer. 
+* `/ZSteering` (in meters) is relative to the natural focus. If `/ZSteering` is positive, that means the steering is deeper, farther away from the transducer. If `/ZSteering` is negative, that means the steering is shallower, closer to the transducer. 
 * `/XSteering` (in meters) is relative to the acoustic axis and the direction convention is dictated by the transducer definition. The positive direction is towards the direction where the transducer elements have a positive value, and vice versa.
 * `/YSteering` (in meters) is relative to the acoustic axis and the direction convention is dictated by the transducer definition. The positive direction is towards the direction where the transducer elements have a positive value, and vice versa.
 
 This convention means the X and Y directions are primarily relative to the transducer elements position **and not to the patient coordinate system**. It is the responsibility of the user to ensure to verify the orientation of the device between simulations and real experiments to ensure steering is applied in the desired direction in the patient coordinates space.
 
 ###  Flat device
-* `/ZSteering` is relative to the surface of the device, and it is always positive following the same convention as for the spherical cap.
-* `/XSteering` and `/YSteering` entries are identical as for spherical caps.
+* `/ZSteering`(in meters)is relative to the surface of the device, and it is always positive following the same convention as for the spherical cap.
+* `/XSteering` and `/YSteering` (in meters) entries are identical as for spherical caps.
 
 ## Timing parameters
 The timing parameters are initially specified by the user via a YAML file as the one shown below:
@@ -129,4 +151,4 @@ Files for ring-type arrays and phased arrays will store phase programming inform
 
 * `/PhaseData`: This is an array of N-elements for ring-type arrays and phased arrays with the complex values used in the simulation to program the device without any skull refocusing compensation. This is the most common operation as skull refocusing depends on users having tight control of the orientation of the transducer between planning and real experiments. A driving equipment may use `angle(PhaseData)` to program the device. However, often software controlling the driving equipment uses `ZSteering` (and `XSteering` and `YSteering` if applicable) to program the device. If `PhaseData` is used to program the device, the steering variables should be ignored, and vice versa.
 
-* `/PhaseDataRefocusing`: This is an optional array of N-elements only available for phased arrays with the complex values used in the simulation to program the device to compensate the skull effects. The user must select "refocusing" in Step 2 to make this data available. Use this only if the user has tight control of the position of the transducer between simulation and real experiments. A driving equipment may use `angle(PhaseDataRefocusing)` to program the device.  If `PhaseDataRefocusing` is used to program the device, the steering variables should be ignored.
+* `/PhaseDataRefocusing`: This is an optional array of N-elements only available for phased arrays with the complex values used in the simulation to program the device to compensate the skull effects. The user must select "refocusing" in Step 2 to set this value. If the user didn't select refocusing, this entry will have only 0 values. Use this only if the user has tight control of the position of the transducer between simulation and real experiments. A driving equipment may use `angle(PhaseDataRefocusing)` to program the device.  If `PhaseDataRefocusing` is used to program the device, the steering variables should be ignored.
