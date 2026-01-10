@@ -2196,7 +2196,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
     def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
-                       COMPUTING_BACKEND=1,bDoRefocusing=True,bDoStressSource=False,SelRMSorPeak=1):
+                       COMPUTING_BACKEND=1,bDoRefocusing=True,
+                       bDoStressSource=False,SelRMSorPeak=1):
         '''
         Run the main FDTD simulation and (optionally) the backpropagation/refocused simulation.
 
@@ -2623,7 +2624,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                      [0,np.max(LineInPeak)],':')
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
-    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False):
+    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False,bDoRefocusingVolume=False):
         '''
         Return simulation results including pressure, phase, overlays, and data for saving.
 
@@ -2742,9 +2743,13 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             DataForSim['p_complex_refocus']=self._PressMapFourierRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset].copy()
-            DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
-                                       self._YLOffset:-self._YROffset,
-                                       self._ZLOffset:-self._ZROffset].copy()
+            if bDoRefocusingVolume:
+                DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
+                                        self._YLOffset:-self._YROffset,
+                                        self._ZLOffset:-self._ZROffset].copy()
+            else:
+                DataForSim['p_complex_back']=self._PressMapFourierBack[self._XLOffset:-self._XROffset,
+                                        self._YLOffset:-self._YROffset].copy()
         if self._DensityCTMap is not None:
             MaterialMap=self._MaterialMapNoCT.copy()
             DataForSim['MaterialMapCT']=self._MaterialMap[self._XLOffset:-self._XROffset,
@@ -2775,7 +2780,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
 
         
         for k in DataForSim:
-            DataForSim[k]=np.flip(DataForSim[k],axis=2)
+            if k!='p_complex_back' or (k=='p_complex_back' and bDoRefocusingVolume):
+                DataForSim[k]=np.flip(DataForSim[k],axis=2)
         DataForSim['Material']=self.ReturnArrayMaterial()
         DataForSim['x_vec']=self._XDim[self._XLOffset:-self._XROffset]
         DataForSim['y_vec']=self._YDim[self._YLOffset:-self._YROffset]

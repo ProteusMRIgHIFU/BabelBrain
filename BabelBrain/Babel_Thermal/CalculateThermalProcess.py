@@ -59,7 +59,9 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
         AllCases=[]
         #These fields will preseved individually per sonication regime
         lf =['MaxBrainPressure','MaxIsppa', 'MaxIspta','TI','TIC','TIS','TempProfileTarget',\
-            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff','DutyCycle','PRF','BaselineTemperature']
+            'TimeProfileTarget','p_map_central','Isppa','Ispta','MI','DurationUS','DurationOff',\
+            'DutyCycle','PRF','BaselineTemperature','Repetitions','NumberGroupedSonications',\
+            'PauseBetweenGroupedSonications']
         Index=[]
         for combination in AllDC_PRF_Duration:
             SubData={}
@@ -93,7 +95,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             for f in lf:
                 if 'p_map_central'==f:
                     SubData['p_map']=Data[f] #this will make it compatible for other purposes
-                SubData[f]=Data[f]
+                if f in Data: 
+                    SubData[f]=Data[f]
             AllCases.append(SubData)
             Index.append([combination['DC'],combination['PRF'],combination['Duration'],combination['DurationOff'],np.round(kargs['Isppa'],1)])
         for f in lf:

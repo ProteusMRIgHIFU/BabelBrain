@@ -1104,10 +1104,15 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['FinalTemp']=FinalTemp
     SaveDict['FinalDose']=FinalDose
     #we carry over these params to simplify analysis later
+    PhaseDataKeys={'BasePhasedArrayProgramming':'PhaseData',\
+                  'BasePhasedArrayProgrammingRefocusing':'PhaseDataRefocusing'} #Matlab can handled long variable names
     if type(InputPData) is str: 
         for k in ['XSteering','YSteering','ZSteering']:
             if k in Input:
                 SaveDict[k]=Input[k]
+        for k in PhaseDataKeys:
+            if k in Input:
+                SaveDict[PhaseDataKeys[k]]=Input[k]
     else:
         for k in ['XSteering','YSteering','ZSteering']:
             if k in Input:
@@ -1115,6 +1120,12 @@ def CalculateTemperatureEffects(InputPData,
                 for n,entry in enumerate(ALL_ACFIELDSKULL):
                     steering[n]=entry[k]
                 SaveDict[k]=steering
+        for k in PhaseDataKeys:
+            if k in Input:
+                phasedata=[]
+                for n,entry in enumerate(ALL_ACFIELDSKULL):
+                    phasedata.append(entry[k])
+                SaveDict[PhaseDataKeys[k]]=phasedata
     SaveDict['AdjustmentInRAS']=Input['AdjustmentInRAS']
     SaveDict['DistanceFromSkin']=Input['DistanceFromSkin']
     SaveDict['TxMechanicalAdjustmentZ']=Input['TxMechanicalAdjustmentZ']
@@ -1126,6 +1137,9 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['DutyCycle']=DutyCycle
     SaveDict['PRF']=PRF
     SaveDict['BaselineTemperature']=BaselineTemperature
+    SaveDict['Repetitions']=Repetitions
+    SaveDict['NumberGroupedSonications']=NumberGroupedSonications
+    SaveDict['PauseBetweenGroupedSonications']=PauseBetweenGroupedSonications
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)

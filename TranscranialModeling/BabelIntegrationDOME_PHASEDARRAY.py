@@ -401,6 +401,10 @@ class SimulationConditions(SimulationConditionsBASE):
             PulseSource[n,-int(ramp_length_points):]*=np.flip(ramp)
         
         self._PulseSourceRefocus=PulseSource
+
+    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False,bDoRefocusingVolume=False):
+        super().ReturnResults(bDoRefocusing=bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater,bDoRefocusingVolume=True)
+    
          
     def RUN_SIMULATION(self,bDoStressSource=False,SelRMSorPeak=1,bApplyCorrectionForDispersion=True,**kargs):
         super().RUN_SIMULATION(bDoStressSource=True,bApplyCorrectionForDispersion=False,SelRMSorPeak=1,**kargs)
