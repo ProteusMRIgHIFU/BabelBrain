@@ -338,9 +338,6 @@ class SimulationConditions(SimulationConditionsBASE):
         
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocForRefocusing=self._FocalSpotLocation.copy()
-        LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
-        LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
-        LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
         self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
 
     def CreateSensorMap(self):

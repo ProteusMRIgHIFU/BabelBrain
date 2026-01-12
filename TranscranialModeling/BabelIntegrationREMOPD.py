@@ -415,10 +415,10 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PunctualSource[0,-int(ramp_length_points):]*=np.flip(ramp)
         self._SourceMapPunctual=np.zeros((self._N1,self._N2,self._N3),np.uint32)
         LocForRefocusing=self._FocalSpotLocation.copy()
-        LocForRefocusing[2]=0.0
-        LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
-        LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
-        LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
+        # LocForRefocusing[2]=0.0
+        # LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
+        # LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
+        # LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
         self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
         
 
@@ -444,10 +444,9 @@ class SimulationConditions(SimulationConditionsBASE):
         center=np.zeros((ypp.size,3),np.float32)
         center[:,0]=xpp.flatten()
         center[:,1]=ypp.flatten()
-        center[:,2]=self._TxMechanicalAdjustmentZ
+        center[:,2]=self._ZDim[self._ZSourceLocation]
             
         ds=np.ones((center.shape[0]))*self._SpatialStep**2
-
 
         #we apply an homogeneous pressure 
         u0=self._PressMapFourierBack[SelRegRayleigh]
@@ -470,9 +469,9 @@ class SimulationConditions(SimulationConditionsBASE):
         nxf=len(self._XDim)
         nyf=len(self._YDim)
         nzf=len(self._ZDim)
-        ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
+        #ZDim=self._ZDim-self._ZDim[self._ZSourceLocation]+self._TxMechanicalAdjustmentZ
         
-        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,ZDim,indexing='ij')
+        xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
