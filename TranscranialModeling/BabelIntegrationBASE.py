@@ -1885,33 +1885,60 @@ class SimulationConditionsBASE(object):
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
 
+            xf2=(xfield-self._TxMechanicalAdjustmentX)/RadiusFace
+            yf2=(yfield-self._TxMechanicalAdjustmentY)/RadiusFace
+
+            Xffs=[xf2]
+            Yffs=[yf2]
+            
+
             if DomeType==False:
                 zfRezero=zfield+ZReZero
-                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfRezero,indexing='ij')
+                zf2=-zfRezero/ZConeLimit
+                Zffs=[zf2]
+                xpp,ypp,zpp=np.meshgrid(xf2**2,yf2**2,zf2,indexing='ij')
                 #we select the cone on the incident field
-                RegionMap=(((xpp-self._TxMechanicalAdjustmentX)**2+
-                           (ypp-self._TxMechanicalAdjustmentY)**2)<=RadiusFace**2) &\
-                          (zpp <= 0) & (zpp >=ZConeLimit)
+                RegionMap=((xpp+ypp)<=1.0) &\
+                          (zpp>= 0) & (zpp <=1.0)
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    Xffs.append(xf2-EX/RadiusFace)
+                    Yffs.append(xf2-EX/RadiusFace)
+                    Zffs.append(zf2)
+                    xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1]**2, Yffs[-1]**2,zf2,indexing='ij')
                     RegionMap=(RegionMap)|\
-                        (((xpp-self._TxMechanicalAdjustmentX-EX)**2+
-                           (ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
-                          (zpp <= 0) & (zpp >=ZConeLimit)  
+                        ((xpp2+ypp2)<=1.0) &\
+                          (zpp2 >= 0) & (zpp <=1.0)  
+                    
+                del xpp2
+                del ypp2
+                del zpp2
                     
                 # RegionMap = (RegionMap)&(TempMaterialMap!=0)
                 print("zfRezero[FirstVoxelTissueZ]",zfRezero[FirstVoxelTissueZ])
                 RegionMap = (RegionMap) & (zpp>=zfRezero[FirstVoxelTissueZ])
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             else:
-                xpp,ypp,zpp=np.meshgrid(xfield,yfield,zfield,indexing='ij')
-                RegionMap=((xpp-self._TxMechanicalAdjustmentX)**2+(ypp-self._TxMechanicalAdjustmentY)**2+(zpp-self._TxMechanicalAdjustmentZ)**2)<=RadiusFace**2 #we select the circle on the incident field
+                zf2=(zfield-self._TxMechanicalAdjustmentZ)/RadiusFace
+                Zffs=[zf2]
+                xpp,ypp,zpp=np.meshgrid(xf2**2,yf2**2,zf2**2,indexing='ij')
+                RegionMap=(xpp + ypp + zpp)<=1.0 #we select the circle on the incident field
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
+                    Xffs.append(xf2-EX/RadiusFace)
+                    Yffs.append(xf2-EX/RadiusFace)
+                    Zffs.append(zf2)
+                    xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1]**2**2,Yffs[-1]**2**2,zf2,indexing='ij')
                     RegionMap=(RegionMap)|\
-                        ((((xpp-self._TxMechanicalAdjustmentX-EX)**2+(ypp-self._TxMechanicalAdjustmentY-EY)**2)<=RadiusFace**2) &\
-                        (zpp==TopZ))
+                        ((xpp2 + ypp2)<=RadiusFace**2) &\
+                        (zpp==zf2[self._PMLThickness])
                 RegionMap[zpp>0]=False #only the negative part
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
+                del xpp2
+                del ypp2
+                del zpp2
             print('RegionMap',np.sum(RegionMap))
+            stepXf=np.abs(np.mean(np.diff(xf2)))
+            stepYf=np.abs(np.mean(np.diff(yf2)))
+            stepZf=np.abs(np.mean(np.diff(zf2)))
 
             if bCompleteForShrinking:
                 break
@@ -1920,10 +1947,11 @@ class SimulationConditionsBASE(object):
                 sn={'X':'1','Y':'2','Z':'3'}
                 pcode=\
 '''
-
+AllFF=np.vstack({0}ffs)
+edgeDist=np.min(AllFF,axis=0)    
 if np.any(Ind{0}Map<self._PMLThickness):
     print('** Rayleigh map not fitting in the low part of N{1}, increasing it ...', self._{0}LOffset)
-    self._{0}LOffset+=self._PMLThickness-Ind{0}Map.min()
+    self._{0}LOffset+=int(np.ceil((1.0-edgeDist[self._PMLThickness])/step{0}f))
     print('{0}LOffset',self._{0}LOffset)
     self.bMapFit=False
 elif self._bTightNarrowBeamDomain:
@@ -1933,7 +1961,7 @@ elif self._bTightNarrowBeamDomain:
     self._nCountShrink+=1
 if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness) and ("{0}" != "Z" or ("{0}" == "Z" and not self._bTightNarrowBeamDomain )) :
     print('** Rayleigh map not fitting in the upper part of N{1}, increasing it ...',self._{0}ROffset)
-    self._{0}ROffset+=Ind{0}Map.max()-(self._N{1}-self._PMLThickness)+1
+    self._{0}ROffset+=int(np.ceil((1.0-edgeDist[-self._PMLThickness])/step{0}f))
     print('{0}Offset',self._{0}ROffset)
     self.bMapFit=False
 elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
