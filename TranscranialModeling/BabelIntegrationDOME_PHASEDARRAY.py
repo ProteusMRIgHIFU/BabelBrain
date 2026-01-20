@@ -400,7 +400,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PulseSourceRefocus=PulseSource
 
     def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False,bDoRefocusingVolume=False):
-        super().ReturnResults(bDoRefocusing=bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater,bDoRefocusingVolume=True)
+        return super().ReturnResults(bDoRefocusing=bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater,bDoRefocusingVolume=True)
     
          
     def RUN_SIMULATION(self,bDoStressSource=False,SelRMSorPeak=1,bApplyCorrectionForDispersion=True,**kargs):
