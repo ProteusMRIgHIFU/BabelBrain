@@ -1795,9 +1795,7 @@ class SimulationConditionsBASE(object):
         self._YShrink_R=0
         self._ZShrink_L=0
         self._ZShrink_R=0
-        self.bMapFit=False
         bCompleteForShrinking=False
-        self._nCountShrink=0
         print('self._ExtraAdjustX, self._ExtraAdjustY',self._ExtraAdjustX,self._ExtraAdjustY)
         while (True):
             self.bMapFit=True
@@ -1842,11 +1840,17 @@ class SimulationConditionsBASE(object):
             xfield = np.arange(self._N1)*SpatialStep
             yfield = np.arange(self._N2)*SpatialStep
             zfield = np.arange(self._N3)*SpatialStep
+
+            print('distance xfield',xfield.max()-xfield.min())
+            print('distance yfield',yfield.max()-yfield.min())
+            print('distance zfield',zfield.max()-zfield.min())
             
             
             xfield-=xfield[self._FocalSpotLocation[0]]
             yfield-=yfield[self._FocalSpotLocation[1]]
             zfield-=zfield[self._FocalSpotLocation[2]]
+
+            print('Distance edge to focal spot',zfield[self._FocalSpotLocation[2]]-zfield[0])
             
             if DomeType==False:
                 zfield+=self._FocalLength
@@ -1919,16 +1923,16 @@ class SimulationConditionsBASE(object):
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             else:
                 zf2=(zfield-self._TxMechanicalAdjustmentZ)/RadiusFace
-                Zffs=[zf2]
+                Zffs=[np.abs(zf2)]
                 xpp,ypp,zpp=np.meshgrid(xf2,yf2,zf2,indexing='ij')
                 RegionMap=(xpp**2 + ypp**2 + zpp**2)<=1.0 #we select the circle on the incident field
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
                     Xffs.append(np.abs(xf2-EX/RadiusFace))
                     Yffs.append(np.abs(yf2-EY/RadiusFace))
-                    Zffs.append(zf2)
+                    Zffs.append(np.abs(zf2))
                     xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1],Yffs[-1],zf2,indexing='ij')
                     RegionMap=(RegionMap)|\
-                        ((xpp2**2 + ypp2**2)<=RadiusFace**2) &\
+                        ((xpp2**2 + ypp2**2)<=1.0) &\
                         (zpp==zf2[self._PMLThickness])
                 RegionMap[zpp>0]=False #only the negative part
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
@@ -1936,12 +1940,13 @@ class SimulationConditionsBASE(object):
                 del ypp2
                 del zpp2
             print('RegionMap',np.sum(RegionMap))
-            stepXf=np.abs(np.mean(np.diff(xf2)))
-            stepYf=np.abs(np.mean(np.diff(yf2)))
-            stepZf=np.abs(np.mean(np.diff(zf2)))
 
             if bCompleteForShrinking:
                 break
+
+            stepXf=np.abs(np.mean(np.diff(xf2)))
+            stepYf=np.abs(np.mean(np.diff(yf2)))
+            stepZf=np.abs(np.mean(np.diff(zf2)))
 
             def fgen(var):
                 sn={'X':'1','Y':'2','Z':'3'}
@@ -1953,22 +1958,18 @@ if np.any(Ind{0}Map<self._PMLThickness):
     print('** Rayleigh map not fitting in the low part of N{1}, increasing it ...', self._{0}LOffset)
     self._{0}LOffset+=int(np.ceil((1.0-edgeDist[self._PMLThickness])/step{0}f))
     print('{0}LOffset',self._{0}LOffset)
-    self.bMapFit=False
 elif self._bTightNarrowBeamDomain:
     if self._{0}LOffset==self._PMLThickness:
         self._{0}Shrink_L+=Ind{0}Map.min()-self._{0}LOffset
         print('{0}Shrink_L',self._{0}Shrink_L)
-    self._nCountShrink+=1
 if np.any(Ind{0}Map>=self._N{1}-self._PMLThickness) and ("{0}" != "Z" or ("{0}" == "Z" and not self._bTightNarrowBeamDomain )) :
     print('** Rayleigh map not fitting in the upper part of N{1}, increasing it ...',self._{0}ROffset)
     self._{0}ROffset+=int(np.ceil((1.0-edgeDist[-self._PMLThickness])/step{0}f))
     print('{0}Offset',self._{0}ROffset)
-    self.bMapFit=False
 elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
     if self._{0}ROffset==self._PMLThickness:
         self._{0}Shrink_R+=self._N{1}-self._{0}ROffset-Ind{0}Map.max()-1
         print('{0}Shrink_R',self._{0}Shrink_R)
-    self._nCountShrink+=1
 '''.format(var,sn[var])
                 return pcode
             
@@ -1987,14 +1988,10 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                     self._ZShrink_R=ChangeRedZ
                 if self._ZShrink_R<0:
                     self._ZShrink_R=0
-                print('ZShrink_R',self._ZShrink_R,self._nCountShrink)
+                print('ZShrink_R',self._ZShrink_R)
                     
-            if self.bMapFit:
-                if self._bTightNarrowBeamDomain==False:
-                    bCompleteForShrinking=True
-                elif self._nCountShrink>=15:
-                    bCompleteForShrinking=True
-
+            bCompleteForShrinking=True
+            
             #we overwrite the values if benchmark is being selected
 
         self._XDim=xfield
