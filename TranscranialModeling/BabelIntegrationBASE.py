@@ -1888,21 +1888,21 @@ class SimulationConditionsBASE(object):
             xf2=(xfield-self._TxMechanicalAdjustmentX)/RadiusFace
             yf2=(yfield-self._TxMechanicalAdjustmentY)/RadiusFace
 
-            Xffs=[xf2]
-            Yffs=[yf2]
+            Xffs=[np.abs(xf2)]
+            Yffs=[np.abs(yf2)]
             
 
             if DomeType==False:
                 zfRezero=zfield+ZReZero
-                zf2=-zfRezero/ZConeLimit
+                zf2=zfRezero/ZConeLimit
                 Zffs=[zf2]
                 xpp,ypp,zpp=np.meshgrid(xf2**2,yf2**2,zf2,indexing='ij')
                 #we select the cone on the incident field
                 RegionMap=((xpp+ypp)<=1.0) &\
                           (zpp>= 0) & (zpp <=1.0)
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                    Xffs.append(xf2-EX/RadiusFace)
-                    Yffs.append(xf2-EX/RadiusFace)
+                    Xffs.append(np.abs(xf2-EX/RadiusFace))
+                    Yffs.append(np.abs(yf2-EY/RadiusFace))
                     Zffs.append(zf2)
                     xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1]**2, Yffs[-1]**2,zf2,indexing='ij')
                     RegionMap=(RegionMap)|\
@@ -1914,21 +1914,21 @@ class SimulationConditionsBASE(object):
                 del zpp2
                     
                 # RegionMap = (RegionMap)&(TempMaterialMap!=0)
-                print("zfRezero[FirstVoxelTissueZ]",zfRezero[FirstVoxelTissueZ])
-                RegionMap = (RegionMap) & (zpp>=zfRezero[FirstVoxelTissueZ])
+                print("zf2[FirstVoxelTissueZ]",zf2[FirstVoxelTissueZ])
+                RegionMap = (RegionMap) & (zpp<=zf2[FirstVoxelTissueZ])
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
             else:
                 zf2=(zfield-self._TxMechanicalAdjustmentZ)/RadiusFace
                 Zffs=[zf2]
-                xpp,ypp,zpp=np.meshgrid(xf2**2,yf2**2,zf2**2,indexing='ij')
-                RegionMap=(xpp + ypp + zpp)<=1.0 #we select the circle on the incident field
+                xpp,ypp,zpp=np.meshgrid(xf2,yf2,zf2,indexing='ij')
+                RegionMap=(xpp**2 + ypp**2 + zpp**2)<=1.0 #we select the circle on the incident field
                 for EX,EY in zip (self._ExtraAdjustX,self._ExtraAdjustY):
-                    Xffs.append(xf2-EX/RadiusFace)
-                    Yffs.append(xf2-EX/RadiusFace)
+                    Xffs.append(np.abs(xf2-EX/RadiusFace))
+                    Yffs.append(np.abs(yf2-EY/RadiusFace))
                     Zffs.append(zf2)
-                    xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1]**2**2,Yffs[-1]**2**2,zf2,indexing='ij')
+                    xpp2,ypp2,zpp2=np.meshgrid(Xffs[-1],Yffs[-1],zf2,indexing='ij')
                     RegionMap=(RegionMap)|\
-                        ((xpp2 + ypp2)<=RadiusFace**2) &\
+                        ((xpp2**2 + ypp2**2)<=RadiusFace**2) &\
                         (zpp==zf2[self._PMLThickness])
                 RegionMap[zpp>0]=False #only the negative part
                 IndXMap,IndYMap,IndZMap=np.nonzero(RegionMap)
