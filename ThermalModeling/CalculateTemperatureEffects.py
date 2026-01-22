@@ -20,6 +20,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMeta
 from multiprocessing import Process,Queue
 import sys
 import time
+import gc
 from scipy.ndimage import median_filter
 
 class InOutputWrapper(object):
@@ -367,7 +368,7 @@ def RunBHTECycles(nCurrent,
                                                             MonitoringPointsMap=MonitoringPointsMap,
                                                             stableTemp=stableTemp)
 
-            
+        gc.collect()
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
@@ -390,6 +391,7 @@ def RunBHTECycles(nCurrent,
                 TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
             else:
                 TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
+            gc.collect()
         else:
             FinalTemp=ResTemp
             FinalDose=ResDose
@@ -398,8 +400,6 @@ def RunBHTECycles(nCurrent,
             else:
                 TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn))
     
-        
-
         print('nCurrent,TotalIterations',nCurrent,TotalIterations)
 
         if (nCurrent+1)%Repetitions == 0 and TotalDurationBetweenGroups>0.0:
@@ -420,6 +420,7 @@ def RunBHTECycles(nCurrent,
                                                             MonitoringPointsMap=MonitoringPointsMap,
                                                             stableTemp=stableTemp)
             TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOff))
+            gc.collect()
         if (bRunInSubProcess) and\
             ((nCurrent+1)% LimitBHTEIterationsPerProcess==0 or (nCurrent+1)==TotalIterations):
             print('Finishing sub process')
@@ -925,6 +926,7 @@ def CalculateTemperatureEffects(InputPData,
                                                       dt=dt,
                                                       Backend=Backend,
                                                       stableTemp=BaselineTemperature)
+    gc.collect()
 
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
     ResTempBrain=ResTemp * SelBrain.astype(np.float32)

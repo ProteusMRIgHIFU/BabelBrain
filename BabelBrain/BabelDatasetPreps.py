@@ -489,6 +489,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 S1_file_manager.save_file(file_data=skull_mesh,filename=skull_stl)
 
             S1_file_manager.save_file(file_data=None,filename=outputfilenames['ReuseSimbNIBS'],precursor_files=inputfilenames.values())
+            gc.collect()
     else:
         tissues = S1_file_manager.load_file(inputfilenames['SimbNIBSinput'])
         tissues = S1_file_manager.nibabel_to_sitk(tissues)
@@ -562,7 +563,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             skin_grid = skin_mesh.voxelized(SpatialStep,max_iter=30).fill().points
         else:
             skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
-
+        gc.collect()
     
     x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+SpatialStep,SpatialStep)
     y_vec=np.arange(skin_grid[:,1].min(),skin_grid[:,1].max()+SpatialStep,SpatialStep)
@@ -634,8 +635,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     if bApplyBOXFOV:
         skull_mesh=DoIntersect(skull_mesh,BoxFOV,bForceUseBlender=bForceUseBlender)
+        gc.collect()
         csf_mesh  =DoIntersect(csf_mesh,  BoxFOV,bForceUseBlender=bForceUseBlender)
+        gc.collect()
         skin_mesh =DoIntersect(skin_mesh, BoxFOV,bForceUseBlender=bForceUseBlender)
+        gc.collect()
     
     #we first subtract to find the pure bone region
     if VoxelizeFilter is None:
@@ -656,10 +660,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     else:
         with CodeTimer("skull voxelization",unit='s'):
             skull_grid = VoxelizeFilter(skull_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            gc.collect()
         with CodeTimer("brain voxelization",unit='s'):
             csf_grid = VoxelizeFilter(csf_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            gc.collect()
         with CodeTimer("skin voxelization",unit='s'):
             skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            gc.collect()
         
     
     #we obtain the list of Cartesian voxels in the whole skin region intersected by the cone    
@@ -803,6 +810,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                                PETRAOffset=PETRAOffset,
                                                                ZTESlope=ZTESlope,
                                                                ZTEOffset=ZTEOffset)
+                gc.collect()
             else:
                 with CodeTimer("Coregistration CT to T1",unit='s'):
                     rCT = CTZTEProcessing.CTCorreg(T1Conformal_nii,
@@ -810,6 +818,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                    ElastixOptimizer,
                                                    ResampleFilter,
                                                    ResampleFilterCOMPUTING_BACKEND)
+                gc.collect()
             rCTdata=rCT.get_fdata()
             hist = np.histogram(rCTdata[rCTdata>TypeThresold],bins=15)
             print('*'*40)
@@ -844,6 +853,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 nCT=ResampleFilter(rCT,mask_nifti2,mode='constant',cval=rCTdata.min(),GPUBackend=ResampleFilterCOMPUTING_BACKEND)
 
+            gc.collect()
+
             RatioCTVoxels=np.ceil(2.0/np.array(nCT.header.get_zooms())).astype(int) # 1 mm distance
 
             ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
@@ -858,11 +869,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                         fct=ndimage.median_filter(ndataCT>TypeThresold,7,mode='constant',cval=0)
                     else:
                         fct=MedianFilter(np.ascontiguousarray(ndataCT>TypeThresold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+                    gc.collect()
             else:
                 fct = ndataCT>TypeThresold
+            
             sf2=np.round((np.ones(3)*5)/mask_nifti2.header.get_zooms()).astype(int)
             with CodeTimer("binary closing CT/Density",unit='s'):
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
+                gc.collect()
             nfct=fct!=0
 
             with CodeTimer("label CT",unit='s'):
@@ -873,12 +887,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 regions= regionprops(label_img)
                 regions=sorted(regions,key=lambda d: d.area)
                 nfct=label_img==regions[-1].label
+                gc.collect()
 
             ndataCTForAir=ndataCT.copy()
             ndataCT[nfct==False]=0
 
         with CodeTimer("CT/Density binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
+            gc.collect()
         with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
             FinalMask[BinMaskConformalCSFRot]=4  
             FinalMask[BinMaskConformalSkullRot==1]=4
@@ -891,6 +907,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 label_img = label(FinalMask==1)
             else:
                 label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            gc.collect()
         
         with CodeTimer("regionprops",unit='s'):
             regions= regionprops(label_img)
@@ -993,6 +1010,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                         nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
                         nCTNifti.to_filename(CTnamefiltered)
 
+                gc.collect()
+
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
         
@@ -1014,6 +1033,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 ndataCTMap[nfct==False]=0
             else:
                 ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+
+            gc.collect()
 
             nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
 
@@ -1045,6 +1066,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
             FinalMask=MedianFilter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+        gc.collect()
     if CT_or_ZTE_input is not None:
         FinalMask[nfct]=2
 
@@ -1053,6 +1075,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 label_img = label(FinalMask==1)
             else:
                 label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+            gc.collect()
         
         with CodeTimer("second regionprops",unit='s'):
             regions= regionprops(label_img)
@@ -1117,6 +1140,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 outname = os.path.join(tmpdirname,'out.nii.gz')
                 RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
                 upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
+                gc.collect()
         
         FinalMask2=FinalMask.copy()
         FinalMask2[upScaleMask==1]=6 #white matter
