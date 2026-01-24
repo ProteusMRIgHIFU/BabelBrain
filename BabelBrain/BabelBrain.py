@@ -712,7 +712,7 @@ class BabelBrain(QWidget):
         #we connect callbacks
         self.Widget.CalculatePlanningMask.clicked.connect(self.GenerateMask)
 
-        self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateParamsMaskFloat)
+        self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateFrequencyFloat)
         self.Widget.USPPWSpinBox.valueChanged.connect(self.UpdateParamsMaskFloat)
 
         if self.AcSim.Config['USFrequencies'][0]<=350e3: #we set default to 9 PPW for low frequencies
@@ -786,6 +786,12 @@ class BabelBrain(QWidget):
             for k in options.NewValues.keys():
                 self.Config[k]=getattr(options.NewValues,k)
             self.SaveLatestSelection()
+
+    @Slot(float)
+    def UpdateFrequencyFloat(self, newvalue):
+        if float(self.Widget.USMaskkHzDropDown.currentText())>350:
+            self.Widget.USPPWSpinBox.setValue(6) 
+        self.UpdateMaskParameters()
 
     @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
