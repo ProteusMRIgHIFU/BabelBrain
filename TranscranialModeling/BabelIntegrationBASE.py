@@ -937,39 +937,39 @@ class RUN_SIM_BASE(object):
                     print('  Step 1')
 
                     #with suppress_stdout():
-                    with CodeTimer("Time for step 1",unit='s'):
+                    with CodeTimer("CTS2L3: step 1",unit='s'):
                         TestClass.Step1_InitializeConditions()
                     print('  Step 2')
-                    with CodeTimer("Time for step 2",unit='s'):
+                    with CodeTimer("CTS2L3: step 2",unit='s'):
                         TestClass.Step2_CalculateRayleighFieldsForward(prefix=FILENAMES['outName'],
                                                                     deviceName=deviceName,
                                                                     bSkipSavingSTL= bMinimalSaving)
 
                     print('  Step 3')
-                    with CodeTimer("Time for step 3",unit='s'):
+                    with CodeTimer("CTS2L3: step 3",unit='s'):
                         TestClass.Step3_CreateSourceSignal_and_Sensor()
                     print('  Step 4')
-                    with CodeTimer("Time for step 4",unit='s'):
+                    with CodeTimer("CTS2L3: step 4",unit='s'):
                         TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
                     print('  Step 5')
-                    with CodeTimer("Time for step 5",unit='s'):
+                    with CodeTimer("CTS2L3: step 5",unit='s'):
                         TestClass.Step5_ExtractPhaseDataForwardandBack()
                     if bDoRefocusing:
 
                         print('  Step 6')
-                        with CodeTimer("Time for step 6",unit='s'):
+                        with CodeTimer("CTS2L3: step 6",unit='s'):
                             TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
                         print('  Step 7')
-                        with CodeTimer("Time for step 7",unit='s'):
+                        with CodeTimer("CTS2L3: step 7",unit='s'):
                             TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
                         print('  Step 8')
-                        with CodeTimer("Time for step 8",unit='s'):
+                        with CodeTimer("CTS2L3: step 8",unit='s'):
                             TestClass.Step8_ExtractPhaseDataRefocus()
                     print('  Step 9')
-                    with CodeTimer("Time for step 9",unit='s'):
+                    with CodeTimer("CTS2L3: step 9",unit='s'):
                         TestClass.Step9_PrepAndPlotData()
                     print('  Step 10')
-                    with CodeTimer("Time for step 10",unit='s'):
+                    with CodeTimer("CTS2L3: step 10",unit='s'):
                         TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
                                                         bMinimalSaving=bMinimalSaving,
                                                         bUseRayleighForWater=bUseRayleighForWater,

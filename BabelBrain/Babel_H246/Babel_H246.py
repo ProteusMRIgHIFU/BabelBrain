@@ -185,6 +185,7 @@ class RunAcousticSim(QObject):
 
     finished = Signal()
     endError = Signal()
+    logTelemetry = Signal(str)
 
     def __init__(self,mainApp):
         super(RunAcousticSim, self).__init__()
@@ -249,14 +250,20 @@ class RunAcousticSim(QObject):
             while queue.empty() == False:
                 cMsg=queue.get()
                 print(cMsg,end='')
+                if 'CTS2L3:' in cMsg:
+                    self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
-                    bNoError=False  
+                    self.logTelemetry.emit("CTS1L1: "+cMsg)
+                    bNoError=False 
         fieldWorkerProcess.join()
         while queue.empty() == False:
             cMsg=queue.get()
             print(cMsg,end='')
+            if 'CTS2L3:' in cMsg:
+                self.logTelemetry.emit(cMsg)
             if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False
+                self.logTelemetry.emit("CTS1L1: "+cMsg)
+                bNoError=False 
         if bNoError:
             TEnd=time.time()
             TotalTime = TEnd-T0

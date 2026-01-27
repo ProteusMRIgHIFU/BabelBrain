@@ -444,7 +444,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     skin_stl=outputfilenames['Skin_STL']
     
     if bForceFullRecalculation==False:
-        with CodeTimer("Checking if previously generated files can be reused", unit="s"):
+        with CodeTimer("CTS1L3: Checking if previously generated files can be reused", unit="s"):
             bReuseFiles, prevoutputfilenames = S1_file_manager.check_reuse_files(inputfilenames,outputfilenames)
     else:
         bReuseFiles=False
@@ -468,7 +468,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
             CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
-            with CodeTimer("charm surface recon",unit='s'):
+            with CodeTimer("CTS1L3: charm surface recon",unit='s'):
                 skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
                 csf_mesh=MaskToStl(CSFRegion,charm.affine)
                 skull_mesh=MaskToStl(BoneRegion,charm.affine)
@@ -558,7 +558,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     skin_mesh =DoIntersect(skin_mesh,Cone,bForceUseBlender=bForceUseBlender)
 
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
-    with CodeTimer("voxelization ",unit='s'):
+    with CodeTimer("CTS1L3: voxelization ",unit='s'):
         if VoxelizeFilter is None:  
             skin_grid = skin_mesh.voxelized(SpatialStep,max_iter=30).fill().points
         else:
@@ -645,11 +645,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     if VoxelizeFilter is None:
         while(True):
             try:
-                with CodeTimer("cpu skull voxelization",unit='s'):
+                with CodeTimer("CTS1L3: cpu skull voxelization",unit='s'):
                     skull_grid = skull_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                with CodeTimer("cpu voxelization",unit='s'):
+                with CodeTimer("CTS1L3: cpu voxelization",unit='s'):
                     csf_grid = csf_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
-                with CodeTimer("cpu voxelization",unit='s'):
+                with CodeTimer("CTS1L3: cpu voxelization",unit='s'):
                     skin_grid = skin_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
                 break
             except AttributeError as err:
@@ -658,13 +658,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             else:
                 raise err
     else:
-        with CodeTimer("skull voxelization",unit='s'):
+        with CodeTimer("CTS1L3: skull voxelization",unit='s'):
             skull_grid = VoxelizeFilter(skull_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
-        with CodeTimer("brain voxelization",unit='s'):
+        with CodeTimer("CTS1L3: brain voxelization",unit='s'):
             csf_grid = VoxelizeFilter(csf_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
-        with CodeTimer("skin voxelization",unit='s'):
+        with CodeTimer("CTS1L3: skin voxelization",unit='s'):
             skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
         
@@ -702,7 +702,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     InVAffineRot=np.linalg.inv(baseaffineRot)
     InVAffineRot=InVAffineRot.astype(skin_grid.dtype)    
 
-    with CodeTimer("skin masking",unit='s'):
+    with CodeTimer("CTS1L3: skin masking",unit='s'):
         XYZ=skin_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skin_grid.dtype))).T
         #now we prepare the new dataset that is perpendicular to the cone direction
@@ -727,7 +727,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     gc.collect()
 
     t0=time.time()
-    with CodeTimer("skull masking",unit='s'):
+    with CodeTimer("CTS1L3: skull masking",unit='s'):
         XYZ=skull_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=skull_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
@@ -742,7 +742,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     del skull_grid
     gc.collect()
 
-    with CodeTimer("csf masking",unit='s'):
+    with CodeTimer("CTS1L3: csf masking",unit='s'):
         XYZ=csf_grid
         XYZ=np.hstack((XYZ,np.ones((XYZ.shape[0],1),dtype=csf_grid.dtype))).T
         AffIJK=np.round(np.dot(InVAffineRot,XYZ)).astype(np.int64).T
@@ -762,7 +762,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     #Now we deal if CT or ZTE has beegn given as input
     if CT_or_ZTE_input is  None:
-        with CodeTimer("Final Mask gen without CT/ZTE", unit="s"):
+        with CodeTimer("CTS1L3: Final Mask gen without CT/ZTE", unit="s"):
             FinalMask[BinMaskConformalSkullRot==1]=2 #cortical
             FinalMask[BinMaskConformalCSFRot==1]=4#brain
     else:
@@ -790,14 +790,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             if CTType in [2,3]:
                 print('Processing ZTE/PETRA to pCT')
                 bIsPetra = CTType==3
-                with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
+                with CodeTimer("CTS1L3: Bias and coregistration ZTE/PETRA to T1",unit='s'):
                     rT1,rZTE = CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,
                                                                   TMaskItk,
                                                                   S1_file_manager,
                                                                   ElastixOptimizer,
                                                                   bIsPetra=bIsPetra,
                                                                   bInvertZTE=bInvertZTE)
-                with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
+                with CodeTimer("CTS1L3: Conversion ZTE/PETRA to pCT",unit='s'):
                     rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,
                                                                rZTE,
                                                                TMaskItk,
@@ -812,7 +812,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                                                ZTEOffset=ZTEOffset)
                 gc.collect()
             else:
-                with CodeTimer("Coregistration CT to T1",unit='s'):
+                with CodeTimer("CTS1L3: Coregistration CT to T1",unit='s'):
                     rCT = CTZTEProcessing.CTCorreg(T1Conformal_nii,
                                                    S1_file_manager,
                                                    ElastixOptimizer,
@@ -845,7 +845,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
 
         ############
-        with CodeTimer("CT extrapol",unit='s'):
+        with CodeTimer("CTS1L3: CT extrapol",unit='s'):
             print('rCTdata range',rCTdata.min(),rCTdata.max())
             rCT = nibabel.Nifti1Image(rCTdata, rCT.affine, rCT.header)
             if ResampleFilter is None:
@@ -863,7 +863,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             print('ndataCT range',ndataCT.min(),ndataCT.max())
             
             if not bDisableCTMedianFilter:
-                with CodeTimer("median filter CT/Density",unit='s'):
+                with CodeTimer("CTS1L3: median filter CT/Density",unit='s'):
                     print('Theshold for bone',TypeThresold)
                     if MedianFilter is None:
                         fct=ndimage.median_filter(ndataCT>TypeThresold,7,mode='constant',cval=0)
@@ -874,12 +874,12 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 fct = ndataCT>TypeThresold
             
             sf2=np.round((np.ones(3)*5)/mask_nifti2.header.get_zooms()).astype(int)
-            with CodeTimer("binary closing CT/Density",unit='s'):
+            with CodeTimer("CTS1L3: binary closing CT/Density",unit='s'):
                 fct = BinaryClosingFilter(fct, structure=np.ones(sf2,dtype=int), GPUBackend=BinaryClosingFilterCOMPUTING_BACKEND)
                 gc.collect()
             nfct=fct!=0
 
-            with CodeTimer("label CT",unit='s'):
+            with CodeTimer("CTS1L3: label CT",unit='s'):
                 if LabelImage is None:
                     label_img=label(nfct)
                 else:
@@ -892,24 +892,23 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             ndataCTForAir=ndataCT.copy()
             ndataCT[nfct==False]=0
 
-        with CodeTimer("CT/Density binary_dilation",unit='s'):
+        with CodeTimer("CTS1L3: CT/Density binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
             gc.collect()
-        with CodeTimer("FinalMask[BinMaskConformalCSFRot]=4",unit='s'):
-            FinalMask[BinMaskConformalCSFRot]=4  
-            FinalMask[BinMaskConformalSkullRot==1]=4
+        
+        FinalMask[BinMaskConformalCSFRot]=4  
+        FinalMask[BinMaskConformalSkullRot==1]=4
         #brain
-        with CodeTimer("FinalMask[nfct]=2",unit='s'):
-            FinalMask[nfct]=2  #bone
+        FinalMask[nfct]=2  #bone
         #we do a cleanup of islands of skin that are isolated between the skull region and brain region, we assume all except the largest one are brain tissue
-        with CodeTimer("Labeling",unit='s'):
+        with CodeTimer("CTS1L3: Labeling",unit='s'):
             if LabelImage is None:
                 label_img = label(FinalMask==1)
             else:
                 label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
             gc.collect()
         
-        with CodeTimer("regionprops",unit='s'):
+        with CodeTimer("CTS1L3: regionprops",unit='s'):
             regions= regionprops(label_img)
 
         print("number of skin region islands", len(regions))
@@ -929,7 +928,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         ndataCT[nfct]=CTBone
 
         if bMaximizeBoneRim:
-            with CodeTimer("Fixing partial volume artifacts edge",unit='s'):
+            with CodeTimer("CTS1L3: Fixing partial volume artifacts edge",unit='s'):
                 interior_high_th=800.0
                 max_boost = 1000.0
                 nPixelsErode=RatioCTVoxels.copy()
@@ -945,7 +944,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
                 # # # Create conservative interior bone mask (higher threshold + erosion)
                 interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
-                with CodeTimer("binary erosion",unit='s'):
+                with CodeTimer("CTS1L3: binary erosion",unit='s'):
                     interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
 
 
@@ -959,7 +958,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
                 inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
                 # compute distance from every voxel to nearest interior voxel (Euclidean)
-                with CodeTimer("distance_transform_edt",unit='s'):
+                with CodeTimer("CTS1L3: distance_transform_edt",unit='s'):
                     dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
 
                 # # Identify edge voxels: in nfct but not in interior_mask
@@ -976,9 +975,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
                 # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
                 sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
-                with CodeTimer("interior_f gaussian_filter",unit='s'):
+                with CodeTimer("CTS1L3: interior_f gaussian_filter",unit='s'):
                     blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
-                with CodeTimer("blur_mask gaussian_filter",unit='s'):
+                with CodeTimer("CTS1L3: blur_mask gaussian_filter",unit='s'):
                     blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
                 # # avoid division by zero
                 local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
@@ -998,7 +997,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
                 CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
                 if bSaveCTMaximized:
-                    with CodeTimer("saving CTnamenonfiltered",unit='s'):
+                    with CodeTimer("CTS1L3: saving CTnamenonfiltered",unit='s'):
                         nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
                         nCTNifti.to_filename(CTnamenonfiltered)
 
@@ -1006,7 +1005,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 ndataCT[edge_voxels] = correct_vals
 
                 if bSaveCTMaximized:
-                    with CodeTimer("saving CTnamefiltered",unit='s'):
+                    with CodeTimer("CTS1L3: saving CTnamefiltered",unit='s'):
                         nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
                         nCTNifti.to_filename(CTnamefiltered)
 
@@ -1025,7 +1024,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         CTCalfname = os.path.dirname(T1Conformal_nii)+os.sep+prefix+'CT-cal.npz'
         S1_file_manager.save_file(file_data=None,filename=CTCalfname,UniqueHU=UniqueHU)
 
-        with CodeTimer("Mapping unique values",unit='s'):
+        with CodeTimer("CTS1L3: Mapping unique values",unit='s'):
             if MapFilter is None:
                 ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
                 for n,d in enumerate(UniqueHU):
@@ -1041,7 +1040,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             S1_file_manager.save_file(file_data=nCT,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
 
         if bExtractAirRegions:
-            with CodeTimer("Extracting air regions",unit='s'):
+            with CodeTimer("CTS1L3: Extracting air regions",unit='s'):
                 AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
                 if MedianFilter is None:
                     AirRegions=ndimage.median_filter(AirRegions.astype(np.uint8),3)
@@ -1059,7 +1058,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
                 AirRegions.to_filename(outname)
 
-    with CodeTimer("final median filter ",unit='s'):
+    with CodeTimer("CTS1L3: final median filter ",unit='s'):
         if CT_or_ZTE_input is not None:
             FinalMask[FinalMask==2]=1
         if MedianFilter is None:
@@ -1070,14 +1069,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     if CT_or_ZTE_input is not None:
         FinalMask[nfct]=2
 
-        with CodeTimer("Second Labeling",unit='s'):
+        with CodeTimer("CTS1L3: Second Labeling",unit='s'):
             if LabelImage is None:
                 label_img = label(FinalMask==1)
             else:
                 label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
             gc.collect()
         
-        with CodeTimer("second regionprops",unit='s'):
+        with CodeTimer("CTS1L3: second regionprops",unit='s'):
             regions= regionprops(label_img)
 
         print("second number of skin region islands", len(regions))
@@ -1114,7 +1113,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
 
     if CT_or_ZTE_input is not None:
-        with CodeTimer("Final cleanup of prefocal region",unit='s'):
+        with CodeTimer("CTS1L3: Final cleanup of prefocal region",unit='s'):
             FinalMask=np.flip(FinalMask,axis=2)
             Rloc = np.array(np.where(FinalMask==5)).flatten()
             for i in range(FinalMask.shape[0]):
@@ -1133,7 +1132,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         # we just need an empty file to pass matrx size and affine
         emptyNifti =   nibabel.Nifti1Image(FinalMask*0, affine=baseaffineRot)
 
-        with CodeTimer("Upscaling final tissue to recover GM and WM masks",unit='s'):
+        with CodeTimer("CTS1L3: Upscaling final tissue to recover GM and WM masks",unit='s'):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 ename=os.path.join(tmpdirname,'empty.nii.gz')
                 emptyNifti.to_filename(ename)
@@ -1157,7 +1156,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     S1_file_manager.save_file(file_data=mask_nifti2,filename=outname)
     
-    with CodeTimer("resampling T1 to mask",unit='s'):
+    with CodeTimer("CTS1L3: resampling T1 to mask",unit='s'):
         if ResampleFilter is None:
             T1Conformal=processing.resample_from_to(T1Conformal,mask_nifti2,mode='constant',order=0,cval=T1Conformal.get_fdata().min())
         else:

@@ -192,11 +192,15 @@ class BabelBasePhaseArray(BabelBaseTx):
             self.worker.endError.connect(self.NotifyError)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
+
+            self.worker.logTelemetry.connect(self._MainApp._logTelemetry)
+
             self.thread.start()
             self._MainApp.showClockDialog()
         else:
             self.UpdateAcResults()
 
+        
     def GetExport(self):
         Export=super().GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
@@ -497,6 +501,7 @@ class RunAcousticSim(QObject):
 
     finished = Signal(object)
     endError = Signal()
+    logTelemetry = Signal(str)
 
     def __init__(self,mainApp,bDryRun=False):
         super().__init__()
@@ -582,7 +587,10 @@ class RunAcousticSim(QObject):
                     cMsg=queue.get()
                     if type(cMsg) is str:
                         print(cMsg,end='')
+                        if 'CTS2L3:' in cMsg:
+                            self.logTelemetry.emit(cMsg)
                         if '--Babel-Brain-Low-Error' in cMsg:
+                            self.logTelemetry.emit("CTS1L1: "+cMsg)
                             bNoError=False
                     else:
                         assert(type(cMsg) is dict)
@@ -592,7 +600,10 @@ class RunAcousticSim(QObject):
                 cMsg=queue.get()
                 if type(cMsg) is str:
                     print(cMsg,end='')
+                    if 'CTS2L3:' in cMsg:
+                        self.logTelemetry.emit(cMsg)
                     if '--Babel-Brain-Low-Error' in cMsg:
+                        self.logTelemetry.emit("CTS2L1: "+cMsg)
                         bNoError=False
                 else:
                     assert(type(cMsg) is dict)
@@ -604,6 +615,7 @@ class RunAcousticSim(QObject):
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
+                self.logTelemetry.emit("CTS2L1: TOTAL TIME " + str(TotalTime))
                 self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
                 self.finished.emit(OutFiles)
             else:

@@ -848,12 +848,15 @@ class BabelBrain(QWidget):
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
 
+            self.worker.logTelemetry.connect(self._logTelemetry)
+
             self.thread.start()
             self.Widget.tabWidget.setEnabled(False)
             self.showClockDialog()
 
         else:
             self.UpdateMask()
+
 
     #this will modify the coordinates of the trajectory
     def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0):
@@ -1183,6 +1186,9 @@ def get_color_at(widget, x,y):
     pixmap = QPixmap(widget.size())
     widget.render(pixmap)
     return pixmap.toImage().pixelColor(x,y).getRgb()
+
+def _logTelemetryType(self,entry):
+    pass
         
 class RunMaskGeneration(QObject):
     '''
@@ -1190,6 +1196,8 @@ class RunMaskGeneration(QObject):
     '''
     finished = Signal()
     endError = Signal()
+
+    logTelemetry = Signal(str)
 
     def __init__(self,mainApp):
         super(RunMaskGeneration, self).__init__()
@@ -1328,15 +1336,21 @@ class RunMaskGeneration(QObject):
             while queue.empty() == False:
                 cMsg=queue.get()
                 print(cMsg,end='')
+                if 'CTS1L3:' in cMsg:
+                    self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
                     bNoError=False
+                    self.logTelemetry.emit("CTS1L1: "+cMsg)
 
         maskWorkerProcess.join()
         while queue.empty() == False:
             cMsg=queue.get()
             print(cMsg,end='')
+            if 'CTS1L3:' in cMsg:
+                self.logTelemetry.emit(cMsg)
             if '--Babel-Brain-Low-Error' in cMsg:
                 bNoError=False
+                self.logTelemetry.emit("CTS1L1: "+cMsg)
         if bNoError:
             TEnd=time.time()
             TotalTime = TEnd-T0
@@ -1344,6 +1358,7 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             print("*"*5+" DONE calculating mask.")
             print("*"*40)
+            self.logTelemetry.emit("CTS1L1: TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('domain',TotalTime)
             self.finished.emit()
         else:
