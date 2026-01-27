@@ -281,7 +281,7 @@ class AdvancedOptions(QDialog):
         rootnamepath=inputInfo['OutputResultsPath']
         files=sorted(glob(os.path.join(rootnamepath,'Plots-AcProfiles*.pdf')))+\
                       sorted(glob(os.path.join(rootnamepath,'Plots-Acplanes*.pdf')))+\
-                      [os.path.join(rootnamepath,'Plots-weight.pdf')]
+                      glob(os.path.join(rootnamepath,'Plots-weight.pdf'))
         for f in files:
             os.remove(f)
         

@@ -5,9 +5,14 @@ ExcelRangeProfiles: Sheet1!A1:N282
 # select an OutputResultsPath that is individual for Tx configuration and frequency
 OutputResultsPath: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/Radboud/Imasonic_15287_1002_cal
 Lambda: 1.0e-4
+LambdaSparse: 1.0e-5
 UseRayleighPhase: True
 # PLEASE BE SURE OF SELECTING A VALID FREQUENCY FOR YOUR DEVICE, also, be sure of format of frequency (i.e 5.0e+5)
 Frequency: 3.0e+5 
 # If using phase reprogramming from an Excel file, uncomment the following lines
 # ExcelFilePhase: /Users/spichardo/Library/CloudStorage/OneDrive-UniversityofCalgary/GDrive/BABELBRAIN Tx information/CTX-500/DTU/CTX-500-117 4-Ch. Focal Steering/Phase.xlsx
 # ExcelRangePhase: Sheet1!A1:B60
+#FitType options: RealImag (default), AbsPhase
+FitType: RealImag
+#Regularizer options: GroupHomogeneitySparseRegularizer (default), Grouped, GroupedL2, L2, None
+Regularizer: GroupHomogeneitySparseRegularizer
