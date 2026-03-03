@@ -8,11 +8,11 @@ ABOUT:
 
 '''
 
-from .H317 import GenerateH317Tx
+from .H317 import generate_h317_tx
 from . import BabelIntegrationCONCAVE_PHASEDARRAY  
 
 class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -25,7 +25,7 @@ class RUN_SIM(BabelIntegrationCONCAVE_PHASEDARRAY.RUN_SIM):
 class BabelFTD_Simulations(BabelIntegrationCONCAVE_PHASEDARRAY.BabelFTD_Simulations):
     #Meta class dealing with the specificis of each test based on the string name
     
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(Aperture=160.0e-3,
                                     FocalLength=135.0e-3,
                                     XSteering=self._XSteering,
@@ -46,7 +46,7 @@ class SimulationConditions(BabelIntegrationCONCAVE_PHASEDARRAY.SimulationConditi
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
         
-    def GenTransducerGeom(self):
-        self._Tx=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateH317Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+    def gen_transducer_geom(self):
+        self._Tx=generate_h317_tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=generate_h317_tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         

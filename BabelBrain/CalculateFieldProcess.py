@@ -5,7 +5,7 @@ import numpy as np
 import nibabel
 import importlib
 
-def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
+def calculate_field_process(queue,Target,TxSystem,**kargs):
     
     class InOutputWrapper(object):
        
@@ -49,10 +49,10 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
             stdout = InOutputWrapper(queue,True)
     else:
         stdout = InOutputWrapper(queue,True)
-    print('CalculateFieldProcess parameters',Target,TxSystem,kargs)
+    print('calculate_field_process parameters',Target,TxSystem,kargs)
     try:
         R=RUN_SIM()
-        FilesSkull=R.RunCases(targets=Target, 
+        FilesSkull=R.run_cases(targets=Target, 
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
                         bDisplay=False,
@@ -66,7 +66,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
-            FilesWater=R.RunCases(targets=Target, 
+            FilesWater=R.run_cases(targets=Target, 
                             bTightNarrowBeamDomain=True,
                             bForceRecalc=True,
                             bWaterOnly=True,
@@ -76,7 +76,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
             #we need to combine ac field files for display if using multipoint
             if kargs['MultiPoint'] is not None and kargs['bDryRun'] == False: 
                 kargs['bDryRun'] = True
-                FilesWater=R.RunCases(targets=Target, 
+                FilesWater=R.run_cases(targets=Target, 
                             bTightNarrowBeamDomain=True,
                             bForceRecalc=True,
                             bWaterOnly=True,
@@ -112,7 +112,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
 
         if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
             kargs['bDryRun'] = True
-            FilesWater=R.RunCases(targets=Target, 
+            FilesWater=R.run_cases(targets=Target, 
                             bTightNarrowBeamDomain=True,
                             bForceRecalc=True,
                             bWaterOnly=True,

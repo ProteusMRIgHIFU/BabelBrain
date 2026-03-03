@@ -9,9 +9,9 @@ import numpy as np
 from pathlib import Path
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -26,7 +26,7 @@ def resource_path():  # needed for bundling
         bundle_dir = Path(__file__).parent
     return bundle_dir
 
-def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_median_filter(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue
     global prgcl
     global sel_device
@@ -44,14 +44,14 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = cp
         cndimage = ndimage
 
-        ctx,_,sel_device = InitCUDA(DeviceName=DeviceName)
+        ctx,_,sel_device = init_cuda(DeviceName=DeviceName)
 
     elif GPUBackend == 'OpenCL':
         import pyopencl as pocl
         clp = pocl
 
         preamble = '#define _OPENCL\ntypedef unsigned char PixelType;\n'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        queue,prgcl,sel_device,ctx,mf = init_opencl(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
         
         # Create kernel from program function
         knl=prgcl.median_reflect
@@ -61,7 +61,7 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
 
         clp = mc
         preamble = '#define _METAL\ntypedef unsigned char PixelType;\n' 
-        prgcl, sel_device, ctx = InitMetal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+        prgcl, sel_device, ctx = init_metal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
        
         # Create kernel from program function
         knl=prgcl.function('median_reflect')
@@ -70,13 +70,13 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
 
         clp = mx
         preamble = '#define _MLX\ntypedef unsigned char PixelType;\n' 
-        prgcl, sel_device, ctx = InitMLX(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+        prgcl, sel_device, ctx = init_mlx(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
        
         # Create kernel from program function
         knl=prgcl['median_reflect']['kernel']
     
     
-def MedianFilter(data,size,GPUBackend='OpenCL'):
+def median_filter(data,size,GPUBackend='OpenCL'):
 
     logger.info(f"\nStarting Median Filter")
 

@@ -41,7 +41,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def GetBlake2sHash(filename):
+def get_blake2s_hash(filename):
     # Create a Blake2s hash object of size 4 bytes
     blake2s = hashlib.blake2s(digest_size=4)
     
@@ -58,7 +58,7 @@ def GetBlake2sHash(filename):
     
     return checksum
 
-def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=None, ZTER=None):
+def save_hash_info(precursorfiles, outputfilename, output=None, CTType=None, HUT=None, ZTER=None):
     # CT type info to be saved
     if CTType == None:
         savedCTType = ""
@@ -86,7 +86,7 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
     # checksum info to be saved
     savedHashes = ""
     for f in precursorfiles:
-        savedHashes+=GetBlake2sHash(f)+","
+        savedHashes+=get_blake2s_hash(f)+","
     
     savedInfo = (savedCTType + savedHUThreshold + saveZTERange + savedHashes).encode('utf-8')
     
@@ -104,7 +104,7 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
         print("Hash data not saved, invalid output file type specified")
 
 
-def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGradientDescent'):
+def run_elastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGradientDescent'):
     template =os.path.join(resource_path(),'rigid_template.txt')
     with open(template,'r') as g:
         Params=g.readlines()
@@ -161,7 +161,7 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
         else:
             raise SystemError("Error when trying to run elastix")
 
-def N4BiasCorrec(input,file_manager,hashFiles,output=None,shrinkFactor=4,
+def n4_bias_correc(input,file_manager,hashFiles,output=None,shrinkFactor=4,
                 convergence={"iters": [50, 50, 50, 50], "tol": 1e-7},bInvertValues=False):
     with CodeTimer("Load nifti via sitk", unit="s"):
         inputImage = file_manager.load_file(input,nifti_load_method='sitk')
@@ -194,7 +194,7 @@ def N4BiasCorrec(input,file_manager,hashFiles,output=None,shrinkFactor=4,
         convergence['iters']
     )
     corrector.SetConvergenceThreshold(convergence['tol'])
-    corrected_image = corrector.Execute(image, maskImage)
+    corrected_image = corrector.execute(image, maskImage)
     log_bias_field = corrector.GetLogBiasFieldAsImage(inputImage)
     corrected_image_full_resolution = inputImage / sitk.Exp(log_bias_field)
 
@@ -204,7 +204,7 @@ def N4BiasCorrec(input,file_manager,hashFiles,output=None,shrinkFactor=4,
 
     return corrected_image_full_resolution
 
-def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, ResampleBackend='OpenCL'):
+def ct_correg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, ResampleBackend='OpenCL'):
     # coreg = 0, do not coregister, just load data
     # coreg = 1 , coregister CT-->MRI space
     # coreg = 2 , coregister MRI-->CT space
@@ -215,7 +215,7 @@ def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, Resample
         return file_manager.load_file(InputCT)
     else:
         T1fnameBiasCorrec = file_manager.output_files['T1fnameBiasCorrec']
-        N4BiasCorrec(InputT1,
+        n4_bias_correc(InputT1,
                      file_manager,
                      [file_manager.output_files['ReuseSimbNIBS'],
                       file_manager.output_files['Skull_STL'],
@@ -261,7 +261,7 @@ def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, Resample
 
             # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
             file_manager.wait_for_file(T1fname_CTRes)
-            RunElastix(T1fname_CTRes,InputCT,CTInT1W,ElastixOptimizer)
+            run_elastix(T1fname_CTRes,InputCT,CTInT1W,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
                 elastixoutput = file_manager.load_file(CTInT1W)
@@ -273,7 +273,7 @@ def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, Resample
 
             # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
             file_manager.wait_for_file(T1fnameBiasCorrec)
-            RunElastix(InputCT,T1fnameBiasCorrec,T1WinCT,ElastixOptimizer)
+            run_elastix(InputCT,T1fnameBiasCorrec,T1WinCT,ElastixOptimizer)
 
             with CodeTimer("Reloading Elastix Output, adding hashes to header, and saving", unit="s"):
                 elastixoutput = file_manager.load_file(T1WinCT)
@@ -282,7 +282,7 @@ def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, Resample
             return elastixoutput
 
 
-def BiasCorrecAndCoreg(InputT1,
+def bias_correc_and_coreg(InputT1,
                        img_mask,
                        file_manager,
                        ElastixOptimizer,
@@ -293,7 +293,7 @@ def BiasCorrecAndCoreg(InputT1,
     
     #Bias correction
     T1fnameBiasCorrec= file_manager.output_files['T1fnameBiasCorrec']
-    N4BiasCorrec(InputT1,
+    n4_bias_correc(InputT1,
                  file_manager,
                  [file_manager.output_files['ReuseSimbNIBS'],
                   file_manager.output_files['Skull_STL'],
@@ -304,9 +304,9 @@ def BiasCorrecAndCoreg(InputT1,
     ZTEfnameBiasCorrec= file_manager.output_files['ZTEfnameBiasCorrec']
     if bIsPetra:
         convergence={"iters": [50,40,30,20,10], "tol": 1e-7}
-        N4BiasCorrec(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,convergence=convergence)
+        n4_bias_correc(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,convergence=convergence)
     else:
-        N4BiasCorrec(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
+        n4_bias_correc(InputZTE,file_manager,T1fnameBiasCorrec,ZTEfnameBiasCorrec,bInvertValues=bInvertZTE)
     
     #coreg
     ZTEInT1W = file_manager.output_files['ZTEInT1W']
@@ -314,7 +314,7 @@ def BiasCorrecAndCoreg(InputT1,
     # Since we're not saving the elastix result with our file_manager, we need to ensure the prerequisite files are not currently being saved
     file_manager.wait_for_file(T1fnameBiasCorrec)
     file_manager.wait_for_file(ZTEfnameBiasCorrec)
-    RunElastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
+    run_elastix(T1fnameBiasCorrec,ZTEfnameBiasCorrec,ZTEInT1W,ElastixOptimizer)
     
     img = file_manager.load_file(T1fnameBiasCorrec,nifti_load_method='sitk',sitk_dtype=sitk.sitkFloat32)
     try:
@@ -353,7 +353,7 @@ def BiasCorrecAndCoreg(InputT1,
 
     return T1fnameBiasCorrec,ZTEInT1W
 
-def ConvertZTE_PETRA_pCT(InputT1,
+def convert_zte_petra_pct(InputT1,
                          InputZTE,
                          TMaskItk,
                          file_manager,

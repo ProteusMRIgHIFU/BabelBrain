@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import calculate_field_process
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from trimesh import creation
@@ -50,7 +50,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def DistanceOutPlaneToFocus(FocalLength,Diameter):
+def distance_out_plane_to_focus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
 class BSonix(SingleTx):
@@ -66,51 +66,51 @@ class BSonix(SingleTx):
         ui_file.close()
 
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
-        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)
-        self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.UpdateTxInfo)
+        self.Widget.CalculateAcField.clicked.connect(self.run_simulation)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.update_tx_info)
+        self.Widget.TransducerModelcomboBox.currentIndexChanged.connect(self.update_tx_info)
         self.Widget.LabelTissueRemoved.setVisible(False)
-        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
-        self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.calculate_mech_adj.clicked.connect(self.calculate_mech_adj)
+        self.Widget.calculate_mech_adj.setEnabled(False)
         self.up_load_ui()
         
         
-    def DefaultConfig(self,cfile='defaultBSonix.yaml'):
-        super(BSonix,self).DefaultConfig(cfile)
+    def default_config(self,cfile='defaultBSonix.yaml'):
+        super(BSonix,self).default_config(cfile)
 
-    def NotifyGeneratedMask(self):
-        super(BSonix, self).NotifyGeneratedMask()
+    def notify_generated_mask(self):
+        super(BSonix, self).notify_generated_mask()
         self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
-    def GetTxModel(self):
+    def get_tx_model(self):
         return "BSonix"+self.Widget.TransducerModelcomboBox.currentText()
 
-    def UpdateLimits(self):
-        model=self.GetTxModel()
+    def update_limits(self):
+        model=self.get_tx_model()
         FocalLength = self.Config[model]['FocalLength']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
-        DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
+        DOut=distance_out_plane_to_focus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
-        self.UpdateDistanceLabels()
+        self.update_distance_labels()
 
-    def GetExtraSuffixAcFields(self):
+    def get_extra_suffix_ac_fields(self):
         #By default, it returns empty string, useful when dealing with user-specified geometry
-        model=self.GetTxModel()
+        model=self.get_tx_model()
         return model+'_'
     
-    def GetExport(self):
-        Export=super(BSonix,self).GetExport()
-        Export['TxModel']=self.GetTxModel()
+    def get_export(self):
+        Export=super(BSonix,self).get_export()
+        Export['TxModel']=self.get_tx_model()
         return Export
 
 
     @Slot()
-    def RunSimulation(self):
-        extrasuffix=self.GetExtraSuffixAcFields()
-        model=self.GetTxModel()
+    def run_simulation(self):
+        extrasuffix=self.get_extra_suffix_ac_fields()
+        model=self.get_tx_model()
         FocalLength = self.Config[model]['FocalLength']*1e3
         Diameter = self.Config[model]['TxDiam']*1e3
         self._prefix=self._MainApp._prefix_path+model
@@ -149,31 +149,31 @@ class BSonix(SingleTx):
                                         extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.DoneAcSim)
+            self.worker.finished.connect(self.done_ac_sim)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.DoneAcSim()
+            self.done_ac_sim()
     
-    def DoneAcSim(self):
+    def done_ac_sim(self):
         RADIUS = self.Config['CaseDiameter']/2/1e3 # m dimension of "puck"
         HEIGHT = self.Config['CaseHeight']/1e3 # m
         InitTrans=np.eye(4)
         LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask,axis=2)==5.0)).flatten()
-        SpatialStep=np.mean(self._MainApp._MaskData.header.get_zooms())/1e3
+        spatial_step=np.mean(self._MainApp._MaskData.header.get_zooms())/1e3
         InitTrans[0,3]=LocSpot[0]
         InitTrans[1,3]=LocSpot[1]
-        InitTrans[2,3]=LocSpot[2]+HEIGHT/2/SpatialStep+(self.Widget.DistanceSkinLabel.property('UserData')+self.Widget.SkinDistanceSpinBox.value())/1e3/SpatialStep
+        InitTrans[2,3]=LocSpot[2]+HEIGHT/2/spatial_step+(self.Widget.DistanceSkinLabel.property('UserData')+self.Widget.SkinDistanceSpinBox.value())/1e3/spatial_step
         #we create first a cylinder in voxel dimensions
-        cylinder = creation.cylinder(radius=RADIUS/SpatialStep,height=HEIGHT/SpatialStep,sections=20,transform=InitTrans)
+        cylinder = creation.cylinder(radius=RADIUS/spatial_step,height=HEIGHT/spatial_step,sections=20,transform=InitTrans)
         
         affine=self._MainApp._MaskData.affine.copy()
         
@@ -181,7 +181,7 @@ class BSonix(SingleTx):
         cylinder.apply_transform(affine)
 
         cylinder.export(self._prefix+'_BSonixCase.stl')
-        self.UpdateAcResults()
+        self.update_ac_results()
         
 
 

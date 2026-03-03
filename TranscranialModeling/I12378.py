@@ -9,14 +9,14 @@ ABOUT:
 '''
 
 import numpy as np
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import os
 
 extlay={}
 TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-def computeI12378Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,FocalDistance=72):
+def compute_i12378_geometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,FocalDistance=72):
     MininalInterElementDistanceInRadians=ToleranceDistance/FocalDistance # we can test using the angular distance from center n to center m
     print('*****\nMinimal angular distance\n*****', MininalInterElementDistanceInRadians)
     transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'I12378.csv'),delimiter=',',skiprows=0)
@@ -45,23 +45,23 @@ def computeI12378Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,Focal
             
     return transxyz
 
-def I12378Locations(Foc=72e-3):
+def i12378_locations(Foc=72e-3):
     radiusMm = Foc*1e3
-    temp_positions = computeI12378Geometry()
+    temp_positions = compute_i12378_geometry()
     temp_positions[:,2]=radiusMm-temp_positions[:,2]
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateI12378Tx(Frequency=650e3,RotationZ=0,FactorEnlarge=1):
+def generate_i12378_tx(Frequency=650e3,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency;
     Foc=72e-3*FactorEnlarge
     Diameter=6.6e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'])
 
-    transLoc = I12378Locations(Foc=Foc)
+    transLoc = i12378_locations(Foc=Foc)
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

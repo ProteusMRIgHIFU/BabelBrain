@@ -9,9 +9,9 @@ from numba import jit,njit, prange
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -28,7 +28,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 @njit
-def checkVoxelInd(location, vtable):
+def check_voxel_ind(location, vtable):
     int_location = location // 32
     bit_pos = 31 - (location % 32)
     if (vtable[int_location]) & (1 << bit_pos):
@@ -40,11 +40,11 @@ def calctotalpoints(gridsize,vtable):
     y = np.zeros(1,np.int64)
     total=np.prod(np.array(gridsize))
     for i in prange(total):
-        if checkVoxelInd(i,vtable):
+        if check_voxel_ind(i,vtable):
             y += 1
     return y
 
-def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_voxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
     global prgcl
     global kernel_code
@@ -63,26 +63,26 @@ def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
         import cupy as cp
         clp = cp
 
-        ctx,kernel_code,sel_device = InitCUDA(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        ctx,kernel_code,sel_device = init_cuda(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
     elif GPUBackend == 'OpenCL':
         import pyopencl as pocl
         clp = pocl
 
-        queue,kernel_code,sel_device,ctx,mf = InitOpenCL(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        queue,kernel_code,sel_device,ctx,mf = init_opencl(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
     elif GPUBackend == 'Metal':
         import metalcomputebabel as mc
         clp = mc
 
-        kernel_code,sel_device,ctx = InitMetal(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        kernel_code,sel_device,ctx = init_metal(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
     elif GPUBackend == 'MLX':
         import mlx.core as mx
         clp = mx
-        kernel_code,sel_device,ctx = InitMLX(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
+        kernel_code,sel_device,ctx = init_mlx(kernel_files=kernel_files,DeviceName=DeviceName,build_later=True)
 
 
-def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
+def voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL'):
     global ctx
     global clp
     global queue

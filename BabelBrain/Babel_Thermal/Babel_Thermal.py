@@ -29,9 +29,9 @@ import shutil
 from datetime import datetime
 import time
 import yaml
-from ThermalModeling.CalculateTemperatureEffects import GetThermalOutName
+from ThermalModeling.CalculateTemperatureEffects import get_thermal_out_name
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from .CalculateThermalProcess import CalculateThermalProcess
+from .CalculateThermalProcess import calculate_thermal_process
 import pandas as pd
 import platform
 import nibabel
@@ -50,7 +50,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def RCoeff(Temperature):
+def r_coeff(Temperature):
     R = np.ones(Temperature.shape)*0.25
     R[Temperature>=43]=0.5
     return R
@@ -64,7 +64,7 @@ class Babel_Thermal(QWidget):
         self.bDisableUpdate=False
         self.static_canvas=None
         self.load_ui()
-        self.DefaultConfig()
+        self.default_config()
         self._LastTMap=-1
 
     def load_ui(self):
@@ -75,29 +75,29 @@ class Babel_Thermal(QWidget):
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
 
-        self.Widget.SelectProfile.clicked.connect(self.SelectProfile)
-        self.Widget.SelectProfile.setStyleSheet("color: green")
-        self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
+        self.Widget.select_profile.clicked.connect(self.select_profile)
+        self.Widget.select_profile.setStyleSheet("color: green")
+        self.Widget.CalculateThermal.clicked.connect(self.run_simulation)
         self.Widget.CalculateThermal.setStyleSheet("color: red")
-        self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
-        self.Widget.ExportMaps.clicked.connect(self.ExportMaps)
+        self.Widget.export_summary.clicked.connect(self.export_summary)
+        self.Widget.export_maps.clicked.connect(self.export_maps)
 
-        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
-        self.Widget.IsppaSpinBox.valueChanged.connect(self.UpdateThermalResults)
-        self.Widget.IsppaScrollBar.valueChanged.connect(self.UpdateThermalResults)
-        self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarkChange)
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.update_sel_combination)
+        self.Widget.IsppaSpinBox.valueChanged.connect(self.update_thermal_results)
+        self.Widget.IsppaScrollBar.valueChanged.connect(self.update_thermal_results)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.hide_mark_change)
         self.Widget.IsppaScrollBar.setEnabled(False)
         self.Widget.SelCombinationDropDown.setEnabled(False)
         self.Widget.IsppaSpinBox.setEnabled(False)
 
-        self.Widget.LocMTB.clicked.connect(self.LocateMTB)
+        self.Widget.LocMTB.clicked.connect(self.locate_mtb)
         self.Widget.LocMTB.setEnabled(False)
-        self.Widget.LocMTC.clicked.connect(self.LocateMTC)
+        self.Widget.LocMTC.clicked.connect(self.locate_mtc)
         self.Widget.LocMTC.setEnabled(False)
-        self.Widget.LocMTS.clicked.connect(self.LocateMTS)
+        self.Widget.LocMTS.clicked.connect(self.locate_mts)
         self.Widget.LocMTS.setEnabled(False)
         
-        self.Widget.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
+        self.Widget.DisplayDropDown.currentIndexChanged.connect(self.update_display)
         self.Widget.DisplayDropDown.setEnabled(False)
 
         # for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
@@ -149,7 +149,7 @@ class Babel_Thermal(QWidget):
             self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(25)
         self.Widget.tableWidget.setFrameShape(QFrame.NoFrame)
 
-    def DefaultConfig(self):
+    def default_config(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
         with open(self._MainApp.Config['ThermalProfile'], 'r') as file:
             config = yaml.safe_load(file)
@@ -184,22 +184,22 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelCombinationDropDown.addItem(stritem)
             self.bDisableUpdate=False
 
-    def EnableMultiPoint(self):
+    def enable_multi_point(self):
         self._bMultiPoint=True
 
     @Slot()
-    def SelectProfile(self):
+    def select_profile(self):
         curdir = os.path.dirname(self._MainApp.Config['ThermalProfile'])
         fThermalProfile=QFileDialog.getOpenFileName(self,"Select thermal profile",curdir,"yaml (*.yaml)")[0]
         if len(fThermalProfile)>0:
-            if self._MainApp.UpdateThermalProfile(fThermalProfile):
-                self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
-                self.DefaultConfig()  
-                self.RunSimulation()
+            if self._MainApp.update_thermal_profile(fThermalProfile):
+                self.Widget.select_profile.setProperty('UserData',fThermalProfile)  
+                self.default_config()  
+                self.run_simulation()
                 
 
     @Slot()
-    def RunSimulation(self):
+    def run_simulation(self):
         bCalcFields=False
         
         BaseField=self._MainApp.AcSim._FullSolName
@@ -209,7 +209,7 @@ class Babel_Thermal(QWidget):
 
         PrevFiles=[]
         for combination in self.Config['AllDC_PRF_Duration']:
-            ThermalName=GetThermalOutName(BaseField,combination['Duration'],
+            ThermalName=get_thermal_out_name(BaseField,combination['Duration'],
                                                     combination['DurationOff'],
                                                     combination['DC'],
                                                     self.Config['BaseIsppa'],
@@ -235,22 +235,22 @@ class Babel_Thermal(QWidget):
             self.worker = RunThermalSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateThermalResults)
+            self.worker.finished.connect(self.update_thermal_results)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
             self._MainApp.Widget.tabWidget.setEnabled(False)
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.UpdateThermalResults()
+            self.update_thermal_results()
 
-    def NotifyError(self):
-        self._MainApp.hideClockDialog()
+    def notify_error(self):
+        self._MainApp.hide_clock_dialog()
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
@@ -262,24 +262,24 @@ class Babel_Thermal(QWidget):
             self._MainApp.Widget.tabWidget.setEnabled(True)
 
     @Slot()
-    def HideMarkChange(self,val):
-        self.UpdateThermalResults()
+    def hide_mark_change(self,val):
+        self.update_thermal_results()
 
     @Slot()
-    def UpdateSelCombination(self):
-        self.UpdateThermalResults()
+    def update_sel_combination(self):
+        self.update_thermal_results()
         
     @Slot()
-    def UpdateDisplay(self,val):
-        self.UpdateThermalResults()
+    def update_display(self,val):
+        self.update_thermal_results()
 
     @Slot()
-    def UpdateThermalResults(self,bUpdatePlot=True,OverWriteIsppa=None):
+    def update_thermal_results(self,bUpdatePlot=True,OverWriteIsppa=None):
         if self.bDisableUpdate:
             return
         self._MainApp.Widget.tabWidget.setEnabled(True)
-        self.Widget.ExportSummary.setEnabled(True)
-        self.Widget.ExportMaps.setEnabled(True)
+        self.Widget.export_summary.setEnabled(True)
+        self.Widget.export_maps.setEnabled(True)
         self.Widget.SelCombinationDropDown.setEnabled(True)
         self.Widget.IsppaSpinBox.setEnabled(True)
         self.Widget.DisplayDropDown.setEnabled(True)
@@ -304,11 +304,11 @@ class Babel_Thermal(QWidget):
             BaseField=BaseField[0]
             
         if len(self._ThermalResults)==0:
-            self._MainApp.hideClockDialog()
+            self._MainApp.hide_clock_dialog()
             self._NiftiThermalNames=[]
             self._LastTMap=-1
             for combination in self.Config['AllDC_PRF_Duration']:
-                ThermalName=GetThermalOutName(BaseField,combination['Duration'],
+                ThermalName=get_thermal_out_name(BaseField,combination['Duration'],
                                                         combination['DurationOff'],
                                                         combination['DC'],
                                                         self.Config['BaseIsppa'],
@@ -358,7 +358,7 @@ class Babel_Thermal(QWidget):
                 
         DutyCycle=self.Config['AllDC_PRF_Duration'][self.Widget.SelCombinationDropDown.currentIndex()]['DC']
 
-        def NewItem(str,data,color="blue"):
+        def new_item(str,data,color="blue"):
             item=QTableWidgetItem(str)
             item.setData(QtCore.Qt.UserRole,data)
             item.setForeground(QColor(color))
@@ -398,53 +398,53 @@ class Babel_Thermal(QWidget):
         LocMax=np.array(np.where(DataThermal['p_map']==DataThermal['p_map'][SelBrain].max())).flatten()
         ImpedanceLocMax= DensityMap[LocMax[0],LocMax[1],LocMax[2]]*SoSMap[LocMax[0],LocMax[1],LocMax[2]]
         
-        self.Widget.tableWidget.setItem(0,1,NewItem('%4.2f' % IsppaTarget,IsppaTarget))
+        self.Widget.tableWidget.setItem(0,1,new_item('%4.2f' % IsppaTarget,IsppaTarget))
 
         if self._bMultiPoint:
-            self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f (%4.2f)' % (AdjustedIsspa,AdjustedIsspaStDev),AdjustedIsspa))
+            self.Widget.tableWidget.setItem(1,1,new_item('%4.2f (%4.2f)' % (AdjustedIsspa,AdjustedIsspaStDev),AdjustedIsspa))
         else:
-            self.Widget.tableWidget.setItem(1,1,NewItem('%4.2f' % AdjustedIsspa,AdjustedIsspa))
+            self.Widget.tableWidget.setItem(1,1,new_item('%4.2f' % AdjustedIsspa,AdjustedIsspa))
             
-        self.Widget.tableWidget.setItem(2,1,NewItem('%4.2f' % (SelIsppa*DutyCycle),SelIsppa*DutyCycle))
+        self.Widget.tableWidget.setItem(2,1,new_item('%4.2f' % (SelIsppa*DutyCycle),SelIsppa*DutyCycle))
 
-        self.Widget.tableWidget.setItem(3,1,NewItem('%4.2f' % (IsppaTarget*DutyCycle),IsppaTarget*DutyCycle))
+        self.Widget.tableWidget.setItem(3,1,new_item('%4.2f' % (IsppaTarget*DutyCycle),IsppaTarget*DutyCycle))
 
-        self.Widget.tableWidget.setItem(4,1,NewItem(np.array2string(DataThermal['AdjustmentInRAS'],
+        self.Widget.tableWidget.setItem(4,1,new_item(np.array2string(DataThermal['AdjustmentInRAS'],
                                                formatter={'float_kind':lambda x: "%3.2f" % x}),DataThermal['AdjustmentInRAS']))
 
         AdjustedTemp=((DataThermal['TemperaturePoints']-BaselineTemperature)*IsppaRatio+BaselineTemperature)
-        DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
+        DoseUpdate=np.trapz(r_coeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
         MTT=(DataThermal['TempEndFUS'][Loc[0],Loc[1],Loc[2]]-BaselineTemperature)*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:
             MTTCEM=DoseUpdate[0]
         else:
             MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
-        self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(5,1,new_item('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
 
         MTB=DataThermal['TI']*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:
             MTBCEM=DoseUpdate[0]
         else:
             MTBCEM=DoseUpdate[1]
-        self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(6,1,new_item('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
         
         MTS=DataThermal['TIS']*IsppaRatio+BaselineTemperature
         MTSCEM=DoseUpdate[0]
-        self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(7,1,new_item('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
 
         MTC=DataThermal['TIC']*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:
             MTCCEM=DoseUpdate[0]
         else:
             MTCCEM=DoseUpdate[2]
-        self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(8,1,new_item('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
 
         MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
-        self.Widget.tableWidget.setItem(9,1,NewItem('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
+        self.Widget.tableWidget.setItem(9,1,new_item('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
 
         Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
-        self.Widget.tableWidget.setItem(10,1,NewItem('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
+        self.Widget.tableWidget.setItem(10,1,new_item('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
 
         if self._bRecalculated:
             XX,ZZ=np.meshgrid(xf,zf)
@@ -606,20 +606,20 @@ class Babel_Thermal(QWidget):
             self._prevDisplay=WhatDisplay
 
     @Slot()
-    def LocateMTB(self):
+    def locate_mtb(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         self.Widget.IsppaScrollBar.setValue(DataThermal['mBrain'][1])
     @Slot()
-    def LocateMTC(self):
+    def locate_mtc(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         self.Widget.IsppaScrollBar.setValue(DataThermal['mSkull'][1])
     @Slot()
-    def LocateMTS(self):
+    def locate_mts(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         self.Widget.IsppaScrollBar.setValue(DataThermal['mSkin'][1])
 
     @Slot()
-    def ExportSummary(self):
+    def export_summary(self):
         if 'BABEL_PYTEST' not in os.environ:
             DefaultPath=os.path.split(self._MainApp.Config['T1W'])[0]
             outCSV=QFileDialog.getSaveFileName(self,"Select export CSV file",DefaultPath,"csv (*.csv)")[0]
@@ -633,7 +633,7 @@ class Babel_Thermal(QWidget):
         DataToExport={}
         #we recover specifics of main app and acoustic simulation
         for obj in [self._MainApp,self._MainApp.AcSim]:
-            Export=obj.GetExport()
+            Export=obj.get_export()
             DataToExport= DataToExport | Export
         DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
@@ -655,7 +655,7 @@ class Babel_Thermal(QWidget):
             DataToExport={}
             DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
-                self.UpdateThermalResults(bUpdatePlot=False,OverWriteIsppa=v)
+                self.update_thermal_results(bUpdatePlot=False,OverWriteIsppa=v)
                 collection = ['Isppa target']
                 source = [0,1]
                 if self._bMultiPoint:
@@ -694,10 +694,10 @@ class Babel_Thermal(QWidget):
         if currentCombination !=self.Widget.SelCombinationDropDown.currentIndex():
             self.Widget.SelCombinationDropDown.setCurrentIndex(currentCombination) #this will refresh
         else:
-            self.UpdateThermalResults(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
+            self.update_thermal_results(bUpdatePlot=True,OverWriteIsppa=currentIsppa)
         
     @Slot()
-    def ExportMaps(self):
+    def export_maps(self):
         OutName=self._NiftiThermalNames[self.Widget.SelCombinationDropDown.currentIndex()]
         SelIsppa=self.Widget.IsppaSpinBox.value()
         IsppaRatio=SelIsppa/self.Config['BaseIsppa']
@@ -817,8 +817,8 @@ class RunThermalSim(QObject):
 
         # Start mask generation as separate process.
         queue=Queue()
-        ExtraData=self._mainApp.AcSim.GetExtraDataForThermal()
-        fieldWorkerProcess = Process(target=CalculateThermalProcess, 
+        ExtraData=self._mainApp.AcSim.get_extra_data_for_thermal()
+        fieldWorkerProcess = Process(target=calculate_thermal_process, 
                                     args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration'],ExtraData),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
@@ -845,7 +845,7 @@ class RunThermalSim(QObject):
             print("*"*40)
             print("*"*5+" DONE thermal simulation.")
             print("*"*40)
-            self._mainApp.UpdateComputationalTime('thermal',TotalTime)
+            self._mainApp.update_computational_time('thermal',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

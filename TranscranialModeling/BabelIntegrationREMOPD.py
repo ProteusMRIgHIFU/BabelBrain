@@ -33,11 +33,11 @@ DimensionElem = PITCH-KERF
 ZDistance=-1.2e-3 #distance from Tx elements to outplane
 
 
-def computeREMOPDGeometry():
+def compute_remopd_geometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
-def GenerateSingleElem(FREQ=300e3,PPW=12.0):
+def generate_single_elem(FREQ=300e3,PPW=12.0):
     #60.08 PPW produces close to integer steps for both pitch and kerf
     
     Tx = {}
@@ -85,13 +85,13 @@ def GenerateSingleElem(FREQ=300e3,PPW=12.0):
     return Tx
     
 
-def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
+def generate_remopd_tx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
    
     #%This is the indiv tx element
-    TxElem=GenerateSingleElem(FREQ=Frequency)
+    TxElem=generate_single_elem(FREQ=Frequency)
 
 
-    transLoc = computeREMOPDGeometry()
+    transLoc = compute_remopd_geometry()
 
     rotateMatrixZ = np.array([[-np.cos(RotationZ),np.sin(RotationZ),0],
                               [-np.sin(RotationZ),-np.cos(RotationZ),0],[0,0,1]])
@@ -148,14 +148,14 @@ def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
     return ALLConfigs
 
 class RUN_SIM(RUN_SIM_BASE):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
                                     TxSet=self._TxSet,
                                     **kargs)
-    def RunCases(self,
+    def run_cases(self,
                     XSteering=0.0,
                     YSteering=0.0,
                     ZSteering=60.0e-3,
@@ -168,7 +168,7 @@ class RUN_SIM(RUN_SIM_BASE):
         self._ZSteering=ZSteering
         self._TxSet=TxSet
         
-        return super().RunCases(**kargs)
+        return super().run_cases(**kargs)
         
 ##########################################
 
@@ -189,7 +189,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._TxSet=TxSet
         super().__init__(**kargs)
 
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -199,19 +199,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     Aperture=APERTURE, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                                     **kargs)
 
-    def GenerateSTLTx(self,prefix):
+    def generate_stl_tx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
         TxVert=self._SIM_SETTINGS._TxREMOPD['VertDisplay'].T.copy()
-        TxVert/=self._SIM_SETTINGS.SpatialStep
+        TxVert/=self._SIM_SETTINGS.spatial_step
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
         
         LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
 
         TxVert[2,:]=-TxVert[2,:]
-        TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-        TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-        TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+        TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.spatial_step))
+        TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.spatial_step))
+        TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.spatial_step))
 
         TxVert=np.dot(affine,TxVert)
 
@@ -235,17 +235,17 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             # OrientVec=np.array([0,0,1]).reshape((1,3))
             # TransformationCone[0,3]=LocSpot[0]
             # TransformationCone[1,3]=LocSpot[1]
-            # RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.SpatialStep/2
-            # HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.SpatialStep
+            # RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.spatial_step/2
+            # HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.spatial_step
             # HeightCone=np.sqrt(HeightCone**2-RadCone**2)
-            # TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+            # TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.spatial_step
             # Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
             # Cone.apply_transform(affine)
             # #we save the final cone profile
             # Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         
 
-    def AddSaveDataSim(self,DataForSim):
+    def add_save_data_sim(self,DataForSim):
         DataForSim['XSteering']=self._XSteering
         DataForSim['YSteering']=self._YSteering
         DataForSim['ZSteering']=self._ZSteering
@@ -276,11 +276,11 @@ class SimulationConditions(SimulationConditionsBASE):
         self._RotationZ=RotationZ
         self._TxSet = TxSet
         
-    def CalculateRayleighFieldsForward(self,deviceName='6800'):
+    def calculate_rayleigh_fields_forward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
+        self._TxREMOPD=generate_remopd_tx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
         
         if self._TxMechanicalAdjustmentZ <0:
             zCorrec= self._TxMechanicalAdjustmentZ
@@ -356,7 +356,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u0*=self.AdjustWeightAmplitudes()
+        u0*=self.adjust_weight_amplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
                          self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
@@ -373,7 +373,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
           
         
-    def CreateSources(self,ramp_length=4):
+    def create_sources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)
@@ -435,7 +435,7 @@ class SimulationConditions(SimulationConditionsBASE):
             plt.title('source map - source ids')
 
 
-    def BackPropagationRayleigh(self,deviceName='6800'):
+    def back_propagation_rayleigh(self,deviceName='6800'):
         assert(np.all(np.array(self._SourceMapRayleigh.shape)==np.array(self._PressMapFourierBack.shape)))
         SelRegRayleigh=np.abs(self._SourceMapRayleigh)>0
         ypp,xpp=np.meshgrid(self._YDim,self._XDim)
@@ -484,7 +484,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMapRayleighRefocus[:,-self._PMLThickness:]=0
         
         
-    def CreateSourcesRefocus(self,ramp_length=4):
+    def create_sources_refocus(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)

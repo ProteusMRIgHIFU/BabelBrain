@@ -31,7 +31,7 @@ import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import calculate_field_process
 
 from _BabelBasePhasedArray import BabelBasePhaseArray
 
@@ -74,16 +74,16 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
         self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
-        self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
-        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
+        self.Widget.RefocusingcheckBox.stateChanged.connect(self.enable_refocusing)
+        self.Widget.CalculateAcField.clicked.connect(self.run_simulation)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.update_distance_from_skin)
         self.Widget.LabelTissueRemoved.setVisible(False)
-        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
-        self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.calculate_mech_adj.clicked.connect(self.calculate_mech_adj)
+        self.Widget.calculate_mech_adj.setEnabled(False)
         self.up_load_ui()
         
     @Slot()
-    def UpdateDistanceFromSkin(self):
+    def update_distance_from_skin(self):
         self._bIgnoreUpdate=True
         CurDistance=self.Widget.SkinDistanceSpinBox.value()
         if CurDistance<0:
@@ -91,7 +91,7 @@ class REMOPD(BabelBasePhaseArray):
         else:
             self.Widget.LabelTissueRemoved.setVisible(False)
 
-    def DefaultConfig(self):
+    def default_config(self):
         #Specific parameters for the REMOPD - to be configured later via a yaml
 
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
@@ -101,7 +101,7 @@ class REMOPD(BabelBasePhaseArray):
 
         self.Config=config
 
-    def NotifyGeneratedMask(self):
+    def notify_generated_mask(self):
         VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
@@ -114,7 +114,7 @@ class REMOPD(BabelBasePhaseArray):
 
 
     @Slot()
-    def RunSimulation(self):
+    def run_simulation(self):
         #we create an object to do a dryrun to recover filenames
         dry=RunAcousticSim(self._MainApp,bDryRun=True)
         FILENAMES = dry.run()
@@ -180,21 +180,21 @@ class REMOPD(BabelBasePhaseArray):
             self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.EndSimulation)
+            self.worker.finished.connect(self.end_simulation)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.UpdateAcResults()
+            self.update_ac_results()
 
-    def GetExport(self):
-        Export=super(REMOPD,self).GetExport()
+    def get_export(self):
+        Export=super(REMOPD,self).get_export()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         def dict_to_string(d, separator=', ', equals_sign='='):
             return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
@@ -210,7 +210,7 @@ class REMOPD(BabelBasePhaseArray):
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
     
-    def EnableMultiPoint(self,MultiPoint):
+    def enable_multi_point(self,MultiPoint):
         pass #we disable multipoint for the time being
 
 class RunAcousticSim(QObject):
@@ -279,14 +279,14 @@ class RunAcousticSim(QObject):
         kargs['bDoRefocusing']=bRefocus
         kargs['bDryRun'] = self._bDryRun
         kargs['ZIntoSkin'] = ZIntoSkin
-        kargs|=self._mainApp.CommomAcOptions()
+        kargs|=self._mainApp.commom_ac_options()
 
         
         queue=Queue()
         if self._bDryRun == False:
             #in real run, we run this in background
             # Start mask generation as separate process.
-            fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+            fieldWorkerProcess = Process(target=calculate_field_process, 
                                         args=(queue,Target,self._mainApp.Config['TxSystem']),
                                         kwargs=kargs)
             fieldWorkerProcess.start()      
@@ -323,7 +323,7 @@ class RunAcousticSim(QObject):
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
-                self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
+                self._mainApp.update_computational_time('ultrasound',TotalTime)
                 self.finished.emit(OutFiles)
             else:
                 print("*"*40)
@@ -332,7 +332,7 @@ class RunAcousticSim(QObject):
                 self.endError.emit()
         else:
             #in dry run, we just recover the filenames
-            return CalculateFieldProcess(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
+            return calculate_field_process(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
 
 
 if __name__ == "__main__":

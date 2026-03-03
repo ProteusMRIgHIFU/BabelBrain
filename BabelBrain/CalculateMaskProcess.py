@@ -1,7 +1,7 @@
 import sys
 import traceback
 
-def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
+def calculate_mask_process(queue,COMPUTING_BACKEND,devicename,**kargs):
     
     class InOutputWrapper(object):
        
@@ -34,20 +34,20 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
     try:
         try:
             import BabelDatasetPreps as DataPreps
-            from GPUFunctions.GPUVoxelize import Voxelize
+            from GPUFunctions.GPUVoxelize import voxelize
             from GPUFunctions.GPUMapping import MappingFilter
             from GPUFunctions.GPUResample import Resample
             from GPUFunctions.GPUBinaryClosing import BinaryClosing
-            from GPUFunctions.GPULabel import LabelImage
-            from GPUFunctions.GPUMedianFilter import MedianFilter
+            from GPUFunctions.GPULabel import label_image
+            from GPUFunctions.GPUMedianFilter import median_filter
         except:
             from . import BabelDatasetPreps as DataPreps
-            from .GPUFunctions.GPUVoxelize import Voxelize
+            from .GPUFunctions.GPUVoxelize import voxelize
             from .GPUFunctions.GPUMapping import MappingFilter
             from .GPUFunctions.GPUResample import Resample
             from .GPUFunctions.GPUBinaryClosing import BinaryClosing
-            from .GPUFunctions.GPULabel import LabelImage
-            from .GPUFunctions.GPUMedianFilter import MedianFilter
+            from .GPUFunctions.GPULabel import label_image
+            from .GPUFunctions.GPUMedianFilter import median_filter
         print('sys.platform',sys.platform)
 
         if COMPUTING_BACKEND == 1:
@@ -61,25 +61,25 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
         else:
             raise ValueError('Non valid computing backend was given')
 
-        MedianFilter.InitMedianFilter(DeviceName=devicename,GPUBackend=gpu_backend)
-        Voxelize.InitVoxelize(DeviceName=devicename,GPUBackend=gpu_backend)
-        MappingFilter.InitMapFilter(DeviceName=devicename,GPUBackend=gpu_backend)
-        Resample.InitResample(DeviceName=devicename,GPUBackend=gpu_backend)
-        BinaryClosing.InitBinaryClosing(DeviceName=devicename,GPUBackend=gpu_backend)
+        median_filter.init_median_filter(DeviceName=devicename,GPUBackend=gpu_backend)
+        voxelize.init_voxelize(DeviceName=devicename,GPUBackend=gpu_backend)
+        MappingFilter.init_map_filter(DeviceName=devicename,GPUBackend=gpu_backend)
+        Resample.init_resample(DeviceName=devicename,GPUBackend=gpu_backend)
+        BinaryClosing.init_binary_closing(DeviceName=devicename,GPUBackend=gpu_backend)
         
-        DataPreps.InitMedianGPUCallback(MedianFilter.MedianFilter,COMPUTING_BACKEND)
+        DataPreps.init_median_gpu_callback(median_filter.median_filter,COMPUTING_BACKEND)
         if COMPUTING_BACKEND != 2: #something got broken with the OpenCL version , #disabling temporarily
-            DataPreps.InitVoxelizeGPUCallback(Voxelize.Voxelize,COMPUTING_BACKEND)
-        DataPreps.InitMappingGPUCallback(MappingFilter.MapFilter,COMPUTING_BACKEND)
-        DataPreps.InitResampleGPUCallback(Resample.ResampleFromTo,COMPUTING_BACKEND)
-        DataPreps.InitBinaryClosingGPUCallback(BinaryClosing.BinaryClose,COMPUTING_BACKEND)
+            DataPreps.init_voxelize_gpu_callback(voxelize.voxelize,COMPUTING_BACKEND)
+        DataPreps.init_mapping_gpu_callback(MappingFilter.map_filter,COMPUTING_BACKEND)
+        DataPreps.init_resample_gpu_callback(Resample.resample_from_to,COMPUTING_BACKEND)
+        DataPreps.init_binary_closing_gpu_callback(BinaryClosing.binary_close,COMPUTING_BACKEND)
 
         # Metal version not ready
         if gpu_backend not in ['Metal','MLX']:
-            LabelImage.InitLabel(DeviceName=devicename,GPUBackend=gpu_backend)
-            DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
+            label_image.init_label(DeviceName=devicename,GPUBackend=gpu_backend)
+            DataPreps.init_label_image_gpu_callback(label_image.label_image,COMPUTING_BACKEND)
                     
-        DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
+        DataPreps.get_skull_mask_from_simbnibs_stl(**kargs)
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())

@@ -24,7 +24,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 class DPXPC300(RingTx):
-     def DefaultConfig(self):
+     def default_config(self):
         #Specific parameters for the DPXPC300 - to be configured later via a yaml
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)

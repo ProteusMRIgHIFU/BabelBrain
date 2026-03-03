@@ -9,14 +9,14 @@ ABOUT:
 '''
 
 import numpy as np
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import os
 
 extlay={}
 TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-def computeATACGeometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,FocalDistance=53.2):
+def compute_atac_geometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,FocalDistance=53.2):
     MininalInterElementDistanceInRadians=ToleranceDistance/FocalDistance # we can test using the angular distance from center n to center m
     print('*****\nMinimal angular distance\n*****', MininalInterElementDistanceInRadians)
     transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'ATACArray.csv'),delimiter=',',skiprows=0)
@@ -45,22 +45,22 @@ def computeATACGeometry(bDoRunDeepSanityTest=False,ToleranceDistance=6.6,FocalDi
             
     return transxyz
 
-def ATACLocations(Foc=53.2e-3):
+def atac_locations(Foc=53.2e-3):
     radiusMm = Foc*1e3
-    temp_positions = computeATACGeometry()
+    temp_positions = compute_atac_geometry()
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateATACTx(Frequency=1e6,RotationZ=0,FactorEnlarge=1):
+def generate_atac_tx(Frequency=1e6,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency
     Foc=53.2e-3*FactorEnlarge
     Diameter=3.5e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'])
 
-    transLoc = ATACLocations(Foc=Foc)
+    transLoc = atac_locations(Foc=Foc)
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

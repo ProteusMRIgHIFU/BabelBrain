@@ -58,7 +58,7 @@ def read_itk_affine_transform(filename):
     return transform
 
 
-def itk_to_BSight(itk_transform):
+def itk_to_bsight(itk_transform):
     # ITK transform: from parent, using LPS coordinate system
     # Transform displayed in Slicer: to parent, using RAS coordinate system
     ras2lps = np.diag([-1, -1, 1, 1])
@@ -79,14 +79,14 @@ def test_inverse():
     M_ras[:3, 3] = T
 
     # forward + backward
-    M_itk = BSight_to_itk(M_ras)
-    M_ras_back = itk_to_BSight(M_itk)
+    M_itk = bsight_to_itk(M_ras)
+    M_ras_back = itk_to_bsight(M_itk)
 
     # # backward + forward
     # M_itk2 = rng.normal(size=(4,4))
     # M_itk2[3] = [0,0,0,1]   # force affine
-    # M_ras2 = itk_to_BSight(M_itk2)
-    # M_itk2_back = BSight_to_itk(M_ras2)
+    # M_ras2 = itk_to_bsight(M_itk2)
+    # M_itk2_back = bsight_to_itk(M_ras2)
 
     # check closeness
     print("M_itk:\n", M_ras)
@@ -96,7 +96,7 @@ def test_inverse():
     print("✔️ Both functions are true inverses!")
 
 
-def BSight_to_itk(BSight_transform):
+def bsight_to_itk(BSight_transform):
     ras2lps = np.diag([-1, -1, 1, 1])
     in_trans=BSight_transform.copy()
     in_trans[:3,:3]=np.diagflat([-1,-1,-1])@in_trans[:3,:3]
@@ -104,7 +104,7 @@ def BSight_to_itk(BSight_transform):
     return transform_to_LPS
 
 
-def GetIDTrajectoryBrainsight(fname):
+def get_id_trajectory_brainsight(fname):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
       'm0n0','m0n1','m0n2',
@@ -113,12 +113,12 @@ def GetIDTrajectoryBrainsight(fname):
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names).iloc[0]  
     return df['Target name']
 
-def GetBrainSightHeader(fname):
+def get_brainsight_header(fname):
     data = open(fname).readlines()
     dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:-2]}
     return dct
 
-def ReadTrajectoryBrainsight(fname,bGetID=False):
+def read_trajectory_brainsight(fname,bGetID=False):
     names=['Target name', 
       'Loc. X','Loc. Y','Loc. Z',
       'm0n0','m0n1','m0n2',
@@ -192,7 +192,7 @@ if __name__ == "__main__":
          #to the feet direction , while in SlicerIGT it starts with a vector towards the head
         print(inMat)
 
-        transform = itk_to_BSight(inMat)
+        transform = itk_to_bsight(inMat)
 
         print(transform)
 
@@ -210,9 +210,9 @@ if __name__ == "__main__":
                                 Z=transform[2,3],
                                 name=args.IdName)
     else:
-        inMat=ReadTrajectoryBrainsight(Infname)
+        inMat=read_trajectory_brainsight(Infname)
         print(inMat)
-        transform = BSight_to_itk(inMat)
+        transform = bsight_to_itk(inMat)
         print(transform)
         outname=Infname.split('.txt')[0]+'_Slicer.txt'
 

@@ -8,7 +8,7 @@ ABOUT:
 '''
 
 import numpy as np
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 from scipy.io import loadmat
 import os
 
@@ -16,27 +16,27 @@ extlay={}
 TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-def computeR15148Geometry():
+def compute_r15148_geometry():
     transxyz = loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'R15148_1001.mat'))['IGT128']
     assert(transxyz.shape[0]==128) #number of elements
     assert(transxyz.shape[1]==3) # X,Y,Z coordinates in mm      
     return transxyz
 
-def R15148Locations():
-    temp_positions = computeR15148Geometry()
+def r15148_locations():
+    temp_positions = compute_r15148_geometry()
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateR15148Tx(Frequency=0.5e6,RotationZ=0,FactorEnlarge=1):
+def generate_r15148_tx(Frequency=0.5e6,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency
     Foc=80e-3*FactorEnlarge
     Diameter=6.6e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'])
 
-    transLoc = R15148Locations()
+    transLoc = r15148_locations()
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

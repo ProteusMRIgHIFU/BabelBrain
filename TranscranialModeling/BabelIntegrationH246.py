@@ -23,7 +23,7 @@ from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple,SpeedofSoundWater
 from scipy.interpolate import interpn
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 ###########################################
-def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
+def generate_surface(lstep,Diam,Foc,IntDiam=0):
     Tx = {}
     rInt=IntDiam/2
     rExt=Diam/2
@@ -129,22 +129,22 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=8):
+def generate_focus_tx(f,Foc,Diam,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
-    Tx = GenerateSurface(lstep,Diam,Foc)
+    Tx = generate_surface(lstep,Diam,Foc)
     return Tx
 
 
-def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
+def generated_ring_array_tx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
     wavelength = c/f
     lstep = wavelength/PPWSurface
     
     bFirstRing=True
     n=0
     for ID,OD in zip(InDiameters,OutDiameters):
-        TxP = GenerateSurface(lstep,OD,Foc,IntDiam=ID)
+        TxP = generate_surface(lstep,OD,Foc,IntDiam=ID)
 #        SaveToH5py(TxP,'Ring%i.h5'%(n))
         n+=1
         TxVert=TxP['VertDisplay']*1e3
@@ -166,14 +166,14 @@ def GeneratedRingArrayTx(f,Foc,InDiameters,OutDiameters,c,PPWSurface=8):
     return Tx
 
 class RUN_SIM(RUN_SIM_BASE):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(ZSteering=self._ZSteering,
                                      **kargs)
-    def RunCases(self,
+    def run_cases(self,
                     ZSteering=0.0,
                     **kargs):
         self._ZSteering=ZSteering
-        return super().RunCases(**kargs)
+        return super().run_cases(**kargs)
 
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
@@ -184,13 +184,13 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._ZSteering=ZSteering
         super().__init__(**kargs)
         
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(ZSteering=self._ZSteering,
                                     Aperture=33.60e-3, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                     FocalLength=0.0,
                                     **kargs)
     
-    def GenerateSTLTx(self,prefix):
+    def generate_stl_tx(self,prefix):
         n=1
         affine=self._SkullMask.affine
         LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
@@ -198,13 +198,13 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                 self._SIM_SETTINGS._TxRCOrig['RingFaceDisplay']):
             #we also export the STL of the Tx for display in Brainsight or 3D slicer
             TxVert=VertDisplay.T.copy()
-            TxVert/=self._SIM_SETTINGS.SpatialStep
+            TxVert/=self._SIM_SETTINGS.spatial_step
             TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
 
             TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.spatial_step))
+            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.spatial_step))
+            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.spatial_step))
 
             TxVert=np.dot(affine,TxVert)
 
@@ -226,17 +226,17 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TransformationCone=np.eye(4)
         TransformationCone[2,2]=-1
         OrientVec=np.array([0,0,1]).reshape((1,3))
-        TransformationCone[0,3]=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-        TransformationCone[1,3]=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
-        HeightCone=self._ZSteering/self._SIM_SETTINGS.SpatialStep
-        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        TransformationCone[0,3]=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.spatial_step))
+        TransformationCone[1,3]=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.spatial_step))
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.spatial_step/2
+        HeightCone=self._ZSteering/self._SIM_SETTINGS.spatial_step
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.spatial_step
         Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
         Cone.apply_transform(affine)
         #we save the final cone profile
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
 
-    def AddSaveDataSim(self,DataForSim):
+    def add_save_data_sim(self,DataForSim):
         DataForSim['ZSteering']=self._ZSteering
         DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
 
@@ -267,13 +267,13 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         
     
-    def GenTx(self,bOrigDimensions=False):
+    def gen_tx(self,bOrigDimensions=False):
         fScaling=1.0
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
         print('self._InDiameters, self._OutDiameters,self._FocalLength',self._InDiameters/fScaling, self._OutDiameters/fScaling,self._FocalLength/fScaling)
         FocalLengthFlat=1e3
-        TxRC=GeneratedRingArrayTx(self._Frequency,FocalLengthFlat, 
+        TxRC=generated_ring_array_tx(self._Frequency,FocalLengthFlat, 
                              self._InDiameters/fScaling, 
                              self._OutDiameters/fScaling, 
                              SpeedofSoundWater(20.0))
@@ -285,11 +285,11 @@ class SimulationConditions(SimulationConditionsBASE):
             TxRC['RingVertDisplay'][n][:,2]=0
         return TxRC
     
-    def CalculateRayleighFieldsForward(self,deviceName='6800'):
+    def calculate_rayleigh_fields_forward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self._TxRC=self.GenTx()
-        self._TxRCOrig=self.GenTx(bOrigDimensions=True)
+        self._TxRC=self.gen_tx()
+        self._TxRCOrig=self.gen_tx(bOrigDimensions=True)
 
         if self._TxMechanicalAdjustmentZ <0:
             zCorrec= self._TxMechanicalAdjustmentZ
@@ -358,7 +358,7 @@ class SimulationConditions(SimulationConditionsBASE):
         xp,yp,zp=np.meshgrid(self._XDim,self._YDim,self._ZDim,indexing='ij')
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
-        u0*=self.AdjustWeightAmplitudes()
+        u0*=self.adjust_weight_amplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -369,7 +369,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
 
         
-    def CreateSources(self,ramp_length=4):
+    def create_sources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)

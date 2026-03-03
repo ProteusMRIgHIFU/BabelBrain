@@ -29,7 +29,7 @@ class R15473(RingTx):
         self.Widget.labelTPODistance.setText('Steering from outplane (mm)')
 
 
-     def DefaultConfig(self):
+     def default_config(self):
         #Specific parameters for the R15473 - to be configured later via a yaml
         with open(os.path.join(resource_path(),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)

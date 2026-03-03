@@ -1,12 +1,12 @@
 import sys
 import platform
 import traceback
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal,InitMLX
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda, InitOpenCL as init_opencl, InitMetal as init_metal, InitMLX as init_mlx
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from scipy.io import savemat
 import numpy as np
 
-from ThermalModeling.CalculateTemperatureEffects import CalculateTemperatureEffects
+from ThermalModeling.CalculateTemperatureEffects import calculate_temperature_effects
 from multiprocessing import Process,Queue
 
 
@@ -37,21 +37,21 @@ class InOutputWrapper(object):
             pass
 
 #subprocess , useful to deal with large number of cases
-def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
+def sub_process(queueMsg,queueResult,case,deviceName,**kargs):
     stdout = InOutputWrapper(queueMsg,True)
     if kargs['Backend']=='CUDA':
         InitCuda(deviceName)
     elif kargs['Backend']=='OpenCL':
-        InitOpenCL(deviceName)
+        init_opencl(deviceName)
     elif kargs['Backend']=='Metal':
-        InitMetal(deviceName)
+        init_metal(deviceName)
     elif kargs['Backend']=='MLX':
-        InitMLX(deviceName)
-    fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
+        init_mlx(deviceName)
+    fname=calculate_temperature_effects(case,deviceName,queueMsg,**kargs)
     queueResult.put(fname)
     
 
-def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
+def calculate_thermal_process(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
     try:
         Backend = ['CUDA','OpenCL','Metal','MLX'][kargs['COMPUTING_BACKEND']-1]
@@ -84,7 +84,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             for k in ['bForceNoAbsorptionSkullScalp','bForceHomogenousMedium','HomogenousMediumValues','BenchmarkTestFile']:
                 if k in kargs:
                     kargsSub[k]=kargs[k]
-            fieldWorkerProcess = Process(target=SubProcess, 
+            fieldWorkerProcess = Process(target=sub_process, 
                                     args=(queueMsg,queueResult,case,deviceName),
                                     kwargs=kargsSub)
 

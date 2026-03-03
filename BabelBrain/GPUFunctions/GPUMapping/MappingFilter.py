@@ -8,9 +8,9 @@ import sys
 import numpy as np
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -26,7 +26,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_map_filter(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
     global prgcl
     global sel_device
@@ -44,7 +44,7 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = cp
 
         preamble = '#define _CUDA'
-        ctx,prgcl,sel_device = InitCUDA(preamble,kernel_files,DeviceName)
+        ctx,prgcl,sel_device = init_cuda(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl = prgcl.get_function('mapfilter')
@@ -54,7 +54,7 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = pocl
 
         preamble = '#define _OPENCL'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files,DeviceName)
+        queue,prgcl,sel_device,ctx,mf = init_opencl(preamble,kernel_files,DeviceName)
         
         # Create kernels from program function
         knl = prgcl.mapfilter
@@ -64,7 +64,7 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mc
 
         preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
+        prgcl, sel_device, ctx = init_metal(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl=prgcl.function('mapfilter')
@@ -73,13 +73,13 @@ def InitMapFilter(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mx
 
         preamble = '#define _MLX\n'
-        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files,DeviceName)
+        prgcl, sel_device, ctx = init_mlx(preamble,kernel_files,DeviceName)
        
         # Create kernel from program function
         knl=prgcl['mapfilter']['kernel']
 
     
-def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
+def map_filter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
 
     logger.info(f"\nStarting Map Filter")
     
@@ -213,5 +213,5 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
 # if __name__ == "__main__":
 #     from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 #     t=ReadFromH5py('test.h5')
-#     InitCUDA('A6000')
-#     MapFilter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')
+#     init_cuda('A6000')
+#     map_filter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')

@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath('../'))
                 
 sys.path.append(os.path.abspath('../../'))
 
-from TranscranialModeling.BabelIntegrationBASE import SpeedofSoundWebbDataset
+from TranscranialModeling.BabelIntegrationBASE import speed_of_sound_webb_dataset
     
 
 _IS_MAC = platform.system() == 'Darwin'
@@ -52,13 +52,13 @@ class TableModel(QAbstractTableModel):
         elif role == Qt.ItemDataRole.TextAlignmentRole:
             return   Qt.AlignmentFlag.AlignCenter
 
-    def rowCount(self, index):
+    def rowCount(self, index):  # noqa: N802
         return self._data.shape[0]
 
-    def columnCount(self, index):
+    def columnCount(self, index):  # noqa: N802
         return self._data.shape[1]
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation, role):  # noqa: N802
         # section is the index of the column/row.
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
@@ -69,7 +69,7 @@ class TableModel(QAbstractTableModel):
             
 ORIGINAL_BABELBRAIN_SELECTION={'real CT':19,'ZTE':19,'PETRA':7}
 
-def ValidThermalProfile(fProf):
+def valid_thermal_profile(fProf):
     msgDetails=None
     try:
         with open(fProf,'r') as f:
@@ -151,17 +151,17 @@ class SelFiles(QDialog):
         with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             version=f.readlines()[0]
         self.setWindowTitle("BabelBrain V"+version + " - Select input files ...")
-        self.ui.SelTrajectorypushButton.clicked.connect(self.SelectTrajectory)
-        self.ui.SelT1WpushButton.clicked.connect(self.SelectT1W)
-        self.ui.SelCTpushButton.clicked.connect(self.SelectCT)
-        self.ui.SelSimbNIBSpushButton.clicked.connect(self.SelectSimbNIBS)
-        self.ui.SelTProfilepushButton.clicked.connect(self.SelectThermalProfile)
-        self.ui.ContinuepushButton.clicked.connect(self.Continue)
-        self.ui.CTTypecomboBox.currentIndexChanged.connect(self.SelectCTType)
-        self.ui.MultiPointTypecomboBox.currentIndexChanged.connect(self.SelectMultiPoint)
-        self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.SelectTransducer)
-        self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
-        self.ui.CancelpushButton.clicked.connect(self.Cancel)
+        self.ui.SelTrajectorypushButton.clicked.connect(self.select_trajectory)
+        self.ui.SelT1WpushButton.clicked.connect(self.select_t1w)
+        self.ui.SelCTpushButton.clicked.connect(self.select_ct)
+        self.ui.SelSimbNIBSpushButton.clicked.connect(self.select_simbnibs)
+        self.ui.SelTProfilepushButton.clicked.connect(self.select_thermal_profile)
+        self.ui.ContinuepushButton.clicked.connect(self.on_continue)
+        self.ui.CTTypecomboBox.currentIndexChanged.connect(self.select_ct_type)
+        self.ui.MultiPointTypecomboBox.currentIndexChanged.connect(self.select_multi_point)
+        self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.select_transducer)
+        self.ui.SelMultiPointProfilepushButton.clicked.connect(self.select_multi_point_profile)
+        self.ui.CancelpushButton.clicked.connect(self.cancel)
                 
         self.ui.SelTrajectorypushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
         self.ui.SelT1WpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
@@ -177,8 +177,8 @@ class SelFiles(QDialog):
             self.ui.T1WlineEdit.setText(T1W)
             self.ui.T1WlineEdit.setCursorPosition(len(T1))
         if len(SimbNIBS)>0:
-            self.ui.SimbNIBSlineEdit.setText(SelectSimbNIBS)
-            self.ui.SimbNIBSlineEdit.setCursorPosition(len(SelectSimbNIBS))
+            self.ui.SimbNIBSlineEdit.setText(select_simbnibs)
+            self.ui.SimbNIBSlineEdit.setCursorPosition(len(select_simbnibs))
         if len(CT)>0:
             self.ui.CTlineEdit.setText(CT)
             self.ui.CTlineEdit.setCursorPosition(len(CT))
@@ -186,10 +186,10 @@ class SelFiles(QDialog):
         self.ui.SimbNIBSTypecomboBox.setCurrentIndex(SimbNIBSType)
         self.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryType)
         self.ui.CoregCTcomboBox.setCurrentIndex(CoregCT)
-        self.ui.ResetCTMapOriginalpushButton.clicked.connect(self.ResetOriginalCTCombo)
+        self.ui.ResetCTMapOriginalpushButton.clicked.connect(self.reset_original_ct_combo)
 
 
-        self._GPUs=self.GetAvailableGPUs()
+        self._GPUs=self.get_available_gpus()
 
         if len(self._GPUs)==0: #only CPU
             msgBox = QMessageBox()
@@ -204,7 +204,7 @@ class SelFiles(QDialog):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
                 break
 
-        df = SpeedofSoundWebbDataset()
+        df = speed_of_sound_webb_dataset()
         for index, row in df.iterrows():
             self.ui.CTMappingcomboBox.addItem(', '.join(index))
         self._dfCTParams=df
@@ -214,28 +214,28 @@ class SelFiles(QDialog):
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
 
-    def GetAllTransducers(self):
+    def get_all_transducers(self):
         """
         Returns a list of all transducers available in BabelBrain
         """
         return [self.ui.TransducerTypecomboBox.itemText(i) for i in range(self.ui.TransducerTypecomboBox.count())]
 
-    def SelectComputingEngine(self,GPU='CPU',Backend=''):
+    def select_computing_engine(self,GPU='CPU',Backend=''):
         for sel,dev in enumerate(self._GPUs):
             if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
                 break
-    def SelectTxSystem(self,TxSystem='CTX_500'):
+    def select_tx_system(self,TxSystem='CTX_500'):
         index = self.ui.TransducerTypecomboBox.findText(TxSystem)
         if index >=0:
             self.ui.TransducerTypecomboBox.setCurrentIndex(index)
 
-    def GetSelectedComputingEngine(self):
+    def get_selected_computing_engine(self):
         index = self.ui.ComputingEnginecomboBox.currentIndex()
         return self._GPUs[index]
             
 
-    def GetAvailableGPUs(self):
+    def get_available_gpus(self):
         AllDevices=[]
         if 'Darwin' in platform.system():
             from BabelViscoFDTD.StaggeredFDTD_3D_With_Relaxation_METAL import ListDevices
@@ -264,7 +264,7 @@ class SelFiles(QDialog):
                 pass 
         return AllDevices
     
-    def ValidTrajectory(self):
+    def valid_trajectory(self):
         fTraj = self.ui.TrajectorylineEdit.text()
 
         if not os.path.isfile(fTraj):
@@ -288,7 +288,7 @@ class SelFiles(QDialog):
                 self.msgDetails = "Selected trajectory file is not a Slicer file"
                 return False
             
-    def ValidSimNIBS(self):
+    def valid_simbnibs(self):
         folderSimNIBS = self.ui.SimbNIBSlineEdit.text()
 
         if not os.path.isdir(folderSimNIBS):
@@ -311,12 +311,12 @@ class SelFiles(QDialog):
                 self.msgDetails = "Selected SimbNIBS folder was not Headreco generated"
                 return False
             
-    def ValidThermalProfile(self):
+    def valid_thermal_profile(self):
         fProf = self.ui.ThermalProfilelineEdit.text()
-        retValue, self.msgDetails = ValidThermalProfile(fProf)
+        retValue, self.msgDetails = valid_thermal_profile(fProf)
         return retValue
     
-    def ValidateMultiPointProfile(self):
+    def validate_multi_point_profile(self):
         selTx=self.ui.TransducerTypecomboBox.currentText()
         if  selTx not in ListTxSteering:
             return True
@@ -360,7 +360,7 @@ class SelFiles(QDialog):
             # we convert to mm
     
     @Slot()
-    def SelectTrajectory(self):
+    def select_trajectory(self):
         curfile=self.ui.TrajectorylineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
@@ -372,7 +372,7 @@ class SelFiles(QDialog):
             self.ui.TrajectorylineEdit.setCursorPosition(len(fTraj))
 
     @Slot()
-    def SelectT1W(self):
+    def select_t1w(self):
         curfile=self.ui.T1WlineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
@@ -384,7 +384,7 @@ class SelFiles(QDialog):
             self.ui.T1WlineEdit.setCursorPosition(len(fT1W))
 
     @Slot()
-    def SelectCT(self):
+    def select_ct(self):
         curfile=self.ui.CTlineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
@@ -396,7 +396,7 @@ class SelFiles(QDialog):
             self.ui.CTlineEdit.setCursorPosition(len(fCT))
 
     @Slot()
-    def SelectThermalProfile(self):
+    def select_thermal_profile(self):
         curfile=self.ui.ThermalProfilelineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
@@ -407,7 +407,7 @@ class SelFiles(QDialog):
             self.ui.ThermalProfilelineEdit.setText(fThermalProfile)
 
     @Slot()
-    def SelectMultiPointProfile(self):
+    def select_multi_point_profile(self):
         curfile=self.ui.MultiPointlineEdit.text()
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
@@ -418,7 +418,7 @@ class SelFiles(QDialog):
             self.ui.MultiPointlineEdit.setText(fMultiPointProfile)
 
     @Slot()
-    def SelectSimbNIBS(self):
+    def select_simbnibs(self):
         bdir=self.ui.SimbNIBSlineEdit.text()
         if not os.path.isdir(bdir):
             bdir=os.getcwd()
@@ -429,7 +429,7 @@ class SelFiles(QDialog):
             self.ui.SimbNIBSlineEdit.setCursorPosition(len(fSimbNIBS))
 
     @Slot()
-    def SelectCTType(self,value):
+    def select_ct_type(self,value):
         bv = value >0
         self.ui.CTlineEdit.setEnabled(bv)
         self.ui.SelCTpushButton.setEnabled(bv)
@@ -439,16 +439,16 @@ class SelFiles(QDialog):
         self.ui.CoregCTcomboBox.setEnabled(bv)
         self.ui.CTMappingcomboBox.setEnabled(bv)
         self.ui.ResetCTMapOriginalpushButton.setEnabled(bv)
-        self.ResetOriginalCTCombo()
+        self.reset_original_ct_combo()
     
     @Slot()
-    def SelectMultiPoint(self,value):
+    def select_multi_point(self,value):
         bv = value >0
         self.ui.MultiPointlineEdit.setEnabled(bv)
         self.ui.SelMultiPointProfilepushButton.setEnabled(bv)
 
     @Slot()
-    def SelectTransducer(self,value):
+    def select_transducer(self,value):
         selTx=self.ui.TransducerTypecomboBox.currentText()
         bv = selTx in ListTxSteering
         if not bv:
@@ -456,19 +456,19 @@ class SelFiles(QDialog):
         self.ui.MultiPointTypecomboBox.setEnabled(bv)
 
     @Slot()
-    def ResetOriginalCTCombo(self):
+    def reset_original_ct_combo(self):
         if self.ui.CTTypecomboBox.currentText() != 'NO':
             if self.ui.CTTypecomboBox.currentText() in ORIGINAL_BABELBRAIN_SELECTION:
                 self.ui.CTMappingcomboBox.setCurrentIndex(ORIGINAL_BABELBRAIN_SELECTION[ self.ui.CTTypecomboBox.currentText()])
         
         
     @Slot()
-    def Continue(self):
+    def on_continue(self):
         self.msgDetails = ""
-        if not self.ValidTrajectory() or\
-           not self.ValidSimNIBS() or\
-           not self.ValidThermalProfile() or\
-           not self.ValidateMultiPointProfile() or\
+        if not self.valid_trajectory() or\
+           not self.valid_simbnibs() or\
+           not self.valid_thermal_profile() or\
+           not self.validate_multi_point_profile() or\
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
            (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())):
             msgBox = QMessageBox()
@@ -480,7 +480,7 @@ class SelFiles(QDialog):
             self.accept()
 
     @Slot()
-    def Cancel(self):
+    def cancel(self):
         self.done(-1)
          
 if __name__ == "__main__":

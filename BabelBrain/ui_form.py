@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QTabWidget, QTextBrowser, QVBoxLayout, QWidget)
 
 class Ui_Widget(object):
-    def setupUi(self, Widget):
+    def setupUi(self, Widget):  # noqa: N802
         if not Widget.objectName():
             Widget.setObjectName(u"Widget")
         Widget.resize(1309, 757)
@@ -165,7 +165,7 @@ class Ui_Widget(object):
         QMetaObject.connectSlotsByName(Widget)
     # setupUi
 
-    def retranslateUi(self, Widget):
+    def retranslateUi(self, Widget):  # noqa: N802
         Widget.setWindowTitle(QCoreApplication.translate("Widget", u"Widget", None))
         self.label_2.setText(QCoreApplication.translate("Widget", u"Target", None))
         self.IDLabel.setText("")

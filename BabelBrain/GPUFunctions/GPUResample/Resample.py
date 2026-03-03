@@ -16,9 +16,9 @@ from scipy.ndimage._interpolation import spline_filter, _prepad_for_spline_filte
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
+    from GPUUtils import init_cuda,init_opencl,init_metal,get_step_size,init_mlx
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,get_step_size,init_mlx
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -34,7 +34,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_resample(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
     global prgcl
     global sel_device
@@ -57,7 +57,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         cndimage = ndimage
 
         preamble = '#define _CUDA'
-        ctx,prgcl,sel_device = InitCUDA(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        ctx,prgcl,sel_device = init_cuda(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
 
         # Create kernels from program function
         knl_at = prgcl.get_function('affine_transform')
@@ -67,7 +67,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = pocl
 
         preamble = '#define _OPENCL'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        queue,prgcl,sel_device,ctx,mf = init_opencl(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
         
         # Create kernels from program function
         knl_at=prgcl.affine_transform
@@ -78,7 +78,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mc
         
         preamble = '#define _METAL\n'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        prgcl, sel_device, ctx = init_metal(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
        
         # Create kernels from program function
         knl_at=prgcl.function('affine_transform')
@@ -88,7 +88,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = mx
 
         preamble = '#define _MLX\n'
-        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        prgcl, sel_device, ctx = init_mlx(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
        
         # Create kernels from program function
         knl_at=prgcl['affine_transform']['kernel']
@@ -279,7 +279,7 @@ def affine_transform_prep(input, matrix, offset=0.0, output_shape=None, output=N
 
     return filtered, m, output, mode, cval, order, integer_output, large_int
 
-def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_class=Nifti1Image,GPUBackend='OpenCL'):
+def resample_from_to(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_class=Nifti1Image,GPUBackend='OpenCL'):
 
     logger.info(f"\nStarting Resample")
 

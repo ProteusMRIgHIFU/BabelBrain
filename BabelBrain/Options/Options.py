@@ -20,7 +20,7 @@ from glob import glob
 
 from functools import partial
 
-from Calibration.TxCalibration import RUN_FITTING_Process 
+from Calibration.TxCalibration import run_fitting_process 
 from Calibration.ViewResults import PlotViewerCalibration
 from ClockDialog import ClockDialog
 
@@ -146,9 +146,9 @@ class AdvancedOptions(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         self.setWindowTitle("Advanced Options")
-        self.ui.ContinuepushButton.clicked.connect(self.Continue)
-        self.ui.CancelpushButton.clicked.connect(self.Cancel)
-        self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
+        self.ui.ContinuepushButton.clicked.connect(self.on_continue)
+        self.ui.CancelpushButton.clicked.connect(self.cancel)
+        self.ui.ResetpushButton.clicked.connect(self.reset_to_defaults)
         self.ui.tabWidget.setCurrentIndex(0)
         self._TxConfig = TxConfig
         self._currentConfig = currentConfig
@@ -160,7 +160,7 @@ class AdvancedOptions(QDialog):
         self._TxSystem = currentConfig['TxSystem']
         for k in defaultValues.keys():
             setattr(curvalues,k,currentConfig[k])
-        self.SetValues(curvalues)
+        self.set_values(curvalues)
 
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
@@ -183,13 +183,13 @@ class AdvancedOptions(QDialog):
         for button, line_edit, title, mask in buttons:
             connect_file_button(self,button, line_edit, title, mask)
         
-        self.ui.TxOptimizedWeightspushButton.clicked.connect(self.VerifyCalibrationFile)
+        self.ui.TxOptimizedWeightspushButton.clicked.connect(self.verify_calibration_file)
     
-        self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
+        self.ui.RUNPlanTUSpushButton.clicked.connect(self.run_plan_tus)
 
         TxSystem = self.parent().Config['TxSystem']
 
-        self.ui.ExecuteCalibrationButton.clicked.connect(self.ExecuteCalibration)
+        self.ui.ExecuteCalibrationButton.clicked.connect(self.execute_calibration)
 
         if TxSystem not in ['CTX_500', 'CTX_250', 'CTX_250_2ch', 'DPX_500', 'DPXPC_300', 'R15287', 'R15473']:
             self.ui.frameCalibration.setEnabled(False)
@@ -220,13 +220,13 @@ class AdvancedOptions(QDialog):
         self._WorkingDialog = ClockDialog(self)
 
     @Slot()
-    def VerifyCalibrationFile(self):
+    def verify_calibration_file(self):
 
         if not select_file(self.ui.TxOptimizedWeightspushButton, self.ui.TxOptimizedWeightsLineEdit, "Select Tx Optimized Weights File","HDF5 (*.h5 *.hdf5)"):
             return
 
         calfile=self.ui.TxOptimizedWeightsLineEdit.text()
-        def ShowError(msg):
+        def show_error(msg):
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText(msg)
@@ -235,7 +235,7 @@ class AdvancedOptions(QDialog):
         bError=False
         
         if not os.path.isfile(calfile):
-            ShowError(f"Calibration file does not exist\n{calfile}")
+            show_error(f"Calibration file does not exist\n{calfile}")
             bError=True
         else:
             RefData={'TxConfig':self._TxConfig}
@@ -243,17 +243,17 @@ class AdvancedOptions(QDialog):
                 Data=ReadFromH5py(calfile)
                 for k in ['TxConfig']:
                     if Data[k]!=RefData[k]:
-                            ShowError(f"Calibration file does not match current Tx definition for field {k}:\n{Data[k]} vs {RefData[k]}")
+                            show_error(f"Calibration file does not match current Tx definition for field {k}:\n{Data[k]} vs {RefData[k]}")
                             bError=True
             except:
-                ShowError(f"Unable to load calibration file!!")
+                show_error(f"Unable to load calibration file!!")
                 bError=True
         if bError:
             self.ui.TxOptimizedWeightsLineEdit.setText("")
 
     @Slot()
-    def ExecuteCalibration(self):
-        """Execute the calibration with the current parameters"""
+    def execute_calibration(self):
+        """execute the calibration with the current parameters"""
         if not self.ui.YAMLCalibrationLineEdit.text():
             msgBox = QMessageBox()
             msgBox.setText("Please select the YAML file with calibration input fields.")
@@ -285,18 +285,18 @@ class AdvancedOptions(QDialog):
         for f in files:
             os.remove(f)
         
-        self.RUN_FITTING_Parallel(self._TxConfig,
+        self.run_fitting_parallel(self._TxConfig,
               self.ui.YAMLCalibrationLineEdit.text(),
               deviceName=self._currentConfig['ComputingDevice'],
               COMPUTING_BACKEND=self._currentConfig['ComputingBackend'])
 
-    def RUN_FITTING_Parallel(self,TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
+    def run_fitting_parallel(self,TxConfig, YAMLConfigFilename, deviceName='M3', COMPUTING_BACKEND=3):
         """
         Run the fitting process in parallel using multiprocessing.
         """
         queue=Queue()
         self.CalQueue=queue
-        fieldWorkerProcess = Process(target=RUN_FITTING_Process, 
+        fieldWorkerProcess = Process(target=run_fitting_process, 
                                             args=(queue,
                                                 TxConfig,
                                                 YAMLConfigFilename,
@@ -368,13 +368,13 @@ class AdvancedOptions(QDialog):
                 print("*"*5+" Error in execution of the calibration process.")
                 print("*"*40)    
         
-    def SetValues(self,values):
+    def set_values(self,values):
 
         sel=self.ui.ElastixOptimizercomboBox.findText(values.ElastixOptimizer)
         if sel==-1:
             raise ValueError('The elastix optimizer is not available in the GUI -'+values.ElastixOptimizer )
         
-        self.ui.ManualFOVcheckBox.toggled.connect(self.EnableManualFOV)
+        self.ui.ManualFOVcheckBox.toggled.connect(self.enable_manual_fov)
         
         self.ui.ElastixOptimizercomboBox.setCurrentIndex(sel)
         self.ui.ForceBlendercheckBox.setChecked(values.bForceUseBlender)
@@ -430,15 +430,15 @@ class AdvancedOptions(QDialog):
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
         
     @Slot()
-    def ResetToDefaults(self):
-        self.SetValues(self.defaultValues)
+    def reset_to_defaults(self):
+        self.set_values(self.defaultValues)
 
     @Slot()
-    def EnableManualFOV(self,value):
+    def enable_manual_fov(self,value):
         self.ui.grpManualFOV.setEnabled(value)
         
     @Slot()
-    def Continue(self):
+    def on_continue(self):
         self.NewValues=OptionalParams(self._AllTransducers)
 
         self.NewValues.FOVDiameter=self.ui.FOVDiameterSpinBox.value()
@@ -492,11 +492,11 @@ class AdvancedOptions(QDialog):
         self.accept()
 
     @Slot()
-    def Cancel(self):
+    def cancel(self):
         self.done(-1)
 
     @Slot()
-    def RUNPlanTUS(self):
+    def run_plan_tus(self):
         R=RUN_PLAN_TUS(self.parent(),self)
-        R.Execute()
+        R.execute()
     

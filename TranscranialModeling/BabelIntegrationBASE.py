@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 from BabelViscoFDTD.PropagationModel import PropagationModel
-from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda, InitOpenCL as init_opencl, InitMetal as init_metal
 import nibabel
 import SimpleITK as sitk
 from scipy import interpolate
@@ -68,7 +68,7 @@ else:
     _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'])
     _PichardoAtt=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapAtt'])
 
-def FitSpeedCorticalShear(frequency):
+def fit_speed_cortical_shear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     FRef=np.array([270e3,836e3])
     Cs270=np.array([1577.0,1498.0,1313.0]).mean()
@@ -77,7 +77,7 @@ def FitSpeedCorticalShear(frequency):
     p=np.polyfit(FRef, CsRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitSpeedTrabecularShear(frequency):
+def fit_speed_trabecular_shear(frequency):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     FRef=np.array([270e3,836e3])
     Cs270=np.array([1227.0,1365.0,1200.0]).mean()
@@ -86,42 +86,42 @@ def FitSpeedTrabecularShear(frequency):
     p=np.polyfit(FRef, CsRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def PorosityToSSoS(Phi,frequency):
-    sMin=FitSpeedTrabecularShear(frequency)
-    sMax=FitSpeedCorticalShear(frequency)
+def porosity_to_ssos(Phi,frequency):
+    sMin=fit_speed_trabecular_shear(frequency)
+    sMax=fit_speed_cortical_shear(frequency)
     sSoS = sMin * Phi + sMax*(1.0-Phi)
     return sSoS
 
-def FitAttBoneShear(frequency,reductionFactor=1.0):
+def fit_att_bone_shear(frequency,reductionFactor=1.0):
     #from Phys Med Biol. 2017 Aug 7; 62(17): 6938–6962. doi: 10.1088/1361-6560/aa7ccc 
     PichardoData=(57.0/.27 +373/0.836)/2
     return np.round(PichardoData*(frequency/1e6)*reductionFactor) 
 
-def FitSpeedCorticalLong(frequency):
+def fit_speed_cortical_long(frequency):
     #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014 
     FRef=np.array([270e3,836e3])
     ClRef=np.array([2448.0,2516])
     p=np.polyfit(FRef, ClRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitSpeedTrabecularLong(frequency):
+def fit_speed_trabecular_long(frequency):
     #from Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
     FRef=np.array([270e3,836e3])
     ClRef=np.array([2140.0,2300])
     p=np.polyfit(FRef, ClRef, 1)
     return(np.round(np.poly1d(p)(frequency)))
 
-def FitAttCorticalLong_Goss(frequency,reductionFactor=1):
+def fit_att_cortical_long_goss(frequency,reductionFactor=1):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     JasaAtt1MHz=(2.15+1.67)/2*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttTrabecularLong_Goss(frequency,reductionFactor=1):
+def fit_att_trabecular_long_goss(frequency,reductionFactor=1):
     #from J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     JasaAtt1MHz=1.5*100*reductionFactor
     return np.round(JasaAtt1MHz*(frequency/1e6)) 
 
-def FitAttCorticalLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
+def fit_att_cortical_long_multiple(frequency,bcoeff=1,reductionFactor=0.8):
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
     # Phys Med Biol. 2011 Jan 7; 56(1): 219–250. doi :10.1088/0031-9155/56/1/014
@@ -129,7 +129,7 @@ def FitAttCorticalLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     
     return np.round(203.25090263*((frequency/1e6)**bcoeff)*reductionFactor)
 
-def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
+def fit_att_trabecular_long_multiple(frequency,bcoeff=1,reductionFactor=0.8):
     #reduction factor 
     # fitting from data obtained from
     #J. Acoust. Soc. Am., Vol. 64, No. 2,  doi: 10.1121/1.382016
@@ -142,14 +142,14 @@ for f in np.arange(100e3,1125e3,5e3):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
-    Material['Cortical']=  np.array([1896.5, FitSpeedCorticalLong(f), 
-                                             FitSpeedCorticalShear(f),  
-                                             FitAttCorticalLong_Multiple(f)  , 
-                                             FitAttBoneShear(f)])
-    Material['Trabecular']=np.array([1738.0, FitSpeedTrabecularLong(f),
-                                             FitSpeedTrabecularShear(f),
-                                             FitAttTrabecularLong_Multiple(f) , 
-                                             FitAttBoneShear(f)])
+    Material['Cortical']=  np.array([1896.5, fit_speed_cortical_long(f), 
+                                             fit_speed_cortical_shear(f),  
+                                             fit_att_cortical_long_multiple(f)  , 
+                                             fit_att_bone_shear(f)])
+    Material['Trabecular']=np.array([1738.0, fit_speed_trabecular_long(f),
+                                             fit_speed_trabecular_shear(f),
+                                             fit_att_trabecular_long_multiple(f) , 
+                                             fit_att_bone_shear(f)])
     Material['Skin']=           np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
     Material['Brain']=          np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
    
@@ -167,7 +167,7 @@ for f in np.arange(100e3,1125e3,5e3):
     MatFreq[f]=Material
 
 
-def GetSmallestSOS(frequency,bShear=False):
+def get_smallest_sos(frequency,bShear=False):
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:
@@ -177,23 +177,23 @@ def GetSmallestSOS(frequency,bShear=False):
             SoS=SelFreq[k][2]
     
     if bShear:
-        SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
-    print('GetSmallestSOS',SoS)
+        SoS=np.min([SoS,density_to_ssos_pichardo(1000.0)])
+    print('get_smallest_sos',SoS)
     return SoS
 
-def LLSoSITRUST(density):
+def ll_sos_itrust(density):
     return density*1.33 + 167  #
 
-def LATTITRUST_Pinton(frequency):
+def latt_itrust_pinton(frequency):
     att=270*0.1151277918# Np/m/MHz # Med Phys. 2012 Jan;39(1):299-307.doi: 10.1118/1.3668316. 
     return att*frequency/1e6
      
-def SATTITRUST_Pinton(frequency):
+def satt_itrust_pinton(frequency):
     att=540*0.1151277918# Np/m/MHz # Med Phys. 2012 Jan;39(1):299-307.doi: 10.1118/1.3668316. 
     return att*frequency/1e6
 
 
-def primeCheck(n):
+def prime_check(n):
     # 0, 1, even numbers greater than 2 are NOT PRIME
     if n==1 or n==0 or (n % 2 == 0 and n > 2):
         return False
@@ -207,7 +207,7 @@ def primeCheck(n):
         return True
     
 
-def DensityToHUBony(ct_in):
+def density_to_hu_bony(ct_in):
     '''
     Convert CT values to bone density using piecewise linear fitting.
     
@@ -234,7 +234,7 @@ def DensityToHUBony(ct_in):
     return pwf.predict(ct_in)
     
 
-def HUtoDensityKWave(hu_in):
+def hu_to_density_kwave(hu_in):
     '''
     Convert Hounsfield Units to density using k-Wave model.
     
@@ -273,7 +273,7 @@ def HUtoDensityKWave(hu_in):
     density[HU >= 1260] =  np.poly1d([0.6625370912451, 348.8555178455294])(HU[HU >= 1260])
     return density
 
-def HUtoDensityAirTissue(hu_in):
+def hu_to_density_air_tissue(hu_in):
     '''
     Convert Hounsfield Units to density using linear air-tissue model.
     
@@ -302,7 +302,7 @@ def HUtoDensityAirTissue(hu_in):
     pf=np.array([1.01237293, 1.01366593e+03])
     return np.polyval(pf,hu_in)
 
-def HUtoDensityMarsac(hu_in):
+def hu_to_density_marsac(hu_in):
     '''
     Convert Hounsfield Units to density using Marsac model.
     
@@ -322,7 +322,7 @@ def HUtoDensityMarsac(hu_in):
     rhomax=2700.0
     return rhomin+ (rhomax-rhomin)*hu_in/hu_in.max()
 
-def HUtoDensityUCLLowEnergy(hu_in):
+def hu_to_density_ucl_low_energy(hu_in):
     '''
     Convert Hounsfield Units to density using UCL low-energy calibration model.
     
@@ -343,7 +343,7 @@ def HUtoDensityUCLLowEnergy(hu_in):
     ct_calibration=f['ct_calibration'][:][0,:,:].T
     return np.interp(hu_in,ct_calibration[0,:],ct_calibration[1,:])
 
-def DensitytoLSOSMarsac(density):
+def density_to_lsos_marsac(density):
     '''
     Convert tissue density to longitudinal speed of sound using Marsac model.
     
@@ -363,7 +363,7 @@ def DensitytoLSOSMarsac(density):
     cmax=3000.0
     return cmin+ (cmax-cmin)*(density-density.min())/(density.max()-density.min())
 
-def DensityToLAttMcDannold(density, frequency):
+def density_to_latt_mcdannold(density, frequency):
     '''
     Convert density to longitudinal attenuation using McDannold model.
     
@@ -385,7 +385,7 @@ def DensityToLAttMcDannold(density, frequency):
     poly=np.flip(np.array([5.71e3,-9.02, 5.40e-3,-1.41e-6,1.36e-10]))
     return np.polyval(poly,density)*frequency/FreqReference #we assume a linear relatinship
 
-def DensityToLSOSMcDannold(density):
+def density_to_lsos_mcdannold(density):
     '''
     Convert density to longitudinal speed of sound using McDannold model.
     
@@ -402,7 +402,7 @@ def DensityToLSOSMcDannold(density):
     poly=np.flip(np.array([1.24e-3,-7.63e-7,1.69e-10,5.31e-16,-2.79e-18]))
     return 1.0/np.polyval(poly,density)
 
-def HUtoPorosity(hu_in):
+def hu_to_porosity(hu_in):
     '''
     Convert Hounsfield Units to bone porosity.
     
@@ -419,7 +419,7 @@ def HUtoPorosity(hu_in):
     Phi = 1.0 - hu_in/hu_in.max()
     return Phi
 
-def PorositytoDensity(phi):
+def porosity_to_density(phi):
     '''
     Convert bone porosity to density.
     
@@ -436,7 +436,7 @@ def PorositytoDensity(phi):
     Density = 1000.0 * phi + 2200*(1.0-phi)
     return Density
 
-def PorositytoLSOS(phi):
+def porosity_to_lsos(phi):
     '''
     Convert bone porosity to longitudinal speed of sound.
     
@@ -453,7 +453,7 @@ def PorositytoLSOS(phi):
     SoS = 1500 * phi + 3100*(1.0-phi)
     return SoS
 
-def PorositytoLAtt(phi, frequency):
+def porosity_to_latt(phi, frequency):
     '''
     Convert bone porosity to longitudinal attenuation.
     
@@ -474,7 +474,7 @@ def PorositytoLAtt(phi, frequency):
     Att = amin + (amax - amin)*(phi**0.5)
     return Att
 
-def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
+def hu_to_attenuation_webb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
     '''
     Convert Hounsfield Units to attenuation using Webb model.
     
@@ -515,7 +515,7 @@ def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
 
     return (sel.iloc[0]['Alpha_0']*(frequency/1e6)**sel.iloc[0]['Beta'] * np.exp(hu*(sel.iloc[0]['c'])))*100
 
-def SpeedofSoundWebbDataset():
+def speed_of_sound_webb_dataset():
     '''
     Load and return Webb dataset for Hounsfield Unit to speed of sound mapping.
     
@@ -534,7 +534,7 @@ def SpeedofSoundWebbDataset():
     return df
 
 
-def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
+def hu_to_long_speed_of_sound_webb(hu, params=['GE','120','B','','0.5, 0.6']):
     '''
     Convert Hounsfield Units to longitudinal speed of sound using Webb model.
     
@@ -558,7 +558,7 @@ def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
     #Tables I and II in Webb et al. IEEE Trans Ultrason Ferroelectr Freq Control. 2018 Jul; 65(7): 1111–1124. 
     # DOI: 10.1109/TUFFC.2018.2827899
 
-    df=SpeedofSoundWebbDataset()
+    df=speed_of_sound_webb_dataset()
     
     sel=df.loc[[params]]
 
@@ -570,7 +570,7 @@ def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
     return sel.iloc[0]['Slope']*hu + sel.iloc[0]['Intercept']*1000.0
 
 
-def DensityToLSOSPichardo(density, frequency):
+def density_to_lsos_pichardo(density, frequency):
     '''
     Convert density to longitudinal speed of sound using Pichardo model.
     
@@ -588,7 +588,7 @@ def DensityToLSOSPichardo(density, frequency):
     '''
     return _PichardoSOS(density, frequency/1e6)
 
-def DensityToLAttPichardo(density, frequency):
+def density_to_latt_pichardo(density, frequency):
     '''
     Convert density to longitudinal attenuation using Pichardo model.
     
@@ -606,7 +606,7 @@ def DensityToLAttPichardo(density, frequency):
     '''
     return _PichardoAtt(density, frequency/1e6)
 
-def DensityToSSoSPichardo(density):
+def density_to_ssos_pichardo(density):
     '''
     Convert density to shear speed of sound using Pichardo model.
     
@@ -717,7 +717,7 @@ def make_affine_itk_friendly(affine, eps=1e-12, report=True):
         "max_rel_change_in_3x3": float(max_rel_change),
     }
 
-def SaveNiftiEnforcedISO(nii_in, fn):
+def save_nifti_enforced_iso(nii_in, fn):
     '''
     Save NIfTI image with isotropic voxel spacing using SimpleITK.
     
@@ -758,7 +758,7 @@ def SaveNiftiEnforcedISO(nii_in, fn):
             os.remove(fn_unc)
 
 
-def ResaveNormalized(rpath, mask):
+def resave_normalized(rpath, mask):
     '''
     Resave simulation results with normalization based on mask.
     
@@ -807,7 +807,7 @@ class RUN_SIM_BASE(object):
     Provides framework for creating simulation objects and running simulation cases
     with various configuration parameters.
     '''
-    def CreateSimObject(self, **kwargs):
+    def create_sim_object(self, **kwargs):
         '''
         Create simulation object with specified parameters.
         
@@ -824,7 +824,7 @@ class RUN_SIM_BASE(object):
         #this passes extra parameters needed for a given Tx
         raise NotImplementedError("Need to implement this")
 
-    def RunCases(self,targets=[''],deviceName='A6000',COMPUTING_BACKEND=1,
+    def run_cases(self,targets=[''],deviceName='A6000',COMPUTING_BACKEND=1,
                 ID='LIFU1-01',
                 basedir='../LIFU Clinical Trial Data/Participants/',
                 bTightNarrowBeamDomain=True,
@@ -862,9 +862,9 @@ class RUN_SIM_BASE(object):
             if COMPUTING_BACKEND==1:
                 InitCuda(deviceName)
             elif COMPUTING_BACKEND==2:
-                InitOpenCL(deviceName)
+                init_opencl(deviceName)
             elif COMPUTING_BACKEND==3:
-                InitMetal(deviceName)
+                init_metal(deviceName)
             bGPU_INITIALIZED=True
             
         OutNames=[]
@@ -894,11 +894,11 @@ class RUN_SIM_BASE(object):
                         CTFNAME=None
                         AIRMASK=None
 
-                    FILENAMES=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
+                    FILENAMES=output_file_names(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly)
                     FILENAMESWater=None
                     if bUseRayleighForWater:
                         # we store also the filenames for water only
-                        FILENAMESWater=OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,True)
+                        FILENAMESWater=output_file_names(MASKFNAME,target,Frequency,PPW,extrasuffix,True)
                     cname=FILENAMES['DataForSim']
                     print(cname)
                     OutNames.append(cname)
@@ -912,7 +912,7 @@ class RUN_SIM_BASE(object):
                         #we just need to calculate the filenames
                         continue
 
-                    TestClass=self.CreateSimObject(MASKFNAME=MASKFNAME,
+                    TestClass=self.create_sim_object(MASKFNAME=MASKFNAME,
                                                     bTightNarrowBeamDomain=bTightNarrowBeamDomain,
                                                     Frequency=Frequency,
                                                     basePPW=PPW,
@@ -938,39 +938,39 @@ class RUN_SIM_BASE(object):
 
                     #with suppress_stdout():
                     with CodeTimer("Time for step 1",unit='s'):
-                        TestClass.Step1_InitializeConditions()
+                        TestClass.step1_initialize_conditions()
                     print('  Step 2')
                     with CodeTimer("Time for step 2",unit='s'):
-                        TestClass.Step2_CalculateRayleighFieldsForward(prefix=FILENAMES['outName'],
+                        TestClass.step2_calculate_rayleigh_fields_forward(prefix=FILENAMES['outName'],
                                                                     deviceName=deviceName,
                                                                     bSkipSavingSTL= bMinimalSaving)
 
                     print('  Step 3')
                     with CodeTimer("Time for step 3",unit='s'):
-                        TestClass.Step3_CreateSourceSignal_and_Sensor()
+                        TestClass.step3_create_source_signal_and_sensor()
                     print('  Step 4')
                     with CodeTimer("Time for step 4",unit='s'):
-                        TestClass.Step4_Run_Simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                        TestClass.step4_run_simulation(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
                     print('  Step 5')
                     with CodeTimer("Time for step 5",unit='s'):
-                        TestClass.Step5_ExtractPhaseDataForwardandBack()
+                        TestClass.step5_extract_phase_data_forward_and_back()
                     if bDoRefocusing:
 
                         print('  Step 6')
                         with CodeTimer("Time for step 6",unit='s'):
-                            TestClass.Step6_BackPropagationRayleigh(deviceName=deviceName)
+                            TestClass.step6_back_propagation_rayleigh(deviceName=deviceName)
                         print('  Step 7')
                         with CodeTimer("Time for step 7",unit='s'):
-                            TestClass.Step7_Run_Simulation_Refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
+                            TestClass.step7_run_simulation_refocus(GPUName=deviceName,COMPUTING_BACKEND=COMPUTING_BACKEND)
                         print('  Step 8')
                         with CodeTimer("Time for step 8",unit='s'):
-                            TestClass.Step8_ExtractPhaseDataRefocus()
+                            TestClass.step8_extract_phase_data_refocus()
                     print('  Step 9')
                     with CodeTimer("Time for step 9",unit='s'):
-                        TestClass.Step9_PrepAndPlotData()
+                        TestClass.step9_prep_and_plot_data()
                     print('  Step 10')
                     with CodeTimer("Time for step 10",unit='s'):
-                        TestClass.Step10_GetResults(FILENAMES,subsamplingFactor=subsamplingFactor,
+                        TestClass.step10_get_results(FILENAMES,subsamplingFactor=subsamplingFactor,
                                                         bMinimalSaving=bMinimalSaving,
                                                         bUseRayleighForWater=bUseRayleighForWater,
                                                         FILENAMESWater=FILENAMESWater)
@@ -979,7 +979,7 @@ class RUN_SIM_BASE(object):
                 raise ValueError('TEST_FORCE_ERROR_BABEL_STEP2 was set to 1')
         return OutNames
     
-def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
+def output_file_names(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
     #this create a centralized filenaming of output files that can be used in GUI and in the simulations
     if bWaterOnly:
         waterPrefix='Water_'
@@ -1092,14 +1092,14 @@ class BabelFTD_Simulations_BASE(object):
         self._OptimizedWeightsFile=OptimizedWeightsFile
         self._AIRMASK=AIRMASK
 
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
 
-    def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
+    def adjust_mechanical_settings(self,SkullMaskDataOrig,voxelS):
         #in some Tx settings, we adjust here settings of distance
         pass
 
-    def Step1_InitializeConditions(self): #in case it is desired to move up or down in the Z direction the focal spot
+    def step1_initialize_conditions(self): #in case it is desired to move up or down in the Z direction the focal spot
         self._SkullMask=nibabel.load(self._MASKFNAME)
         SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(),axis=2)
 
@@ -1109,7 +1109,7 @@ class BabelFTD_Simulations_BASE(object):
         voxelS=np.array(self._SkullMask.header.get_zooms())*1e-3
         Dims=np.array(SkullMaskDataOrig.shape)*voxelS
         
-        self.AdjustMechanicalSettings(SkullMaskDataOrig,voxelS)
+        self.adjust_mechanical_settings(SkullMaskDataOrig,voxelS)
 
         DensityCTMap=None
         AirRegions=None
@@ -1127,55 +1127,55 @@ class BabelFTD_Simulations_BASE(object):
                 print('Density map specified, converting Density to HU')
                 DensityCTIT= AllBoneHU.copy()
                 print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
-                AllBoneHU = DensityToHUBony(DensityCTIT)
+                AllBoneHU = density_to_hu_bony(DensityCTIT)
                 print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
             
-            Porosity=HUtoPorosity(AllBoneHU)
+            Porosity=hu_to_porosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
                 if self._bDensity == False:
                     if self._bPETRA:
                         print('Using PETRA to low energy 70 Kvp CT settings')
-                        DensityCTIT=HUtoDensityUCLLowEnergy(AllBoneHU)
+                        DensityCTIT=hu_to_density_ucl_low_energy(AllBoneHU)
                     else:
                         print('Using 120 Kvp CT settings')
-                        DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+                        DensityCTIT=hu_to_density_marsac(AllBoneHU)
                 print('Using CT combination', self._CTMapCombo)
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=self._CTMapCombo)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,params=self._CTMapCombo)
+                LSoSIT = hu_to_long_speed_of_sound_webb(AllBoneHU,params=self._CTMapCombo)
+                LAttIT = hu_to_attenuation_webb(AllBoneHU,self._Frequency,params=self._CTMapCombo)
             elif self._MappingMethod=='Aubry':
                 if self._bDensity == False:
-                    DensityCTIT = PorositytoDensity(Porosity)
-                LSoSIT = PorositytoLSOS(Porosity)
-                LAttIT = PorositytoLAtt(Porosity,self._Frequency)
+                    DensityCTIT = porosity_to_density(Porosity)
+                LSoSIT = porosity_to_lsos(Porosity)
+                LAttIT = porosity_to_latt(Porosity,self._Frequency)
             elif  self._MappingMethod=='Pichardo':
                 if self._bDensity == False:
-                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
-                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
+                    DensityCTIT=hu_to_density_air_tissue(AllBoneHU)
+                LSoSIT=density_to_lsos_pichardo(DensityCTIT,self._Frequency)
+                LAttIT=density_to_latt_pichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold':
                 if self._bDensity == False:
-                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
-                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+                    DensityCTIT=hu_to_density_air_tissue(AllBoneHU)
+                LSoSIT=density_to_lsos_mcdannold(DensityCTIT)
+                LAttIT=density_to_latt_mcdannold(DensityCTIT,self._Frequency)
             #these are more experimental
             elif self._MappingMethod=='Marsac-Aubry':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
-                LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
+                    DensityCTIT=hu_to_density_marsac(AllBoneHU)
+                LSoSIT=density_to_lsos_marsac(DensityCTIT)
+                LAttIT = porosity_to_latt(AllBoneHU,self._Frequency)
             elif self._MappingMethod=='Pichardo-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
-                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
+                    DensityCTIT=hu_to_density_marsac(AllBoneHU)
+                LSoSIT=density_to_lsos_pichardo(DensityCTIT,self._Frequency)
+                LAttIT=density_to_latt_pichardo(DensityCTIT,self._Frequency)
             elif self._MappingMethod=='McDannold-Marsac':
                 #Marsac did not calculate attenuation... we use Aubry's old
                 if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
-                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
+                    DensityCTIT=hu_to_density_marsac(AllBoneHU)
+                LSoSIT=density_to_lsos_mcdannold(DensityCTIT)
+                LAttIT=density_to_latt_mcdannold(DensityCTIT,self._Frequency)
             else:
                 raise ValueError('Unknown mapping method -' +self._MappingMethod )
             
@@ -1209,7 +1209,7 @@ class BabelFTD_Simulations_BASE(object):
                 QCorrArr[2:]=self._QCorrection #This will match r0.4.3
 
 
-        self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
+        self._SIM_SETTINGS = self.create_sim_conditions(baseMaterial=Material['Water'],
                                 basePPW=self._basePPW,
                                 Frequency=self._Frequency,
                                 PaddingForKArray=0,
@@ -1242,16 +1242,16 @@ class BabelFTD_Simulations_BASE(object):
         
         if self._bForceHomogenousMedium and not self._bWaterOnly:
             print('Forcing using homogenous material with', self._HomogenousMediumValues)
-            self._SIM_SETTINGS.AddMaterial(self._HomogenousMediumValues['Density'], #den
+            self._SIM_SETTINGS.add_material(self._HomogenousMediumValues['Density'], #den
                                            self._HomogenousMediumValues['LongSoS'],
                                            self._HomogenousMediumValues['ShearSoS'],
                                            self._HomogenousMediumValues['LongAtt'],
                                            self._HomogenousMediumValues['ShearAtt']) 
         elif len(self._BenchmarkTestFile) > 0 and not self._bWaterOnly:
             print('Forcing using benchmark materials', InputDataBenchmark['Materials'])
-            self._SIM_SETTINGS.ResetMaterial() #we remove the default water material
+            self._SIM_SETTINGS.reset_material() #we remove the default water material
             for entry in InputDataBenchmark['Materials']:
-                self._SIM_SETTINGS.AddMaterial(entry['Density'], 
+                self._SIM_SETTINGS.add_material(entry['Density'], 
                                            entry['LongSoS'],
                                            entry['ShearSoS'],
                                            entry['LongAtt'],
@@ -1272,7 +1272,7 @@ class BabelFTD_Simulations_BASE(object):
                     lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
-                self._SIM_SETTINGS.AddMaterial(SelM[0], #den
+                self._SIM_SETTINGS.add_material(SelM[0], #den
                                             SelM[1],
                                             0,
                                             SelM[3],
@@ -1281,14 +1281,14 @@ class BabelFTD_Simulations_BASE(object):
             # Poison coefficient
             for d,lSoS,lAtt in zip(DensityCTIT,LSoSIT,LAttIT):
 
-                self._SIM_SETTINGS.AddMaterial(d, #den
+                self._SIM_SETTINGS.add_material(d, #den
                                         lSoS,
                                         0,
                                         lAtt,
                                         0)
 
             
-            print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
+            print('Total MAterials',self._SIM_SETTINGS.return_array_material().shape[0])
                 
 
         elif not self._bWaterOnly:
@@ -1307,82 +1307,82 @@ class BabelFTD_Simulations_BASE(object):
                     lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
                 SelM=MatFreq[self._Frequency][k]
-                self._SIM_SETTINGS.AddMaterial(SelM[0], #den
+                self._SIM_SETTINGS.add_material(SelM[0], #den
                                             SelM[1],
                                             SelM[2]*self._Shear,
                                             SelM[3],
                                             SelM[4]*self._Shear)
-        self._SIM_SETTINGS.UpdateConditions(self._SkullMask,
+        self._SIM_SETTINGS.update_conditions(self._SkullMask,
                                             AlphaCFL=self._AlphaCFL,
                                             bWaterOnly=self._bWaterOnly,
                                             bForceHomogenousMedium=self._bForceHomogenousMedium,
                                             BenchmarkTestFile=self._BenchmarkTestFile)
         gc.collect()
 
-    def GenerateSTLTx(self,prefix):
+    def generate_stl_tx(self,prefix):
         pass
         
-    def Step2_CalculateRayleighFieldsForward(self,prefix='',deviceName='6800',bSkipSavingSTL=False):
+    def step2_calculate_rayleigh_fields_forward(self,prefix='',deviceName='6800',bSkipSavingSTL=False):
         #we use Rayliegh to forward propagate until a plane on top the skull, this plane will be used as a source in BabelVisco
-        self._SIM_SETTINGS.CalculateRayleighFieldsForward(deviceName=deviceName)
+        self._SIM_SETTINGS.calculate_rayleigh_fields_forward(deviceName=deviceName)
         if bSkipSavingSTL ==False:
-            self.GenerateSTLTx(prefix)
+            self.generate_stl_tx(prefix)
         gc.collect()
         
 
-    def Step3_CreateSourceSignal_and_Sensor(self):
-        self._SIM_SETTINGS.CreateSources()
+    def step3_create_source_signal_and_sensor(self):
+        self._SIM_SETTINGS.create_sources()
         gc.collect()
-        self._SIM_SETTINGS.CreateSensorMap()
+        self._SIM_SETTINGS.create_sensor_map()
         gc.collect()
 
-    def Step4_Run_Simulation(self,GPUName='GP100',bApplyCorrectionForDispersion=True,COMPUTING_BACKEND=1):
+    def step4_run_simulation(self,GPUName='GP100',bApplyCorrectionForDispersion=True,COMPUTING_BACKEND=1):
         SelMapsRMSPeakList=['Pressure']
         if self._bSaveStress:
             SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
         if self._bSaveDisplacement:
             SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
-        self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,
+        self._SIM_SETTINGS.run_simulation(GPUName=GPUName,SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
                                           COMPUTING_BACKEND=COMPUTING_BACKEND,
                                           bDoRefocusing=self._bDoRefocusing)
         gc.collect()
 
-    def Step5_ExtractPhaseDataForwardandBack(self):
-        self._SIM_SETTINGS.CalculatePhaseData(bDoRefocusing=self._bDoRefocusing)
+    def step5_extract_phase_data_forward_and_back(self):
+        self._SIM_SETTINGS.calculate_phase_data(bDoRefocusing=self._bDoRefocusing)
         gc.collect()
-        #self._SIM_SETTINGS.PlotResultsPlanePartial()
+        #self._SIM_SETTINGS.plot_results_plane_partial()
         
         
-    def Step6_BackPropagationRayleigh(self,deviceName='6800'):
-        self._SIM_SETTINGS.BackPropagationRayleigh(deviceName=deviceName)
+    def step6_back_propagation_rayleigh(self,deviceName='6800'):
+        self._SIM_SETTINGS.back_propagation_rayleigh(deviceName=deviceName)
         gc.collect()
-        self._SIM_SETTINGS.CreateSourcesRefocus()
+        self._SIM_SETTINGS.create_sources_refocus()
         gc.collect()
         
-    def Step7_Run_Simulation_Refocus(self,GPUName='GP100',COMPUTING_BACKEND=1,bApplyCorrectionForDispersion=True):
+    def step7_run_simulation_refocus(self,GPUName='GP100',COMPUTING_BACKEND=1,bApplyCorrectionForDispersion=True):
         SelMapsRMSPeakList=['Pressure']
         if self._bSaveStress:
             SelMapsRMSPeakList+=['Sigmaxx','Sigmayy', 'Sigmazz']
         if self._bSaveDisplacement:
             SelMapsRMSPeakList+=['Vx','Vy', 'Vz']
-        self._SIM_SETTINGS.RUN_SIMULATION(GPUName=GPUName,
+        self._SIM_SETTINGS.run_simulation(GPUName=GPUName,
                                           SelMapsRMSPeakList=SelMapsRMSPeakList,
                                           bApplyCorrectionForDispersion=bApplyCorrectionForDispersion,
                                           bRefocused=True,COMPUTING_BACKEND=COMPUTING_BACKEND)
         gc.collect()
-    def Step8_ExtractPhaseDataRefocus(self):
-        self._SIM_SETTINGS.CalculatePhaseData(bRefocused=True)
+    def step8_extract_phase_data_refocus(self):
+        self._SIM_SETTINGS.calculate_phase_data(bRefocused=True)
         gc.collect()
         
-    def Step9_PrepAndPlotData(self):
-        self._SIM_SETTINGS.PlotResultsPlane(bDoRefocusing=self._bDoRefocusing)
+    def step9_prep_and_plot_data(self):
+        self._SIM_SETTINGS.plot_results_plane(bDoRefocusing=self._bDoRefocusing)
         gc.collect()
         
-    def AddSaveDataSim(self,DataForSim):
+    def add_save_data_sim(self,DataForSim):
         pass
 
-    def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
+    def step10_get_results(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
         ss=subsamplingFactor
 
         RayleighWater,RayleighWaterOverlay,\
@@ -1392,18 +1392,18 @@ class BabelFTD_Simulations_BASE(object):
             MaskCalcRegions,\
             FullSolutionPhase,\
             FullSolutionPhaseRefocus,\
-            RayleighWaterPhase= self._SIM_SETTINGS.ReturnResults(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
+            RayleighWaterPhase= self._SIM_SETTINGS.return_results(bDoRefocusing=self._bDoRefocusing,bUseRayleighForWater=bUseRayleighForWater)
         affine=self._SkullMask.affine.copy()
         affineSub=affine.copy()
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
 
         if bMinimalSaving==False and not bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
+            save_nifti_enforced_iso(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
         
         if not bUseRayleighForWater: 
             nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
+            save_nifti_enforced_iso(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
         locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -1414,37 +1414,37 @@ class BabelFTD_Simulations_BASE(object):
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus__'])
+            save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolutionRefocus__'])
             nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocusPhase__'])
+            save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolutionRefocusPhase__'])
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
-            ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
+            save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
+            resave_normalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
 
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
+        save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPhase[::ss,::ss,::ss],affine=affine)
-        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionPhase__'])
+        save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolutionPhase__'])
         if bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
+            save_nifti_enforced_iso(nii,FILENAMESWater['FullElasticSolution__'])
             nii=nibabel.Nifti1Image(RayleighWaterPhase[::ss,::ss,::ss],affine=affine)
-            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
+            save_nifti_enforced_iso(nii,FILENAMESWater['FullElasticSolution__'])
 
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
-        ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
+        save_nifti_enforced_iso(nii,FILENAMES['FullElasticSolution_Sub__'])
+        resave_normalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
 
         if bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution_Sub__'])
-            ResaveNormalized(FILENAMESWater['FullElasticSolution_Sub'],self._SkullMask)
+            save_nifti_enforced_iso(nii,FILENAMESWater['FullElasticSolution_Sub__'])
+            resave_normalized(FILENAMESWater['FullElasticSolution_Sub'],self._SkullMask)
 
         if not bUseRayleighForWater: 
             nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
-            SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
+            save_nifti_enforced_iso(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
         
         if subsamplingFactor>1:
             kt = ['p_amp','p_complex','MaterialMap']
@@ -1461,7 +1461,7 @@ class BabelFTD_Simulations_BASE(object):
                 DataForSim[k]=DataForSim[k][::ss,::ss,::ss]
             for k in ['x_vec','y_vec','z_vec']:
                 DataForSim[k]=DataForSim[k][::ss]
-            DataForSim['SpatialStep']*=ss
+            DataForSim['spatial_step']*=ss
             DataForSim['TargetLocation']=np.round(DataForSim['TargetLocation']/ss).astype(int)
         
         if bUseRayleighForWater:
@@ -1478,7 +1478,7 @@ class BabelFTD_Simulations_BASE(object):
         DataForSim['ZIntoSkin']=self._ZIntoSkin
         DataForSim['ZIntoSkinPixels']=self._SIM_SETTINGS._ZIntoSkinPixels
 
-        self.AddSaveDataSim(DataForSim)
+        self.add_save_data_sim(DataForSim)
         ###
 
         FocIJK=np.ones((4,1))
@@ -1523,7 +1523,7 @@ class BabelFTD_Simulations_BASE(object):
         
         return sname
 
-    def OutPutConditions(self):
+    def out_put_conditions(self):
         ### Usage details
 
         String = 'Plese see below code implementing the complete simulation.\n'+\
@@ -1614,8 +1614,8 @@ class SimulationConditionsBASE(object):
         self._TxMechanicalAdjustmentZ=TxMechanicalAdjustmentZ
         self._ZIntoSkin=ZIntoSkin
         self._DensityCTMap=DensityCTMap
-        self._ZIntoSkinPixels=0 # To be updated in UpdateConditions
-        self._ZSourceLocation= 0.0 # To be updated in UpdateConditions
+        self._ZIntoSkinPixels=0 # To be updated in update_conditions
+        self._ZSourceLocation= 0.0 # To be updated in update_conditions
         self._ExtraDepthAdjust=ExtraDepthAdjust
         self._ExtraAdjustX =ExtraAdjustX
         self._ExtraAdjustY =ExtraAdjustY
@@ -1635,7 +1635,7 @@ class SimulationConditionsBASE(object):
             self._OptimizedWeights = ReadFromH5py(OptimizedWeightsFile)['CALIBRATION']
 
  
-    def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
+    def add_material(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
         '''
         Add a material to the simulation.
 
@@ -1654,7 +1654,7 @@ class SimulationConditionsBASE(object):
         '''
         self._Materials.append([Density,LSoS,SSoS,LAtt,SAtt]);
         
-    def ResetMaterial(self): 
+    def reset_material(self): 
         '''
         Reset the material list to empty.
         '''
@@ -1662,7 +1662,7 @@ class SimulationConditionsBASE(object):
         
         
     @property
-    def Wavelength(self):
+    def wavelength(self):
         '''
         Get the current simulation wavelength.
         '''
@@ -1670,13 +1670,13 @@ class SimulationConditionsBASE(object):
         
         
     @property
-    def SpatialStep(self):
+    def spatial_step(self):
         '''
         Get the current spatial step size.
         '''
         return self._SpatialStep
         
-    def UpdateConditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
+    def update_conditions(self, SkullMaskNii,AlphaCFL=1.0,bWaterOnly=False,
                          bForceHomogenousMedium=False,
                          BenchmarkTestFile='',
                          DomeType=False):
@@ -1699,11 +1699,11 @@ class SimulationConditionsBASE(object):
         DomeType: bool, optional
             If True, the whole transducer should fit inside the simulation domain (default is False).
         '''
-        MatArray=self.ReturnArrayMaterial()
+        MatArray=self.return_array_material()
         SmallestSOS=np.sort(MatArray[:,1:3].flatten())
         iS=np.where(SmallestSOS>0)[0]
         if len(BenchmarkTestFile)==0:
-            SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
+            SmallestSOS=np.min([SmallestSOS[iS[0]],get_smallest_sos(self._Frequency,bShear=True)])
         else:
             InputDataBenchmark=ReadFromH5py(BenchmarkTestFile)
             SmallestSOS=1e6
@@ -1713,18 +1713,18 @@ class SimulationConditionsBASE(object):
                     SmallestSOS=np.min((SmallestSOS,e['ShearSoS']))
         self._Wavelength=SmallestSOS/self._Frequency
         self._baseAlphaCFL =AlphaCFL
-        print(" Wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
+        print(" wavelength, baseAlphaCFL",self._Wavelength,AlphaCFL)
         print ("smallSOS ", SmallestSOS)
         
-        SpatialStep=self._Wavelength/self._basePPW
+        spatial_step=self._Wavelength/self._basePPW
         
         dummyMaterialMap=np.zeros((10,10,MatArray.shape[0]),np.uint32)
         for n in range(MatArray.shape[0]):
             dummyMaterialMap[:,:,n]=n
         
-        OTemporalStep,_,_, _, _,_,_,_,_,_=PModel.CalculateMatricesForPropagation(dummyMaterialMap,MatArray,self._Frequency,self._QfactorCorrection,SpatialStep,AlphaCFL)
+        OTemporalStep,_,_, _, _,_,_,_,_,_=PModel.CalculateMatricesForPropagation(dummyMaterialMap,MatArray,self._Frequency,self._QfactorCorrection,spatial_step,AlphaCFL)
         
-        self.DominantMediumTemporalStep,_,_, _, _,_,_,_,_,_=PModel.CalculateMatricesForPropagation(dummyMaterialMap*0,MatArray[0,:].reshape((1,5)),self._Frequency,self._QfactorCorrection,SpatialStep,1.0)
+        self.DominantMediumTemporalStep,_,_, _, _,_,_,_,_,_=PModel.CalculateMatricesForPropagation(dummyMaterialMap*0,MatArray[0,:].reshape((1,5)),self._Frequency,self._QfactorCorrection,spatial_step,1.0)
 
         TemporalStep=OTemporalStep
 
@@ -1754,26 +1754,26 @@ class SimulationConditionsBASE(object):
         TemporalStep=1/self._Frequency/self._PPP # we make it an integer of the period
         self._AdjustedCFL=TemporalStep/OTemporalStep*AlphaCFL
         
-        #and back to SpatialStep
+        #and back to spatial_step
         print('"int fraction" TemporalStep',TemporalStep)
         print('"CFL fraction relative to water only conditions',TemporalStep/self.DominantMediumTemporalStep)
         
         print("adjusted AlphaCL, PPP",self._AdjustedCFL,self._PPP)
         
-        self._SpatialStep=SpatialStep
+        self._SpatialStep=spatial_step
         self._TemporalStep=TemporalStep
 
-        self._ZIntoSkinPixels=int(np.round(self._ZIntoSkin/SpatialStep))
+        self._ZIntoSkinPixels=int(np.round(self._ZIntoSkin/spatial_step))
         self._ZSourceLocation=self._ZIntoSkinPixels+self._PMLThickness
         
         #we save the mask array and flipped
         self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
         self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
-        print('voxelS, SpatialStep',voxelS,SpatialStep)
-        if not (np.allclose(np.round(np.ones(voxelS.shape)*SpatialStep,6),np.round(voxelS,6))):
+        print('voxelS, spatial_step',voxelS,spatial_step)
+        if not (np.allclose(np.round(np.ones(voxelS.shape)*spatial_step,6),np.round(voxelS,6))):
             print('*'*40)
-            print('Warning: voxel size in input Nifti and the expected size not identical',voxelS,SpatialStep)
+            print('Warning: voxel size in input Nifti and the expected size not identical',voxelS,spatial_step)
             print('*'*40)
         
         self._XLOffset=self._PMLThickness 
@@ -1837,9 +1837,9 @@ class SimulationConditionsBASE(object):
             self._FocalSpotLocation-=np.array([self._XShrink_L,self._YShrink_L,self._ZShrink_L])
             print('self._FocalSpotLocation',self._FocalSpotLocation)
             
-            xfield = np.arange(self._N1)*SpatialStep
-            yfield = np.arange(self._N2)*SpatialStep
-            zfield = np.arange(self._N3)*SpatialStep
+            xfield = np.arange(self._N1)*spatial_step
+            yfield = np.arange(self._N2)*spatial_step
+            zfield = np.arange(self._N3)*spatial_step
 
             print('distance xfield',xfield.max()-xfield.min())
             print('distance yfield',yfield.max()-yfield.min())
@@ -2001,13 +2001,13 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
         print('Domain size',self._N1,self._N2,self._N3)
         self._DimDomain=np.zeros((3))
-        self._DimDomain[0]=self._N1*SpatialStep
-        self._DimDomain[1]=self._N2*SpatialStep
-        self._DimDomain[2]=self._N3*SpatialStep
+        self._DimDomain[0]=self._N1*spatial_step
+        self._DimDomain[1]=self._N2*spatial_step
+        self._DimDomain[2]=self._N3*spatial_step
         
-        self._TimeSimulation=np.sqrt((self._DimDomain[0]-self._PMLThickness*2*SpatialStep)**2+
-                                     (self._DimDomain[1]-self._PMLThickness*2*SpatialStep)**2+
-                                     (self._DimDomain[2]-self._PMLThickness*2*SpatialStep)**2)/MatArray[0,1] #time to cross one corner to another
+        self._TimeSimulation=np.sqrt((self._DimDomain[0]-self._PMLThickness*2*spatial_step)**2+
+                                     (self._DimDomain[1]-self._PMLThickness*2*spatial_step)**2+
+                                     (self._DimDomain[2]-self._PMLThickness*2*spatial_step)**2)/MatArray[0,1] #time to cross one corner to another
         self._TimeSimulation=np.floor(self._TimeSimulation/self._TemporalStep)*self._TemporalStep
         
         TimeVector=np.arange(0.0,self._TimeSimulation,self._TemporalStep)
@@ -2115,7 +2115,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                                                                             self._ZShrink_L:upperZR]
                     self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
-                assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
+                assert(SubCTMap[BoneRegion].max()<=self.return_array_material().shape[0])
 
             else:
                 if bBrainSegmentation:
@@ -2144,7 +2144,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         print('Number of steps sensor',np.floor(self._TimeSimulation/self._TemporalStep/self._SensorSubSampling)-self._SensorStart)
         
         
-    def AdjustWeightAmplitudes(self):
+    def adjust_weight_amplitudes(self):
         '''
         Adjust the weight amplitudes to be used in the simulation
         '''
@@ -2156,7 +2156,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         else:
             return 1.0
 
-    def CalculateRayleighFieldsForward(self,deviceName='6800'):
+    def calculate_rayleigh_fields_forward(self,deviceName='6800'):
         '''
         Calculate the Rayleigh fields in the forward direction.
 
@@ -2172,7 +2172,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         raise NotImplementedError("Need to implement this")
            
-    def ReturnArrayMaterial(self):
+    def return_array_material(self):
         '''
         Return the array of materials used in the simulation.
 
@@ -2183,7 +2183,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         return np.array(self._Materials)
 
-    def CreateSources(self,ramp_length=4):
+    def create_sources(self,ramp_length=4):
         '''
         Create the source signals for the simulation.
 
@@ -2199,7 +2199,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         raise NotImplementedError("Need to implement this")
  
-    def CreateSensorMap(self):
+    def create_sensor_map(self):
         '''
         Create the sensor map and back-propagation sensor map for the simulation.
         '''
@@ -2219,7 +2219,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
             
         
-    def RUN_SIMULATION(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
+    def run_simulation(self,GPUName='SUPER',SelMapsRMSPeakList=['Pressure'],bRefocused=False,
                        bApplyCorrectionForDispersion=True,
                        COMPUTING_BACKEND=1,bDoRefocusing=True,
                        bDoStressSource=False,SelRMSorPeak=1):
@@ -2241,12 +2241,12 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         bDoRefocusing : bool, optional
             If True, perform backpropagation/refocusing (default is True).
         '''
-        MaterialList=self.ReturnArrayMaterial()
+        MaterialList=self.return_array_material()
 
         print('Using SelRMSorPeak',SelRMSorPeak)
 
         if bDoStressSource:
-            print('RUN_SIMULATION with Stress Sources')
+            print('run_simulation with Stress Sources')
             TypeSource=2
             Ox=np.array([1])
             Oy=np.array([1])
@@ -2380,7 +2380,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                     
         gc.collect()
     
-    def CalculatePhaseData(self,bRefocused=False,bDoRefocusing=True,bDoRefocusingVolume=False):
+    def calculate_phase_data(self,bRefocused=False,bDoRefocusing=True,bDoRefocusingVolume=False):
         '''
         Calculate phase and amplitude maps from the simulated sensor data.
 
@@ -2482,7 +2482,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             self._PressMapFourierRefocus*=2/self._SensorRefocus['time'].size
             print('Elapsed time doing phase and amp extraction from Fourier (s)',time.time()-t0)
              
-    def BackPropagationRayleigh(self,deviceName='6800'):
+    def back_propagation_rayleigh(self,deviceName='6800'):
         '''
         Perform Rayleigh backpropagation for refocusing.
 
@@ -2498,7 +2498,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         raise NotImplementedError("Need to implement this") 
         
-    def CreateSourcesRefocus(self,ramp_length=4):
+    def create_sources_refocus(self,ramp_length=4):
         '''
         Create the source signals for the refocused simulation.
 
@@ -2514,7 +2514,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         raise NotImplementedError("Need to implement this")
     
-    def CalculateDomainZReference(self):
+    def calculate_domain_z_reference(self):
         '''
         Calculate Z-axis domain correction based on skin surface location.
         
@@ -2541,7 +2541,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         DomainCorrection=GlobalStartSkin-StartSkin
         return DomainCorrection
         
-    def PlotResultsPlanePartial(self):
+    def plot_results_plane_partial(self):
         '''
         Plot partial results (peak, Fourier, and in-peak amplitude) for a central plane.
         '''
@@ -2567,7 +2567,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             plt.colorbar()
             plt.title('BabelViscoFDTD InPeak amp. (MPa)')
             
-    def PlotResultsPlane(self,bDoRefocusing=True):
+    def plot_results_plane(self,bDoRefocusing=True):
         '''
         Plot results for the main and (optionally) refocused simulations.
 
@@ -2649,7 +2649,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                      [0,np.max(LineInPeak)],':')
             ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
         
-    def ReturnResults(self,bDoRefocusing=True,bUseRayleighForWater=False,bDoRefocusingVolume=False):
+    def return_results(self,bDoRefocusing=True,bUseRayleighForWater=False,bDoRefocusingVolume=False):
         '''
         Return simulation results including pressure, phase, overlays, and data for saving.
 
@@ -2807,11 +2807,11 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         for k in DataForSim:
             if k!='p_complex_back' or (k=='p_complex_back' and bDoRefocusingVolume):
                 DataForSim[k]=np.flip(DataForSim[k],axis=2)
-        DataForSim['Material']=self.ReturnArrayMaterial()
+        DataForSim['Material']=self.return_array_material()
         DataForSim['x_vec']=self._XDim[self._XLOffset:-self._XROffset]
         DataForSim['y_vec']=self._YDim[self._YLOffset:-self._YROffset]
         DataForSim['z_vec']=self._ZDim[self._ZLOffset:-self._ZROffset]
-        DataForSim['SpatialStep']=self._SpatialStep
+        DataForSim['spatial_step']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
         if hasattr(self,'_SourceMapRayleigh'):

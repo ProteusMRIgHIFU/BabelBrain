@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import calculate_field_process
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from _BabelBaseTx import BabelBaseTx
@@ -48,7 +48,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def DistanceOutPlaneToFocus(FocalLength,Diameter):
+def distance_out_plane_to_focus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
 class SingleTx(BabelBaseTx):
@@ -58,7 +58,7 @@ class SingleTx(BabelBaseTx):
         self._MainApp=MainApp
         self._bIgnoreUpdate=False
         self._ZMaxSkin = 0.0 # maximum
-        self.DefaultConfig()
+        self.default_config()
         self.load_ui(formfile)
 
 
@@ -70,23 +70,23 @@ class SingleTx(BabelBaseTx):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
-        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)
-        self.Widget.DiameterSpinBox.valueChanged.connect(self.UpdateTxInfo)
-        self.Widget.FocalLengthSpinBox.valueChanged.connect(self.UpdateTxInfo)
+        self.Widget.CalculateAcField.clicked.connect(self.run_simulation)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.update_tx_info)
+        self.Widget.DiameterSpinBox.valueChanged.connect(self.update_tx_info)
+        self.Widget.FocalLengthSpinBox.valueChanged.connect(self.update_tx_info)
         self.Widget.LabelTissueRemoved.setVisible(False)
-        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
-        self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.calculate_mech_adj.clicked.connect(self.calculate_mech_adj)
+        self.Widget.calculate_mech_adj.setEnabled(False)
         self.up_load_ui()
 
-    def DefaultConfig(self,cfile='default.yaml'):
+    def default_config(self,cfile='default.yaml'):
         #Specific parameters for the CTX500 - to be configured later via a yaml
 
         with open(os.path.join(resource_path(),cfile), 'r') as file:
             config = yaml.safe_load(file)
         self.Config=config
 
-    def NotifyGeneratedMask(self):
+    def notify_generated_mask(self):
         VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
@@ -96,7 +96,7 @@ class SingleTx(BabelBaseTx):
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
 
-        self.UpdateLimits()
+        self.update_limits()
 
         if self._ZMaxSkin >0:
             self.Widget.SkinDistanceSpinBox.setValue(self._ZMaxSkin) # Tx aligned at the target
@@ -106,15 +106,15 @@ class SingleTx(BabelBaseTx):
         
     
     @Slot()
-    def UpdateTxInfo(self):
+    def update_tx_info(self):
         if self._bIgnoreUpdate:
             return
         self._bIgnoreUpdate=True
-        self.UpdateLimits()
-        self.UpdateDistanceLabels()
+        self.update_limits()
+        self.update_distance_labels()
         self._bIgnoreUpdate=False 
 
-    def UpdateDistanceLabels(self):
+    def update_distance_labels(self):
         CurDistance=self.Widget.SkinDistanceSpinBox.value()
         if CurDistance<0:
             self.Widget.LabelTissueRemoved.setVisible(True)
@@ -122,18 +122,18 @@ class SingleTx(BabelBaseTx):
             self.Widget.LabelTissueRemoved.setVisible(False)
 
 
-    def UpdateLimits(self):
+    def update_limits(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
-        DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
+        DOut=distance_out_plane_to_focus(FocalLength,Diameter)
         self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
         self._ZMaxSkin = np.round(ZMax,1)
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
-        self.UpdateDistanceLabels()
+        self.update_distance_labels()
 
-    def GetExtraSuffixAcFields(self):
+    def get_extra_suffix_ac_fields(self):
         FocalLength = self.Widget.FocalLengthSpinBox.value()
         Diameter = self.Widget.DiameterSpinBox.value()
         extrasuffix='Foc%03.1f_Diam%03.1f_' %(FocalLength,Diameter)
@@ -141,8 +141,8 @@ class SingleTx(BabelBaseTx):
 
       
     @Slot()
-    def RunSimulation(self):
-        extrasuffix=self.GetExtraSuffixAcFields()
+    def run_simulation(self):
+        extrasuffix=self.get_extra_suffix_ac_fields()
         self._FullSolName=self._MainApp._prefix_path+extrasuffix+'DataForSim.h5' 
         self._WaterSolName=self._MainApp._prefix_path+extrasuffix+'Water_DataForSim.h5'
         FocalLength = self.Widget.FocalLengthSpinBox.value()
@@ -181,24 +181,24 @@ class SingleTx(BabelBaseTx):
                             extrasuffix,Diameter/1e3,FocalLength/1e3)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self.update_ac_results)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
 
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.UpdateAcResults()
+            self.update_ac_results()
 
    
-    def GetExport(self):
-        Export=super(SingleTx,self).GetExport()
+    def get_export(self):
+        Export=super(SingleTx,self).get_export()
         for k in ['FocalLength','Diameter','XMechanic','YMechanic','SkinDistance']:
             if hasattr(self.Widget,k+'SpinBox'):
                 Export[k]=getattr(self.Widget,k+'SpinBox').value()
@@ -255,13 +255,13 @@ class RunAcousticSim(QObject):
         kargs['ZIntoSkin']=ZIntoSkin
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
-        kargs|=self._mainApp.CommomAcOptions()
+        kargs|=self._mainApp.commom_ac_options()
 
         # Start mask generation as separate process.
         bNoError=True
         queue=Queue()
         T0=time.time()
-        fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+        fieldWorkerProcess = Process(target=calculate_field_process, 
                                     args=(queue,Target,self._mainApp.Config['TxSystem']),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
@@ -286,7 +286,7 @@ class RunAcousticSim(QObject):
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
-            self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
+            self._mainApp.update_computational_time('ultrasound',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

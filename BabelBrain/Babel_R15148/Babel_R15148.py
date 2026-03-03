@@ -22,7 +22,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 class R15148(H317):
-    def DefaultConfig(self):
+    def default_config(self):
         #Specific parameters for the R15148 - configured via a yaml
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:
             config = yaml.safe_load(file)

@@ -27,7 +27,7 @@ class H317(BabelBasePhaseArray):
         super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
 
 
-    def DefaultConfig(self):
+    def default_config(self):
         #Specific parameters for the H317 -  configured later via a yaml
 
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),'default.yaml'), 'r') as file:

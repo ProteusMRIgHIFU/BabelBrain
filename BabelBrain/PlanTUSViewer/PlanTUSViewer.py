@@ -223,7 +223,7 @@ class GiftiViewer(QWidget):
         # --- Scalar bar ---
         scalar_bar = vtk.vtkScalarBarActor()
         self.renderer.AddActor(scalar_bar)
-        scalar_bar.SetLookupTable(self.current_ActorsEntry['mapperMasked'].GetLookupTable())
+        scalar_bar.SetLookupTable(self.current_actors_entry['mapperMasked'].GetLookupTable())
         scalar_bar.SetNumberOfLabels(5)
 
         # Place on right side of the render window
@@ -234,15 +234,15 @@ class GiftiViewer(QWidget):
 
     def select_function(self,selection):
         #we first hide the current function's actors
-        self.current_ActorsEntry['actorHeatMapMasked'].SetVisibility(False)
-        self.current_ActorsEntry['actorHeatMapUnmasked'].SetVisibility(False)
-        self.current_ActorsEntry['actorSkinMasked'].SetVisibility(False)
+        self.current_actors_entry['actorHeatMapMasked'].SetVisibility(False)
+        self.current_actors_entry['actorHeatMapUnmasked'].SetVisibility(False)
+        self.current_actors_entry['actorSkinMasked'].SetVisibility(False)
         self.selectedFunc=selection
         self.set_heatmap_visibility(self.currentHeatmapVisibility) #this will honor the current selection
 
 
     @property
-    def current_ActorsEntry(self):
+    def current_actors_entry(self):
         return self.Entries[self.selectedFunc]
 
     def on_left_click(self, obj, event):
@@ -252,10 +252,10 @@ class GiftiViewer(QWidget):
         x, y = self.interactor.GetEventPosition()
         if self.picker.Pick(x, y, 0, self.renderer):
             cell_id = self.picker.GetCellId()
-            if cell_id >= 0 and cell_id < len(self.current_ActorsEntry['faces']):
+            if cell_id >= 0 and cell_id < len(self.current_actors_entry['faces']):
                 # Get triangle vertices
-                tri = self.current_ActorsEntry['faces'][cell_id]
-                vtx_coords = self.current_ActorsEntry['coordsOrig'][tri]
+                tri = self.current_actors_entry['faces'][cell_id]
+                vtx_coords = self.current_actors_entry['coordsOrig'][tri]
                 if np.any(np.isnan(vtx_coords)):
                     return  # skip if any vertex is NaN
                 
@@ -270,8 +270,8 @@ class GiftiViewer(QWidget):
     def highlight_triangle(self, cell_id,pick_pos):
         """Highlight a triangle by ID and place sphere at pick position."""
 
-        tri = self.current_ActorsEntry['faces'][cell_id]
-        values = self.current_ActorsEntry['func_data'][tri]
+        tri = self.current_actors_entry['faces'][cell_id]
+        values = self.current_actors_entry['func_data'][tri]
         value = np.mean(values)
         if np.isnan(value):
             return  # skip if value is NaN
@@ -312,24 +312,24 @@ class GiftiViewer(QWidget):
             val = cmap(i)
             lut.SetTableValue(i, val[0], val[1], val[2], 1.0)
 
-        self.current_ActorsEntry['mapperMasked'].SetLookupTable(lut)
-        self.current_ActorsEntry['mapperUnmasked'].SetLookupTable(lut)
+        self.current_actors_entry['mapperMasked'].SetLookupTable(lut)
+        self.current_actors_entry['mapperUnmasked'].SetLookupTable(lut)
 
         self.vtkWidget.GetRenderWindow().Render()
 
     def set_heatmap_visibility(self, visible):
         self.currentHeatmapVisibility = visible
-        self.current_ActorsEntry['actorHeatMapMasked'].SetVisibility(visible)
-        self.current_ActorsEntry['actorSkinMasked'].SetVisibility(visible)
-        self.current_ActorsEntry['actorHeatMapUnmasked'].SetVisibility(not visible)
+        self.current_actors_entry['actorHeatMapMasked'].SetVisibility(visible)
+        self.current_actors_entry['actorSkinMasked'].SetVisibility(visible)
+        self.current_actors_entry['actorHeatMapUnmasked'].SetVisibility(not visible)
         self.vtkWidget.GetRenderWindow().Render()
 
 class MultiGiftiViewerWidget(QWidget):
-    def __init__(self, gifti_files, MaxViews=4, parent=None, callBackAfterGenTrajectory=None):
+    def __init__(self, gifti_files, MaxViews=4, parent=None, callback_after_gen_trajectory=None):
         super().__init__(parent)
         self.viewers = []
         self.MaxViews = MaxViews
-        self.callBackAfterGenTrajectory = callBackAfterGenTrajectory
+        self.callback_after_gen_trajectory = callback_after_gen_trajectory
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -410,7 +410,7 @@ class MultiGiftiViewerWidget(QWidget):
         self.select_vortex = None
 
         button = QPushButton("Generate Trajectory", self)
-        button.clicked.connect(self.GenerateTrajectory)
+        button.clicked.connect(self.generate_trajectory)
         button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # only as wide as needed
         button.setStyleSheet("padding: 8px 36px;")
         button.setStyleSheet("""
@@ -423,10 +423,10 @@ class MultiGiftiViewerWidget(QWidget):
         self.generateTrajectoryPushButton = button
         layout.addWidget(button, alignment=Qt.AlignHCenter) 
 
-    def GenerateTrajectory(self):
+    def generate_trajectory(self):
         print("Generating trajectory... for vortex id",self.select_vortex)
-        if self.callBackAfterGenTrajectory:
-            self.callBackAfterGenTrajectory(self.select_vortex )
+        if self.callback_after_gen_trajectory:
+            self.callback_after_gen_trajectory(self.select_vortex )
 
     # --------------------------
     # Methods from MainWindow
@@ -461,7 +461,7 @@ class MultiGiftiViewerWidget(QWidget):
         camera = self.viewers[0].renderer.GetActiveCamera()
         self.viewers[0].renderer.ResetCamera()
 
-        bounds = self.viewers[0].current_ActorsEntry['actorHeatMapMasked'].GetBounds()
+        bounds = self.viewers[0].current_actors_entry['actorHeatMapMasked'].GetBounds()
         center = [(bounds[0] + bounds[1]) / 2,
                   (bounds[2] + bounds[3]) / 2,
                   (bounds[4] + bounds[5]) / 2]

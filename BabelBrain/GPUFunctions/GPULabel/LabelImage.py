@@ -10,9 +10,9 @@ from scipy.ndimage._morphology import generate_binary_structure
 from skimage.measure import label
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX
+    from GPUUtils import init_cuda,init_opencl,init_metal,init_mlx
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,init_mlx
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -28,7 +28,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_label(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue
     global prgcl
     global sel_device
@@ -52,14 +52,14 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
         clp = cp
         cndimage = ndimage
 
-        ctx,_,sel_device = InitCUDA(DeviceName=DeviceName)
+        ctx,_,sel_device = init_cuda(DeviceName=DeviceName)
 
     elif GPUBackend == 'OpenCL':
         import pyopencl as pocl
         clp = pocl
 
         preamble = '#define _OPENCL'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
+        queue,prgcl,sel_device,ctx,mf = init_opencl(preamble,kernel_files=kernel_files,DeviceName=DeviceName)
         
         # Create kernels from program function
         knl_label_init = prgcl.label_init
@@ -73,7 +73,7 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
 
         clp = mc
         preamble = '#define _METAL' 
-        prgcl, sel_device, ctx = InitMetal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+        prgcl, sel_device, ctx = init_metal(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
        
         # Create kernel from program function
         knl_label_init = prgcl.function('label_init')
@@ -86,7 +86,7 @@ def InitLabel(DeviceName='A6000',GPUBackend='OpenCL'):
 
         clp = mx
         preamble = '#define _METAL\n#include <metal_stdlib>\nusing namespace metal;\n'
-        prgcl, sel_device, ctx = InitMLX(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
+        prgcl, sel_device, ctx = init_mlx(preamble,DeviceName=DeviceName,kernel_files=kernel_files)
        
         # Create kernel from program function
         knl_label_init = prgcl['label_init']['kernel']
@@ -345,7 +345,7 @@ def label_modified(input, structure=None, output=None, GPUBackend='OpenCL'):
         return output, maxlabel
 
 
-def LabelImage(image, background=None, return_num=False, connectivity=None, GPUBackend='OpenCL'): # return_num=False, 
+def label_image(image, background=None, return_num=False, connectivity=None, GPUBackend='OpenCL'): # return_num=False, 
     """
     Modified from Skimage's label function to work using GPU (Cupy, OpenCL, and Metal)
 

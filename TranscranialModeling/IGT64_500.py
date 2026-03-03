@@ -8,7 +8,7 @@ ABOUT:
 '''
 
 import numpy as np
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import pandas as pd
 import os
 
@@ -16,7 +16,7 @@ extlay={}
 TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-def computeIGT64_500Geometry():
+def compute_igt64_500_geometry():
     df= pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)),'IGT64_500.csv'),sep=',')
     transxyz = np.zeros((64,3))
     transxyz[:,0]=np.array(df['X'])
@@ -24,21 +24,21 @@ def computeIGT64_500Geometry():
     transxyz[:,2]=75.0-np.array(df['Z'])
     return transxyz
         
-def IGT64_500Locations():
-    temp_positions = computeIGT64_500Geometry()
+def igt64_500_locations():
+    temp_positions = compute_igt64_500_geometry()
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateIGT64_500Tx(Frequency=0.5e6,RotationZ=0,FactorEnlarge=1):
+def generate_igt64_500_tx(Frequency=0.5e6,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency
     Foc=75e-3*FactorEnlarge
     Diameter=6.0e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'])
 
-    transLoc = IGT64_500Locations()
+    transLoc = igt64_500_locations()
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

@@ -45,9 +45,9 @@ except:
 
 
 try:
-    from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    from ConvMatTransform import read_trajectory_brainsight, get_id_trajectory_brainsight,read_itk_affine_transform,itk_to_bsight
 except:
-    from .ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    from .ConvMatTransform import read_trajectory_brainsight, get_id_trajectory_brainsight,read_itk_affine_transform,itk_to_bsight
 
 try:
     from FileManager import FileManager
@@ -84,7 +84,7 @@ def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=
     
     return smoothing.GetOutput()
 
-def MaskToStl(binmask,affine):
+def mask_to_stl(binmask,affine):
     pvvol=pv.wrap(binmask.astype(np.float32))
     surface=pvvol.contour(isosurfaces=np.array([0.9]))
     
@@ -114,12 +114,12 @@ def MaskToStl(binmask,affine):
         os.remove(tmpdirname+os.sep+'__t.stl')
     return meshsurface
 
-MedianFilter=None
+median_filter=None
 MedianCOMPUTING_BACKEND=''
-def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
-    global MedianFilter
+def init_median_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
+    global median_filter
     global MedianCOMPUTING_BACKEND
-    MedianFilter = Callback
+    median_filter = Callback
     if COMPUTING_BACKEND==1:
         MedianCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
@@ -132,7 +132,7 @@ def InitMedianGPUCallback(Callback=None,COMPUTING_BACKEND=2):
 VoxelizeFilter=None
 VoxelizeCOMPUTING_BACKEND=''
 
-def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def init_voxelize_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
     global VoxelizeFilter
     global VoxelizeCOMPUTING_BACKEND
     VoxelizeFilter = Callback
@@ -145,12 +145,12 @@ def InitVoxelizeGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         VoxelizeCOMPUTING_BACKEND='MLX'
 
-MapFilter=None
+map_filter=None
 MapFilterCOMPUTING_BACKEND=''
-def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
-    global MapFilter
+def init_mapping_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
+    global map_filter
     global MapFilterCOMPUTING_BACKEND
-    MapFilter = Callback
+    map_filter = Callback
     if COMPUTING_BACKEND==1:
         MapFilterCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
@@ -162,7 +162,7 @@ def InitMappingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
 
 ResampleFilter=None
 ResampleFilterCOMPUTING_BACKEND=''
-def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def init_resample_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
     global ResampleFilter
     global ResampleFilterCOMPUTING_BACKEND
     ResampleFilter = Callback
@@ -177,7 +177,7 @@ def InitResampleGPUCallback(Callback=None,COMPUTING_BACKEND=2):
 
 BinaryClosingFilter=None
 BinaryClosingFilterCOMPUTING_BACKEND=''
-def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
+def init_binary_closing_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
     global BinaryClosingFilter
     global BinaryClosingFilterCOMPUTING_BACKEND
     BinaryClosingFilter = Callback
@@ -190,12 +190,12 @@ def InitBinaryClosingGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         BinaryClosingFilterCOMPUTING_BACKEND='MLX'
 
-LabelImage=None
+label_image=None
 LabelImageCOMPUTING_BACKEND=''
-def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
-    global LabelImage
+def init_label_image_gpu_callback(Callback=None,COMPUTING_BACKEND=2):
+    global label_image
     global LabelImageCOMPUTING_BACKEND
-    LabelImage = Callback
+    label_image = Callback
     if COMPUTING_BACKEND==1:
         LabelImageCOMPUTING_BACKEND='CUDA'
     elif COMPUTING_BACKEND==2:
@@ -205,7 +205,7 @@ def InitLabelImageGPUCallback(Callback=None,COMPUTING_BACKEND=2):
     else:
         LabelImageCOMPUTING_BACKEND='MLX'
 
-def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
+def convert_mni_to_subject_space(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSimnNIBS=''):
     '''
     Convert MNI coordinates to patient coordinates using SimbNIBS converted data
     
@@ -261,14 +261,14 @@ def ConvertMNItoSubjectSpace(M1_C,DataPath,T1Conformal_nii,bUseFlirt=True,PathSi
     print('patient coordinates',subjectcoordinates)
     return subjectcoordinates
 
-def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
+def do_intersect(Mesh1,Mesh2,bForceUseBlender=False):
     # Fix broken meshes
     if Mesh1.body_count != 1:
         print('Mesh 1 is invalid... trying to fix')
-        Mesh1 = FixMesh(Mesh1)
+        Mesh1 = fix_mesh(Mesh1)
     if Mesh2.body_count != 1:
         print('Mesh 2 is invalid... trying to fix')
-        Mesh2 = FixMesh(Mesh2)
+        Mesh2 = fix_mesh(Mesh2)
 
     for mesh in [Mesh1,Mesh2]:
         if not mesh.is_volume:
@@ -291,7 +291,7 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     
     return Mesh1_intersect
 
-def FixMesh(inmesh):
+def fix_mesh(inmesh):
     with tempfile.TemporaryDirectory() as tmpdirname:
         inmesh.export(tmpdirname+os.sep+'__in.stl')
         pymeshfix.clean_from_file(tmpdirname+os.sep+'__in.stl', tmpdirname+os.sep+'__out.stl')
@@ -300,7 +300,7 @@ def FixMesh(inmesh):
         os.remove(tmpdirname+os.sep+'__out.stl')
     return fixmesh
 
-def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
+def run_mesh_conv(reference,mesh,finalname,SimbNINBSRoot=''):
     scriptbase=os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/")
     if sys.platform == 'linux' or _IS_MAC:
         if sys.platform == 'linux':
@@ -345,7 +345,7 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
     
         
 #process first with SimbNIBS
-def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
+def get_skull_mask_from_simbnibs_stl(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 SimbNIBSType='charm',# indicate if processing was done with charm or headreco
                                 T1Source_nii ='4007/4007_keep/m2m_4007_keep/T1.nii.gz',
                                 T1Conformal_nii='4007/4007_keep/m2m_4007_keep/T1fs_conform.nii.gz', #be sure it is the conformal 
@@ -362,7 +362,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 TxDiam=157.0, # Tx aperture diameter used for FOV subvolume
                                 Location=[27.5, -42, 42],#RAS location of target ,
                                 TrabecularProportion=0.8, #proportion of trabecular bone
-                                SpatialStep=1500/500e3/9*1e3, #step of mask to reconstruct , mm
+                                spatial_step=1500/500e3/9*1e3, #step of mask to reconstruct , mm
                                 prefix='', #Id to add to output file for identification
                                 bPlot=True,
                                 bForceFullRecalculation=False,
@@ -435,9 +435,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     #sanity test to verify we have an isotropic scan
     assert(np.allclose(np.array(T1Conformal.header.get_zooms()),np.ones(3),rtol=1e-3))
     
-    baseaffine[0,0]*=SpatialStep
-    baseaffine[1,1]*=SpatialStep
-    baseaffine[2,2]*=SpatialStep
+    baseaffine[0,0]*=spatial_step
+    baseaffine[1,1]*=spatial_step
+    baseaffine[2,2]*=spatial_step
 
     skull_stl=outputfilenames['Skull_STL']
     csf_stl=outputfilenames['CSF_STL']
@@ -469,23 +469,23 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
             CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
             with CodeTimer("charm surface recon",unit='s'):
-                skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
-                csf_mesh=MaskToStl(CSFRegion,charm.affine)
-                skull_mesh=MaskToStl(BoneRegion,charm.affine)
+                skin_mesh=mask_to_stl(AllTissueRegion,charm.affine)
+                csf_mesh=mask_to_stl(CSFRegion,charm.affine)
+                skull_mesh=mask_to_stl(BoneRegion,charm.affine)
                 
                 if skin_mesh.body_count != 1:
                     print('skin_mesh is invalid... trying to fix')
-                    skin_mesh = FixMesh(skin_mesh)
+                    skin_mesh = fix_mesh(skin_mesh)
                 S1_file_manager.save_file(file_data=skin_mesh,filename=skin_stl)
 
                 if csf_mesh.body_count != 1:
                     print('csf_mesh is invalid... trying to fix')
-                    csf_mesh = FixMesh(csf_mesh)
+                    csf_mesh = fix_mesh(csf_mesh)
                 S1_file_manager.save_file(file_data=csf_mesh,filename=csf_stl)
 
                 if skull_mesh.body_count != 1:
                     print('skull_mesh is invalid... trying to fix')
-                    skull_mesh = FixMesh(skull_mesh)
+                    skull_mesh = fix_mesh(skull_mesh)
                 S1_file_manager.save_file(file_data=skull_mesh,filename=skull_stl)
 
             S1_file_manager.save_file(file_data=None,filename=outputfilenames['ReuseSimbNIBS'],precursor_files=inputfilenames.values())
@@ -507,13 +507,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
     if TrajectoryType =='brainsight':
         print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
-        RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+        RMat=read_trajectory_brainsight(Mat4Trajectory)
     else:
         inMat=read_itk_affine_transform(Mat4Trajectory)
          #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
          #to the feet direction , while in SlicerIGT it starts with a vector towards the head
         print('*'*40+'\n Reading orientation and target location directly from Slicer export\n'+'*'*40)
-        RMat = itk_to_BSight(inMat)
+        RMat = itk_to_bsight(inMat)
 
     print('Trajectory Matrix\n',RMat)
     Location=RMat[:3,3].tolist()
@@ -555,19 +555,19 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     skin_mesh = S1_file_manager.load_file(skin_stl)
     #we intersect the skin region with a cone region oriented in the same direction as the acoustic beam
-    skin_mesh =DoIntersect(skin_mesh,Cone,bForceUseBlender=bForceUseBlender)
+    skin_mesh =do_intersect(skin_mesh,Cone,bForceUseBlender=bForceUseBlender)
 
     #we obtain the list of Cartesian voxels inside the skin region intersected by the cone    
     with CodeTimer("voxelization ",unit='s'):
         if VoxelizeFilter is None:  
-            skin_grid = skin_mesh.voxelized(SpatialStep,max_iter=30).fill().points
+            skin_grid = skin_mesh.voxelized(spatial_step,max_iter=30).fill().points
         else:
-            skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            skin_grid = VoxelizeFilter(skin_mesh,targetResolution=spatial_step*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
         gc.collect()
     
-    x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+SpatialStep,SpatialStep)
-    y_vec=np.arange(skin_grid[:,1].min(),skin_grid[:,1].max()+SpatialStep,SpatialStep)
-    z_vec=np.arange(skin_grid[:,2].min(),skin_grid[:,2].max()+SpatialStep,SpatialStep)
+    x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+spatial_step,spatial_step)
+    y_vec=np.arange(skin_grid[:,1].min(),skin_grid[:,1].max()+spatial_step,spatial_step)
+    z_vec=np.arange(skin_grid[:,2].min(),skin_grid[:,2].max()+spatial_step,spatial_step)
     
     Corner1=np.array([x_vec[0],y_vec[0],z_vec[0],1]).reshape((4,1))
     Corner2=np.array([x_vec[-1],y_vec[-1],z_vec[-1],1]).reshape((4,1))
@@ -583,7 +583,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     print('baseaffine',baseaffine)
     RMat4=np.eye(4)
-    RMat4[:3,:3]=RMat*SpatialStep
+    RMat4[:3,:3]=RMat*spatial_step
     print('RMat4',RMat4)
    
     baseaffineRot=RMat4   
@@ -625,20 +625,20 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
       
     ##################### And we repeat and complete data extraction
     baseaffine=T1Conformal.affine.copy()
-    baseaffine[0,0]*=SpatialStep
-    baseaffine[1,1]*=SpatialStep
-    baseaffine[2,2]*=SpatialStep
+    baseaffine[0,0]*=spatial_step
+    baseaffine[1,1]*=spatial_step
+    baseaffine[2,2]*=spatial_step
 
     skull_mesh = S1_file_manager.load_file(skull_stl)
     csf_mesh = S1_file_manager.load_file(csf_stl)
     skin_mesh = S1_file_manager.load_file(skin_stl)
 
     if bApplyBOXFOV:
-        skull_mesh=DoIntersect(skull_mesh,BoxFOV,bForceUseBlender=bForceUseBlender)
+        skull_mesh=do_intersect(skull_mesh,BoxFOV,bForceUseBlender=bForceUseBlender)
         gc.collect()
-        csf_mesh  =DoIntersect(csf_mesh,  BoxFOV,bForceUseBlender=bForceUseBlender)
+        csf_mesh  =do_intersect(csf_mesh,  BoxFOV,bForceUseBlender=bForceUseBlender)
         gc.collect()
-        skin_mesh =DoIntersect(skin_mesh, BoxFOV,bForceUseBlender=bForceUseBlender)
+        skin_mesh =do_intersect(skin_mesh, BoxFOV,bForceUseBlender=bForceUseBlender)
         gc.collect()
     
     #we first subtract to find the pure bone region
@@ -646,11 +646,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         while(True):
             try:
                 with CodeTimer("cpu skull voxelization",unit='s'):
-                    skull_grid = skull_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
+                    skull_grid = skull_mesh.voxelized(spatial_step*0.75,max_iter=30).fill().points.astype(np.float32)
                 with CodeTimer("cpu voxelization",unit='s'):
-                    csf_grid = csf_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
+                    csf_grid = csf_mesh.voxelized(spatial_step*0.75,max_iter=30).fill().points.astype(np.float32)
                 with CodeTimer("cpu voxelization",unit='s'):
-                    skin_grid = skin_mesh.voxelized(SpatialStep*0.75,max_iter=30).fill().points.astype(np.float32)
+                    skin_grid = skin_mesh.voxelized(spatial_step*0.75,max_iter=30).fill().points.astype(np.float32)
                 break
             except AttributeError as err:
                 print("Repeating CSG boolean since once in while it returns an scene instead of a mesh....")
@@ -659,21 +659,21 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 raise err
     else:
         with CodeTimer("skull voxelization",unit='s'):
-            skull_grid = VoxelizeFilter(skull_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            skull_grid = VoxelizeFilter(skull_mesh,targetResolution=spatial_step*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
         with CodeTimer("brain voxelization",unit='s'):
-            csf_grid = VoxelizeFilter(csf_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            csf_grid = VoxelizeFilter(csf_mesh,targetResolution=spatial_step*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
         with CodeTimer("skin voxelization",unit='s'):
-            skin_grid = VoxelizeFilter(skin_mesh,targetResolution=SpatialStep*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
+            skin_grid = VoxelizeFilter(skin_mesh,targetResolution=spatial_step*0.75,GPUBackend=VoxelizeCOMPUTING_BACKEND)
             gc.collect()
         
     
     #we obtain the list of Cartesian voxels in the whole skin region intersected by the cone    
         
-    x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+SpatialStep,SpatialStep)
-    y_vec=np.arange(skin_grid[:,1].min(),skin_grid[:,1].max()+SpatialStep,SpatialStep)
-    z_vec=np.arange(skin_grid[:,2].min(),skin_grid[:,2].max()+SpatialStep,SpatialStep)
+    x_vec=np.arange(skin_grid[:,0].min(),skin_grid[:,0].max()+spatial_step,spatial_step)
+    y_vec=np.arange(skin_grid[:,1].min(),skin_grid[:,1].max()+spatial_step,spatial_step)
+    z_vec=np.arange(skin_grid[:,2].min(),skin_grid[:,2].max()+spatial_step,spatial_step)
     
     Corner1=np.array([x_vec[0],y_vec[0],z_vec[0],1]).reshape((4,1))
     Corner2=np.array([x_vec[-1],y_vec[-1],z_vec[-1],1]).reshape((4,1))
@@ -690,7 +690,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     print('baseaffine',baseaffine)
     baseaffineRot=baseaffine.copy()
     RMat4=np.eye(4)
-    RMat4[:3,:3]=RMat*SpatialStep
+    RMat4[:3,:3]=RMat*spatial_step
     print('RMat4',RMat4)
     
     
@@ -791,14 +791,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 print('Processing ZTE/PETRA to pCT')
                 bIsPetra = CTType==3
                 with CodeTimer("Bias and coregistration ZTE/PETRA to T1",unit='s'):
-                    rT1,rZTE = CTZTEProcessing.BiasCorrecAndCoreg(T1Conformal_nii,
+                    rT1,rZTE = CTZTEProcessing.bias_correc_and_coreg(T1Conformal_nii,
                                                                   TMaskItk,
                                                                   S1_file_manager,
                                                                   ElastixOptimizer,
                                                                   bIsPetra=bIsPetra,
                                                                   bInvertZTE=bInvertZTE)
                 with CodeTimer("Conversion ZTE/PETRA to pCT",unit='s'):
-                    rCT = CTZTEProcessing.ConvertZTE_PETRA_pCT(rT1,
+                    rCT = CTZTEProcessing.convert_zte_petra_pct(rT1,
                                                                rZTE,
                                                                TMaskItk,
                                                                S1_file_manager,
@@ -813,7 +813,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 gc.collect()
             else:
                 with CodeTimer("Coregistration CT to T1",unit='s'):
-                    rCT = CTZTEProcessing.CTCorreg(T1Conformal_nii,
+                    rCT = CTZTEProcessing.ct_correg(T1Conformal_nii,
                                                    S1_file_manager,
                                                    ElastixOptimizer,
                                                    ResampleFilter,
@@ -865,10 +865,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             if not bDisableCTMedianFilter:
                 with CodeTimer("median filter CT/Density",unit='s'):
                     print('Theshold for bone',TypeThresold)
-                    if MedianFilter is None:
+                    if median_filter is None:
                         fct=ndimage.median_filter(ndataCT>TypeThresold,7,mode='constant',cval=0)
                     else:
-                        fct=MedianFilter(np.ascontiguousarray(ndataCT>TypeThresold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+                        fct=median_filter(np.ascontiguousarray(ndataCT>TypeThresold).astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
                     gc.collect()
             else:
                 fct = ndataCT>TypeThresold
@@ -880,10 +880,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             nfct=fct!=0
 
             with CodeTimer("label CT",unit='s'):
-                if LabelImage is None:
+                if label_image is None:
                     label_img=label(nfct)
                 else:
-                    label_img = LabelImage(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                    label_img = label_image(nfct, GPUBackend=LabelImageCOMPUTING_BACKEND)
                 regions= regionprops(label_img)
                 regions=sorted(regions,key=lambda d: d.area)
                 nfct=label_img==regions[-1].label
@@ -903,10 +903,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             FinalMask[nfct]=2  #bone
         #we do a cleanup of islands of skin that are isolated between the skull region and brain region, we assume all except the largest one are brain tissue
         with CodeTimer("Labeling",unit='s'):
-            if LabelImage is None:
+            if label_image is None:
                 label_img = label(FinalMask==1)
             else:
-                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                label_img = label_image(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
             gc.collect()
         
         with CodeTimer("regionprops",unit='s'):
@@ -1026,13 +1026,13 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         S1_file_manager.save_file(file_data=None,filename=CTCalfname,UniqueHU=UniqueHU)
 
         with CodeTimer("Mapping unique values",unit='s'):
-            if MapFilter is None:
+            if map_filter is None:
                 ndataCTMap=np.zeros(ndataCT.shape,np.uint32)
                 for n,d in enumerate(UniqueHU):
                     ndataCTMap[ndataCT==d]=n
                 ndataCTMap[nfct==False]=0
             else:
-                ndataCTMap=MapFilter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
+                ndataCTMap=map_filter(ndataCT,nfct.astype(np.uint8),UniqueHU,GPUBackend=MapFilterCOMPUTING_BACKEND)
 
             gc.collect()
 
@@ -1043,15 +1043,15 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         if bExtractAirRegions:
             with CodeTimer("Extracting air regions",unit='s'):
                 AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
-                if MedianFilter is None:
+                if median_filter is None:
                     AirRegions=ndimage.median_filter(AirRegions.astype(np.uint8),3)
                 else:
-                    AirRegions=MedianFilter(AirRegions.astype(np.uint8),3,GPUBackend=MedianCOMPUTING_BACKEND)
+                    AirRegions=median_filter(AirRegions.astype(np.uint8),3,GPUBackend=MedianCOMPUTING_BACKEND)
 
-                if LabelImage is None:
+                if label_image is None:
                     label_img = label(AirRegions==1)
                 else:
-                    label_img = LabelImage(AirRegions==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                    label_img = label_image(AirRegions==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
                 regions= regionprops(label_img)
                 regions=sorted(regions,key=lambda d: d.area)
                 AirRegions[label_img==regions[-1].label]=0 #we turn off air around head
@@ -1062,19 +1062,19 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     with CodeTimer("final median filter ",unit='s'):
         if CT_or_ZTE_input is not None:
             FinalMask[FinalMask==2]=1
-        if MedianFilter is None:
+        if median_filter is None:
             FinalMask=ndimage.median_filter(FinalMask.astype(np.uint8),7)
         else:
-            FinalMask=MedianFilter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
+            FinalMask=median_filter(FinalMask.astype(np.uint8),7,GPUBackend=MedianCOMPUTING_BACKEND)
         gc.collect()
     if CT_or_ZTE_input is not None:
         FinalMask[nfct]=2
 
         with CodeTimer("Second Labeling",unit='s'):
-            if LabelImage is None:
+            if label_image is None:
                 label_img = label(FinalMask==1)
             else:
-                label_img = LabelImage(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
+                label_img = label_image(FinalMask==1, GPUBackend=LabelImageCOMPUTING_BACKEND)
             gc.collect()
         
         with CodeTimer("second regionprops",unit='s'):
@@ -1138,7 +1138,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 ename=os.path.join(tmpdirname,'empty.nii.gz')
                 emptyNifti.to_filename(ename)
                 outname = os.path.join(tmpdirname,'out.nii.gz')
-                RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
+                run_mesh_conv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
                 upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
                 gc.collect()
         

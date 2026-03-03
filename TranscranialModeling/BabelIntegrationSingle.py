@@ -23,7 +23,7 @@ from scipy.io import loadmat
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple, SpeedofSoundWater
 
 ###########################################
-def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
+def generate_surface(lstep,Diam,Foc,IntDiam=0):
     Tx = {}
     rInt=IntDiam/2
     rExt=Diam/2
@@ -129,20 +129,20 @@ def GenerateSurface(lstep,Diam,Foc,IntDiam=0):
     Tx['elemdims']=np.array([[len(ds)]])
     return Tx
 
-def GenerateFocusTx(f,Foc,Diam,c,PPWSurface=5):
+def generate_focus_tx(f,Foc,Diam,c,PPWSurface=5):
     wavelength = c/f
     lstep = wavelength/PPWSurface
 
-    Tx = GenerateSurface(lstep,Diam,Foc)
+    Tx = generate_surface(lstep,Diam,Foc)
     return Tx
 
 class RUN_SIM(RUN_SIM_BASE):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(**kargs)
-    def RunCases(self,**kargs):
+    def run_cases(self,**kargs):
         self._Aperture=kargs['Aperture']
         self._FocalLength=kargs['FocalLength']
-        return super().RunCases(**kargs)
+        return super().run_cases(**kargs)
 
 
 class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
@@ -155,19 +155,19 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._FocalLength=FocalLength
         super().__init__(**kargs)
         
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(Aperture=self._Aperture, 
                                     FocalLength=self._FocalLength,
                                     **kargs)
     
-    def GenerateSTLTx(self,prefix):
+    def generate_stl_tx(self,prefix):
         n=1
         VertDisplay=self._SIM_SETTINGS._TxRCOrig['VertDisplay']
         FaceDisplay=self._SIM_SETTINGS._TxRCOrig['FaceDisplay']
     
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
         TxVert=VertDisplay.T.copy()
-        TxVert/=self._SIM_SETTINGS.SpatialStep
+        TxVert/=self._SIM_SETTINGS.spatial_step
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
 
@@ -176,7 +176,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxVert[2,:]=-TxVert[2,:]
         TxVert[0,:]+=LocSpot[0]
         TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.spatial_step
 
         TxVert=np.dot(affine,TxVert)
 
@@ -200,17 +200,17 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         OrientVec=np.array([0,0,1]).reshape((1,3))
         TransformationCone[0,3]=LocSpot[0]
         TransformationCone[1,3]=LocSpot[1]
-        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
-        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.spatial_step/2
+        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.spatial_step
         HeightCone=np.sqrt(HeightCone**2-RadCone**2)
-        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.spatial_step
         Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
         Cone.apply_transform(affine)
         #we save the final cone profile
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
     
 
-    def AddSaveDataSim(self,DataForSim):
+    def add_save_data_sim(self,DataForSim):
         DataForSim['Aperture']=self._Aperture
         DataForSim['FocalLength']=self._FocalLength
 
@@ -234,11 +234,11 @@ class SimulationConditions(SimulationConditionsBASE):
         
         
     
-    def GenTx(self,bOrigDimensions=False):
+    def gen_tx(self,bOrigDimensions=False):
         fScaling=1.0
         if bOrigDimensions:
             fScaling=self._FactorEnlarge
-        TxRC=GenerateFocusTx(self._Frequency,self._FocalLength/fScaling, 
+        TxRC=generate_focus_tx(self._Frequency,self._FocalLength/fScaling, 
                              self._Aperture/fScaling, 
                              SpeedofSoundWater(20.0))
         TxRC['Aperture']=self._Aperture/fScaling
@@ -247,13 +247,13 @@ class SimulationConditions(SimulationConditionsBASE):
         TxRC['VertDisplay'][:,2]+=self._FocalLength/fScaling
         return TxRC
     
-    def CalculateRayleighFieldsForward(self,deviceName='6800'):
+    def calculate_rayleigh_fields_forward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self._TxRC=self.GenTx()
-        self._TxRCOrig=self.GenTx(bOrigDimensions=True)
+        self._TxRC=self.gen_tx()
+        self._TxRCOrig=self.gen_tx(bOrigDimensions=True)
         
-        ZDomainStart = self.CalculateDomainZReference()
+        ZDomainStart = self.calculate_domain_z_reference()
         
         print('Init Location of back Tx in Z',  self._TxRC['center'][:,2].min())
        
@@ -290,7 +290,7 @@ class SimulationConditions(SimulationConditionsBASE):
         yp,xp,zp=np.meshgrid(self._YDim,self._XDim,self._ZDim)
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
-        u0*=self.AdjustWeightAmplitudes()
+        u0*=self.adjust_weight_amplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._TxRC['center'].astype(np.float32),
                          self._TxRC['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
@@ -310,7 +310,7 @@ class SimulationConditions(SimulationConditionsBASE):
             self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
                                   self._PMLThickness:-self._PMLThickness]=InputFocus['sourceplane']
         
-    def CreateSources(self,ramp_length=4):
+    def create_sources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)

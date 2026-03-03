@@ -52,13 +52,13 @@ class ZoomableImageLabel(QLabel):
     #     zoom_factor = 1.05 if delta > 0 else 0.95
     #     self.set_scale(self._scale * zoom_factor)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event):  # noqa: N802
         if event.button() == Qt.LeftButton:
             self._panning = True
             self._last_mouse_pos = event.pos()
             self.setCursor(Qt.ClosedHandCursor)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event):  # noqa: N802
         if self._panning:
             diff = event.pos() - self._last_mouse_pos
             self.parent().horizontalScrollBar().setValue(
@@ -69,7 +69,7 @@ class ZoomableImageLabel(QLabel):
             )
             self._last_mouse_pos = event.pos()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event):  # noqa: N802
         if event.button() == Qt.LeftButton:
             self._panning = False
             self.setCursor(Qt.ArrowCursor)
@@ -108,11 +108,11 @@ class ZoomableImagePanel(QWidget):
         btn_zoom_out.clicked.connect(lambda: self.image_label.set_scale(self.image_label._scale * 0.8))
         btn_reset.clicked.connect(lambda: self.image_label.reset_scale())
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
-        self.doResize()
+        self.do_resize()
 
-    def doResize(self):
+    def do_resize(self):
         viewport_width = self.scroll_area.viewport().width()
         self.image_label.fit_to_width(viewport_width)
 
@@ -160,7 +160,7 @@ class PlotViewerTabs(QWidget):
 # Dialog wrapper
 # ---------------------------------------------------------------------
 class PlotViewerCalibration(QDialog):
-    """Dialog wrapping the tabbed plot viewer with Accept/Cancel."""
+    """Dialog wrapping the tabbed plot viewer with Accept/cancel."""
     def __init__(self, file_paths, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Review Calibration Results")
@@ -172,15 +172,15 @@ class PlotViewerCalibration(QDialog):
         self.viewer = PlotViewerTabs(file_paths)
         layout.addWidget(self.viewer)
 
-        # Button box (Accept/Cancel)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        # Button box (Accept/cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.cancel)
         ok_button = buttons.button(QDialogButtonBox.Ok)
         ok_button.setText("Confirm and accept calibration")
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def showEvent(self, event):
+    def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
         # After the dialog is visible, adjust all current image panels
         for i in range(self.viewer.tab_widget.count()):

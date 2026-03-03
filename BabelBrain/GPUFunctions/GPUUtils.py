@@ -82,7 +82,7 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
     return step
 
 
-def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def init_cuda(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
     import cupy as cp
 
     if preamble is None:
@@ -136,7 +136,7 @@ def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fals
     return ctx,prgcl,selDevice
 
 
-def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def init_opencl(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
     import pyopencl as pocl
     
     if preamble is None:
@@ -198,7 +198,7 @@ def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fa
     return queue, prgcl, SelDevice, ctx, mf
 
 
-def InitMetal(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def init_metal(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
     import metalcomputebabel as mc
 
     if preamble is None:
@@ -424,7 +424,7 @@ def parse_mlx_functions(filename):
 
     return functions,header
 
-def InitMLX(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
+def init_mlx(preamble=None,kernel_files=None,DeviceName='A6000',build_later=False):
     import mlx.core as mx
 
     if preamble is None:

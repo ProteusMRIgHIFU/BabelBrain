@@ -2,7 +2,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import os
 
 
@@ -12,7 +12,7 @@ extlay['c']=SpeedofSoundWater(TemperatureWater)
 
 
 
-def computeH317Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=9.5,FocalDistance=135):
+def compute_h317_geometry(bDoRunDeepSanityTest=False,ToleranceDistance=9.5,FocalDistance=135):
     MininalInterElementDistanceInRadians=ToleranceDistance/FocalDistance # we can test using the angular distance from center n to center m
     print('*****\nMinimal angular distance\n*****', MininalInterElementDistanceInRadians)
     transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'H-317 XYZ Coordinates_revB update 1.18.22.csv'),delimiter=',',skiprows=1)
@@ -44,14 +44,14 @@ def computeH317Geometry(bDoRunDeepSanityTest=False,ToleranceDistance=9.5,FocalDi
             
     return transxyz
 
-def H317Locations(Foc=135e-3):
+def h317_locations(Foc=135e-3):
     radiusMm = Foc*1e3
-    temp_positions = computeH317Geometry()
+    temp_positions = compute_h317_geometry()
     temp_positions[:,2]=radiusMm-temp_positions[:,2]
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
+def generate_h317_tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
 
 
     f=Frequency;
@@ -59,7 +59,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
     Diameter=9.5e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'],PPWSurface=8)
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'],PPWSurface=8)
 
     # fig = plt.figure()
     # ax = Axes3D(fig)
@@ -70,7 +70,7 @@ def GenerateH317Tx(Frequency=700e3,RotationZ=0,FactorEnlarge=1):
     # plt.show()
 
 
-    transLoc = H317Locations(Foc=Foc)
+    transLoc = h317_locations(Foc=Foc)
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

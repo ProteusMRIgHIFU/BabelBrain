@@ -13,7 +13,7 @@ from openpyxl import load_workbook
 from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
 
 from TranscranialModeling import BabelIntegrationANNULAR_ARRAY
-from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal,ForwardSimple
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda, InitOpenCL as init_opencl, InitMetal as init_metal, ForwardSimple
 from scipy.optimize import minimize
 
 from multiprocessing import Process,Queue
@@ -118,7 +118,7 @@ def read_excel_range_with_numeric_headers(file_path, range_str, sheet_name=0, **
     df.columns = headers
     return df
 
-def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=None,
+def make_plots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeight=None,
               bUseRayleighPhase=True,dfPhase=None):
     outdir=os.path.dirname(infname)
 
@@ -212,7 +212,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         f.tight_layout()
         f.savefig(rootpath+'AcProfiles-%02i.pdf' % (n+1),bbox_inches='tight')
  
-    def PlotWeight(ax,xd,norm,cmap):
+    def plot_weight(ax,xd,norm,cmap):
         
         nelem=0
         for VertDisplay, FaceDisplay in zip(Tx['RingVertDisplay'],
@@ -268,7 +268,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
                 xd=np.angle(x)
                 norm =  matplotlib.colors.TwoSlopeNorm(vmin=-np.pi, vmax=np.pi,vcenter=0.0)
 
-            PlotWeight(ax,xd,norm,cmap)
+            plot_weight(ax,xd,norm,cmap)
             if nf==0:
                 ax.set_title('Optimized amplitude',fontsize=12)
             else:
@@ -280,9 +280,9 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         axs=axs.flatten()
         cmap = plt.cm.coolwarm
         norm =  matplotlib.colors.TwoSlopeNorm(vmin=0.0, vmax=RealWeight.max(),vcenter=1.0)
-        PlotWeight(axs[0],RealWeight,norm,cmap)
+        plot_weight(axs[0],RealWeight,norm,cmap)
         axs[0].set_title('Real amplitude',fontsize=12)
-        PlotWeight(axs[1],x,norm,cmap)
+        plot_weight(axs[1],x,norm,cmap)
         axs[1].set_title('Optimized amplitude',fontsize=12)
 
 
@@ -305,7 +305,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     Material=BabelIntegrationANNULAR_ARRAY.Material
     cwvnb_extlay=np.array(2*np.pi*Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
-    def DoXZ(inx):
+    def do_xz(inx):
         
         AcPlanes=[]
 
@@ -358,9 +358,9 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
             AcPlanes[n]/=maxPlanes
 
         return AcPlanes
-    AcPlanes=DoXZ(x)
+    AcPlanes=do_xz(x)
 
-    def PlotXZ(InPlanes):
+    def plot_xz(InPlanes):
         AllFigs=[]
         ext=[xf.min()*1e3,xf.max()*1e3,zf.max()*1e3,zf.min()*1e3]
 
@@ -391,22 +391,22 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
 
         return AllFigs
     
-    AllFigs=PlotXZ(AcPlanes)
+    AllFigs=plot_xz(AcPlanes)
         
     for n,f in enumerate(AllFigs):
         f.savefig(rootpath+'Acplanes-%02i.pdf' %(n+1),bbox_inches='tight')
         
     AcPlanesReal=[]
     if RealWeight is not None:
-        AcPlanesReal=DoXZ(RealWeight)
-        PlotXZ(AcPlanesReal)
+        AcPlanesReal=do_xz(RealWeight)
+        plot_xz(AcPlanesReal)
         plt.suptitle('REAL - XZ planes')
         plt.savefig(rootpath+'REAL-Acplanes.pdf',bbox_inches='tight')
         
         DiffPlanes=[]
         for n in range(len(AcPlanes)):
             DiffPlanes.append(np.abs(AcPlanes[n]-AcPlanesReal[n]))
-        PlotXZ(DiffPlanes)
+        plot_xz(DiffPlanes)
         plt.suptitle('Diff - XZ planes')
         plt.savefig(rootpath+'diff-Acplanes.pdf',bbox_inches='tight')
         AllError=np.abs(np.hstack(AcPlanes)-np.hstack(AcPlanesReal))
@@ -505,7 +505,7 @@ def equal_area_ring_apertures_with_inner(S, R, N, A_min):
     
     return np.array(diameters)
 
-def RayleighCoeff(Tx,Loc,cwn,u0):
+def rayleigh_coeff(Tx,Loc,cwn,u0):
     Distance=np.linalg.norm(Tx['center']-Loc,axis=1)
     coeff=1j*cwn/(2*np.pi)
     coeff=coeff*np.exp(-1j*cwn*Distance)/Distance*Tx['ds'].flatten()*u0.flatten()
@@ -780,7 +780,7 @@ def optimize_b_complex(A, e, b0, regularizer,display=0,amplitudeLimit=100.0,Weig
         method='L-BFGS-B',
         options=options)
 
-def complex_objective_RI(b_complex, A, e,Weights):
+def complex_objective_ri(b_complex, A, e,Weights):
     N = A.shape[1]
     ml = np
     H=A
@@ -809,7 +809,7 @@ def complex_objective_RI(b_complex, A, e,Weights):
     grad_total = np.concatenate([grad_ur, grad_ui]) #here, if mlx, will be evaluated
     return loss_data, grad_total
     
-def complex_objective_RI_e_complex(x, Ain, ein, Weights):
+def complex_objective_ri_e_complex(x, Ain, ein, Weights):
     """
     x: real vector of length 2N
        [b_real, b_imag]
@@ -850,7 +850,7 @@ def complex_objective_RI_e_complex(x, Ain, ein, Weights):
     return np.real(f), grad
 
 
-def objective_reg_complex_RI(b, A, ein, regularizer,Weights):
+def objective_reg_complex_ri(b, A, ein, regularizer,Weights):
     if type(ein) is list:
         #we ran by chunks to check if we are mixing amplitude (pure real) or with phase (complex data)
 
@@ -859,35 +859,35 @@ def objective_reg_complex_RI(b, A, ein, regularizer,Weights):
         nTot=0
         for e in ein:
             if np.iscomplexobj(e):
-                p_loss, p_grad = complex_objective_RI_e_complex(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
+                p_loss, p_grad = complex_objective_ri_e_complex(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
             else:
-                p_loss, p_grad = complex_objective_RI(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
+                p_loss, p_grad = complex_objective_ri(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
             grad_total+=p_grad
             loss_total+=p_loss
             nTot+=len(e)
     else:
         e=ein
         if np.iscomplexobj(e):
-            loss_total, grad_total = complex_objective_RI_e_complex(b, A, e,Weights)
+            loss_total, grad_total = complex_objective_ri_e_complex(b, A, e,Weights)
         else:
-            loss_total, grad_total = complex_objective_RI(b, A, e,Weights)
+            loss_total, grad_total = complex_objective_ri(b, A, e,Weights)
     loss_total+=regularizer(b[:A.shape[1]])+regularizer(b[A.shape[1]:])
     grad_total[:A.shape[1]]+=regularizer.gradient(b[:A.shape[1]])
     grad_total[A.shape[1]:]+=regularizer.gradient(b[A.shape[1]:])
     return loss_total, grad_total
 
-def optimize_b_complex_RI(A, e, b0, regularizer,display=0,amplitudeLimit=100.0,Weights=1.0):
+def optimize_b_complex_ri(A, e, b0, regularizer,display=0,amplitudeLimit=100.0,Weights=1.0):
     options={'maxfun':2000,'disp':display}
     bounds=[(-amplitudeLimit, amplitudeLimit)] * (len(b0)//2)
     bounds+=[(-amplitudeLimit, amplitudeLimit)] * (len(b0)//2)
     return minimize(
-        objective_reg_complex_RI, b0, args=(A, e, regularizer,Weights),
+        objective_reg_complex_ri, b0, args=(A, e, regularizer,Weights),
         jac=True,
         bounds=bounds,
         method='L-BFGS-B',
         options=options)
 
-def RUN_FITTING(TxConfig,
+def run_fitting(TxConfig,
               YAMLConfigFilename,
               deviceName='M3',
               COMPUTING_BACKEND=3):
@@ -896,9 +896,9 @@ def RUN_FITTING(TxConfig,
     if COMPUTING_BACKEND==1:
         InitCuda(deviceName)
     elif COMPUTING_BACKEND==2:
-        InitOpenCL(deviceName)
+        init_opencl(deviceName)
     elif COMPUTING_BACKEND==3:
-        InitMetal(deviceName)
+        init_metal(deviceName)
 
     with open(YAMLConfigFilename, 'r') as f:
         INPUT_PARAMS = yaml.safe_load(f)
@@ -982,7 +982,7 @@ def RUN_FITTING(TxConfig,
                                                       FocalLength=FocalLength,
                                                       InDiameters=InDiameters, #inner diameter of rings
                                                       OutDiameters=OutDiameters)
-    Tx=CB.GenTx(PPWSurface=8)
+    Tx=CB.gen_tx(PPWSurface=8)
     for k in ['center','RingVertDisplay','elemcenter']:
         if k == 'RingVertDisplay':
             for n in range(len(Tx[k])):
@@ -1083,7 +1083,7 @@ def RUN_FITTING(TxConfig,
         Loc=np.zeros((1,3))
         for m,z in enumerate(ZDim):
             Loc[0,2]=z
-            sA[m,:]=RayleighCoeff(Tx,Loc,cwvnb_extlay,u0)
+            sA[m,:]=rayleigh_coeff(Tx,Loc,cwvnb_extlay,u0)
 
         B=np.ones((Tx['center'].shape[0],1),np.float32)
         R=np.abs(sA.dot(B))
@@ -1146,7 +1146,7 @@ def RUN_FITTING(TxConfig,
         np.random.seed(78) # we use the same seed so we can compare between regularizers
         x0[:A.shape[1]]=np.random.random(A.shape[1]).astype(np.float32)+0.1
         print('using Real+Imag fitting')
-        res=optimize_b_complex_RI(A, E, x0,reg,amplitudeLimit=amplitudeLimit)
+        res=optimize_b_complex_ri(A, E, x0,reg,amplitudeLimit=amplitudeLimit)
         res.x=res.x[:A.shape[1]]+1j*res.x[A.shape[1]:]
     else:
         assert(FitType=='Amp')
@@ -1179,7 +1179,7 @@ def RUN_FITTING(TxConfig,
 
 
 
-    MSENow,MSE_BFGS=MakePlots(fname,res.x,A,Tx,Frequency,ZDim,Locations,CB,dfMeasurements,deviceName,
+    MSENow,MSE_BFGS=make_plots(fname,res.x,A,Tx,Frequency,ZDim,Locations,CB,dfMeasurements,deviceName,
                                    bUseRayleighPhase=bUseRayleighPhase,dfPhase=dfPhase)
     plt.close('all')
     #we resave the results to add MSE metrics
@@ -1191,7 +1191,7 @@ def RUN_FITTING(TxConfig,
     return MSENow,MSE_BFGS
 
 
-def RUN_FITTING_Process(queue,TxConfig, YAMLConfigFilename,deviceName,COMPUTING_BACKEND):
+def run_fitting_process(queue,TxConfig, YAMLConfigFilename,deviceName,COMPUTING_BACKEND):
     
     class InOutputWrapper(object):
        
@@ -1223,7 +1223,7 @@ def RUN_FITTING_Process(queue,TxConfig, YAMLConfigFilename,deviceName,COMPUTING_
     stdout = InOutputWrapper(queue,True)
   
     try:
-         SSINow,SSI_BFGS=RUN_FITTING(TxConfig,
+         SSINow,SSI_BFGS=run_fitting(TxConfig,
               YAMLConfigFilename,
               deviceName=deviceName,
               COMPUTING_BACKEND=COMPUTING_BACKEND)

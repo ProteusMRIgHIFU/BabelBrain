@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGroupBox,
     QWidget)
 
 class Ui_Dialog(object):
-    def setupUi(self, Dialog):
+    def setupUi(self, Dialog):  # noqa: N802
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
         Dialog.resize(1025, 420)
@@ -204,7 +204,7 @@ class Ui_Dialog(object):
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self, Dialog):  # noqa: N802
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
         self.ContinuepushButton.setText(QCoreApplication.translate("Dialog", u"CONTINUE", None))
         self.groupBox.setTitle(QCoreApplication.translate("Dialog", u"Imaging input", None))
@@ -270,6 +270,6 @@ class Ui_Dialog(object):
         self.label_4.setText(QCoreApplication.translate("Dialog", u"Use Mulltipoint?", None))
         self.MultiPointlineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
         self.SelMultiPointProfilepushButton.setText(QCoreApplication.translate("Dialog", u"Select Multi-Point Profile ...", None))
-        self.CancelpushButton.setText(QCoreApplication.translate("Dialog", u"Cancel", None))
+        self.CancelpushButton.setText(QCoreApplication.translate("Dialog", u"cancel", None))
     # retranslateUi
 

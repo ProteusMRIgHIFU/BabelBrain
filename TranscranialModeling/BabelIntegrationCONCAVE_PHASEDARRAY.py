@@ -19,11 +19,11 @@ import scipy
 from trimesh import creation 
 import matplotlib.pyplot as plt
 from BabelViscoFDTD.tools.RayleighAndBHTE import ForwardSimple
-from .H317 import GenerateH317Tx
+from .H317 import generate_h317_tx
 import nibabel
 from multiprocessing import Process,Queue
     
-def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
+def create_circular_coverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
     ListPoints=[[1e-6,0.0]] #center , and we do a trick to be sure all points gets the same treatment below (just make one coordinate different to 0 but very small)
     nEven=0
@@ -46,7 +46,7 @@ def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
 #    plt.title('Trajectory of points')
     return ListPoints
 
-def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
+def create_spread_focus(DiameterFocalBeam=1.5e-3):
     BaseTriangle =  DiameterFocalBeam/2
     HeightTriangle = np.sin(np.pi/3)*DiameterFocalBeam
     ListPoints = [[0,HeightTriangle/2]]
@@ -61,7 +61,7 @@ def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
 
 
 class RUN_SIM(RUN_SIM_BASE):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -69,7 +69,7 @@ class RUN_SIM(RUN_SIM_BASE):
                                     DistanceConeToFocus=self._DistanceConeToFocus,
                                      **kargs)
         
-    def RunCases(self,
+    def run_cases(self,
                     XSteering=0.0,
                     YSteering=0.0,
                     ZSteering=0.0,
@@ -85,7 +85,7 @@ class RUN_SIM(RUN_SIM_BASE):
             self._ZSteering=ZSteering
             ExtraAdjustX = [XSteering]
             ExtraAdjustY = [YSteering]
-            return super().RunCases(ExtraAdjustX=ExtraAdjustX,
+            return super().run_cases(ExtraAdjustX=ExtraAdjustX,
                                      ExtraAdjustY=ExtraAdjustY,
                                      **kargs)
         else:
@@ -101,7 +101,7 @@ class RUN_SIM(RUN_SIM_BASE):
                 self._XSteering=entry['X']+XSteering
                 self._YSteering=entry['Y']+YSteering
                 self._ZSteering=entry['Z']+ZSteering
-                fnames+=super().RunCases(extrasuffix=newextrasufffix,
+                fnames+=super().run_cases(extrasuffix=newextrasufffix,
                                          ExtraAdjustX=ExtraAdjustX,
                                          ExtraAdjustY=ExtraAdjustY,
                                          **kargs)     
@@ -127,7 +127,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._RotationZ=RotationZ
         super().__init__(**kargs)
 
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -137,7 +137,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     FocalLength=135e-3,
                                     **kargs)
 
-    def AdjustMechanicalSettings(self,SkullMaskDataOrig,voxelS):
+    def adjust_mechanical_settings(self,SkullMaskDataOrig,voxelS):
         Target=np.array(np.where(SkullMaskDataOrig==5.0)).flatten()
         LineSight=SkullMaskDataOrig[Target[0],Target[1],:]
         Distance=(Target[2]-np.where(LineSight>0)[0][0])*voxelS[2]
@@ -151,10 +151,10 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         print('*'*20+'\n'+'Overwriting  TxMechanicalAdjustmentZ=',self._TxMechanicalAdjustmentZ*1e3)
         print('*'*20+'\n')
 
-    def GenerateSTLTx(self,prefix):
+    def generate_stl_tx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
         TxVert=self._SIM_SETTINGS._TxOrig['VertDisplay'].T.copy()
-        TxVert/=self._SIM_SETTINGS.SpatialStep
+        TxVert/=self._SIM_SETTINGS.spatial_step
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
         
@@ -163,7 +163,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxVert[2,:]=-TxVert[2,:]
         TxVert[0,:]+=LocSpot[0]
         TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.spatial_step - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.spatial_step
 
         TxVert=np.dot(affine,TxVert)
 
@@ -187,17 +187,17 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         OrientVec=np.array([0,0,1]).reshape((1,3))
         TransformationCone[0,3]=LocSpot[0]
         TransformationCone[1,3]=LocSpot[1]
-        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.SpatialStep/2
-        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.SpatialStep
+        RadCone=self._SIM_SETTINGS._OrigAperture/self._SIM_SETTINGS.spatial_step/2
+        HeightCone=self._SIM_SETTINGS._FocalLength/self._SIM_SETTINGS._FactorEnlarge/self._SIM_SETTINGS.spatial_step
         HeightCone=np.sqrt(HeightCone**2-RadCone**2)
-        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+        TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.spatial_step
         Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
         Cone.apply_transform(affine)
         #we save the final cone profile
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         
 
-    def AddSaveDataSim(self,DataForSim):
+    def add_save_data_sim(self,DataForSim):
         DataForSim['XSteering']=self._XSteering
         DataForSim['YSteering']=self._YSteering
         DataForSim['ZSteering']=self._ZSteering
@@ -233,14 +233,14 @@ class SimulationConditions(SimulationConditionsBASE):
         self._RotationZ=RotationZ
         
 
-    def GenTransducerGeom(self):
+    def gen_transducer_geom(self):
         raise NotImplementedError("This method should be implemented in the derived class.")
         
-    def CalculateRayleighFieldsForward(self,deviceName='6800'):
+    def calculate_rayleigh_fields_forward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self.GenTransducerGeom()
-        ZDomainStart = self.CalculateDomainZReference()
+        self.gen_transducer_geom()
+        ZDomainStart = self.calculate_domain_z_reference()
 
         if self._bDisplay:
             from mpl_toolkits.mplot3d import Axes3D
@@ -322,7 +322,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         print('Z layer for forward propagation',self._ZDim[self._ZSourceLocation])
         
-        u0*= self.AdjustWeightAmplitudes()
+        u0*= self.adjust_weight_amplitudes()
 
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -354,7 +354,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
           
         
-    def CreateSources(self,ramp_length=4):
+    def create_sources(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)
@@ -403,7 +403,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMapPunctual[LocForRefocusing[0],LocForRefocusing[1],LocForRefocusing[2]]=1
         
 
-    def BackPropagationRayleigh(self,deviceName='6800'):
+    def back_propagation_rayleigh(self,deviceName='6800'):
         assert(np.all(np.array(self._SourceMapRayleigh.shape)==np.array(self._PressMapFourierBack.shape)))
         SelRegRayleigh=np.abs(self._SourceMapRayleigh)>0
         ypp,xpp=np.meshgrid(self._YDim,self._XDim)
@@ -440,7 +440,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u0*=self.AdjustWeightAmplitudes()
+        u0*=self.adjust_weight_amplitudes()
         
         u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
@@ -451,7 +451,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._SourceMapRayleighRefocus[:,-self._PMLThickness:]=0
         
         
-    def CreateSourcesRefocus(self,ramp_length=4):
+    def create_sources_refocus(self,ramp_length=4):
         #we create the list of functions sources taken from the Rayliegh incident field
         LengthSource=np.floor(self._TimeSimulation/(1.0/self._Frequency))*1/self._Frequency
         TimeVectorSource=np.arange(0,LengthSource+self._TemporalStep,self._TemporalStep)

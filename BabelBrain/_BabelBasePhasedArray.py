@@ -35,7 +35,7 @@ import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import calculate_field_process
 import platform 
 
 from _BabelBaseTx import BabelBaseTx
@@ -47,7 +47,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.static_canvas=None
         self._MainApp=MainApp
         self._MultiPoint = None #if None, the default is to run one single focal point
-        self.DefaultConfig()
+        self.default_config()
         self.load_ui(formfile)
 
 
@@ -81,36 +81,36 @@ class BabelBasePhaseArray(BabelBaseTx):
             self.Widget.SelCombinationDropDown.removeItem(0)
         self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
         
-        self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
-        self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
-        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
+        self.Widget.ZSteeringSpinBox.valueChanged.connect(self.z_steering_update)
+        self.Widget.RefocusingcheckBox.stateChanged.connect(self.enable_refocusing)
+        self.Widget.CalculateAcField.clicked.connect(self.run_simulation)
         if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
             self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
             self.Widget.ZMechaniclabel.setVisible(False)
-        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
-        self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.calculate_mech_adj.clicked.connect(self.calculate_mech_adj)
+        self.Widget.calculate_mech_adj.setEnabled(False)
         self.up_load_ui()
         
        
     @Slot()
-    def ZSteeringUpdate(self,value):
+    def z_steering_update(self,value):
         self._ZSteering =self.Widget.ZSteeringSpinBox.value()/1e3
 
     @Slot()
-    def EnableRefocusing(self,value):
+    def enable_refocusing(self,value):
         bRefocus =self.Widget.RefocusingcheckBox.isChecked()
         self.Widget.XMechanicSpinBox.setEnabled(not bRefocus)
         self.Widget.YMechanicSpinBox.setEnabled(not bRefocus)
         if hasattr( self.Widget,'ZMechanicSpinBox'):
             self.Widget.ZMechanicSpinBox.setEnabled(not bRefocus)
 
-    def DefaultConfig(self):
+    def default_config(self):
         #Specific parameters for the Tx - to be configured later via a yaml
         #to be defined by child classess
         raise NotImplementedError("This needs to be defined by the child class")
 
         
-    def NotifyGeneratedMask(self):
+    def notify_generated_mask(self):
         VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
@@ -120,10 +120,10 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
         self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
         self._UnmodifiedZMechanic = 0.0
-        self.ZSteeringUpdate(0)
+        self.z_steering_update(0)
 
     @Slot()
-    def RunSimulation(self):
+    def run_simulation(self):
         #we create an object to do a dryrun to recover filenames
         dry=RunAcousticSim(self._MainApp,bDryRun=True)
         FILENAMES = dry.run()
@@ -184,21 +184,21 @@ class BabelBasePhaseArray(BabelBaseTx):
             self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.EndSimulation)
+            self.worker.finished.connect(self.end_simulation)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
             self.thread.start()
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.UpdateAcResults()
+            self.update_ac_results()
 
-    def GetExport(self):
-        Export=super().GetExport()
+    def get_export(self):
+        Export=super().get_export()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
         def dict_to_string(d, separator=', ', equals_sign='='):
             return separator.join(f'{key}:{value*1000.0}' for key, value in d.items())
@@ -215,13 +215,13 @@ class BabelBasePhaseArray(BabelBaseTx):
                 Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
     
-    def GetExtraDataForThermal(self):
+    def get_extra_data_for_thermal(self):
         ExtraValues={}
         ExtraValues['DistanceConeToFocus']=self._LastDistanceConeToFocus
         return ExtraValues         
 
     @Slot()
-    def EndSimulation(self,OutFiles):
+    def end_simulation(self,OutFiles):
         assert(type(OutFiles['FilesSkull']) is list)
         assert(type(OutFiles['FilesWater']) is list)
         
@@ -232,15 +232,15 @@ class BabelBasePhaseArray(BabelBaseTx):
             assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
             assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
             
-        self.UpdateAcResults()
+        self.update_ac_results()
         
     @Slot()
-    def UpdateAcResults(self):
-        self._MainApp.SetSuccesCode()
-        self.Widget.CalculateMechAdj.setEnabled(True)
+    def update_ac_results(self):
+        self._MainApp.set_succes_code()
+        self.Widget.calculate_mech_adj.setEnabled(True)
         #We overwrite the base class method
         if self._bRecalculated:
-            self._MainApp.hideClockDialog()
+            self._MainApp.hide_clock_dialog()
             self._AcResults =[]
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
@@ -287,7 +287,7 @@ class BabelBasePhaseArray(BabelBaseTx):
                     self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
                 else:
                     self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolution_Sub_NORM.nii.gz'
-            self.ExportStep2Results(Skull)
+            self.export_step2_results(Skull)
 
             LocTarget=Skull['TargetLocation']
             print(LocTarget)
@@ -376,7 +376,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         self._IWater = IWater
         self._ISkull = ISkull
         
-        Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
+        Total_Distance,X_dist,Y_dist,Z_dist=self.calculate_distances_target()
         self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
 
         if self.Widget.ShowWaterResultscheckBox.isChecked():
@@ -480,7 +480,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
     
-    def EnableMultiPoint(self,MultiPoint):
+    def enable_multi_point(self,MultiPoint):
         self.Widget.MultifocusLabel.setVisible(True)
         self.Widget.SelCombinationDropDown.setVisible(True)
         while self.Widget.SelCombinationDropDown.count()>0:
@@ -490,7 +490,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         for c in MultiPoint:
             self.Widget.SelCombinationDropDown.addItem('X:%2.1f Y:%2.1f Z:%2.1f' %(c['X']*1e3,c['Y']*1e3,c['Z']*1e3))
         self._MultiPoint = MultiPoint
-        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateAcResults)
+        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.update_ac_results)
 
 
 class RunAcousticSim(QObject):
@@ -561,13 +561,13 @@ class RunAcousticSim(QObject):
             kargs['DistanceConeToFocus']=DistanceConeToFocus
         kargs['MultiPoint'] =self._mainApp.AcSim._MultiPoint
         kargs['bDryRun'] = self._bDryRun
-        kargs|=self._mainApp.CommomAcOptions()
+        kargs|=self._mainApp.commom_ac_options()
  
         queue=Queue()
         if self._bDryRun == False:
             #in real run, we run this in background
             # Start mask generation as separate process.
-            fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+            fieldWorkerProcess = Process(target=calculate_field_process, 
                                         args=(queue,Target,self._mainApp.Config['TxSystem']),
                                         kwargs=kargs)
             fieldWorkerProcess.start()      
@@ -604,7 +604,7 @@ class RunAcousticSim(QObject):
                 print("*"*40)
                 print("*"*5+" DONE ultrasound simulation.")
                 print("*"*40)
-                self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
+                self._mainApp.update_computational_time('ultrasound',TotalTime)
                 self.finished.emit(OutFiles)
             else:
                 print("*"*40)
@@ -613,5 +613,5 @@ class RunAcousticSim(QObject):
                 self.endError.emit()
         else:
             #in dry run, we just recover the filenames
-            return CalculateFieldProcess(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
+            return calculate_field_process(queue,Target,self._mainApp.Config['TxSystem'],**kargs)
 

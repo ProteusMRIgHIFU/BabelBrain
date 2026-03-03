@@ -24,11 +24,11 @@ from scipy.signal import find_peaks
 from ClockDialog import ClockDialog
 from CreateVoxelMask import create_target_mask
 from ConvMatTransform import (
-    ReadTrajectoryBrainsight,
-    itk_to_BSight,
+    read_trajectory_brainsight,
+    itk_to_bsight,
     read_itk_affine_transform,
     templateBSight,
-    BSight_to_itk,
+    bsight_to_itk,
     templateSlicer
 )
 
@@ -50,7 +50,7 @@ def resource_path():  # needed for bundling
     return bundle_dir
 
 
-def AcousticAxisONeil(frequency,aperture,focal_length,c=1500.0,step=0.05):
+def acoustic_axis_oneil(frequency,aperture,focal_length,c=1500.0,step=0.05):
     #Old O'Neil, still unbeatable analytical formula for spherical shells
     k = np.pi*2*frequency/c #wavenumber
     l = c/frequency
@@ -65,9 +65,9 @@ def AcousticAxisONeil(frequency,aperture,focal_length,c=1500.0,step=0.05):
     P=E*np.sin(k*delta/2)
     return h,z,np.abs(P)
     
-def FindTPOEquivalent(frequency,aperture,focal_length):
+def find_tpo_equivalent(frequency,aperture,focal_length):
     #first we calculate the acoustic axis with an analytical formula
-    h,zo,po=AcousticAxisONeil(frequency,aperture,focal_length)
+    h,zo,po=acoustic_axis_oneil(frequency,aperture,focal_length)
     peaks, _ = find_peaks(po, height=None, threshold=None, distance=None, prominence=None)
     #we find the peak closer to the natural focus
     closer_peak=np.argmin(np.abs(zo[peaks]-focal_length))
@@ -146,7 +146,7 @@ class PlanTUSTxConfig(object):
         self.IDTarget = IDTarget
         self.bUseGenericTransducerModel = bUseGenericTransducerModel
 
-    def ExportYAML(self,fname):
+    def export_yaml(self,fname):
         txconfig = {
             "max_distance": self.max_distance,
             "min_distance": self.min_distance,
@@ -175,11 +175,11 @@ class RUN_PLAN_TUS(QObject):
         self.CalQueue = None
         self.CalProcess = None
         self.CaltimerTUSPlan = QTimer(self)
-        self.CaltimerTUSPlan.timeout.connect(self.check_queue_TUSPlan)
+        self.CaltimerTUSPlan.timeout.connect(self.check_queue_tus_plan)
         self._WorkingDialog = ClockDialog(OptionsDlg)
         self.select_vortex=-1
 
-    def Execute(self):
+    def execute(self):
         '''
         Run the external PlanTUS script
         '''
@@ -196,10 +196,10 @@ class RUN_PLAN_TUS(QObject):
         FreeSurferRoot=self.OptionsDlg.ui.FreeSurferRootlineEdit.text()
 
         if TrajectoryType =='brainsight':
-            RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+            RMat=read_trajectory_brainsight(Mat4Trajectory)
         else:
             inMat=read_itk_affine_transform(Mat4Trajectory)
-            RMat = itk_to_BSight(inMat)
+            RMat = itk_to_bsight(inMat)
 
         #we will reuse to recover the center of the trajectory
         self._RMat = RMat
@@ -241,7 +241,7 @@ class RUN_PLAN_TUS(QObject):
             transducer_diameter=BabelTxConfig['CaseDiameter']
             plane_offset=0.0
             additional_offset=self.OptionsDlg.ui.SkinDistanceSpinBox.value()
-            seldevice = self.MainApp.AcSim.GetTxModel()
+            seldevice = self.MainApp.AcSim.get_tx_model()
             focal_distance_list=[]
             flhm_list=[]
             for k in BabelTxConfig['PlanTUS'][SelFreq]:
@@ -253,7 +253,7 @@ class RUN_PLAN_TUS(QObject):
             FocalLength = self.OptionsDlg.ui.FocalLengthSpinBox.value()
             transducer_diameter = self.OptionsDlg.ui.DiameterSpinBox.value()
             #we use analytical formula of acoustic axis from the O'Neil paper
-            plane_offset,TPOequivalent,FLHM=FindTPOEquivalent(SelFreq,transducer_diameter*1e-3,FocalLength*1e-3)
+            plane_offset,TPOequivalent,FLHM=find_tpo_equivalent(SelFreq,transducer_diameter*1e-3,FocalLength*1e-3)
             plane_offset*=1e3
             focal_distance_list = [(TPOequivalent*1e3).tolist()]
             flhm_list = [(FLHM*1e3).tolist()]
@@ -288,7 +288,7 @@ class RUN_PLAN_TUS(QObject):
         basepath=os.path.split(t1Path)[0]
         TxConfigName = basepath + os.sep + "PlanTUSTxConfig.yaml"
         # Export the configuration to a YAML file
-        plan_tus_config.ExportYAML(TxConfigName)
+        plan_tus_config.export_yaml(TxConfigName)
         
         mshPath=glob.glob(self.MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
         maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
@@ -315,16 +315,16 @@ class RUN_PLAN_TUS(QObject):
         if os.path.isfile(self.PlanOutputPath+os.sep+'skin.surf.gii'):
             ret = QMessageBox.question(self.OptionsDlg,'', "PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
             if ret == QMessageBox.No:
-                if not self.showTUSPlanViewer():
+                if not self.show_tus_plan_viewer():
                     return #we stop here
                 print('Generating trajectory for ID', self.select_vortex)
-                self.GenerateTrajectory(self.select_vortex)
+                self.generate_trajectory(self.select_vortex)
                 return
 
         print('Starting PlanTUS for target', self.MainApp.Config['ID'])
         self.RunningTUSPlan = True
 
-        fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
+        fieldWorkerProcess = Process(target=run_plan_tus_background, 
                                             args=self.planTUSargs)
         
         self.CalProcess=fieldWorkerProcess
@@ -341,16 +341,16 @@ class RUN_PLAN_TUS(QObject):
         self.OptionsDlg.setEnabled(False)
 
 
-    def callBackAfterGenTrajectory(self, select_vortex):
+    def callback_after_gen_trajectory(self, select_vortex):
         print("Callback after generating trajectory for cell id:", select_vortex)
         self.select_vortex=select_vortex
         self.dlgResultsPlanTUS.accept()
         # progress.
 
-    def GenerateTrajectory(self, select_vortex):
+    def generate_trajectory(self, select_vortex):
 
         self.RunningTUSPlan = False
-        fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
+        fieldWorkerProcess = Process(target=run_plan_tus_background, 
                                             args=self.planTUSargs,
                                             kwargs={'runOnlyTrajectory': select_vortex})
         
@@ -367,7 +367,7 @@ class RUN_PLAN_TUS(QObject):
         self._WorkingDialog.show()
         self.OptionsDlg.setEnabled(False)
 
-    def check_queue_TUSPlan(self):
+    def check_queue_tus_plan(self):
 
         # progress.
         
@@ -396,12 +396,12 @@ class RUN_PLAN_TUS(QObject):
                     print("*"*40)
                     print("*"*5+" DONE PlanTUS.")
                     print("*"*40)
-                    if not self.showTUSPlanViewer():
+                    if not self.show_tus_plan_viewer():
                         return
 
                     print('Generating trajectory for ID', self.select_vortex)
 
-                    self.GenerateTrajectory(self.select_vortex)
+                    self.generate_trajectory(self.select_vortex)
                     #now we re run to generate the trajectory
                     return
 
@@ -446,7 +446,7 @@ class RUN_PLAN_TUS(QObject):
                         with open(foutnameBSight, 'w') as f:
                             f.write(outString)
 
-                        transform = BSight_to_itk(ReadTrajectoryBrainsight(foutnameBSight))
+                        transform = bsight_to_itk(read_trajectory_brainsight(foutnameBSight))
                         transform[:3,:3]=transform[:3,:3].T
                         outString=templateSlicer.format(m0n0=transform[0,0],
                                         m0n1=transform[1,0],
@@ -467,7 +467,7 @@ class RUN_PLAN_TUS(QObject):
 
                         bdir,sfile = os.path.split(trajFile)
                         tfile = sfile.replace('position_matrix','transducer').replace('_Localite.mat','.surf.gii')
-                        self.showFinalResults(bdir+os.sep+tfile)
+                        self.show_final_results(bdir+os.sep+tfile)
 
                     ret = QMessageBox.question(self.OptionsDlg,'', "Do you want to use the\n PlanTUS results to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
                     if ret == QMessageBox.Yes:
@@ -488,19 +488,19 @@ class RUN_PLAN_TUS(QObject):
                                 shutil.copy(fname, finalfname)
                                 self.MainApp.Config['Mat4Trajectory'] = finalfname
                                 self.MainApp.Config['ID'] = id
-                                self.MainApp.UpdateWindowTitle()
+                                self.MainApp.update_window_title()
                         else:
                             fname = lastfoutname
                             shutil.copy(fname, finalfname)
                             self.MainApp.Config['Mat4Trajectory'] = finalfname
                             self.MainApp.Config['ID'] = id
-                            self.MainApp.UpdateWindowTitle()
+                            self.MainApp.update_window_title()
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")
                 print("*"*40)
 
-    def showFinalResults(self,TxResultSurface):
+    def show_final_results(self,TxResultSurface):
         DlgResults=QDialog(self.OptionsDlg)
         DlgResults.setWindowTitle("Trajectory Results")
 
@@ -516,7 +516,7 @@ class RUN_PLAN_TUS(QObject):
         DlgResults.resize(600, 600)
         DlgResults.exec()
 
-    def showTUSPlanViewer(self):
+    def show_tus_plan_viewer(self):
         DlgResults=QDialog(self.OptionsDlg)
         DlgResults.setWindowTitle("PlanTUS Results")
 
@@ -545,14 +545,14 @@ class RUN_PLAN_TUS(QObject):
                             [0,20],
                             'Skin-Skull Angle'))
 
-        widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4,callBackAfterGenTrajectory=self.callBackAfterGenTrajectory)
+        widget = MultiGiftiViewerWidget(gifti_files,MaxViews=4,callback_after_gen_trajectory=self.callback_after_gen_trajectory)
         layout.addWidget(widget)
         self.dlgResultsPlanTUS = DlgResults
         DlgResults.resize(1700, 700)
         return self.dlgResultsPlanTUS.exec()
 
 
-def RunPlanTUSBackground(queue,
+def run_plan_tus_background(queue,
                         scriptbase,
                         SimbNINBSRoot,
                         PlanTUSRoot,

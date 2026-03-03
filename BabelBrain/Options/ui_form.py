@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
     QTabWidget, QWidget)
 
 class Ui_Dialog(object):
-    def setupUi(self, Dialog):
+    def setupUi(self, Dialog):  # noqa: N802
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
         Dialog.resize(664, 566)
@@ -559,9 +559,9 @@ class Ui_Dialog(object):
         QMetaObject.connectSlotsByName(Dialog)
     # setupUi
 
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self, Dialog):  # noqa: N802
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.CancelpushButton.setText(QCoreApplication.translate("Dialog", u"Cancel", None))
+        self.CancelpushButton.setText(QCoreApplication.translate("Dialog", u"cancel", None))
         self.ContinuepushButton.setText(QCoreApplication.translate("Dialog", u"Ok", None))
         self.ResetpushButton.setText(QCoreApplication.translate("Dialog", u"Reset to defaults", None))
         self.label_5.setText(QCoreApplication.translate("Dialog", u"Elastix co-registration Optimizer", None))
@@ -611,7 +611,7 @@ class Ui_Dialog(object):
         self.YAMLCalibrationpushButton.setText(QCoreApplication.translate("Dialog", u"YAML file for\n"
 "calibration inputs", None))
         self.YAMLCalibrationLineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.ExecuteCalibrationButton.setText(QCoreApplication.translate("Dialog", u"Execute - BE PATIENT!", None))
+        self.ExecuteCalibrationButton.setText(QCoreApplication.translate("Dialog", u"execute - BE PATIENT!", None))
         self.TxOptimizedWeightspushButton.setText(QCoreApplication.translate("Dialog", u"Completed\n"
 "Calibration file...", None))
         self.TxOptimizedWeightsLineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))

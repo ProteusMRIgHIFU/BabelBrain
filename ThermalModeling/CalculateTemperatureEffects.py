@@ -16,7 +16,7 @@ from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
 from scipy.io import loadmat,savemat
 from platform import platform
 from os.path import isfile
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal, InitMLX
+from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda, InitOpenCL as init_opencl, InitMetal as init_metal, InitMLX as init_mlx
 from multiprocessing import Process,Queue
 import sys
 import time
@@ -52,7 +52,7 @@ class InOutputWrapper(object):
         except AttributeError:
             pass
 
-def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
+def get_thermal_out_name(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions):
     '''
     Generate a standardized output filename for thermal simulation results.
 
@@ -90,7 +90,7 @@ def GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repe
     else:
         return InputPData.split('.h5')[0]+suffix
 
-def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+def analyze_losses(pAmp,MaterialMap,LocIJK,Input,
                   MaterialList,pAmpWater,Isppa,
                   xf,yf,zf,SelBrain,
                   bForceHomogenousMedium,
@@ -240,7 +240,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
     return PressureRatio,RatioLosses
 
 
-def RunBHTECycles(nCurrent,
+def run_bhte_cycles(nCurrent,
                     Repetitions,
                     TotalIterations,
                     TotalDurationBetweenGroups,
@@ -427,7 +427,7 @@ def RunBHTECycles(nCurrent,
             break
     return ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
 
-def RunInProcess(queueResult,Backend,deviceName,queueMsg,
+def run_in_process(queueResult,Backend,deviceName,queueMsg,
                  LimitBHTEIterationsPerProcess,nCurrent,
                  NumberGroupedSonications,Repetitions,
                  InputPData,PMaps,MaterialMap,
@@ -501,15 +501,15 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
     if Backend=='CUDA':
         InitCuda(deviceName)
     elif Backend=='OpenCL':
-        InitOpenCL(deviceName)
+        init_opencl(deviceName)
     elif Backend=='Metal':
-        InitMetal(deviceName)
+        init_metal(deviceName)
     elif Backend=='MLX':
-        InitMLX(deviceName)
+        init_mlx(deviceName)
 
     TotalIterations=NumberGroupedSonications*Repetitions
 
-    Res=RunBHTECycles(nCurrent,
+    Res=run_bhte_cycles(nCurrent,
                     Repetitions,
                     TotalIterations,
                     TotalDurationBetweenGroups,
@@ -537,7 +537,7 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
     queueResult.put(Res)
     
 
-def CalculateTemperatureEffects(InputPData,
+def calculate_temperature_effects(InputPData,
                                 deviceName,
                                 queueMsg,
                                 DutyCycle=0.3,
@@ -623,9 +623,9 @@ def CalculateTemperatureEffects(InputPData,
         Output filename for saved results.
     '''
     if type(InputPData) is str:    
-        outfname=GetThermalOutName(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
+        outfname=get_thermal_out_name(InputPData,DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
     else:
-        outfname=GetThermalOutName(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
+        outfname=get_thermal_out_name(InputPData[0],DurationUS,DurationOff,DutyCycle,Isppa,PRF,Repetitions)
         if len(InputPData)==1:
             #we simplify if we only have a single file in the list
             InputPData=InputPData[0]
@@ -872,7 +872,7 @@ def CalculateTemperatureEffects(InputPData,
                 AllInputsWater[n,:,:,:][SelSkull]=pAmpSk[SelSkull]
 
     if type(InputPData) is str:   
-        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+        PressureRatio,RatioLosses=analyze_losses(pAmp,MaterialMap,LocIJK,Input,
                                                 MaterialList,pAmpWater,Isppa,
                                                 xf,yf,zf,SelBrain,
                                                 bForceHomogenousMedium,
@@ -887,7 +887,7 @@ def CalculateTemperatureEffects(InputPData,
             pAmpWater=AllInputsWater[n,:,:,:]
             print('*'*40)
             print('Calculating losses for spot ',n)
-            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+            PressureRatio[n],RatioLosses[n]=analyze_losses(pAmp,MaterialMap,LocIJK,Input,
                                                           MaterialList,pAmpWater,Isppa,
                                                           xf,yf,zf,SelBrain,
                                                           bForceHomogenousMedium,
@@ -968,7 +968,7 @@ def CalculateTemperatureEffects(InputPData,
 
     if TOTAL_Iterations <= LimitBHTEIterationsPerProcess:
         nCurrent=0
-        ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent=RunBHTECycles(nCurrent,
+        ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent=run_bhte_cycles(nCurrent,
                     Repetitions,
                     TOTAL_Iterations,
                     TotalDurationBetweenGroups,
@@ -996,7 +996,7 @@ def CalculateTemperatureEffects(InputPData,
         queueResult=Queue()
         nCurrent=0
         while(nCurrent<TOTAL_Iterations):
-            fieldWorkerProcess = Process(target=RunInProcess, 
+            fieldWorkerProcess = Process(target=run_in_process, 
                                         args=(queueResult,Backend,deviceName,queueMsg,
                                                 LimitBHTEIterationsPerProcess,nCurrent,
                                                 NumberGroupedSonications,

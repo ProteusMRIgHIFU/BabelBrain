@@ -8,7 +8,7 @@ ABOUT:
 '''
 
 import numpy as np
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import pandas as pd
 import os
 
@@ -16,7 +16,7 @@ extlay={}
 TemperatureWater=37.0
 extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-def computeH301Geometry():
+def compute_h301_geometry():
     df=pd.read_csv(os.path.join(os.path.dirname(os.path.realpath(__file__)),'H301.csv'),
                 sep='\t',names=['theta','radii'])
     F=np.array([0,0,150])
@@ -30,21 +30,21 @@ def computeH301Geometry():
     assert(np.allclose(np.linalg.norm(TxCoords-F,axis=1),150))
     return TxCoords
         
-def H301Locations():
-    temp_positions = computeH301Geometry()
+def h301_locations():
+    temp_positions = compute_h301_geometry()
     transLoc = temp_positions/1000
     return transLoc
 
-def GenerateH301Tx(Frequency=1.1e6,RotationZ=0,FactorEnlarge=1):
+def generate_h301_tx(Frequency=1.1e6,RotationZ=0,FactorEnlarge=1):
 
     f=Frequency
     Foc=150e-3*FactorEnlarge
     Diameter=10.15e-3*FactorEnlarge
 
     #%This is the indiv tx element
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'])
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'])
 
-    transLoc = H301Locations()
+    transLoc = h301_locations()
   
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc

@@ -44,7 +44,7 @@ def ellipsoid_axis_lengths(central_moments):
     eigvals = np.sort(np.linalg.eigvalsh(S))[::-1]
     return tuple([np.sqrt(20.0 * e) for e in eigvals]) 
 
-def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.5):
+def calc_volumetric_metrics(Data,voxelsize,Threshold=0.5):
         '''
         Threshold=0.25 
         '''
@@ -72,7 +72,7 @@ class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
 
-    def ExportStep2Results(self,Results):
+    def export_step2_results(self,Results):
         FocIJK=np.ones((4,1))
         FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
 
@@ -89,7 +89,7 @@ class BabelBaseTx(QWidget):
         print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
 
 
-        fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
+        fnameTrajectory=self._MainApp.export_trajectory(CorX=Results['AdjustmentInRAS'][0],
                                         CorY=Results['AdjustmentInRAS'][1],
                                         CorZ=Results['AdjustmentInRAS'][2])
         if self._MainApp.Config['bInUseWithBrainsight']:
@@ -98,19 +98,19 @@ class BabelBaseTx(QWidget):
             with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
                 f.write(fnameTrajectory)
 
-    def GetExtraSuffixAcFields(self):
+    def get_extra_suffix_ac_fields(self):
         #By default, it returns empty string, useful when dealing with user-specified geometry
         return ""
 
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
-        self.Widget.HideMarkscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.update_ac_results)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self.update_ac_results)
 
     @Slot()
-    def NotifyError(self):
-        self._MainApp.SetErrorAcousticsCode()
-        self._MainApp.hideClockDialog()
+    def notify_error(self):
+        self._MainApp.set_error_acoustics_code()
+        self._MainApp.hide_clock_dialog()
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
@@ -122,14 +122,14 @@ class BabelBaseTx(QWidget):
             self._MainApp.Widget.tabWidget.setEnabled(True)
     
     @Slot()
-    def UpdateAcResults(self):
+    def update_ac_results(self):
         '''
         This is a common function for most Tx to show results
         '''
-        self._MainApp.SetSuccesCode()
-        self.Widget.CalculateMechAdj.setEnabled(True)
+        self._MainApp.set_succes_code()
+        self.Widget.calculate_mech_adj.setEnabled(True)
         if self._bRecalculated:
-            self._MainApp.hideClockDialog()
+            self._MainApp.hide_clock_dialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
@@ -139,11 +139,11 @@ class BabelBaseTx(QWidget):
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
 
-            extrasuffix=self.GetExtraSuffixAcFields()
+            extrasuffix=self.get_extra_suffix_ac_fields()
 
             self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
 
-            self.ExportStep2Results(Skull)    
+            self.export_step2_results(Skull)    
 
             LocTarget=Skull['TargetLocation']
             print('LocTarget',LocTarget)
@@ -219,7 +219,7 @@ class BabelBaseTx(QWidget):
                     delattr(self,'_figAcField')
                     self.Widget.AcField_plot1.repaint()
                     
-            Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
+            Total_Distance,X_dist,Y_dist,Z_dist=self.calculate_distances_target()
             self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
         
         if self.Widget.ShowWaterResultscheckBox.isChecked():
@@ -322,21 +322,21 @@ class BabelBaseTx(QWidget):
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
  
-    def GetExport(self):
+    def get_export(self):
         Export={}
         Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
         return Export
     
-    def GetExtraDataForThermal(self):
+    def get_extra_data_for_thermal(self):
         #we use this to save extra data in thermal files if required,
         #to be redefined in child class 
         return {}
     
-    def EnableMultiPoint(self,MultiPoint):
+    def enable_multi_point(self,MultiPoint):
         #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
         pass #to be defined by those Tx capable of multi-point
     
-    def CalculateDistancesTarget(self):
+    def calculate_distances_target(self):
         # Get voxel size
         dx=  np.mean(np.diff(self._Skull['x_vec']))
         voxelsize=np.array([dx,dx,dx])
@@ -356,7 +356,7 @@ class BabelBaseTx(QWidget):
             # For single focus txs
             central_focal_spot_plot = self._ISkull
             
-        stats=CalcVolumetricMetrics(central_focal_spot_plot,voxelsize)
+        stats=calc_volumetric_metrics(central_focal_spot_plot,voxelsize)
         x_o=np.unique(self._XX)
         y_o=np.unique(self._YY)
         z_o=np.unique(self._ZZX)
@@ -372,10 +372,10 @@ class BabelBaseTx(QWidget):
         return Total_Distance,X_dist,Y_dist,Z_dist
     
     @Slot()
-    def CalculateMechAdj(self):
+    def calculate_mech_adj(self):
         #this calculates the required mechanical correction to center acoustic beam
         #to the target
-        Total_Distance,X_correction,Y_correction,Z_correction = self.CalculateDistancesTarget()
+        Total_Distance,X_correction,Y_correction,Z_correction = self.calculate_distances_target()
         ret = QMessageBox.question(self,'', "The focal spot's center of mass (-6dB) "+
                                    'is [%3.1f,%3.1f]' % (X_correction,Y_correction) + " mm-off in [X,Y] relative to the target.\n"+
                                     "Do you want to apply a mechanical correction?",

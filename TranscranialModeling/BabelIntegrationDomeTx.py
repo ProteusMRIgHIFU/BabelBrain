@@ -9,11 +9,11 @@ ABOUT:
 '''
 
 from . import BabelIntegrationDOME_PHASEDARRAY  
-from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx,SpeedofSoundWater
+from BabelViscoFDTD.tools.RayleighAndBHTE import GenerateFocusTx as generate_focus_tx, SpeedofSoundWater
 import numpy as np
 import os
 
-def computeDomeTxGeometry():
+def compute_dome_tx_geometry():
     transxyz = np.loadtxt(os.path.join(os.path.dirname(os.path.realpath(__file__)),'DomeTxTransducerGeometry.csv'),delimiter=',',skiprows=0)
     assert(transxyz.shape[0]==1024) #number of elements
     assert(transxyz.shape[1]==4) #element, X,Y,Z coordinates in mm, and area in mm2
@@ -21,7 +21,7 @@ def computeDomeTxGeometry():
     return transxyz*1e-3
 
 
-def GenerateDomeTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
+def generate_dome_tx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
 
     f=Frequency;
     Foc=150e-3*FactorEnlarge
@@ -31,9 +31,9 @@ def GenerateDomeTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
     TemperatureWater=37.0
     extlay['c']=SpeedofSoundWater(TemperatureWater)
 
-    TxElem=GenerateFocusTx(f,Foc,Diameter,extlay['c'],PPWSurface=PPWSurface)
+    TxElem=generate_focus_tx(f,Foc,Diameter,extlay['c'],PPWSurface=PPWSurface)
 
-    transLoc = computeDomeTxGeometry()
+    transLoc = compute_dome_tx_geometry()
 
     transLocDisplacedZ=transLoc.copy()
     transLocDisplacedZ[:,2]-=Foc
@@ -106,7 +106,7 @@ def GenerateDomeTx(Frequency=220e3,RotationZ=0,FactorEnlarge=1,PPWSurface=9):
 
 
 class RUN_SIM(BabelIntegrationDOME_PHASEDARRAY.RUN_SIM):
-    def CreateSimObject(self,**kargs):
+    def create_sim_object(self,**kargs):
         return BabelFTD_Simulations(XSteering=self._XSteering,
                                     YSteering=self._YSteering,
                                     ZSteering=self._ZSteering,
@@ -118,7 +118,7 @@ class RUN_SIM(BabelIntegrationDOME_PHASEDARRAY.RUN_SIM):
 class BabelFTD_Simulations(BabelIntegrationDOME_PHASEDARRAY.BabelFTD_Simulations):
     #Meta class dealing with the specificis of each test based on the string name
     
-    def CreateSimConditions(self,**kargs):
+    def create_sim_conditions(self,**kargs):
         return SimulationConditions(Aperture=300e-3,
                                     FocalLength=150e-3,
                                     XSteering=self._XSteering,
@@ -138,12 +138,12 @@ class SimulationConditions(BabelIntegrationDOME_PHASEDARRAY.SimulationConditions
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,**kargs)
         
-    def GenTransducerGeom(self):
+    def gen_transducer_geom(self):
 
-        self._Tx=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ)
+        self._Tx=generate_dome_tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
+        self._TxOrig=generate_dome_tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         if self._Frequency == 220e3:
-            self._TxHighRes=GenerateDomeTx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
+            self._TxHighRes=generate_dome_tx(Frequency=self._Frequency,RotationZ=self._RotationZ,PPWSurface=20)
         else:
             self._TxHighRes=self._TxOrig
         

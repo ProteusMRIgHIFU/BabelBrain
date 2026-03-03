@@ -30,17 +30,17 @@ import tempfile
 import os
 import scipy
 from scipy import signal
-# from CTZTEProcessing import RunElastix
+# from CTZTEProcessing import run_elastix
 from operator import itemgetter
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy
 from skimage.measure import label, regionprops
 
-from BabelBrain.CalculateMaskProcess import CalculateMaskProcess
-from TranscranialModeling.BabelIntegrationBASE import GetSmallestSOS
+from BabelBrain.CalculateMaskProcess import calculate_mask_process
+from TranscranialModeling.BabelIntegrationBASE import get_smallest_sos
 #we use the Single Element sim setting
-from BabelBrain.CalculateFieldProcess import CalculateFieldProcess 
+from BabelBrain.CalculateFieldProcess import calculate_field_process 
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -82,9 +82,9 @@ class Processing(object):
         self.CTType=CTType
         self.ZTE=ZTE
         self.HUThreshold=HUThreshold
-        BinaryClosing.InitBinaryClosing(DeviceName=ComputingDevice,GPUBackend='Metal')
+        BinaryClosing.init_binary_closing(DeviceName=ComputingDevice,GPUBackend='Metal')
 
-    def RunMaskGeneration(self,
+    def run_mask_generation(self,
                           ZTERange=[0.1,0.65],
                           bReuseFiles=True,
                           ElastixOptimizer='FiniteDifferenceGradientDescent'):
@@ -109,13 +109,13 @@ class Processing(object):
     
         T1WIso= T1W
        
-        SmallestSoS= GetSmallestSOS(Frequency,bShear=True)
+        SmallestSoS= get_smallest_sos(Frequency,bShear=True)
     
         prefix = ID + '_' + self.TxSystem +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
 
 
     
-        SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
+        spatial_step=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
 
     
         kargs={}
@@ -127,7 +127,7 @@ class Processing(object):
         kargs['T1Source_nii']=T1W
         kargs['T1Conformal_nii']=T1WIso
         # kargs['nIterationsAlign']=10
-        kargs['SpatialStep']=SpatialStep
+        kargs['spatial_step']=spatial_step
         # kargs['InitialAligment']='HF'
         kargs['Location']=[0,0,0] #This coordinate will be ignored
         kargs['prefix']=prefix
@@ -145,7 +145,7 @@ class Processing(object):
         # Start mask generation as a separate process.
         queue=Queue()
         print(COMPUTING_BACKEND,deviceName,kargs)
-        maskWorkerProcess = Process(target=CalculateMaskProcess, 
+        maskWorkerProcess = Process(target=calculate_mask_process, 
                                     args=(queue,
                                          COMPUTING_BACKEND,
                                          deviceName),
@@ -181,17 +181,17 @@ class Processing(object):
             raise RuntimeError("Error when generating mask!!")
 
 
-    def Run_mask_creation(self,ZTERange=[0.1,0.65],bForceRecalculate=False):
+    def run_mask_creation(self,ZTERange=[0.1,0.65],bForceRecalculate=False):
         prevfile=os.path.join(self.BasePath,self.ID+'_'+self.TxSystem+'_%ikHz_%iPPW_BabelViscoInput.nii.gz' %(int(self.Frequency/1e3),self.BasePPW))
         if os.path.isfile(prevfile) and bForceRecalculate==False:
             print('skipping generating ',prevfile)
             return
-        self.RunMaskGeneration( ZTERange=ZTERange)
+        self.run_mask_generation( ZTERange=ZTERange)
 
 
-    def RunElastix(self,ElastixOptimizer='AdaptiveStochasticGradientDescent',bCToMRI=False):
+    def run_elastix(self,ElastixOptimizer='AdaptiveStochasticGradientDescent',bCToMRI=False):
         '''
-        Run BabelBrain's Elastix installation to co-register CT<-->PseudoCT  obtainedi in RunMaskGeneration
+        Run BabelBrain's Elastix installation to co-register CT<-->PseudoCT  obtainedi in run_mask_generation
         '''
         if bCToMRI:
             reference=jn(self.BasePath,'ZTE_BiasCorrec_pCT.nii.gz')
@@ -238,7 +238,7 @@ class Processing(object):
         with open(tpname,'w') as f:
             f.writelines(ln)
 
-    def RunTransformix(self,reference=None,
+    def run_transformix(self,reference=None,
                       finalname=None):
         if reference is None:
             reference=jn(self.BasePath,'ZTE_BiasCorrec.nii.gz')
@@ -259,7 +259,7 @@ class Processing(object):
         else:
             raise SystemError("Error when trying to run elastix")
 
-    def ShowFirstPart(self,LineSep=143):
+    def show_first_part(self,LineSep=143):
         '''
         This shows a comparison between CT and pseudoCT, including histogram and density plots.
         Use LineSep to specify the cutout region to ensure only top regions of the skulls are use in the analysis as
@@ -306,7 +306,7 @@ class Processing(object):
         plt.savefig(jn(self.BasePath,'DefaultSettings-Density Plot.pdf'),bbox_inches='tight')
 
     
-    def ProcessMRI(self,ZTERange=[0.1,0.65]):
+    def process_mri(self,ZTERange=[0.1,0.65]):
         '''
         Exceute PCA-based analysis to fit ZTE/PETRA and CT
         '''
@@ -317,8 +317,8 @@ class Processing(object):
         bIsPetra = self.CTType ==3
 
         '''
-        We load CT in T1W space (obtained with the RunElastix function)
-        and bias corrected ZTE (obtained with RunMaskGeneration)
+        We load CT in T1W space (obtained with the run_elastix function)
+        and bias corrected ZTE (obtained with run_mask_generation)
         '''
         CTnii =nibabel.load(jn(BasePath,'CT_in_T1W.nii.gz'))
         CT=CTnii.get_fdata()
@@ -398,7 +398,7 @@ class Processing(object):
         regions=sorted(regions,key=lambda d: d.area)
         selpoints=label_img==regions[-1].label
         sf2=np.round((np.ones(3)*5)).astype(int)
-        selpoints=BinaryClosing.BinaryClose(selpoints, structure=np.ones(sf2,dtype=int), GPUBackend='Metal')!=0
+        selpoints=BinaryClosing.binary_close(selpoints, structure=np.ones(sf2,dtype=int), GPUBackend='Metal')!=0
 
         selpoints[:,:,:self.LineSep]=False
         selZTE=selpoints*arrNorm

@@ -28,7 +28,7 @@ from datetime import datetime
 import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from CalculateFieldProcess import CalculateFieldProcess
+from CalculateFieldProcess import calculate_field_process
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from _BabelBaseTx import BabelBaseTx
@@ -54,7 +54,7 @@ class RingTx(BabelBaseTx):
         self.static_canvas=None
         self._MainApp=MainApp
         self._ZMaxSkin = 0.0 # maximum
-        self.DefaultConfig()
+        self.default_config()
         self.load_ui()
 
 
@@ -70,19 +70,19 @@ class RingTx(BabelBaseTx):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
-        self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
+        self.Widget.TPODistanceSpinBox.valueChanged.connect(self.tpo_distance_update)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
-        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
-        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
+        self.Widget.CalculateAcField.clicked.connect(self.run_simulation)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.update_distance_from_skin)
         self.Widget.LabelTissueRemoved.setVisible(False)
-        self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
-        self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.calculate_mech_adj.clicked.connect(self.calculate_mech_adj)
+        self.Widget.calculate_mech_adj.setEnabled(False)
         self.up_load_ui()
 
-    def DefaultConfig(self):
-        raise NotImplementedError("DefaultConfig must be implemented in the derived class")
+    def default_config(self):
+        raise NotImplementedError("default_config must be implemented in the derived class")
     
-    def NotifyGeneratedMask(self):
+    def notify_generated_mask(self):
         VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
@@ -99,19 +99,19 @@ class RingTx(BabelBaseTx):
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
         self.Widget.SkinDistanceSpinBox.setValue(0.0)
         self._UnmodifiedZMechanic = self._ZMaxSkin
-        self.TPODistanceUpdate(0)
+        self.tpo_distance_update(0)
 
     @property
-    def _KeyCorrection(self):
+    def _key_correction(self):
         curTx=self._MainApp.Config['TxSystem']
         return curTx+'_Correction' 
 
     @Slot()
-    def TPODistanceUpdate(self,value):
+    def tpo_distance_update(self,value):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3-self.Config['NaturalOutPlaneDistance']
 
     @Slot()
-    def UpdateDistanceFromSkin(self):
+    def update_distance_from_skin(self):
         self._bIgnoreUpdate=True
         ZMec=self.Widget.SkinDistanceSpinBox.value()
         CurDistance=ZMec
@@ -121,7 +121,7 @@ class RingTx(BabelBaseTx):
             self.Widget.LabelTissueRemoved.setVisible(False)
 
     @Slot()
-    def RunSimulation(self):
+    def run_simulation(self):
         self._FullSolName=self._MainApp._prefix_path+'DataForSim.h5'
         self._WaterSolName=self._MainApp._prefix_path+'Water_DataForSim.h5'
 
@@ -131,9 +131,9 @@ class RingTx(BabelBaseTx):
         if os.path.isfile(self._FullSolName) and os.path.isfile(self._WaterSolName):
             Skull=ReadFromH5py(self._FullSolName)
 
-            if self._KeyCorrection in self._MainApp.Config and\
-                not self._MainApp.bHasTxWeights():
-                SelCorrection =self._MainApp.Config[self._KeyCorrection]
+            if self._key_correction in self._MainApp.Config and\
+                not self._MainApp.b_has_tx_weights():
+                SelCorrection =self._MainApp.Config[self._key_correction]
                 CoeffA = self.Config['Corrections'][SelCorrection][0]
                 CoeffB = self.Config['Corrections'][SelCorrection][1]+1.0
                 CoeffC = self.Config['Corrections'][SelCorrection][2]-Skull['ZSteering']-self.Config['NaturalOutPlaneDistance']
@@ -170,22 +170,22 @@ class RingTx(BabelBaseTx):
             self.worker = RunAcousticSim(self._MainApp)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self.update_ac_results)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
-            self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.notify_error)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
  
             self.thread.start()
-            self._MainApp.showClockDialog()
+            self._MainApp.show_clock_dialog()
         else:
-            self.UpdateAcResults()
+            self.update_ac_results()
 
-    def GetExport(self):
-        Export=super(RingTx,self).GetExport()
+    def get_export(self):
+        Export=super(RingTx,self).get_export()
         for k in ['TPODistance','XMechanic','YMechanic','SkinDistance']:
             Export[k]=getattr(self.Widget,k+'SpinBox').value()
         return Export
@@ -224,8 +224,8 @@ class RunAcousticSim(QObject):
         ##############
 
         print('Ideal Distance to program in TPO : ', TPODistance*1e3)
-        if self._mainApp.AcSim._KeyCorrection in self._mainApp.Config:
-            SelCorrection =self._mainApp.Config[self._mainApp.AcSim._KeyCorrection]
+        if self._mainApp.AcSim._key_correction in self._mainApp.Config:
+            SelCorrection =self._mainApp.Config[self._mainApp.AcSim._key_correction]
             Correction = np.polyval(self._mainApp.AcSim.Config['Corrections'][SelCorrection],TPODistance)
             print('Applying ZSteering correction: ',SelCorrection,Correction)
         else:
@@ -255,11 +255,11 @@ class RunAcousticSim(QObject):
         kargs['InDiameters']=np.array(self._mainApp.AcSim.Config['InDiameters'])
         kargs['OutDiameters']=np.array(self._mainApp.AcSim.Config['OutDiameters'])
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
-        kargs|=self._mainApp.CommomAcOptions()
+        kargs|=self._mainApp.commom_ac_options()
        
         # Start mask generation as separate process.
         queue=Queue()
-        fieldWorkerProcess = Process(target=CalculateFieldProcess, 
+        fieldWorkerProcess = Process(target=calculate_field_process, 
                                     args=(queue,Target,self._mainApp.Config['TxSystem']),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      
@@ -286,7 +286,7 @@ class RunAcousticSim(QObject):
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
-            self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
+            self._mainApp.update_computational_time('ultrasound',TotalTime)
             self.finished.emit()
         else:
             print("*"*40)

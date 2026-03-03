@@ -28,9 +28,9 @@ def resource_path():  # needed for bundling
 class ClockDialog(QDialog):
     def __init__(self, parent=None):
         super(ClockDialog,self).__init__(parent)
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
+    def init_ui(self):
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setModal(False)
 

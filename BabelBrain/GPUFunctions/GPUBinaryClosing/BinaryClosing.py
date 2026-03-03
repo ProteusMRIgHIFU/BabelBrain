@@ -12,9 +12,9 @@ from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import init_cuda,init_opencl,init_metal,init_mlx,get_step_size
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -30,7 +30,7 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
+def init_binary_closing(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
     global prgcl
     global sel_device
@@ -50,7 +50,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         cndimage = ndimage
 
         preamble = '#define _CUDA'
-        ctx,prgcl,sel_device = InitCUDA(preamble,kernel_files,DeviceName)
+        ctx,prgcl,sel_device = init_cuda(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl = prgcl.get_function('binary_erosion')
@@ -59,7 +59,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         import pyopencl as pocl
         clp = pocl
         preamble = '#define _OPENCL'
-        queue,prgcl,sel_device,ctx,mf = InitOpenCL(preamble,kernel_files,DeviceName)
+        queue,prgcl,sel_device,ctx,mf = init_opencl(preamble,kernel_files,DeviceName)
         
         # Create kernels from program function
         knl=prgcl.binary_erosion
@@ -67,7 +67,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         import metalcomputebabel as mc
         clp = mc
         preamble = '#define _METAL'
-        prgcl, sel_device, ctx = InitMetal(preamble,kernel_files,DeviceName)
+        prgcl, sel_device, ctx = init_metal(preamble,kernel_files,DeviceName)
 
         # Create kernels from program function
         knl=prgcl.function('binary_erosion')
@@ -75,7 +75,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
         import mlx.core as mx
         clp = mx
         preamble = '#define _MLX'
-        prgcl, sel_device, ctx = InitMLX(preamble,kernel_files,DeviceName)
+        prgcl, sel_device, ctx = init_mlx(preamble,kernel_files,DeviceName)
        
         # Create kernel from program function
         knl=prgcl['binary_erosion']['kernel']
@@ -485,7 +485,7 @@ def binary_dilation_modified(input, structure=None, iterations=1, mask=None,
                                     border_value, origin, 1, brute_force, GPUBackend)
 
 
-def BinaryClose(input, structure, iterations=1, output=None, origin=0,
+def binary_close(input, structure, iterations=1, output=None, origin=0,
                    mask=None, border_value=0, brute_force=False, GPUBackend='OpenCL'):
     """
     Modified from cupy's binary_closing function to work for OpenCL and Metal 
