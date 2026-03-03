@@ -194,7 +194,7 @@ def n4_bias_correc(input,file_manager,hashFiles,output=None,shrinkFactor=4,
         convergence['iters']
     )
     corrector.SetConvergenceThreshold(convergence['tol'])
-    corrected_image = corrector.execute(image, maskImage)
+    corrected_image = corrector.Execute(image, maskImage)
     log_bias_field = corrector.GetLogBiasFieldAsImage(inputImage)
     corrected_image_full_resolution = inputImage / sitk.Exp(log_bias_field)
 

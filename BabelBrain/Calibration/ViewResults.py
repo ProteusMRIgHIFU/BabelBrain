@@ -173,7 +173,7 @@ class PlotViewerCalibration(QDialog):
         layout.addWidget(self.viewer)
 
         # Button box (Accept/cancel)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         ok_button = buttons.button(QDialogButtonBox.Ok)
         ok_button.setText("Confirm and accept calibration")
         buttons.accepted.connect(self.accept)

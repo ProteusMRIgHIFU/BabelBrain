@@ -326,7 +326,7 @@ def save_t1w_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
     '''
     preT1=sitk.ReadImage(T1W_fname)
     getMin=sitk.MinimumMaximumImageFilter()
-    getMin.execute(preT1)
+    getMin.Execute(preT1)
     minval=getMin.GetMinimum()
     original_spacing = preT1.GetSpacing()
     original_size = preT1.GetSize()
