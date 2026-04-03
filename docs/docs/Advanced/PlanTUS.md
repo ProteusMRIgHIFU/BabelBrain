@@ -36,7 +36,7 @@ source <path_to_SimNIBS_root>/simnibs_env/bin/activate
 ```
 Install extra libraries with
 ```bash
-pip install nilearn btk pynput
+pip install nilearn vtk pynput
 ```
 
 ## Execution of PlanTUS

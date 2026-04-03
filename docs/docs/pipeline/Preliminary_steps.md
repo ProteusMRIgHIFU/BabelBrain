@@ -7,19 +7,23 @@
 
 ## Pre-processing 
 * Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x `charm` processing tool with  settings optimized for skull segmentation
-* **New** (Feb 6th, 2024): Use new recommended charm settings for a better skull segmentation:
-    * Download all files for CHARM FAT Atlas Integration at this [location](https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings) 
-    * Copy the downloaded  custom atlas directory `charm_fat_atlas_mni` in: `<path_to_simnibs>/simnibs/segmentation/atlases/`
-    * Place `settings_fat.ini` and `shared_gmm_fat.txt` in a directory of your choice
-    * Run with Custom Atlas:
+    * Charm version < 4.6: Recommended charm settings for a better skull segmentation:
+        * Download all files for CHARM FAT Atlas Integration at this [location](https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings) 
+        * Copy the downloaded  custom atlas directory `charm_fat_atlas_mni` in: `<path_to_simnibs>/simnibs/segmentation/atlases/`
+        * Place `settings_fat.ini` and `shared_gmm_fat.txt` in a directory of your choice
+        * Run with Custom Atlas:
 
-        `charm  <ID> T1.nii.gz T2.nii.gz --usesettings <path_to_settings_fat.ini> --noneck`
+            `charm  <ID> T1.nii.gz T2.nii.gz --usesettings <path_to_settings_fat.ini> --noneck`
+        
+        `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred to as the **SimNIBS output** directory in the following of this manual.
+        
+    * Charm version >= 4.6. Latest versions of charm have the fat atlas incorporated in the default settings. Just run charm with:
+    `charm  <ID> T1.nii.gz T2.nii.gz`
     
-    `<ID>` is a string for identification. A subdirectory `m2m_<ID>` will be created. Take note of this directory, this will be referred to as the **SimNIBS output** directory in the following of this manual.
-    
-    **Note**: Sometimes, `charm` may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with `dcm2niix`. If `charm` complains, you can try passing the  `--forceqform` parameter when executing `charm`.  
+    * **Note**: Sometimes, `charm` may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with `dcm2niix`. If `charm` complains, you can try passing the  `--forceqform` parameter when executing `charm`.  
 
-* Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
+* Identify the coordinates of the target of focus ultrasound in T1W space. 
+* OPTIONAL: If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. 
 
     For example, with FSL, a simple csv file (`mni.csv`) can be created with the coordinates in MNI such as `-32.0 -20.0 65.0`. Then run the following commands
 
