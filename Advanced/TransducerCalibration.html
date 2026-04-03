@@ -166,9 +166,11 @@ ExcelFileProfiles: /Users/spichardo/Documents/CTX-500-117 4-Ch. Focal Steering.x
 ExcelRangeProfiles: Sheet1!T20:AJ81
 # select an OutputResultsPath that is individual for Tx configuration and frequency
 OutputResultsPath: /Users/spichardo/Documents/CTX-500-117 4-Ch. Focal Steering
-Lambda: 1.0e-4
 # PLEASE BE SURE OF SELECTING A VALID FREQUENCY FOR YOUR DEVICE, also, be sure of format of frequency (i.e 5.0e+5)
 Frequency: 5.0e+5 
+Lambda: 1.0e-4
+LambdaSparse: 1.0e-5
+
 </code></pre>
 <p>where <code>Device</code> is the device type to calibrate; this should match the device selected when BabelBrain was started. <code>ExcelFileProfiles</code> is the file path of the Excel sheet with the report data. <code>ExcelRangeProfiles</code> is the Excel range of cells (including sheet name) of the acoustic profile data as detailed above. <code>OutputResultsPath</code> is the path where the calibration and some verification plots will be saved (if path doesn't exist, it will be created). <code>Lambda</code> is a regularization parameter (10<span class="arithmatex"><span class="MathJax_Preview">^{-4}</span><script type="math/tex">^{-4}</script></span> should work for most transducers) and <code>Frequency</code> is the ultrasound operating frequency (be sure of specifying a frequency supported by the device).</p>
 <p>Be sure that the <code>OutputResultsPath</code> is unique per transducer and serial number basis, in case more than one transducer of the same model is available.</p>

@@ -135,9 +135,11 @@
 </ul>
 <h2 id="pre-processing">Pre-processing</h2>
 <ul>
-<li>Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x <code>charm</code> processing tool with  settings optimized for skull segmentation</li>
 <li>
-<p><strong>New</strong> (Feb 6th, 2024): Use new recommended charm settings for a better skull segmentation:</p>
+<p>Execute <a href="https://simnibs.github.io/simnibs/build/html/index.html" target="_blank">SimNIBS</a> 4.x <code>charm</code> processing tool with  settings optimized for skull segmentation</p>
+<ul>
+<li>
+<p>Charm version &lt; 4.6: Recommended charm settings for a better skull segmentation:</p>
 <ul>
 <li>Download all files for CHARM FAT Atlas Integration at this <a href="https://github.com/ProteusMRIgHIFU/EnhanceTUS_Zadeh_JNE/tree/main/MRI_Custom_Settings">location</a> </li>
 <li>Copy the downloaded  custom atlas directory <code>charm_fat_atlas_mni</code> in: <code>&lt;path_to_simnibs&gt;/simnibs/segmentation/atlases/</code></li>
@@ -148,10 +150,21 @@
 </li>
 </ul>
 <p><code>&lt;ID&gt;</code> is a string for identification. A subdirectory <code>m2m_&lt;ID&gt;</code> will be created. Take note of this directory, this will be referred to as the <strong>SimNIBS output</strong> directory in the following of this manual.</p>
-<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
 </li>
 <li>
-<p>Identify the coordinates of the target of focus ultrasound in T1W space. If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
+<p>Charm version &gt;= 4.6. Latest versions of charm have the fat atlas incorporated in the default settings. Just run charm with:
+<code>charm  &lt;ID&gt; T1.nii.gz T2.nii.gz</code></p>
+</li>
+<li>
+<p><strong>Note</strong>: Sometimes, <code>charm</code> may complain that the qform and sform matrices are inconsistent. We have observed this when converting DICOM datasets with <code>dcm2niix</code>. If <code>charm</code> complains, you can try passing the  <code>--forceqform</code> parameter when executing <code>charm</code>.  </p>
+</li>
+</ul>
+</li>
+<li>
+<p>Identify the coordinates of the target of focus ultrasound in T1W space. </p>
+</li>
+<li>
+<p>OPTIONAL: If you need to start in standardized space (e.g. MNI), there are many tools (FSL, SPM12, etc) that can be used to convert from standardized space to T1W space. </p>
 <p>For example, with FSL, a simple csv file (<code>mni.csv</code>) can be created with the coordinates in MNI such as <code>-32.0 -20.0 65.0</code>. Then run the following commands</p>
 <p><code>flirt -in &lt;path to T1W nifti&gt; -ref $FSLDIR/data/standard/MNI152_T1_1mm -omat anat2mni.xfm -out anat_norm</code></p>
 <p><code>std2imgcoord -img &lt;path to T1W nifti&gt;  -std $FSLDIR/data/standard/MNI152_T1_1mm.nii -xfm anat2mni.xfm mni.csv &gt; natspace.csv</code></p>
