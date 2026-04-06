@@ -149,21 +149,19 @@
 <pre><code class="language-bash">/Applications/BabelBrain.app/Contents/MacOS/BabelBrain 
 </code></pre>
 <h1 id="requirements">Requirements</h1>
-<p>In this initial integration, the integration needs the following extra packages:</p>
+<p>In this initial integration, the integration needs:</p>
 <ul>
-<li><a href="https://fsl.fmrib.ox.ac.uk/fsl/docs/">FSL</a>.</li>
-<li><a href="https://humanconnectome.org/software/connectome-workbench">Workbench connectome</a>. If on macOS <strong>Download the <a href="https://humanconnectome.org/storage/app/media/workbench/workbench-macub-v2.0.1.zip">zip version of version 2.0.1</a>. DO NOT DOWNLOAD the DMG version as currently that version is not properly signed and macOS will refuse to run it</strong>.</li>
-<li><a href="https://surfer.nmr.mgh.harvard.edu">Freesurfer</a>. Tested with version 7.4.1.</li>
-<li><a href="https://github.com/spichardo/PlanTUS">PlanTUS fork</a> needed to automate tasks.</li>
+<li>Clone of <a href="https://github.com/mlueckel/PlanTUS">PlanTUS</a></li>
+<li><a href="https://humanconnectome.org/software/connectome-workbench">Workbench connectome</a>. If on macOS <strong>follow the instructions regarding resigning the binaries</strong>.</li>
 </ul>
-<p>Download all the tools above and take note of paths for PlanTUS fork location and binary files of FSL, Workbench (location of <code>wb_command</code> binary) and Freesurfer.</p>
+<p>Download all the tools above and take note of paths for PlanTUS location and binary files of Workbench (location of <code>wb_command</code> binary).</p>
 <p>Take also note of path to SimNIBS root path; for example <code>/Users/spichardo/Applications/SimNIBS-4.5</code>.</p>
 <h2 id="extra-libraries-in-simnibs-environment">Extra libraries in SimNIBS environment</h2>
 <p>Activate SimNIBS Python environment, for example:</p>
 <pre><code class="language-bash">source &lt;path_to_SimNIBS_root&gt;/simnibs_env/bin/activate
 </code></pre>
 <p>Install extra libraries with</p>
-<pre><code class="language-bash">pip install nilearn vtk pynput
+<pre><code class="language-bash">pip install nilearn vtk 
 </code></pre>
 <h2 id="execution-of-plantus">Execution of PlanTUS</h2>
 <ul>
