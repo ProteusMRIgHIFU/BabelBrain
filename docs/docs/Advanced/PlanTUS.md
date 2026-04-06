@@ -18,14 +18,13 @@ In macOS and if using the binary distribution, it is recommended to run from the
 ```
 
 # Requirements
-In this initial integration, the integration needs the following extra packages:
+In this initial integration, the integration needs:
 
-* [FSL](https://fsl.fmrib.ox.ac.uk/fsl/docs/).
-* [Workbench connectome](https://humanconnectome.org/software/connectome-workbench). If on macOS **Download the [zip version of version 2.0.1](https://humanconnectome.org/storage/app/media/workbench/workbench-macub-v2.0.1.zip). DO NOT DOWNLOAD the DMG version as currently that version is not properly signed and macOS will refuse to run it**.
-* [Freesurfer](https://surfer.nmr.mgh.harvard.edu). Tested with version 7.4.1.
-* [PlanTUS fork](https://github.com/spichardo/PlanTUS) needed to automate tasks.
+* Clone of [PlanTUS](https://github.com/mlueckel/PlanTUS)
+* [Workbench connectome](https://humanconnectome.org/software/connectome-workbench). If on macOS **follow the instructions regarding resigning the binaries**.
 
-Download all the tools above and take note of paths for PlanTUS fork location and binary files of FSL, Workbench (location of `wb_command` binary) and Freesurfer.
+
+Download all the tools above and take note of paths for PlanTUS location and binary files of Workbench (location of `wb_command` binary).
 
 Take also note of path to SimNIBS root path; for example `/Users/spichardo/Applications/SimNIBS-4.5`.
 
@@ -36,7 +35,7 @@ source <path_to_SimNIBS_root>/simnibs_env/bin/activate
 ```
 Install extra libraries with
 ```bash
-pip install nilearn vtk pynput
+pip install nilearn vtk 
 ```
 
 ## Execution of PlanTUS
