@@ -16,6 +16,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Presentations: presentations.md
   - Installation: installation.md
   - Overall pipeline : pipeline/pipeline.md
   - Preliminary steps: pipeline/Preliminary_steps.md
