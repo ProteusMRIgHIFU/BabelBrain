@@ -26,20 +26,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - label: macOS-arm64
-          #   os: macos-14
-          #   env_file: environment_mac_arm64-314.yml
-          #   artifact_name: BabelBrain-macOS-arm64
-          # - label: macOS-x64
-          #   # GitHub retired macos-13 (Intel) runners, so this build now
-          #   # cross-compiles on arm64 hardware via Rosetta 2. CONDA_SUBDIR=osx-64
-          #   # forces conda to fetch x86_64 packages; the resulting .app is
-          #   # x86_64 and runs natively on Intel Macs (and via Rosetta on Apple
-          #   # Silicon for users who want it).
-          #   os: macos-latest
-          #   conda_subdir: osx-64
-          #   env_file: environment_mac_x64-314.yml
-          #   artifact_name: BabelBrain-macOS-x64
+          - label: macOS-arm64
+            os: macos-14
+            env_file: environment_mac_arm64-314.yml
+            artifact_name: BabelBrain-macOS-arm64
+          - label: macOS-x64
+            # GitHub retired macos-13 (Intel) runners, so this build now
+            # cross-compiles on arm64 hardware via Rosetta 2. CONDA_SUBDIR=osx-64
+            # forces conda to fetch x86_64 packages; the resulting .app is
+            # x86_64 and runs natively on Intel Macs (and via Rosetta on Apple
+            # Silicon for users who want it).
+            os: macos-latest
+            conda_subdir: osx-64
+            env_file: environment_mac_x64-314.yml
+            artifact_name: BabelBrain-macOS-x64
           - label: Windows-x64
             os: windows-latest
             env_file: environment_win-314-NoHash.yml
