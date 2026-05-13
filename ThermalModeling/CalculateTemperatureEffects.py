@@ -227,7 +227,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
             print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
             RatioLosses=RatioLossesLoc
 
-    if bSegmentedBrain:
+
+    if bSegmentedBrain or len(IdRegionBenchmark)>0:
         SoSTarget = SoSMap[cxr,cyr,czr]
         DensityTarget = DensityMap[cxr,cyr,czr]
     else:
@@ -236,6 +237,7 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
 
     PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
     PressureRatio=PressureAdjust/pAmpTissue.max()
+    print('PressureRatio',PressureRatio)
 
     return PressureRatio,RatioLosses
 
