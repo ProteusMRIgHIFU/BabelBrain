@@ -309,7 +309,7 @@ class RUN_PLAN_TUS(QObject):
         
         mshPath=glob.glob(self.MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
         maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
-        self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+maskPath.split(os.sep)[-1].replace('.nii.gz','')
+        self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+Path(maskPath).name.replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
         create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
