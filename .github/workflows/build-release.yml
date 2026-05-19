@@ -1,8 +1,9 @@
 name: Build BabelBrain (cross-platform)
 
 # Triggers:
-#   - push of a tag starting with "v" (e.g. v0.8.2) -> full release build + GitHub Release
+#   - push of a tag starting with "v" (e.g. v0.8.2) -> full release build + draft GitHub Release
 #   - manual dispatch from the Actions tab          -> build only (no release published)
+# Releases are always created as drafts so we can add notes before publishing.
 on:
   push:
     tags:
@@ -299,8 +300,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           # On tag push, name & tag come from the tag automatically.
-          # On manual dispatch we publish a draft for inspection.
-          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          # Always create as draft so we can review and add release notes
+          # before publishing.
+          draft: true
           generate_release_notes: true
           files: |
             dist-artifacts/**/*.exe
