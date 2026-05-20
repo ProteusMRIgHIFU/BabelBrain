@@ -491,7 +491,7 @@ def PorositytoLAtt(phi, frequency):
     Att = amin + (amax - amin)*(phi**0.5)
     return Att
 
-def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
+def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.5, 0.6']):
     '''
     Convert Hounsfield Units to attenuation using Webb model.
     
@@ -506,7 +506,7 @@ def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.49, 0.63']):
         Acoustic frequency (Hz).
     params : list, optional
         Scanner parameters [Scanner, Energy, Kernel, Other, Resolution].
-        Default is ['GE','120','B','','0.49, 0.63'] for GE 120 kVp BonePlus kernel.
+        Default is ['GE','120','B','','0.5, 0.6'] for GE 120 kVp BonePlus kernel.
     
     Returns
     -------
@@ -1211,7 +1211,11 @@ class BabelFTD_Simulations_BASE(object):
         elif len(self._BenchmarkTestFile)>0:
             InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
             assert(len(InputDataBenchmark['Materials'])==len(np.unique(InputDataBenchmark['MaterialMap'])))
-            QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
+            if 'QCorrArr' not in InputDataBenchmark:
+                QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
+            else:
+                QCorrArr = InputDataBenchmark['QCorrArr']
+                assert(len(QCorrArr)==len(InputDataBenchmark['Materials']))
         elif  self._CTFNAME is None:
             if bBrainSegmentation:
                 QCorrArr = np.ones(8)
@@ -1898,10 +1902,11 @@ class SimulationConditionsBASE(object):
 
             if len(BenchmarkTestFile)>0:
             #we adjust dimensions to benchmark 1
-                print('Forcing radiusface to fit benchmark 1, current value', RadiusFace)
-                if RadiusFace>0.035:
-                    warnings.warn('RadiusFace too large, setting to 35 mm')
-                RadiusFace=0.035
+                if InputDataBenchmark['TestType']!=3:
+                    print('Forcing radiusface to fit benchmark 1, current value', RadiusFace)
+                    if RadiusFace>0.035:
+                        warnings.warn('RadiusFace too large, setting to 35 mm')
+                    RadiusFace=0.035
             
             print('RadiusFace',RadiusFace)
             print('yfield',yfield.min(),yfield.max())
@@ -2151,6 +2156,9 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         if bForceHomogenousMedium:
             self._MaterialMap[:,:,:]=1
         if len(BenchmarkTestFile)>0 and not bWaterOnly:
+            print('self._MaterialMap.shape',self._MaterialMap.shape)
+            print("InputDataBenchmark['MaterialMap'].shape",InputDataBenchmark['MaterialMap'].shape)
+            
             assert(np.all(np.array(self._MaterialMap.shape)==np.array(InputDataBenchmark['MaterialMap'].shape)))
             assert(self._MaterialMap.dtype==InputDataBenchmark['MaterialMap'].dtype)
             

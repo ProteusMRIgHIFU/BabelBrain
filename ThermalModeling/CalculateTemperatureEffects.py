@@ -96,7 +96,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   bForceHomogenousMedium,
                   bSegmentedBrain,
                   TxSystem,
-                  IdRegionBenchmark=[]):
+                  IdRegionBenchmark=[],
+                  FixedAcousticPower=0.0):
     '''
     Analyze acoustic energy losses between water and tissue and compute pressure adjustment.
 
@@ -126,6 +127,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
         If True, segmented brain is used.
     IdRegionBenchmark : list, optional
         List of region IDs for benchmarking.
+    FixedAcousticPower: float, optional
+        If passed (>0.0), it will adjust the power based on the water power, this is useful for benchmarking tests
 
     Returns
     -------
@@ -227,6 +230,11 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
             print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
             RatioLosses=RatioLossesLoc
 
+        if FixedAcousticPower >0.0:
+            print('OVERWRITTING LOSSES with Fixed Acoustic Power',FixedAcousticPower)
+            RatioLosses = FixedAcousticPower/AcousticEnergyWaterMaxLoc
+            print('RatioLosses with Fixed Acoustic Power',RatioLosses)
+
 
     if bSegmentedBrain or len(IdRegionBenchmark)>0:
         SoSTarget = SoSMap[cxr,cyr,czr]
@@ -235,9 +243,14 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
         SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
         DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
 
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
-    PressureRatio=PressureAdjust/pAmpTissue.max()
-    print('PressureRatio',PressureRatio)
+    
+    if FixedAcousticPower >0.0:
+        PressureRatio=np.sqrt(RatioLosses)
+        print('PressureRatio with FixedAcousticPower ',PressureRatio)
+    else:
+        PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
+        PressureRatio=PressureAdjust/pAmpTissue.max()
+        print('PressureRatio',PressureRatio)
 
     return PressureRatio,RatioLosses
 
@@ -721,6 +734,8 @@ def CalculateTemperatureEffects(InputPData,
         OrigMaterialMap=MaterialMap
 
     bSegmentedBrain = np.any(OrigMaterialMap>5)
+
+    FixedAcousticPower=0.0 
     
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
@@ -746,6 +761,9 @@ def CalculateTemperatureEffects(InputPData,
         for n,entry in enumerate(BenchmarkInput['Materials']):
             for k in ['SpecificHeat','Conductivity','Perfusion','Absorption']:
                 MaterialList[k][n]=entry[k]
+
+        if 'FixedAcousticPower' in BenchmarkInput:
+            FixedAcousticPower=BenchmarkInput['FixedAcousticPower']
     elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
@@ -845,10 +863,15 @@ def CalculateTemperatureEffects(InputPData,
             #this is a test for the skull, we select all materials
             SelSkull = MaterialMap >0
             IdRegionBenchmark=[0]
-        else:
-            assert(BenchmarkInput['TestType']==2)
+        elif BenchmarkInput['TestType']==2:
             SelSkull = MaterialMap ==1 
             IdRegionBenchmark=[0,1]
+        else:
+            assert(BenchmarkInput['TestType']==3)
+            maxMaterial= MaterialMap.max()
+            SelSkull = (MaterialMap> 1) & (MaterialMap <= maxMaterial-2)
+            IdRegionBenchmark=[maxMaterial-2,maxMaterial-2-1]
+            
         
     elif 'MaterialMapCT' in Input:
         if bSegmentedBrain:
@@ -892,7 +915,8 @@ def CalculateTemperatureEffects(InputPData,
                                                 bForceHomogenousMedium,
                                                 bSegmentedBrain,
                                                 TxSystem,
-                                                IdRegionBenchmark)
+                                                IdRegionBenchmark,
+                                                FixedAcousticPower=FixedAcousticPower)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -907,7 +931,8 @@ def CalculateTemperatureEffects(InputPData,
                                                           bForceHomogenousMedium,
                                                           bSegmentedBrain,
                                                           TxSystem,
-                                                          IdRegionBenchmark)
+                                                          IdRegionBenchmark,
+                                                          FixedAcousticPower=FixedAcousticPower)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
@@ -968,10 +993,15 @@ def CalculateTemperatureEffects(InputPData,
     elif len(BenchmarkTestFile)>0:
         if BenchmarkInput['TestType']==1:
             MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
-        else:
-            assert(BenchmarkInput['TestType']==2)
+        elif BenchmarkInput['TestType']==2:
             MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
             MonitoringPointsMap[mxSkull,mySkull,mzSkull]=2
+        else:
+            assert(BenchmarkInput['TestType']==3)
+            MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+            MonitoringPointsMap[mxSkull,mySkull,mzSkull]=2
+
+            
     else:
         MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
         MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
