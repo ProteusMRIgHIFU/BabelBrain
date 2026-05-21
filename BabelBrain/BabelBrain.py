@@ -1417,7 +1417,9 @@ class RunMaskGeneration(QObject):
             if kargs['CTType'] in [1,2,3]:
                 kargs['HUThreshold']=Widget.HUTreshold.value()
             else:
+                assert(kargs['CTType']==4)
                 kargs['DensityThreshold']=Widget.HUTreshold.value()
+                kargs['RegionAirCT']=[0.01, 10] # air density values
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
