@@ -273,8 +273,8 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     for mesh in [Mesh1,Mesh2]:
         if not mesh.is_volume:
             print("Mesh still broken, one last try to fix it")
-            mesh.remove_duplicate_faces()
-            mesh.remove_degenerate_faces()
+            mesh.update_faces(mesh.unique_faces())
+            mesh.update_faces(mesh.nondegenerate_faces())
             mesh.remove_unreferenced_vertices()
             mesh.merge_vertices()
             mesh.fix_normals()
