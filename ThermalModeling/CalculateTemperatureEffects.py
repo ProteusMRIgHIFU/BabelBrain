@@ -339,7 +339,7 @@ def RunBHTECycles(nCurrent,
     Returns
     -------
     tuple
-        ResTemp, ResDose, FinalTemp, FinalDose, TemperaturePoints, nCurrent
+        ResTempMax, ResDose, FinalTemp, FinalDose, TemperaturePoints, nCurrent
     '''
     if type(InputPData) is str:
         p0=PMaps*0
@@ -392,6 +392,11 @@ def RunBHTECycles(nCurrent,
                                                             stableTemp=stableTemp)
 
         gc.collect(1)
+
+        if nCurrent==0:
+            ResTempMax=ResTemp
+        else:
+            ResTempMax=np.maximum(ResTempMax,ResTemp)
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
@@ -448,7 +453,7 @@ def RunBHTECycles(nCurrent,
             ((nCurrent+1)% LimitBHTEIterationsPerProcess==0 or (nCurrent+1)==TotalIterations):
             print('Finishing sub process')
             break
-    return ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
+    return ResTempMax,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
 
 def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                  LimitBHTEIterationsPerProcess,nCurrent,
@@ -980,6 +985,9 @@ def CalculateTemperatureEffects(InputPData,
                                                       initDose=initDose)
     gc.collect(1)
 
+    if len(prevSimulationResultsFile)>0:
+        ResTemp=np.maximum(ResTemp,PreviousData['TempEndFUS'])
+
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
     ResTempBrain=ResTemp * SelBrain.astype(np.float32)
     ResTempSkull=ResTemp * SelSkull.astype(np.float32)
@@ -1079,7 +1087,10 @@ def CalculateTemperatureEffects(InputPData,
                 if not queueResult.empty():
                     break
             ProcResults=queueResult.get()
-            ResTemp=ProcResults[0]
+            if nCurrent==0:
+                ResTemp=ProcResults[0]
+            else:
+                ResTemp=np.maximum(ResTemp,ProcResults[0])
             ResDose=ProcResults[1]
             FinalTemp=ProcResults[2]
             FinalDose=ProcResults[3]
@@ -1087,6 +1098,9 @@ def CalculateTemperatureEffects(InputPData,
             nCurrent=ProcResults[5]
             fieldWorkerProcess.terminate()
             print('process terminated')
+
+    if len(prevSimulationResultsFile)>0:
+        ResTemp=np.maximum(ResTemp,PreviousData['TempEndFUS'])
 
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
     SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
