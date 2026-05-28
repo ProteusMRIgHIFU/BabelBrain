@@ -17,6 +17,7 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor
 
 import numpy as np
+import nibabel
 
 from scipy.io import loadmat
 from matplotlib.pyplot import cm
@@ -111,7 +112,7 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskNib.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()
@@ -167,7 +168,10 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
                 self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
                 self.Widget.ZRotationSpinBox.setValue(RotationZ)
-                self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
+                try:
+                    self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
+                except:
+                    self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'].astype(int))
                 if 'DistanceConeToFocus' in Skull and hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
                     self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
                 if 'zLengthBeyonFocalPoint' in Skull:
@@ -237,22 +241,15 @@ class BabelBasePhaseArray(BabelBaseTx):
             assert(len(OutFiles['FilesSkull'])==len(self._MultiPoint))
             
         self.UpdateAcResults()
-        
-    @Slot()
-    def UpdateAcResults(self):
-        self._MainApp.SetSuccesCode()
-        self.Widget.CalculateMechAdj.setEnabled(True)
-        #We overwrite the base class method
+
+    def _showMatplotlibVisualization(self):
         if self._bRecalculated:
-            self._MainApp.hideClockDialog()
             self._AcResults =[]
             #this will generate a modified trajectory file
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
                 self.Widget.HideMarkscheckBox.setEnabled(True)
-            self._MainApp.Widget.tabWidget.setEnabled(True)
-            self._MainApp.ThermalSim.setEnabled(True)
             
             for fwater,fskull in zip(self._WaterSolName,self._FullSolName):
                 Skull=ReadFromH5py(fskull)
@@ -483,6 +480,26 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
+        
+    @Slot()
+    def UpdateAcResults(self):
+        self._MainApp.SetSuccesCode()
+        self.Widget.CalculateMechAdj.setEnabled(True)
+        if self._bRecalculated:
+            self._MainApp.ThermalSim.setEnabled(True)
+            self._MainApp.hideClockDialog()
+            self._MainApp.Widget.tabWidget.setEnabled(True)
+        self._showMatplotlibVisualization()
+        if self._MultiPoint:
+            NiftiSkull=nibabel.load(self._FullSolName[0].split('__Steer')[0]+'_FullElasticSolution_Sub_NORM.nii.gz')
+            NiftiWater=nibabel.load(self._FullSolName[0].split('__Steer')[0]+'_Water_FullElasticSolution_Sub_NORM.nii.gz')
+        else:
+            NiftiSkull=nibabel.load(self._FullSolName[0].split('_DataForSim.h5')[0]+'_FullElasticSolution_Sub_NORM.nii.gz')
+            NiftiWater=nibabel.load(self._FullSolName[0].split('_DataForSim.h5')[0]+'_Water_FullElasticSolution_Sub_NORM.nii.gz')
+
+        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater)
+
+        
     
     def EnableMultiPoint(self,MultiPoint):
         self.Widget.MultifocusLabel.setVisible(True)

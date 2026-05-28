@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>566</height>
+    <height>505</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>580</x>
-     <y>530</y>
+     <y>470</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>276</x>
-     <y>532</y>
+     <y>472</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>6</x>
-     <y>530</y>
+     <y>470</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -58,11 +58,11 @@
      <x>5</x>
      <y>2</y>
      <width>644</width>
-     <height>526</height>
+     <height>472</height>
     </rect>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -116,7 +116,7 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>297</y>
+       <y>240</y>
        <width>349</width>
        <height>20</height>
       </rect>
@@ -173,7 +173,7 @@
      <property name="geometry">
       <rect>
        <x>405</x>
-       <y>300</y>
+       <y>243</y>
        <width>206</width>
        <height>72</height>
       </rect>
@@ -262,7 +262,7 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>321</y>
+       <y>264</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -291,7 +291,7 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>351</y>
+       <y>294</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -307,7 +307,7 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>377</y>
+       <y>320</y>
        <width>251</width>
        <height>20</height>
       </rect>
@@ -323,7 +323,7 @@
      <property name="geometry">
       <rect>
        <x>18</x>
-       <y>400</y>
+       <y>343</y>
        <width>156</width>
        <height>20</height>
       </rect>
@@ -336,7 +336,7 @@
      <property name="geometry">
       <rect>
        <x>239</x>
-       <y>399</y>
+       <y>342</y>
        <width>241</width>
        <height>20</height>
       </rect>
@@ -349,7 +349,7 @@
      <property name="geometry">
       <rect>
        <x>16</x>
-       <y>423</y>
+       <y>366</y>
        <width>251</width>
        <height>18</height>
       </rect>
@@ -365,7 +365,7 @@
      <property name="geometry">
       <rect>
        <x>273</x>
-       <y>423</y>
+       <y>366</y>
        <width>276</width>
        <height>18</height>
       </rect>
@@ -378,7 +378,7 @@
      <property name="geometry">
       <rect>
        <x>175</x>
-       <y>400</y>
+       <y>343</y>
        <width>42</width>
        <height>21</height>
       </rect>
@@ -394,7 +394,7 @@
      <property name="geometry">
       <rect>
        <x>483</x>
-       <y>399</y>
+       <y>342</y>
        <width>42</width>
        <height>22</height>
       </rect>
@@ -413,7 +413,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>447</y>
+       <y>390</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -438,7 +438,7 @@
      <property name="geometry">
       <rect>
        <x>53</x>
-       <y>447</y>
+       <y>390</y>
        <width>255</width>
        <height>18</height>
       </rect>
@@ -451,7 +451,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>447</y>
+       <y>390</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -476,7 +476,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>447</y>
+       <y>390</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -489,7 +489,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>471</y>
+       <y>414</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -514,7 +514,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>471</y>
+       <y>414</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -539,7 +539,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>471</y>
+       <y>414</y>
        <width>288</width>
        <height>18</height>
       </rect>
@@ -552,7 +552,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>471</y>
+       <y>414</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -583,7 +583,7 @@
        <x>3</x>
        <y>90</y>
        <width>636</width>
-       <height>201</height>
+       <height>150</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -598,7 +598,7 @@
         <x>543</x>
         <y>3</y>
         <width>86</width>
-        <height>190</height>
+        <height>143</height>
        </rect>
       </property>
       <property name="text">
@@ -686,7 +686,7 @@ PlanTUS</string>
       <property name="geometry">
        <rect>
         <x>9</x>
-        <y>140</y>
+        <y>115</y>
         <width>118</width>
         <height>32</height>
        </rect>
@@ -704,33 +704,11 @@ PlanTUS</string>
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QPushButton" name="FSLRootpushButton">
-      <property name="geometry">
-       <rect>
-        <x>9</x>
-        <y>114</y>
-        <width>120</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>FSL bins...</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
      <widget class="QLineEdit" name="ConnectomeRootlineEdit">
       <property name="geometry">
        <rect>
         <x>143</x>
-        <y>145</y>
+        <y>120</y>
         <width>396</width>
         <height>21</height>
        </rect>
@@ -740,60 +718,6 @@ PlanTUS</string>
       </property>
       <property name="text">
        <string>...</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="FSLRootlineEdit">
-      <property name="geometry">
-       <rect>
-        <x>142</x>
-        <y>119</y>
-        <width>396</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>...</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="FreeSurferRootlineEdit">
-      <property name="geometry">
-       <rect>
-        <x>143</x>
-        <y>170</y>
-        <width>396</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>...</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="FreeSurferRootpushButton">
-      <property name="geometry">
-       <rect>
-        <x>9</x>
-        <y>165</y>
-        <width>120</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>FreeSurfer bins...</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
       </property>
      </widget>
      <widget class="QDoubleSpinBox" name="DiameterSpinBox">
@@ -925,7 +849,7 @@ to skin (mm)</string>
      <property name="geometry">
       <rect>
        <x>202</x>
-       <y>349</y>
+       <y>292</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -1647,12 +1571,8 @@ for large thermal simulation</string>
   <tabstop>SimbNINBSRootlineEdit</tabstop>
   <tabstop>PlanTUSRootpushButton</tabstop>
   <tabstop>PlanTUSRootlineEdit</tabstop>
-  <tabstop>FSLRootpushButton</tabstop>
-  <tabstop>FSLRootlineEdit</tabstop>
   <tabstop>ConnectomeRootpushButton</tabstop>
   <tabstop>ConnectomeRootlineEdit</tabstop>
-  <tabstop>FreeSurferRootpushButton</tabstop>
-  <tabstop>FreeSurferRootlineEdit</tabstop>
   <tabstop>RUNPlanTUSpushButton</tabstop>
   <tabstop>ForceBlendercheckBox</tabstop>
   <tabstop>ManualFOVcheckBox</tabstop>

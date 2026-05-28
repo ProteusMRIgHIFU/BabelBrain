@@ -5,30 +5,15 @@ import os
 from pathlib import Path
 import sys
 
-from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
-                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6.QtWidgets import QMessageBox
+from PySide6.QtCore import QFile,Slot,QThread
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor, QColor
 
 import numpy as np
 
-from scipy.io import loadmat
-from matplotlib.pyplot import cm
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import (
-    FigureCanvas,NavigationToolbar2QT)
 import os
 import sys
-import shutil
-from datetime import datetime
-import time
-import yaml
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-from CalculateFieldProcess import CalculateFieldProcess
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
 from trimesh import creation
@@ -168,14 +153,14 @@ class BSonix(SingleTx):
         HEIGHT = self.Config['CaseHeight']/1e3 # m
         InitTrans=np.eye(4)
         LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask,axis=2)==5.0)).flatten()
-        SpatialStep=np.mean(self._MainApp._MaskData.header.get_zooms())/1e3
+        SpatialStep=np.mean(self._MainApp._MaskNib.header.get_zooms())/1e3
         InitTrans[0,3]=LocSpot[0]
         InitTrans[1,3]=LocSpot[1]
         InitTrans[2,3]=LocSpot[2]+HEIGHT/2/SpatialStep+(self.Widget.DistanceSkinLabel.property('UserData')+self.Widget.SkinDistanceSpinBox.value())/1e3/SpatialStep
         #we create first a cylinder in voxel dimensions
         cylinder = creation.cylinder(radius=RADIUS/SpatialStep,height=HEIGHT/SpatialStep,sections=20,transform=InitTrans)
         
-        affine=self._MainApp._MaskData.affine.copy()
+        affine=self._MainApp._MaskNib.affine.copy()
         
         #and we apply the conversion from voxel space to subject space in mm
         cylinder.apply_transform(affine)

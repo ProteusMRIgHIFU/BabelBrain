@@ -83,9 +83,9 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bDisplay=False,
                             **kargs)
                 #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
-                nSub=[]
-                nRefocus=[]
                 for fnames in [FilesSkull,FilesWater]:
+                    nSub=[]
+                    nRefocus=[]
                     for f in fnames:
                         fsub=f.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz')
                         nSub.append(nibabel.load(fsub))    

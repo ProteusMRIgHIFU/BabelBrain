@@ -24,6 +24,10 @@ import shutil
 from linetimer import CodeTimer
 import hashlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from Calibration.ViewResults import PlotViewerCalibration
+from PySide6.QtWidgets import QDialog
 
 logger = logging.getLogger()
 
@@ -345,13 +349,154 @@ def BiasCorrecAndCoreg(InputT1,
         file_manager.save_file(file_data=ZTEfnameBiasCorrecOutput,filename=ZTEfnameBiasCorrec,precursor_files=T1fnameBiasCorrec)
 
     img = file_manager.load_file(ZTEInT1W,nifti_load_method='sitk')
-    img_out = img*sitk.Cast(img_mask,sitk.sitkFloat32)
+
+    try:
+        img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+    except:
+        try:
+            print('Error: mask and image do not have the same spacing under tolerance, first attempt to fix')
+            img_mask.SetSpacing(img.GetSpacing()) # some weird rounding can occur, so we try again
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+        except:
+            print('Error: mask and image do not have the same spacing under tolerance, second attempt to fix')
+            imgnib=file_manager.sitk_to_nibabel(img)
+            img_mask=file_manager.sitk_to_nibabel(img_mask)
+            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(),affine=imgnib.affine)
+            img_mask=file_manager.nibabel_to_sitk(img_mask)
+            img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
+
     img_out_nib = file_manager.sitk_to_nibabel(img_out)
     file_manager.save_file(file_data=img_out_nib,
                            filename=ZTEInT1W,
                            precursor_files=ZTEfnameBiasCorrec)
 
     return T1fnameBiasCorrec,ZTEInT1W
+
+def bone_from_label(label):
+    """
+    get bone label from the m2m_subid/final_tissues.nii.gz label
+    """
+    return (label == 7) | (label == 8)
+
+
+def soft_tissue_from_label(label):
+    """
+    get soft tissue label from the m2m_subid/final_tissues.nii.gz label
+    soft tissue is defined as everything that is not air or bone in the image
+    """
+    background = label == 0
+    bone = bone_from_label(label)
+    soft_tissue = np.logical_not(background) & np.logical_not(bone)
+    return soft_tissue
+
+def get_si_aligned_dimension(affine):
+    """Return which voxel dimension is predominantly aligned with Superior-Inferior.
+
+    Parameters
+    ----------
+    affine : array-like, shape (4, 4)
+        NIfTI affine matrix mapping voxel indices to world coordinates.
+
+    Returns
+    -------
+    dim : int
+        Voxel dimension index (0, 1, or 2) most aligned with SI.
+    direction : str
+        +1 if increasing index goes toward +Z, else -1.
+    score : float
+        Absolute alignment score in [0, 1] (1 = perfectly aligned).
+    """
+    affine = np.asarray(affine, dtype=float)
+    if affine.shape != (4, 4):
+        raise ValueError(f"Expected affine shape (4, 4), got {affine.shape}")
+
+    # Columns of the 3x3 block are world-space directions of voxel axes i, j, k.
+    linear = affine[:3, :3]
+    axis_norms = np.linalg.norm(linear, axis=0)
+    if np.any(axis_norms == 0):
+        raise ValueError("Affine contains a zero-length voxel axis in the 3x3 block")
+
+    # Normalize so voxel size anisotropy does not bias the alignment.
+    unit_dirs = linear / axis_norms
+    z_components = unit_dirs[2, :]
+    si_scores = np.abs(z_components)
+
+    dim = int(np.argmax(si_scores))
+    direction = 1 if z_components[dim] >= 0 else -1
+    score = float(si_scores[dim])
+    return dim, direction, score
+
+def ConfirmPseudoCT(CTfname):
+    basepath=os.path.split(CTfname)[0]
+    dialog = PlotViewerCalibration([basepath+os.sep+'pCT_histogram.pdf'],
+                                   title="PseudoCT results",
+                                   confirmText="Confirm pseudoCT",
+                                   extraMsg="Verify skull bone histogram's limit is not too far "+
+                                             "or over the typical HU limit (2000)")
+    return dialog.exec()==QDialog.Accepted
+
+def GeneratePseudoCTHistogram(pCT,CTfname,DistanceFromTop=80.0):
+    dim, direction, score=get_si_aligned_dimension(pCT.affine)
+    zm=pCT.header.get_zooms()
+    NumberVoxelsFromTop=int(DistanceFromTop/zm[dim])
+    data=pCT.get_fdata()
+    if direction ==1: #we flip the data
+        data=np.flip(data,axis=dim)
+    sz=data.shape
+    si,sj,sk=np.where(data>200)
+    if dim ==0:
+        data=data[si.min():si.min()+NumberVoxelsFromTop,:,:]
+        central1=data[:,:,sz[2]//2]
+        d1=zm[0]/zm[1]
+        central2=data[:,sz[1]//2,:]
+        d2=zm[0]/zm[2]
+    elif dim ==1:
+        data=data[:,sj.min():sj.min()+NumberVoxelsFromTop,:]
+        central1=data[:,:,sz[2]//2]
+        d1=zm[0]/zm[1]
+        central2=data[sz[0]//2,:,:]
+        d2=zm[1]/zm[2]
+    else:
+        data=data[:,:,sk.min():sk.min()+NumberVoxelsFromTop]
+        central1=data[sz[0]//2,:,:]
+        d1=zm[1]/zm[2]
+        central2=data[:,sz[1]//2,:]
+        d2=zm[0]/zm[2]
+    f,axs=plt.subplots(3,1,figsize=(8,6))
+    axs=np.array(axs).flatten()
+    im=axs[0].imshow(central1.T,cmap=plt.cm.gray,vmin=-1000)
+    axs[0].set_aspect(1/d1)
+    axs[0].set_xticks([])
+    axs[0].set_yticks([])
+    axs[0].set_title('Central view pseudoCT')
+
+    divider = make_axes_locatable(axs[0])
+    cax = divider.append_axes("right", size="3%", pad=0.05)
+    cb = f.colorbar(im, cax=cax)
+    sdata=data[data>=200]
+    axs[1].hist(sdata,30,density=True)
+    axs[1].set_xlabel('HU')
+    axs[1].set_ylabel('density distribution')
+    # axs[1].set_xlim(100,2300)
+    axs[1].set_title('PseudoCT - HU>200')
+    axs[1].plot([2000,2000],[0,axs[1].get_ylim()[1]],':')
+
+    ExampleHisto=ReadFromH5py(os.path.join(resource_path(),'ExampleHistogram.h5'))
+    for k in ExampleHisto:
+        ExampleHisto[k]=ExampleHisto[k][ExampleHisto[k]<=2300]
+        axs[2].hist(ExampleHisto[k],30,density=True,alpha=0.5,label=k)
+    axs[2].set_xlim(100,2300)
+    axs[2].set_xlabel('HU')
+    axs[2].set_ylabel('density distribution')
+    axs[2].legend(frameon=False,loc=0)
+    # axs[2].plot([2000,2000],[0,axs[2].get_ylim()[1]],':')
+    axs[2].set_title('Examples of real CT - HU>200')
+
+    f.tight_layout()
+    basepath=os.path.split(CTfname)[0]
+    f.savefig(basepath+os.sep+'pCT_histogram.pdf',bbox_inches='tight')
+    plt.close('all')
+
 
 def ConvertZTE_PETRA_pCT(InputT1,
                          InputZTE,
@@ -361,8 +506,8 @@ def ConvertZTE_PETRA_pCT(InputT1,
                          PetraMRIPeakDistance=50,
                          PetraNPeaks=2,
                          bGeneratePETRAHistogram=False,
-                         PETRASlope=-2929.6,
-                         PETRAOffset=3274.9,
+                         PETRASlope=-2080.02235771,
+                         PETRAOffset=2133.22867303,
                          ZTESlope=-2085.0,
                          ZTEOffset=2329.0):
     print('converting ZTE/PETRA to pCT with range',file_manager.pseudo_CT_range)
@@ -381,6 +526,8 @@ def ConvertZTE_PETRA_pCT(InputT1,
         regions= regionprops(label_img)
         regions=sorted(regions,key=lambda d: d.area) #we eliminate the large background region
         arrCavities=(label_img!=0) &(label_img!=regions[-1].label)
+        soft_tissue=soft_tissue_from_label(charmdata)
+
     else:
         InputBrainMask=os.path.join(SimbsPath,'csf.nii.gz')
         SkinMask=os.path.join(SimbsPath,'skin.nii.gz')
@@ -406,10 +553,8 @@ def ConvertZTE_PETRA_pCT(InputT1,
         arrZTE=volumeZTE.get_fdata()
         arrHead=volumeHead.get_fdata()
 
-        if bIsPetra: # FUN23 Miscouridou et al. Adapted from  https://github.com/ucl-bug/petra-to-ct
+        if bIsPetra: # SimNIBS petra2Density
             print('Using PETRA specification to convert to pCT')
-
-            #histogram normalization
             #histogram normalization
             if (arrZTE.max()-arrZTE.min())>2**16-1:
                 raise ValueError('The range of values in the ZTE file exceeds 2^16')
@@ -433,15 +578,12 @@ def ConvertZTE_PETRA_pCT(InputT1,
 
             if bGeneratePETRAHistogram:
                 plt.figure()
-                plt.plot(bins, hist_vals);
-                for ind2 in locs:
-                    plt.plot([ind2,ind2],[np.min(hist_vals),np.max(hist_vals)])
-                plt.xlabel('PETRA Value')
-                plt.ylabel('Count')
-                plt.title('Image Histogram')
+                plt.plot(bins, vals)
+                plt.scatter(soft_tissue_value, np.max(vals))
                 petrahistofname = InputZTE.split('.nii')[0]+'-PETRA_Histogram.pdf'
                 plt.savefig(petrahistofname)
                 plt.close('all')
+
         else:
             maskedZTE =arrZTE.copy()
             maskedZTE[arrMask==0]=-1000
@@ -481,4 +623,6 @@ def ConvertZTE_PETRA_pCT(InputT1,
         pCT = nibabel.Nifti1Image(arrCT,affine=volumeZTE.affine)
         CTfname = file_manager.output_files['pCTfname']
         file_manager.save_file(file_data=pCT,filename=CTfname,precursor_files=file_manager.output_files['ZTEInT1W'])
+        GeneratePseudoCTHistogram(pCT,CTfname)
+    
     return pCT

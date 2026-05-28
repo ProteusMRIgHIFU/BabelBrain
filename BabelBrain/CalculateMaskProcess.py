@@ -79,7 +79,8 @@ def CalculateMaskProcess(queue,COMPUTING_BACKEND,devicename,**kargs):
             LabelImage.InitLabel(DeviceName=devicename,GPUBackend=gpu_backend)
             DataPreps.InitLabelImageGPUCallback(LabelImage.LabelImage,COMPUTING_BACKEND)
                     
-        DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
+        FinalMask,output_files=DataPreps.GetSkullMaskFromSimbNIBSSTL(**kargs)
+        queue.put(output_files)
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
         print(traceback.format_exc())

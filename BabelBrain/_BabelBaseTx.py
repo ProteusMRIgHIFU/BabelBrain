@@ -4,19 +4,19 @@ Base Class for Tx GUI, not to be instantiated directly
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QPalette
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 
 import numpy as np
 import os
-from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
-from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
-from skimage.measure import label, regionprops, regionprops_table
+from GUIComponents.nifti_viewer import NiftiViewerWindow
+
+from skimage.measure import label, regionprops
+import nibabel
 #auxiliary functions to measure metrics in acoustic fields
 
 def ellipsoid_axis_lengths(central_moments):
@@ -76,13 +76,13 @@ class BabelBaseTx(QWidget):
         FocIJK=np.ones((4,1))
         FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
 
-        FocXYZ=self._MainApp._MaskData.affine@FocIJK
+        FocXYZ=self._MainApp._MaskNib.affine@FocIJK
         FocIJKAdjust=FocIJK.copy()
         #we adjust in steps
-        FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[0]
-        FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskData.header.get_zooms()[1]
+        FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskNib.header.get_zooms()[0]
+        FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskNib.header.get_zooms()[1]
 
-        FocXYZAdjust=self._MainApp._MaskData.affine@FocIJKAdjust
+        FocXYZAdjust=self._MainApp._MaskNib.affine@FocIJKAdjust
         AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
 
         print('AdjustmentInRAS recalc',AdjustmentInRAS)
@@ -104,8 +104,9 @@ class BabelBaseTx(QWidget):
 
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
-        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self.UpdateAcResults)
-        self.Widget.HideMarkscheckBox.stateChanged.connect(self.UpdateAcResults)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
+        
 
     @Slot()
     def NotifyError(self):
@@ -120,22 +121,15 @@ class BabelBaseTx(QWidget):
             #this will unblock for PyTest
             self._MainApp.testing_error = True
             self._MainApp.Widget.tabWidget.setEnabled(True)
-    
-    @Slot()
-    def UpdateAcResults(self):
-        '''
-        This is a common function for most Tx to show results
-        '''
-        self._MainApp.SetSuccesCode()
-        self.Widget.CalculateMechAdj.setEnabled(True)
+
+    def _showMatplotlibVisualization(self):
         if self._bRecalculated:
-            self._MainApp.hideClockDialog()
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
                 self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
-            self._MainApp.ThermalSim.setEnabled(True)
+            
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
 
@@ -207,6 +201,14 @@ class BabelBaseTx(QWidget):
             self._Skull = Skull
             self._ISkull = ISkull
             self._DistanceToTarget = DistanceToTarget
+
+            # --- tear down previous VTK viewer if present ---
+            if hasattr(self,'_slice_viewer'):
+                while (child := self._layout.takeAt(0)) is not None:
+                    w = child.widget()
+                    if w is not None:
+                        w.deleteLater()
+                del self._slice_viewer
         
             if hasattr(self,'_figAcField'):
                     children = []
@@ -269,7 +271,7 @@ class BabelBaseTx(QWidget):
 
             self._figAcField.canvas.draw_idle()
         else:
-            self._figAcField=Figure(figsize=(14, 12))
+            self._figAcField=Figure()
 
             if not hasattr(self,'_layout'):
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
@@ -278,7 +280,9 @@ class BabelBaseTx(QWidget):
             toolbar=NavigationToolbar2QT(self.static_canvas,self)
             self._layout.addWidget(toolbar)
             self._layout.addWidget(self.static_canvas)
-            static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+            # static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
+            static_ax1 = self.static_canvas.figure.add_axes([0.05, 0.15, 0.45, 0.8])  
+            static_ax2 = self.static_canvas.figure.add_axes([0.55, 0.15, 0.45, 0.8])  
             self._static_ax1 = static_ax1
             self._static_ax2 = static_ax2
 
@@ -321,7 +325,23 @@ class BabelBaseTx(QWidget):
         self._marker2.set_markerfacecolor(mc)
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
         self._bRecalculated = False
- 
+
+    @Slot()
+    def UpdateAcResults(self):
+        '''
+        This is a common function for most Tx to show results
+        '''
+        self._MainApp.SetSuccesCode()
+        self.Widget.CalculateMechAdj.setEnabled(True)
+        if self._bRecalculated:
+            self._MainApp.ThermalSim.setEnabled(True)
+            self._MainApp.hideClockDialog()
+
+        self._showMatplotlibVisualization()
+        NiftiSkull=nibabel.load(self._FullSolName.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz'))
+        NiftiWater=nibabel.load(self._FullSolName.replace('DataForSim.h5','Water_FullElasticSolution_Sub_NORM.nii.gz'))
+        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater)
+        
     def GetExport(self):
         Export={}
         Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
@@ -349,8 +369,7 @@ class BabelBaseTx(QWidget):
                 central_plot_index = self.Widget.SelCombinationDropDown.findText('X:0.0 Y:0.0 Z:0.0')
             else:
                 # For single focus sims
-                central_plot_index = 0
-                
+                central_plot_index = 0          
             central_focal_spot_plot = self._ISkullCol[central_plot_index]
         else:
             # For single focus txs

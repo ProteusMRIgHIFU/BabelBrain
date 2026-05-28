@@ -14,7 +14,7 @@
    <string>Widget</string>
   </property>
   <property name="layoutDirection">
-   <enum>Qt::LeftToRight</enum>
+   <enum>Qt::LayoutDirection::LeftToRight</enum>
   </property>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
@@ -82,7 +82,7 @@
       </rect>
      </property>
      <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
+      <enum>Qt::LayoutDirection::LeftToRight</enum>
      </property>
      <item>
       <property name="text">
@@ -126,7 +126,7 @@
       </rect>
      </property>
      <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
      </property>
      <property name="decimals">
       <number>0</number>
@@ -232,7 +232,7 @@ mask</string>
         </rect>
        </property>
        <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
        </property>
        <property name="decimals">
         <number>0</number>
@@ -260,7 +260,7 @@ mask</string>
         <string>HU threshold</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
       </widget>
      </widget>
@@ -284,7 +284,7 @@ mask</string>
       <number>50</number>
      </property>
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
     </widget>
     <widget class="QLabel" name="label_6">
@@ -446,6 +446,25 @@ mask</string>
    </property>
    <property name="text">
     <string>Advanced Options</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="vtkVisualizationqPushButton">
+   <property name="geometry">
+    <rect>
+     <x>1034</x>
+     <y>16</y>
+     <width>123</width>
+     <height>34</height>
+    </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>VTK visualization</string>
    </property>
   </widget>
  </widget>

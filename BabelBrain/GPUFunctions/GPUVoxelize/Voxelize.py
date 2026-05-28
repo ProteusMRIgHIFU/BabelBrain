@@ -126,17 +126,28 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         with ctx:
             constant_defs = constant_defs.replace('constant','__constant__')
             
+            resource_path_str = str(resource_path())
+            options = ('-I', resource_path_str)
+            logging.info(f"Searching {resource_path_str} for cuda headers")
+
             # Windows sometimes has issues finding CUDA
-            if platform.system()=='Windows':
-                sys.executable.split('\\')[:-1]
-                options=('-I',os.path.join(os.getenv('CUDA_PATH'),'Library','Include'),
-                         '-I',str(resource_path()))
-            else:
-                options=('-I',str(resource_path()))
+            if platform.system() == "Windows":
+                cuda_path = os.getenv("CUDA_PATH")
+                if cuda_path:
+                    logging.info(f"Adding {cuda_path} as backup for cuda header search")
+                    options = ('-I', resource_path_str,
+                               '-I', os.path.join(cuda_path, 'Library', 'Include'),
+                               '--ptxas-options=-v')
             
-            # Build program from source code
-            prgcl = clp.RawModule(code= "#define _CUDA\n" + constant_defs + kernel_code,
-                                 options=options)
+            try:
+                prgcl = clp.RawModule(code= "#define _CUDA\n" + constant_defs + kernel_code, options=options)
+            except clp.cuda.compiler.CompileException as e:
+                logging.error("CUDA compile error:")
+                logging.exception(e)
+
+            except clp.cuda.runtime.CUDARuntimeError as e:
+                logging.error("CUDA runtime error:")
+                logging.exception(e)
         
             # Create kernel from program function
             knl = prgcl.get_function("voxelize_triangle_solid")

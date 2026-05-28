@@ -107,21 +107,27 @@ analytical estimation of TPO location for single element Tx with:
 class PlanTUSTxConfig(object):
     def __init__(self, max_distance, 
                  min_distance, 
+                 optimal_distance,
                  transducer_diameter, 
                  max_angle, 
                  plane_offset,
                  additional_offset, 
                  focal_distance_list, 
                  flhm_list,
+                 weight_skin_target_distances= 0.2,
+                 weight_skin_target_angles= 0.2,
+                 weight_skin_target_intersections = 0.2,
+                 weight_skin_skull_angles= 0.2,
+                 weight_skull_thickness = 0.2,
                  IDTarget="",
-                 fsl_path="/Users/spichardo/fsl/share/fsl/bin",
                  connectome_path="/Applications/wb_view.app/Contents/usr/bin",
-                 freesurfer_path="/Applications/freesurfer/7.4.1/bin",
                  bUseGenericTransducerModel=False):
 
         # Maximum and minimum focal depth of transducer (in mm)
         self.max_distance = max_distance
         self.min_distance = min_distance
+        self.optimal_distance=optimal_distance
+        
 
         # Aperture diameter (in mm)
         self.transducer_diameter = transducer_diameter
@@ -136,13 +142,19 @@ class PlanTUSTxConfig(object):
         # e.g., due to addtional gel/silicone pad)
         self.additional_offset = additional_offset
 
+        # weighting factors
+        self.weight_skin_target_distances  = weight_skin_target_distances
+        self.weight_skin_target_angles = weight_skin_target_angles
+        self.weight_skin_target_intersections = weight_skin_target_intersections
+        self.weight_skin_skull_angles = weight_skin_skull_angles
+        self.weight_skull_thickness = weight_skull_thickness
+
+        self.connectome_path = connectome_path
+
         # Focal distance and corresponding FLHM values (both in mm) according to, e.g.,
         # calibration report
         self.focal_distance_list = focal_distance_list
         self.flhm_list = flhm_list
-        self.fsl_path = fsl_path
-        self.connectome_path = connectome_path
-        self.freesurfer_path = freesurfer_path
         self.IDTarget = IDTarget
         self.bUseGenericTransducerModel = bUseGenericTransducerModel
 
@@ -150,16 +162,20 @@ class PlanTUSTxConfig(object):
         txconfig = {
             "max_distance": self.max_distance,
             "min_distance": self.min_distance,
+            "optimal_distance": self.optimal_distance,
             "transducer_diameter": self.transducer_diameter,
             "max_angle": self.max_angle,
             "plane_offset": self.plane_offset,
             "additional_offset": self.additional_offset,
             "focal_distance_list": self.focal_distance_list,
             "flhm_list": self.flhm_list,
-            "fsl_path": self.fsl_path,
-            "connectome_path": self.connectome_path,
-            "freesurfer_path": self.freesurfer_path,
+            "connectome_wb_path": self.connectome_path,
             "IDTarget": self.IDTarget,
+            "weight_skin_target_distances":self.weight_skin_target_distances,
+            "weight_skin_target_angles":self.weight_skin_target_angles,
+            "weight_skin_target_intersections":self.weight_skin_target_intersections,
+            "weight_skin_skull_angles":self.weight_skin_skull_angles,
+            "weight_skull_thickness":self.weight_skull_thickness,
             "bUseGenericTransducerModel": self.bUseGenericTransducerModel
         }
 
@@ -191,9 +207,7 @@ class RUN_PLAN_TUS(QObject):
 
         PlanTUSRoot=self.OptionsDlg.ui.PlanTUSRootlineEdit.text()
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
-        FSLRoot=self.OptionsDlg.ui.FSLRootlineEdit.text()
         ConnectomeRoot=self.OptionsDlg.ui.ConnectomeRootlineEdit.text()
-        FreeSurferRoot=self.OptionsDlg.ui.FreeSurferRootlineEdit.text()
 
         if TrajectoryType =='brainsight':
             RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
@@ -219,6 +233,7 @@ class RUN_PLAN_TUS(QObject):
             transducer_diameter=BabelTxConfig['TxDiam']*1e3
             focal_distance_list=BabelTxConfig['PlanTUS'][SelFreq]['FocalDistanceList']
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
+            optimal_distance=np.mean(focal_distance_list)
             
         elif 'MinimalZSteering' in BabelTxConfig: #phased arrays
             Diameter=BabelTxConfig['TxDiam']
@@ -237,6 +252,7 @@ class RUN_PLAN_TUS(QObject):
             flhm_list=BabelTxConfig['PlanTUS'][SelFreq]['FHMLList']
             min_distance=np.min(focal_distance_list)
             max_distance=np.max(focal_distance_list)
+            optimal_distance=np.mean(focal_distance_list)
         elif 'BSonix35mm' in BabelTxConfig: #BSonixTx
             transducer_diameter=BabelTxConfig['CaseDiameter']
             plane_offset=0.0
@@ -249,6 +265,7 @@ class RUN_PLAN_TUS(QObject):
                 flhm_list+=BabelTxConfig['PlanTUS'][SelFreq][k]['FHMLList']
             min_distance=np.min(focal_distance_list)
             max_distance=np.max(focal_distance_list)
+            optimal_distance=(max_distance+min_distance)/2
         else: # single element Tx
             FocalLength = self.OptionsDlg.ui.FocalLengthSpinBox.value()
             transducer_diameter = self.OptionsDlg.ui.DiameterSpinBox.value()
@@ -259,6 +276,7 @@ class RUN_PLAN_TUS(QObject):
             flhm_list = [(FLHM*1e3).tolist()]
             min_distance=TPOequivalent*1e3
             max_distance=min_distance
+            optimal_distance=min_distance
             additional_offset=self.MainApp.AcSim.Widget.SkinDistanceSpinBox.value()
             
         additional_offset=np.max([0.0,additional_offset]) #negative values is for special cases to "invade" the scalp
@@ -268,15 +286,14 @@ class RUN_PLAN_TUS(QObject):
             transducer_diameter=float(transducer_diameter),
             min_distance=float(min_distance),
             max_distance=float(max_distance),
+            optimal_distance=float(optimal_distance),
             max_angle=10.0, #we keep it constant for the time being
             plane_offset=float(plane_offset),
             additional_offset=float(additional_offset),
             focal_distance_list=focal_distance_list,
             flhm_list=flhm_list,
             IDTarget=self.MainApp.Config['ID'],
-            fsl_path=FSLRoot,
             connectome_path=ConnectomeRoot,
-            freesurfer_path=FreeSurferRoot,
             bUseGenericTransducerModel=bUseGenericTransducerModel
         )
   
@@ -292,7 +309,7 @@ class RUN_PLAN_TUS(QObject):
         
         mshPath=glob.glob(self.MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
         maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
-        self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+maskPath.split(os.sep)[-1].replace('.nii.gz','')
+        self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+Path(maskPath).name.replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
         create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)

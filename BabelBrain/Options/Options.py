@@ -101,8 +101,8 @@ class OptionalParams(object):
         self._DefaultAdvanced['bDisableCTMedianFilter']=False
         self._DefaultAdvanced['bGeneratePETRAHistogram']=False
         self._DefaultAdvanced['BaselineTemperature']=37.0
-        self._DefaultAdvanced['PETRASlope']=-2929.6
-        self._DefaultAdvanced['PETRAOffset']=3274.9
+        self._DefaultAdvanced['PETRASlope']=-2080.0
+        self._DefaultAdvanced['PETRAOffset']=2133.2
         self._DefaultAdvanced['ZTESlope']=-2085.0
         self._DefaultAdvanced['ZTEOffset']=2329.0
         self._DefaultAdvanced['bSaveStress']=False
@@ -110,9 +110,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['bSegmentBrainTissue']=False
         self._DefaultAdvanced['SimbNINBSRoot']='...'
         self._DefaultAdvanced['PlanTUSRoot']='...'
-        self._DefaultAdvanced['FSLRoot']='...'
         self._DefaultAdvanced['ConnectomeRoot']='...'
-        self._DefaultAdvanced['FreeSurferRoot']='...'
         self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
         self._DefaultAdvanced['bForceHomogenousMedium']=False
         self._DefaultAdvanced['HomogenousMediumValues']={}
@@ -169,9 +167,7 @@ class AdvancedOptions(QDialog):
         buttons = [
                 (self.ui.SimNIBSRootpushButton, self.ui.SimbNINBSRootlineEdit, "Select SimNIBS Root Folder"),
                 (self.ui.PlanTUSRootpushButton, self.ui.PlanTUSRootlineEdit, "Select PlanTUS Root Folder"),
-                (self.ui.ConnectomeRootpushButton, self.ui.ConnectomeRootlineEdit, "Select Connectome Root Folder"),
-                (self.ui.FreeSurferRootpushButton, self.ui.FreeSurferRootlineEdit, "Select FreeSurfer Root Folder"),
-                (self.ui.FSLRootpushButton, self.ui.FSLRootlineEdit, "Select FSL Root Folder")
+                (self.ui.ConnectomeRootpushButton, self.ui.ConnectomeRootlineEdit, "Select Connectome Root Folder")
             ]
 
         for button, line_edit, title in buttons:
@@ -281,7 +277,7 @@ class AdvancedOptions(QDialog):
         rootnamepath=inputInfo['OutputResultsPath']
         files=sorted(glob(os.path.join(rootnamepath,'Plots-AcProfiles*.pdf')))+\
                       sorted(glob(os.path.join(rootnamepath,'Plots-Acplanes*.pdf')))+\
-                      [os.path.join(rootnamepath,'Plots-weight.pdf')]
+                      glob(os.path.join(rootnamepath,'Plots-weight.pdf'))
         for f in files:
             os.remove(f)
         
@@ -401,12 +397,8 @@ class AdvancedOptions(QDialog):
         self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(values.SimbNINBSRoot))
         self.ui.PlanTUSRootlineEdit.setText(values.PlanTUSRoot)
         self.ui.PlanTUSRootlineEdit.setCursorPosition(len(values.PlanTUSRoot))
-        self.ui.FSLRootlineEdit.setText(values.FSLRoot)
-        self.ui.FSLRootlineEdit.setCursorPosition(len(values.FSLRoot))
         self.ui.ConnectomeRootlineEdit.setText(values.ConnectomeRoot)
         self.ui.ConnectomeRootlineEdit.setCursorPosition(len(values.ConnectomeRoot))
-        self.ui.FreeSurferRootlineEdit.setText(values.FreeSurferRoot)
-        self.ui.FreeSurferRootlineEdit.setCursorPosition(len(values.FreeSurferRoot))
 
         # sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
         # if sel==-1:
@@ -464,9 +456,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
         self.NewValues.SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
         self.NewValues.PlanTUSRoot=self.ui.PlanTUSRootlineEdit.text()
-        self.NewValues.FSLRoot=self.ui.FSLRootlineEdit.text()
         self.NewValues.ConnectomeRoot=self.ui.ConnectomeRootlineEdit.text()
-        self.NewValues.FreeSurferRoot=self.ui.FreeSurferRootlineEdit.text()
         if self.NewValues.bSegmentBrainTissue:
             if not os.path.isdir(self.NewValues.SimbNINBSRoot):
                 msgBox = QMessageBox()

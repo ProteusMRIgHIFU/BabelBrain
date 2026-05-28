@@ -135,7 +135,10 @@ class PlotViewerTabs(QWidget):
         for path in file_paths:
             for page_index, pixmap in self._load_file_as_pixmaps(path):
                 panel = ZoomableImagePanel(pixmap,0.2)
-                tab_name = f"{os.path.basename(path)}".split('.')[0].split('Plots-')[1]
+                try:
+                    tab_name = f"{os.path.basename(path)}".split('.')[0].split('Plots-')[1]
+                except:
+                    tab_name='Results'
                 if page_index > 0:
                     tab_name += f" (p{page_index+1})"
                 self.tab_widget.addTab(panel, tab_name)
@@ -161,9 +164,12 @@ class PlotViewerTabs(QWidget):
 # ---------------------------------------------------------------------
 class PlotViewerCalibration(QDialog):
     """Dialog wrapping the tabbed plot viewer with Accept/Cancel."""
-    def __init__(self, file_paths, parent=None):
+    def __init__(self, file_paths, parent=None,
+                 title="Review Calibration Results",
+                 confirmText="Confirm and accept calibration",
+                 extraMsg=""):
         super().__init__(parent)
-        self.setWindowTitle("Review Calibration Results")
+        self.setWindowTitle(title)
         self.resize(1000, 800)
 
         layout = QVBoxLayout(self)
@@ -172,10 +178,13 @@ class PlotViewerCalibration(QDialog):
         self.viewer = PlotViewerTabs(file_paths)
         layout.addWidget(self.viewer)
 
+        if len(extraMsg)>0:
+            layout.addWidget(QLabel(extraMsg))
+
         # Button box (Accept/Cancel)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         ok_button = buttons.button(QDialogButtonBox.Ok)
-        ok_button.setText("Confirm and accept calibration")
+        ok_button.setText(confirmText)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

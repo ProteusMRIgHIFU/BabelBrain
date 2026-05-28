@@ -5,29 +5,16 @@ import os
 from pathlib import Path
 import sys
 
-from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
-                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox)
+from PySide6.QtWidgets import QMessageBox
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor
 
 import numpy as np
 
-from scipy.io import loadmat
-from matplotlib.pyplot import cm
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import (
-    FigureCanvas,NavigationToolbar2QT)
 import os
 import sys
-import shutil
-from datetime import datetime
 import time
-import yaml
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
@@ -83,7 +70,7 @@ class RingTx(BabelBaseTx):
         raise NotImplementedError("DefaultConfig must be implemented in the derived class")
     
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._MaskData.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskNib.header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()

@@ -606,6 +606,29 @@ class GroupL2Regularizer(Regularizer):
                 grad[g] += self.lam * b[g] / norm_g
         return grad
 
+class GroupHomogeneitySparseRegularizer(Regularizer):
+    def __init__(self, group_indices, lam_group=1.0, lam_sparse=0.1):
+        self.group_indices = group_indices
+        self.lam_group = lam_group
+        self.lam_sparse = lam_sparse
+
+    def __call__(self, x):
+        group_term = sum(
+            np.sum((x[g] - np.mean(x[g]))**2)
+            for g in self.group_indices
+        )
+        sparse_term = np.sum(np.abs(x))
+        return self.lam_group * group_term + self.lam_sparse * sparse_term
+
+    def gradient(self, x):
+        grad = np.zeros_like(x)
+
+        for g in self.group_indices:
+            mean = np.mean(x[g])
+            grad[g] += 2 * self.lam_group * (x[g] - mean)
+
+        grad += self.lam_sparse * np.sign(x)
+        return grad
 class GroupHomogeneityRegularizer(Regularizer):
     def __init__(self, lam, group_indices):
         self.lam = lam
@@ -786,10 +809,68 @@ def complex_objective_RI(b_complex, A, e,Weights):
     grad_total = np.concatenate([grad_ur, grad_ui]) #here, if mlx, will be evaluated
     return loss_data, grad_total
     
+def complex_objective_RI_e_complex(x, Ain, ein, Weights):
+    """
+    x: real vector of length 2N
+       [b_real, b_imag]
+    A: (M, N) complex matrix
+    e: (M,) complex vector
+    """
+  
+
+    N = Ain.shape[1]
+
+    ml = np
+    A=Ain
+    b=x[:N] + 1j * x[N:]
+    e=ein
+    W=Weights
+
+    
+    # r = A @ b - e            # residual (complex)
+    # f=ml.sum(ml.abs(r**2)*W)       # objective = ||r||^2
+    
+    r = A @ b - e            # residual (complex)
+    Wr = W * r               # weighted residual
+    
+    # cost
+    f=np.sum(np.abs(r**2)*W)  # = sum(W * |r|^2)
+    
+    # gradient
+    grad_c = 2 * A.conj().T @ Wr
+
+    # Gradient in complex form
+    # grad_c = 2 * A.conj().T @ r
+    
+    # Split into real/imag parts
+    grad = np.empty(2*N)
+    grad[:N] = np.real(grad_c)
+    grad[N:] = np.imag(grad_c)  # note the minus for imag part
+    
+    return np.real(f), grad
 
 
-def objective_reg_complex_RI(b, A, e, regularizer,Weights):
-    loss_total, grad_total = complex_objective_RI(b, A, e,Weights)
+def objective_reg_complex_RI(b, A, ein, regularizer,Weights):
+    if type(ein) is list:
+        #we ran by chunks to check if we are mixing amplitude (pure real) or with phase (complex data)
+
+        loss_total=0.0
+        grad_total=np.zeros(len(b),np.float32)
+        nTot=0
+        for e in ein:
+            if np.iscomplexobj(e):
+                p_loss, p_grad = complex_objective_RI_e_complex(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
+            else:
+                p_loss, p_grad = complex_objective_RI(b, A[nTot:nTot+len(e),:], e,Weights[nTot:nTot+len(e)])
+            grad_total+=p_grad
+            loss_total+=p_loss
+            nTot+=len(e)
+    else:
+        e=ein
+        if np.iscomplexobj(e):
+            loss_total, grad_total = complex_objective_RI_e_complex(b, A, e,Weights)
+        else:
+            loss_total, grad_total = complex_objective_RI(b, A, e,Weights)
     loss_total+=regularizer(b[:A.shape[1]])+regularizer(b[A.shape[1]:])
     grad_total[:A.shape[1]]+=regularizer.gradient(b[:A.shape[1]])
     grad_total[A.shape[1]:]+=regularizer.gradient(b[A.shape[1]:])
@@ -832,6 +913,7 @@ def RUN_FITTING(TxConfig,
     range_str = range_str.split('!')[1] if '!' in range_str else range_str
     rootnamepath=INPUT_PARAMS['OutputResultsPath']
     lam = INPUT_PARAMS['Lambda']
+    lam_sparse = INPUT_PARAMS['LambdaSparse']
     Frequency=INPUT_PARAMS['Frequency']
 
     # we load commonn optional parameters 
@@ -844,7 +926,7 @@ def RUN_FITTING(TxConfig,
 
     # load more experimental parameters
     FitType=INPUT_PARAMS.get('FitType','RealImag')
-    regularizer=INPUT_PARAMS.get('Regularizer','Grouped')
+    regularizer=INPUT_PARAMS.get('Regularizer','GroupHomogeneitySparseRegularizer')
     config = INPUT_PARAMS.get('Config',1)
     InnerD = INPUT_PARAMS.get('InnerDiameter', 0.0)
     amplitudeLimit=INPUT_PARAMS.get('AmplitudeLimit', 4.0)
@@ -1038,7 +1120,7 @@ def RUN_FITTING(TxConfig,
     elif regularizer=='L2':
 
         reg =L2Regularizer(lam=lam)
-    elif regularizer in ['Grouped','GroupedL2']:
+    elif regularizer in ['Grouped','GroupedL2','GroupHomogeneitySparseRegularizer']:
         groups=[]
         nBase=0
     
@@ -1047,6 +1129,8 @@ def RUN_FITTING(TxConfig,
             nBase+=Tx['elemdims'][m][0]
         if regularizer=='Grouped':
             reg =GroupHomogeneityRegularizer(lam,groups)
+        elif regularizer == 'GroupHomogeneitySparseRegularizer':
+            reg = GroupHomogeneitySparseRegularizer(groups,lam_group=lam,lam_sparse=lam_sparse)
         else:
             reg =GroupL2Regularizer(lam,groups)
     else:

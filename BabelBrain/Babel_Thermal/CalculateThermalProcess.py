@@ -63,6 +63,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             'DutyCycle','PRF','BaselineTemperature','Repetitions','NumberGroupedSonications',\
             'PauseBetweenGroupedSonications']
         Index=[]
+        bFirstCombination=True
         for combination in AllDC_PRF_Duration:
             SubData={}
 
@@ -80,6 +81,9 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
             kargsSub['TxSystem']=kargs['TxSystem']
+            if not bFirstCombination and kargs['bConcatenateSimulations']: #we concatenate sim results
+                kargsSub['prevSimulationResultsFile']=prevSimulationResultsFile
+
             #we check now if some development parameters are being passed
             for k in ['bForceNoAbsorptionSkullScalp','bForceHomogenousMedium','HomogenousMediumValues','BenchmarkTestFile']:
                 if k in kargs:
@@ -99,6 +103,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
                     SubData[f]=Data[f]
             AllCases.append(SubData)
             Index.append([combination['DC'],combination['PRF'],combination['Duration'],combination['DurationOff'],np.round(kargs['Isppa'],1)])
+            prevSimulationResultsFile=fname+'.h5'
+            bFirstCombination=False
         for f in lf:
             if f in Data: #this will prevent failing with fields that are specific to phase arrays such as steering
                 Data.pop(f)

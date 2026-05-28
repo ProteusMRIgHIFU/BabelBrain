@@ -273,17 +273,21 @@ def DoIntersect(Mesh1,Mesh2,bForceUseBlender=False):
     for mesh in [Mesh1,Mesh2]:
         if not mesh.is_volume:
             print("Mesh still broken, one last try to fix it")
-            mesh.remove_duplicate_faces()
-            mesh.remove_degenerate_faces()
+            mesh.update_faces(mesh.unique_faces())
+            mesh.update_faces(mesh.nondegenerate_faces())
             mesh.remove_unreferenced_vertices()
             mesh.merge_vertices()
             mesh.fix_normals()
             trimesh.repair.fill_holes(mesh) 
+    
     # Perform intersection
-    if not bForceUseBlender:
-        Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='manifold')
-    else:
-        Mesh1_intersect =trimesh.boolean.intersection((Mesh1,Mesh2),engine='blender')
+    engine = 'blender' if bForceUseBlender else 'manifold'
+    print(f"Performing intersection with {engine}")
+    try:
+        Mesh1_intersect = trimesh.boolean.intersection((Mesh1, Mesh2), engine=engine)
+    except:
+        print("Intersection failed, trying again without check_volume")
+        Mesh1_intersect = trimesh.boolean.intersection((Mesh1, Mesh2), engine=engine, check_volume=False)
 
     # Check intersection is valid
     if Mesh1_intersect.is_empty:
@@ -301,7 +305,7 @@ def FixMesh(inmesh):
     return fixmesh
 
 def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
-    scriptbase=os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/")
+    scriptbase=os.path.join(resource_path(),"ExternalBin","SimbNIBSMesh")
     if sys.platform == 'linux' or _IS_MAC:
         if sys.platform == 'linux':
             shell='bash'
@@ -328,12 +332,13 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
             print("stderr:", result.stderr)
             result=result.returncode 
     else:
-        path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_win.bat")
-        
+        path_script = os.path.join(resource_path(),"ExternalBin","SimbNIBSMesh","run_win.bat")
+        print('path_script for MeshConv',path_script)
         print("Starting MeshConv")
         result = subprocess.run(
                 [path_script,
                 SimbNINBSRoot,
+                scriptbase,
                 reference,
                 mesh,
                 finalname], capture_output=True, text=True,shell=True,
@@ -379,8 +384,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 bGeneratePETRAHistogram=False,
                                 bSegmentBrainTissue=False,
                                 SimbNINBSRoot='',
-                                PETRASlope=-2929.6,
-                                PETRAOffset=3274.9,
+                                PETRASlope=-2080.0,
+                                PETRAOffset=2133.2,
                                 ZTESlope=-2085.0,
                                 ZTEOffset=2329.0,
                                 DensityThreshold=1200.0, #this is in case the input data is rather a density map
@@ -1173,4 +1178,4 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     # Ensure all files have been saved before moving on
     S1_file_manager.shutdown()
 
-    return FinalMask 
+    return FinalMask,S1_file_manager.output_files

@@ -41,9 +41,9 @@ class ScrollBars(QWidget):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
 
-        self.Widget.IsppaScrollBar1.valueChanged.connect(self._MainApp.UpdateAcResults)
+        self.Widget.IsppaScrollBar1.valueChanged.connect(self._MainApp._showMatplotlibVisualization)
         self.Widget.IsppaScrollBar1.setEnabled(False)
-        self.Widget.IsppaScrollBar2.valueChanged.connect(self._MainApp.UpdateAcResults)
+        self.Widget.IsppaScrollBar2.valueChanged.connect(self._MainApp._showMatplotlibVisualization)
         self.Widget.IsppaScrollBar2.setEnabled(False)
 
     def set_default_values(self, targetIndex, xvec, yvec):

@@ -97,7 +97,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
                   bForceHomogenousMedium,
                   bSegmentedBrain,
                   TxSystem,
-                  IdRegionBenchmark=[]):
+                  IdRegionBenchmark=[],
+                  FixedAcousticPower=0.0):
     '''
     Analyze acoustic energy losses between water and tissue and compute pressure adjustment.
 
@@ -127,6 +128,8 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
         If True, segmented brain is used.
     IdRegionBenchmark : list, optional
         List of region IDs for benchmarking.
+    FixedAcousticPower: float, optional
+        If passed (>0.0), it will adjust the power based on the water power, this is useful for benchmarking tests
 
     Returns
     -------
@@ -228,15 +231,27 @@ def AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
             print('Warning: RatioLossesLoc is bigger than RatioLosses by more than 20%\nUsing water loc for ratio losses')
             RatioLosses=RatioLossesLoc
 
-    if bSegmentedBrain:
+        if FixedAcousticPower >0.0:
+            print('OVERWRITTING LOSSES with Fixed Acoustic Power',FixedAcousticPower)
+            RatioLosses = FixedAcousticPower/AcousticEnergyWaterMaxLoc
+            print('RatioLosses with Fixed Acoustic Power',RatioLosses)
+
+
+    if bSegmentedBrain or len(IdRegionBenchmark)>0:
         SoSTarget = SoSMap[cxr,cyr,czr]
         DensityTarget = DensityMap[cxr,cyr,czr]
     else:
         SoSTarget = SoSMap[LocIJK[0],LocIJK[1],LocIJK[2]]
         DensityTarget = DensityMap[LocIJK[0],LocIJK[1],LocIJK[2]]
 
-    PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
-    PressureRatio=PressureAdjust/pAmpTissue.max()
+    
+    if FixedAcousticPower >0.0:
+        PressureRatio=np.sqrt(RatioLosses)
+        print('PressureRatio with FixedAcousticPower ',PressureRatio)
+    else:
+        PressureAdjust=np.sqrt(Isppa*1e4*2.0*SoSTarget*DensityTarget)
+        PressureRatio=PressureAdjust/pAmpTissue.max()
+        print('PressureRatio',PressureRatio)
 
     return PressureRatio,RatioLosses
 
@@ -264,6 +279,7 @@ def RunBHTECycles(nCurrent,
                     TemperaturePoints,
                     FinalTemp,
                     FinalDose,
+                    PreviousData,
                     bRunInSubProcess=False,
                     ):
     '''
@@ -317,13 +333,14 @@ def RunBHTECycles(nCurrent,
         Final temperature array.
     FinalDose : np.ndarray
         Final dose array.
+    PreviousData: dict or None
+        Previous data used to concatenate results
     bRunInSubProcess : bool, optional
         If True, run in subprocess.
-
     Returns
     -------
     tuple
-        ResTemp, ResDose, FinalTemp, FinalDose, TemperaturePoints, nCurrent
+        ResTempMax, ResDose, FinalTemp, FinalDose, TemperaturePoints, nCurrent
     '''
     if type(InputPData) is str:
         p0=PMaps*0
@@ -334,8 +351,14 @@ def RunBHTECycles(nCurrent,
             initT0=FinalTemp
             initDose=FinalDose
         else:
-            initT0=None
-            initDose=None
+            if PreviousData is not None:
+                print('Starting thermal simulation with previous results')
+                initT0=PreviousData['FinalTemp']
+                initDose=PreviousData['FinalDose']
+                print('MaxT0',initT0.max())
+            else:
+                initT0=None
+                initDose=None
             
         with CodeTimer("CTS3L3: BHTE steps on",unit='s'):
             if type(InputPData) is str:
@@ -370,7 +393,12 @@ def RunBHTECycles(nCurrent,
                                                                 MonitoringPointsMap=MonitoringPointsMap,
                                                                 stableTemp=stableTemp)
 
-        gc.collect()
+        gc.collect(1)
+
+        if nCurrent==0:
+            ResTempMax=ResTemp
+        else:
+            ResTempMax=np.maximum(ResTempMax,ResTemp)
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
@@ -394,7 +422,7 @@ def RunBHTECycles(nCurrent,
                 TemperaturePoints=np.hstack((TemperaturePointsOn,TemperaturePointsOff))
             else:
                 TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOn,TemperaturePointsOff))
-            gc.collect()
+            gc.collect(1)
         else:
             FinalTemp=ResTemp
             FinalDose=ResDose
@@ -424,12 +452,12 @@ def RunBHTECycles(nCurrent,
                                                             MonitoringPointsMap=MonitoringPointsMap,
                                                             stableTemp=stableTemp)
             TemperaturePoints=np.hstack((TemperaturePoints,TemperaturePointsOff))
-            gc.collect()
+            gc.collect(1)
         if (bRunInSubProcess) and\
             ((nCurrent+1)% LimitBHTEIterationsPerProcess==0 or (nCurrent+1)==TotalIterations):
             print('Finishing sub process')
             break
-    return ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
+    return ResTempMax,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent+1
 
 def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                  LimitBHTEIterationsPerProcess,nCurrent,
@@ -440,7 +468,7 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                  nStepsOn,cy,nFactorMonitoring,dt,
                  DutyCycle,MonitoringPointsMap,
                  TemperaturePoints,stableTemp,
-                 FinalTemp,FinalDose,
+                 FinalTemp,FinalDose,PreviousData,
                  TotalDurationBetweenGroups):
     '''
     Run BHTE simulation cycles in a separate process for parallel computation.
@@ -497,6 +525,8 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
         Final temperature array.
     FinalDose : np.ndarray
         Final dose array.
+    PreviousData: dict or None
+        Previous data used to concatenate results
     TotalDurationBetweenGroups : int
         Duration between groups (steps).
     '''
@@ -536,6 +566,7 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
                     TemperaturePoints,
                     FinalTemp,
                     FinalDose,
+                    PreviousData,
                     bRunInSubProcess=True,
                     )
     queueResult.put(Res)
@@ -569,6 +600,7 @@ def CalculateTemperatureEffects(InputPData,
                                 BenchmarkTestFile='',
                                 bApplyMedianPressure=False,
                                 TxSystem='',
+                                prevSimulationResultsFile=''
                                 ):
 
     '''
@@ -620,7 +652,8 @@ def CalculateTemperatureEffects(InputPData,
         Properties for homogenous medium.
     BenchmarkTestFile : str, optional
         Path to benchmark test file.
-
+    prevSimulationResultsFile: str, optional
+        Path to previous thermal simulation. If specified, it is assumed we want to concatenate simulations.
     Returns
     -------
     str
@@ -710,6 +743,8 @@ def CalculateTemperatureEffects(InputPData,
         OrigMaterialMap=MaterialMap
 
     bSegmentedBrain = np.any(OrigMaterialMap>5)
+
+    FixedAcousticPower=0.0 
     
     MaterialList={}
     MaterialList['Density']=Input['Material'][:,0]
@@ -735,6 +770,9 @@ def CalculateTemperatureEffects(InputPData,
         for n,entry in enumerate(BenchmarkInput['Materials']):
             for k in ['SpecificHeat','Conductivity','Perfusion','Absorption']:
                 MaterialList[k][n]=entry[k]
+
+        if 'FixedAcousticPower' in BenchmarkInput:
+            FixedAcousticPower=BenchmarkInput['FixedAcousticPower']
     elif 'MaterialMapCT' not in Input:
         #Water, Skin, Cortical, Trabecular, Brain
 
@@ -834,16 +872,20 @@ def CalculateTemperatureEffects(InputPData,
             #this is a test for the skull, we select all materials
             SelSkull = MaterialMap >0
             IdRegionBenchmark=[0]
-        else:
-            assert(BenchmarkInput['TestType']==2)
+        elif BenchmarkInput['TestType']==2:
             SelSkull = MaterialMap ==1 
             IdRegionBenchmark=[0,1]
+        else:
+            assert(BenchmarkInput['TestType']==3)
+            maxMaterial= MaterialMap.max()
+            SelSkull = (MaterialMap> 1) & (MaterialMap <= maxMaterial-2)
+            IdRegionBenchmark=[maxMaterial-2,maxMaterial-2-1]
+            
         
     elif 'MaterialMapCT' in Input:
         if bSegmentedBrain:
             BrainID=[2,3,4,5]
             SelSkull =MaterialMap>=6
-            SelSkull =MaterialMap>=3
         else:
             BrainID=[2]
             SelSkull = MaterialMap >2
@@ -882,7 +924,8 @@ def CalculateTemperatureEffects(InputPData,
                                                 bForceHomogenousMedium,
                                                 bSegmentedBrain,
                                                 TxSystem,
-                                                IdRegionBenchmark)
+                                                IdRegionBenchmark,
+                                                FixedAcousticPower=FixedAcousticPower)
     else:
         PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
         RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
@@ -897,10 +940,21 @@ def CalculateTemperatureEffects(InputPData,
                                                           bForceHomogenousMedium,
                                                           bSegmentedBrain,
                                                           TxSystem,
-                                                          IdRegionBenchmark)
+                                                          IdRegionBenchmark,
+                                                          FixedAcousticPower=FixedAcousticPower)
             print('*'*40)
         print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
             
+    if len(prevSimulationResultsFile)>0:
+        print('Reading from previous file to concatenate',prevSimulationResultsFile)
+        PreviousData=ReadFromH5py(prevSimulationResultsFile)
+        initT0=PreviousData['FinalTemp']
+        initDose=PreviousData['FinalDose']
+    else:
+        PreviousData=None
+        initT0=None
+        initDose=None
+
     with CodeTimer("CTS3L3: BHTE init",unit='s'):
         if type(InputPData) is str:
             ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
@@ -908,13 +962,14 @@ def CalculateTemperatureEffects(InputPData,
                                                             MaterialList,
                                                             (Input['x_vec'][1]-Input['x_vec'][0]),
                                                             TotalDurationSteps,
-                                                            nStepsOn,
+                                                            nStepsOnOffList,
                                                             -1, #disabling slice monitor for memory saving
                                                             nFactorMonitoring=nFactorMonitoring,
                                                             dt=dt,
-                                                            DutyCycle=DutyCycle,
                                                             Backend=Backend,
-                                                            stableTemp=BaselineTemperature)
+                                                            stableTemp=BaselineTemperature,
+                                                            initT0=initT0,
+                                                            initDose=initDose)
         else:
             InputsBHTE=AllInputs.copy()
             for n in range(len(InputPData)):
@@ -929,8 +984,13 @@ def CalculateTemperatureEffects(InputPData,
                                                         nFactorMonitoring=nFactorMonitoring,
                                                         dt=dt,
                                                         Backend=Backend,
-                                                        stableTemp=BaselineTemperature)
-    gc.collect()
+                                                        stableTemp=BaselineTemperature,
+                                                        initT0=initT0,
+                                                        initDose=initDose)
+        gc.collect(1)
+
+    if len(prevSimulationResultsFile)>0:
+        ResTemp=np.maximum(ResTemp,PreviousData['TempEndFUS'])
 
     ResTempSkin=ResTemp * SelSkin.astype(np.float32)
     ResTempBrain=ResTemp * SelBrain.astype(np.float32)
@@ -945,10 +1005,15 @@ def CalculateTemperatureEffects(InputPData,
     elif len(BenchmarkTestFile)>0:
         if BenchmarkInput['TestType']==1:
             MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
-        else:
-            assert(BenchmarkInput['TestType']==2)
+        elif BenchmarkInput['TestType']==2:
             MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
             MonitoringPointsMap[mxSkull,mySkull,mzSkull]=2
+        else:
+            assert(BenchmarkInput['TestType']==3)
+            MonitoringPointsMap[mxBrain,myBrain,mzBrain]=1
+            MonitoringPointsMap[mxSkull,mySkull,mzSkull]=2
+
+            
     else:
         MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
         MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
@@ -970,6 +1035,7 @@ def CalculateTemperatureEffects(InputPData,
     FinalDose=None
     TemperaturePoints=None
 
+    
     if TOTAL_Iterations <= LimitBHTEIterationsPerProcess:
         nCurrent=0
         ResTemp,ResDose,FinalTemp,FinalDose,TemperaturePoints,nCurrent=RunBHTECycles(nCurrent,
@@ -994,7 +1060,8 @@ def CalculateTemperatureEffects(InputPData,
                     BaselineTemperature,
                     TemperaturePoints,
                     FinalTemp,
-                    FinalDose)
+                    FinalDose,
+                    PreviousData)
 
     else:
         queueResult=Queue()
@@ -1006,8 +1073,8 @@ def CalculateTemperatureEffects(InputPData,
                                                 NumberGroupedSonications,
                                                 Repetitions,
                                                 InputPData,
-                                                PMaps
-                                                ,MaterialMap,
+                                                PMaps,
+                                                MaterialMap,
                                                 MaterialList,
                                                 (Input['x_vec'][1]-Input['x_vec'][0]),
                                                 TotalDurationSteps,
@@ -1015,7 +1082,7 @@ def CalculateTemperatureEffects(InputPData,
                                                 nStepsOnIn,-1,nFactorMonitoring,dt,
                                                 DutyCycle,MonitoringPointsMap,
                                                 TemperaturePoints,BaselineTemperature,
-                                                FinalTemp,FinalDose,
+                                                FinalTemp,FinalDose,PreviousData,
                                                 TotalDurationBetweenGroups))
 
             fieldWorkerProcess.start()
@@ -1024,7 +1091,10 @@ def CalculateTemperatureEffects(InputPData,
                 if not queueResult.empty():
                     break
             ProcResults=queueResult.get()
-            ResTemp=ProcResults[0]
+            if nCurrent==0:
+                ResTemp=ProcResults[0]
+            else:
+                ResTemp=np.maximum(ResTemp,ProcResults[0])
             ResDose=ProcResults[1]
             FinalTemp=ProcResults[2]
             FinalDose=ProcResults[3]
@@ -1032,6 +1102,9 @@ def CalculateTemperatureEffects(InputPData,
             nCurrent=ProcResults[5]
             fieldWorkerProcess.terminate()
             print('process terminated')
+
+    if len(prevSimulationResultsFile)>0:
+        ResTemp=np.maximum(ResTemp,PreviousData['TempEndFUS'])
 
     SaveDict['mSkin']=np.array([mxSkin,mySkin,mzSkin]).astype(int)
     SaveDict['mBrain']=np.array([mxBrain,myBrain,mzBrain]).astype(int)
@@ -1088,9 +1161,15 @@ def CalculateTemperatureEffects(InputPData,
         IndTarget=2
     else:
         IndTarget=3
-    SaveDict['TempProfileTarget']=TemperaturePoints[IndTarget,:]
-    SaveDict['TimeProfileTarget']=np.arange(SaveDict['TempProfileTarget'].size)*dt
-    SaveDict['TemperaturePoints']=TemperaturePoints #these are max points in skin, brain, skull and target
+    if PreviousData is None:
+        SaveDict['TimeProfileTarget']=np.arange(TemperaturePoints.shape[1])*dt
+        SaveDict['TempProfileTarget']=TemperaturePoints[IndTarget,:]
+        SaveDict['TemperaturePoints']=TemperaturePoints #these are max points in skin, brain, skull and target
+    else:
+        SaveDict['TimeProfileTarget']=np.hstack((PreviousData['TimeProfileTarget'],PreviousData['TimeProfileTarget'][-1]+dt+np.arange(TemperaturePoints.shape[1])*dt))
+        SaveDict['TempProfileTarget']=np.hstack((PreviousData['TempProfileTarget'],TemperaturePoints[IndTarget,:]))
+        SaveDict['TemperaturePoints']=np.hstack((PreviousData['TemperaturePoints'],TemperaturePoints))
+        
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
     SaveDict['y_vec']=yf*1e3

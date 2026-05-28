@@ -29,7 +29,7 @@ import numpy as np
 import importlib
 import yaml
 from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QIcon, QPalette, QTextCursor, QMovie,QPixmap
+from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPalette, QTextCursor, QMovie, QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QApplication,
@@ -43,17 +43,17 @@ from PySide6.QtWidgets import (
     QWidget,
     QLabel
 )
-from linetimer import CodeTimer
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
-from matplotlib.figure import Figure
 from matplotlib.pyplot import cm
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
+from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
+from matplotlib.figure import Figure
 from nibabel import processing
 from superqt import QLabeledDoubleRangeSlider
 
 from CalculateMaskProcess import CalculateMaskProcess
+from CTZTEProcessing import ConfirmPseudoCT
 from ConvMatTransform import (
     BSight_to_itk,
     GetIDTrajectoryBrainsight,
@@ -67,6 +67,7 @@ from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
 from Options.Options import AdvancedOptions, OptionalParams
 from ClockDialog import ClockDialog
+from GUIComponents.nifti_viewer import NiftiViewerWindow
 
 
 multiprocessing.freeze_support()
@@ -474,14 +475,16 @@ class BabelBrain(QWidget):
             self.AcSim.EnableMultiPoint(profile['MultiPoint'])
             self.ThermalSim.EnableMultiPoint()
         self.InitApplication()
-        self.static_canvas=None
-
+        
         # Set default figure text color, works for both light and dark mode
         FIGTEXTCOLOR = np.array(self.palette().color(QPalette.WindowText).getRgb())/255.0
         plt.rcParams['text.color'] = FIGTEXTCOLOR
         plt.rcParams['axes.labelcolor'] = FIGTEXTCOLOR
         plt.rcParams['xtick.color'] = FIGTEXTCOLOR
         plt.rcParams['ytick.color'] = FIGTEXTCOLOR
+
+        # Error text color for outputTerminal (red on both light and dark backgrounds)
+        self._err_color = QColor(Qt.red)
 
         self._WorkingDialog = ClockDialog(self)
         self.moveTimer = QTimer(self)
@@ -494,10 +497,17 @@ class BabelBrain(QWidget):
         self._TrackingTime={'Calculation time domain':0.0,
                             'Calculation time ultrasound':0.0,
                             'Calculation time thermal':0.0}
+        self._NiftiCT = None
+        self._NiftiAirMask = None
         
     def showEvent(self, event):
         super().showEvent(event)
         self.centerOnScreen()
+
+    def closeEvent(self, event):
+        if hasattr(self,'_vtk_visualization'):
+            self._vtk_visualization.close()
+        super().closeEvent(event)  # let the default close logic run
 
     def centerOnScreen(self):
         # Get the screen geometry where the window is currently shown
@@ -659,6 +669,7 @@ class BabelBrain(QWidget):
             USMaskkHzDropDown.lineEdit().textChanged.connect(self.StartManualMaskFrequency)
             USMaskkHzDropDown.lineEdit().editingFinished.connect(self.UpdateManualMaskFrequency)
 
+
     @Slot()
     def StartManualMaskFrequency(self,txt):
         try:
@@ -712,7 +723,7 @@ class BabelBrain(QWidget):
         #we connect callbacks
         self.Widget.CalculatePlanningMask.clicked.connect(self.GenerateMask)
 
-        self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateParamsMaskFloat)
+        self.Widget.USMaskkHzDropDown.currentIndexChanged.connect(self.UpdateFrequencyFloat)
         self.Widget.USPPWSpinBox.valueChanged.connect(self.UpdateParamsMaskFloat)
 
         if self.AcSim.Config['USFrequencies'][0]<=350e3: #we set default to 9 PPW for low frequencies
@@ -721,12 +732,16 @@ class BabelBrain(QWidget):
         self.Widget.AdvancedOptions.clicked.connect(self.ShowAdvancedOptions)
 
         #Then we update the GUI and control parameters
+        self.UpdateFrequencyFloat(0)
         self.UpdateMaskParameters()
 
         stdout = OutputWrapper(self, True)
         stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
+
+        self.Widget.vtkVisualizationqPushButton.clicked.connect(self.OpenVTKVisualization)
+        self.Widget.vtkVisualizationqPushButton.setEnabled(False)
 
     def UpdateWindowTitle(self):
         self.setWindowTitle('BabelBrain V'+
@@ -788,6 +803,14 @@ class BabelBrain(QWidget):
             self.SaveLatestSelection()
 
     @Slot(float)
+    def UpdateFrequencyFloat(self, newvalue):
+        if float(self.Widget.USMaskkHzDropDown.currentText())>350:
+            self.Widget.USPPWSpinBox.setValue(6)
+        else:
+            self.Widget.USPPWSpinBox.setValue(9)
+        self.UpdateMaskParameters()
+
+    @Slot(float)
     def UpdateParamsMaskFloat(self, newvalue):
         self.UpdateMaskParameters()
 
@@ -839,7 +862,7 @@ class BabelBrain(QWidget):
             self.worker = RunMaskGeneration(self)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.UpdateMask)
+            self.worker.finished.connect(self.VerifyResults)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
@@ -907,8 +930,6 @@ class BabelBrain(QWidget):
                 f.write(outString)
         return newFName
 
-
-
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
 
@@ -925,45 +946,31 @@ class BabelBrain(QWidget):
             self.testing_error = True
             self.Widget.tabWidget.setEnabled(True)
 
-    def UpdateMask(self):
-        '''
-        Refresh mask
-        '''
+    def VerifyResults(self,output_files):
         self.hideClockDialog()
-        if self.Widget.HideMarkscheckBox.isEnabled()== False:
-            self.Widget.HideMarkscheckBox.setEnabled(True)
-        self.Widget.tabWidget.setEnabled(True)
-        self.AcSim.setEnabled(True)
-        try:
-            Data=nibabel.load(self._outnameMask)
-        except:
-            raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
-        FinalMask=Data.get_fdata()
-        FinalMask=np.flip(FinalMask,axis=2)
-        bSegmentedBrain= np.max(FinalMask)>5
-        self._bSegmentedBrain = bSegmentedBrain
-        T1W=nibabel.load(self._T1W_resampled_fname)
-        T1WData=T1W.get_fdata()
-        T1WData=np.flip(T1WData,axis=2)
-        self._T1WData=T1WData
-        
-        self._MaskData=Data
+        if self.Config['bUseCT']:
+            if self.Config['CTType'] in [2,3]:
+                if not ConfirmPseudoCT(output_files['pCTfname']):
+                    self.UpdateMask(bDeleteOnly=True)
+                    return
+        self.UpdateMask()
+
+    def _showMatplotlibVisualization(self,bDeleteOnly:bool):
         AirMask=None
         if self.Config['bUseCT']:
-            self._CTnib=nibabel.load(self._prefix_path+'CT.nii.gz')
-            AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
-            CTData=AllBoneHU[np.flip(self._CTnib.get_fdata(),axis=2).astype(int)]
+            CTData=np.flip(self._NiftiCT.get_fdata(),axis=2)
             if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path+'AirRegions.nii.gz'):
-                AirMask=nibabel.load(self._prefix_path+'AirRegions.nii.gz').get_fdata().astype(np.uint8)
-                AirMask=np.flip(AirMask,axis=2)
+                AirMask=np.flip(self._NiftiAirMask.get_fdata(),axis=2)
         
-        self._FinalMask=FinalMask
-        voxSize=Data.header.get_zooms()
-        x_vec=np.arange(Data.shape[0])*voxSize[0]
+        FinalMask=np.flip(self.FinalMaskRaw,axis=2)
+        T1WData=np.flip(self._T1WDataRaw,axis=2)
+        self._T1WData=T1WData
+        voxSize=self._T1WNib.header.get_zooms()
+        x_vec=np.arange(self._T1WNib.shape[0])*voxSize[0]
         x_vec-=x_vec.mean()
-        y_vec=np.arange(Data.shape[1])*voxSize[1]
+        y_vec=np.arange(self._T1WNib.shape[1])*voxSize[1]
         y_vec-=y_vec.mean()
-        z_vec=np.arange(Data.shape[2])*voxSize[2]
+        z_vec=np.arange(self._T1WNib.shape[2])*voxSize[2]
         z_vec-=z_vec.mean()
         LocFocalPoint=np.array(np.where(FinalMask==5)).flatten()
         self._LocFocalPoint=LocFocalPoint
@@ -998,10 +1005,22 @@ class BabelBrain(QWidget):
                 AirMaps=[AirMask[:,LocFocalPoint[1],:].T,
                         AirMask[LocFocalPoint[0],:,:].T,
                         AirMask[:,:,LocFocalPoint[2]].T]
+                
+        # --- tear down previous VTK viewer if present ---
+        if hasattr(self,'_slice_viewer'):
+            while (child := self._layout.takeAt(0)) is not None:
+                w = child.widget()
+                if w is not None:
+                    w.deleteLater()
+            del self._slice_viewer
 
         if hasattr(self,'_figMasks'):
             while ((child := self._layout.takeAt(0)) != None):
                 child.widget().deleteLater()
+        if bDeleteOnly:
+            self.AcSim.setEnabled(False)
+            self.ThermalSim.setEnabled(False)
+            return
         self._imMasks=[]
         self._imT1W=[]
         self._imCtMasks=[]
@@ -1031,7 +1050,7 @@ class BabelBrain(QWidget):
                                 [LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[0]],
                                 [LocFocalPoint[2],LocFocalPoint[2],LocFocalPoint[1]]):
 
-            if bSegmentedBrain:
+            if self._bSegmentedBrain :
                 vmaxMask=8
             else:
                 vmaxMask=5
@@ -1050,7 +1069,7 @@ class BabelBrain(QWidget):
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
         if self.Config['bUseCT']:
-            if bSegmentedBrain:
+            if self._bSegmentedBrain :
                 values =[1,4,6,7,8]
                 legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
                 colors =[(0.0, 0.3, 1.0, 1.0), 
@@ -1066,7 +1085,7 @@ class BabelBrain(QWidget):
             #we use manual color asignation 
             
         else:
-            if bSegmentedBrain:
+            if self._bSegmentedBrain :
                 values =[1,2,3,4,6,7,8]
                 legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
                 colors = [(0.0, 0.3, 1.0, 1.0), 
@@ -1094,11 +1113,157 @@ class BabelBrain(QWidget):
                 
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
         leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
-        self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
         self._figMasks.set_facecolor(self._BackgroundColorFigures)
         leg.get_frame().set_facecolor(self._BackgroundColorFigures)
-        self.UpdateAcousticTab()
         self.Widget.TransparencyScrollBar.setEnabled(True)
+        if not self.Widget.HideMarkscheckBox.isEnabled():
+            self.Widget.HideMarkscheckBox.setEnabled(True)
+
+    def UpdateMask(self, bDeleteOnly=False):
+        self.hideClockDialog()
+        self.Widget.tabWidget.setEnabled(True)
+        self.AcSim.setEnabled(True)
+        try:
+            Data=nibabel.load(self._outnameMask)
+        except:
+            raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
+        self.FinalMaskRaw=Data.get_fdata()
+        self._FinalMask = np.flip(self.FinalMaskRaw,axis=2)
+
+        self._bSegmentedBrain = np.max(self.FinalMaskRaw)>5
+
+        T1W=nibabel.load(self._T1W_resampled_fname)
+        self._T1WDataRaw=T1W.get_fdata()
+        
+        self._MaskNib=Data
+        self._T1WNib=T1W
+
+        if self.Config['bUseCT']:
+            self._NiftiCT=nibabel.load(self._prefix_path+'CT.nii.gz')
+            AllBoneHU = np.load(self._prefix_path+'CT-cal.npz')['UniqueHU']
+            CTData=AllBoneHU[self._NiftiCT.get_fdata().astype(int)]
+            self._NiftiCT=nibabel.Nifti1Image(CTData,affine=self._NiftiCT.affine,header=self._NiftiCT.header)               
+            if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path+'AirRegions.nii.gz'):
+                self._NiftiAirMask=nibabel.load(self._prefix_path+'AirRegions.nii.gz')
+            
+        self._BackgroundColorFigures=np.array(get_color_at(self.Widget.tabWidget,10,10))/255
+        self.Widget.vtkVisualizationqPushButton.setEnabled(True)
+        self._showMatplotlibVisualization(bDeleteOnly)
+        if hasattr(self,'_vtk_visualization'):
+            self._UpdateVTKDomain()
+        self.UpdateAcousticTab()
+
+
+    @Slot()
+    def OpenVTKVisualization(self):
+         # --- create / re-create the VTK viewer ---
+        if not hasattr(self,'_vtk_visualization'):
+            self._vtk_visualization = NiftiViewerWindow()
+            self._vtk_visualization.resize(1580, 500)
+            self._vtk_visualization.show()
+            self._vtk_visualization.setWindowTitle("VTK NIfTI Viewer — Multi-Volume")
+            self._vtk_visualization.closed.connect(self._closingVtkVisualization)
+            self._UpdateVTKDomain()
+        else:
+            self._vtk_visualization.raise_()
+            self._vtk_visualization.activateWindow()
+
+    def _UpdateVTKDomain(self):
+        mask_nib=self._MaskNib 
+        t1w_nib = self._T1WNib
+
+        # Focal-point voxel (label == 5 in the mask)
+        mask_array = self.FinalMaskRaw
+        focal_voxel = np.array(np.where(mask_array == 5)).flatten()
+        self._LocFocalPoint = focal_voxel
+    
+        self._vtk_visualization.viewer.load_base(mask_nib,
+                                            focal_voxel,
+                                            'Tissue Type',
+                                            tissue_label=True)
+        self._vtk_visualization.viewer.add_overlay(t1w_nib,'T1W',use_percentile=True,id='T1W')
+        self._vtk_visualization.viewer._on_cmap_changed(0,"TissueLabel")
+        self._vtk_visualization.viewer._layer_panel._rows[1]._opacity_slider.setValue(50)
+        if self._NiftiCT:
+            self._vtk_visualization.viewer.add_overlay(self._NiftiCT,'CT',id='CT')
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(50)
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('1')
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        if self._NiftiAirMask:
+            self._vtk_visualization.viewer.add_overlay(self._NiftiAirMask,'Air',id='Air')
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(50)
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('1')
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+            self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(4)
+
+        if hasattr(self,'_NiftiSkull'):
+            self._UpdateVTKAcResults()
+        if hasattr(self,'_NiftiTemperature'):
+            self._UpdateVTKThermal()
+
+    def UpdateNiftiAcResults(self,NiftiSkull,NiftiWater):
+        self._NiftiSkull=NiftiSkull
+        self._NiftiWater=NiftiWater
+        self._UpdateVTKAcResults()
+
+    def UpdateNiftiTemperatureResults(self,NiftiIntensity,NiftiTemperature):
+        self._NiftiIntensity=NiftiIntensity
+        self._NiftiTemperature=NiftiTemperature
+        self._UpdateVTKThermal()
+    
+    def _UpdateVTKAcResults(self):
+        if not hasattr(self,'_vtk_visualization'):
+            return
+        # We remove previous entries if already available
+        for id in ['Skull','Water']:
+            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+                if row._id == id:
+                    self._vtk_visualization.viewer._on_remove_requested(n)
+                    break
+        self._vtk_visualization.viewer.add_overlay(self._NiftiSkull,'Skull',id='Skull')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        self._vtk_visualization.viewer.add_overlay(self._NiftiWater,'Water',id='Water')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._eye_btn.setChecked(False)
+        #we select skull for default windowing
+        self._vtk_visualization.viewer._layer_panel._rows[-2]._wl_btn.click()
+
+    def _UpdateVTKThermal(self):
+        if not hasattr(self,'_vtk_visualization'):
+            return
+        # We remove previous entries if already available
+        for id in ['Intensity','Temperature']:
+            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+                if row._id == id:
+                    self._vtk_visualization.viewer._on_remove_requested(n)
+                    break
+        # We hide  pressure fields
+        for id in ['Water','Skull']:
+            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+                if row._id == id:
+                    row._eye_btn.setChecked(False)
+                    break
+        self._vtk_visualization.viewer.add_overlay(self._NiftiIntensity,'Intensity',id='Intensity')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.1')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        self._vtk_visualization.viewer.add_overlay(self._NiftiTemperature,'Temperature',id='Temperature')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('37.05')
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        self._vtk_visualization.viewer._layer_panel._rows[-1]._eye_btn.toggle()
+
+        self._vtk_visualization.viewer._layer_panel._rows[-2]._wl_btn.click()
+
+    @Slot()
+    def _closingVtkVisualization(self):
+        delattr(self,'_vtk_visualization')
 
     @Slot()
     def HideMarks(self,v):
@@ -1194,7 +1359,7 @@ class RunMaskGeneration(QObject):
     '''
     Worker class for running mask generation in a separate process.
     '''
-    finished = Signal()
+    finished = Signal(object)
     endError = Signal()
 
     logTelemetry = Signal(str)
@@ -1260,7 +1425,9 @@ class RunMaskGeneration(QObject):
             if kargs['CTType'] in [1,2,3]:
                 kargs['HUThreshold']=Widget.HUTreshold.value()
             else:
+                assert(kargs['CTType']==4)
                 kargs['DensityThreshold']=Widget.HUTreshold.value()
+                kargs['RegionAirCT']=[0.01, 10] # air density values
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
@@ -1270,9 +1437,7 @@ class RunMaskGeneration(QObject):
                                                     'bForceNoAbsorptionSkullScalp',
                                                     'TxOptimizedWeights',
                                                     'PlanTUSRoot',
-                                                     'FSLRoot',
-                                                     'ConnectomeRoot',
-                                                     'FreeSurferRoot']:
+                                                     'ConnectomeRoot']:
                 return True
             else:
                 return False
@@ -1360,12 +1525,33 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             self.logTelemetry.emit("CTS1L1: TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('domain',TotalTime)
-            self.finished.emit()
+            self.finished.emit(output_files)
         else:
             print("*"*40)
             print("*"*5+" Error in execution.")
             print("*"*40)
             self.endError.emit()
+def _apply_color_scheme(app):
+    """Apply an application-level stylesheet that keeps text readable in dark mode.
+
+    Qt enters "stylesheet mode" for any widget that has even a partial stylesheet
+    (including empty ones from Qt Designer .ui files).  In that mode, unspecified
+    properties no longer inherit from the system palette, so text can stay dark on
+    dark backgrounds.  Setting palette(window-text) at the *application* level has
+    the lowest CSS specificity, so it provides a safe default while intentionally
+    colored widgets (blue accent labels, green/red status buttons) override it.
+    """
+    bg = app.palette().color(QPalette.Window)
+    is_dark = bg.lightness() < 128
+    if is_dark:
+        app.setStyleSheet(
+            "QWidget { color: palette(window-text); }"
+            " QLabel { background: transparent; }"
+        )
+    else:
+        app.setStyleSheet("")
+
+
 def main():
     '''
     Main entry point for the BabelBrain application.
@@ -1389,7 +1575,16 @@ def main():
     args = parser.parse_args()
 
     app = QApplication([])
- 
+    _apply_color_scheme(app)
+    # Re-apply if the user switches dark/light mode while the app is running.
+    # colorSchemeChanged is available from Qt 6.5; guard for older installs.
+    try:
+        QGuiApplication.styleHints().colorSchemeChanged.connect(
+            lambda: _apply_color_scheme(app)
+        )
+    except AttributeError:
+        pass
+
     selwidget = SelFiles()
     
     prevConfig=GetLatestSelection()

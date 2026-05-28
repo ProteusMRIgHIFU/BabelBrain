@@ -122,16 +122,28 @@ def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fals
     if build_later:
         prgcl = complete_kernel
     else:
+        resource_path_str = str(resource_path())
+        options = ('-I', resource_path_str)
+        logging.info(f"Searching {resource_path_str} for cuda headers")
+
         # Windows sometimes has issues finding CUDA
-        if platform.system()=='Windows':
-            sys.executable.split('\\')[:-1]
-            options=('-I',os.path.join(os.getenv('CUDA_PATH'),'Library','Include'),
-                        '-I',str(resource_path()),
-                        '--ptxas-options=-v')
-        else:
-            options=('-I',str(resource_path()))
+        if platform.system() == "Windows":
+            cuda_path = os.getenv("CUDA_PATH")
+            if cuda_path:
+                logging.info(f"Adding {cuda_path} as backup for cuda header search")
+                options = ('-I', resource_path_str,
+                           '-I', os.path.join(cuda_path, 'Library', 'Include'),
+                           '--ptxas-options=-v')
         
-        prgcl = cp.RawModule(code=complete_kernel,options=options)
+        try:
+            prgcl = cp.RawModule(code=complete_kernel, options=options)
+        except cp.cuda.compiler.CompileException as e:
+            logging.error("CUDA compile error:")
+            logging.exception(e)
+
+        except cp.cuda.runtime.CUDARuntimeError as e:
+            logging.error("CUDA runtime error:")
+            logging.exception(e)
 
     return ctx,prgcl,selDevice
 

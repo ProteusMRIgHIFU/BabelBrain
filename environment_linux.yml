@@ -40,7 +40,7 @@ dependencies:
   - xz=5.2.10=h5eee18b_1
   - zlib=1.2.13=h5eee18b_0
   - pip:
-      - babelviscofdtd==1.2.1
+      - babelviscofdtd==1.2.4
       - charset-normalizer==3.1.0
       - click==8.1.3
       - contourpy==1.0.7
@@ -84,7 +84,7 @@ dependencies:
       - python-utils==3.5.2
       - pytools==2022.1.14
       - pytz==2023.3
-      - pyvista==0.38.5
+      - pyvista==0.46.5
       - pywavelets==1.4.1
       - pyyaml==6.0
       - pwlf==2.5.1
@@ -102,6 +102,6 @@ dependencies:
       - typing-extensions==4.5.0
       - uhi==0.3.3
       - urllib3==1.26.15
-      - vtk==9.2.6
+      - vtk==9.5.2
       - xmltodict==1.0.2
 prefix: /home/acoreas/anaconda3/envs/BabelBrainLinux

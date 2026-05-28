@@ -67,7 +67,7 @@ class TableModel(QAbstractTableModel):
             if orientation == Qt.Vertical:
                 return str(self._data.index[section])
             
-ORIGINAL_BABELBRAIN_SELECTION={'real CT':19,'ZTE':19,'PETRA':7}
+ORIGINAL_BABELBRAIN_SELECTION={'real CT':19,'ZTE':19,'PETRA':19}
 
 def ValidThermalProfile(fProf):
     msgDetails=None

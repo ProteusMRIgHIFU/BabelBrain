@@ -1,0 +1,57 @@
+name: BabelBrain
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cupy=13.6.0
+  - cupy-core=13.6.0
+  - h5py=3.16.0
+  - hdf5=1.14.6
+  - hdf5plugin=6.0.0
+  - histoprint=2.6.0
+  - imageio=2.37.0
+  - lazy-loader=0.5
+  - linetimer=0.1.5
+  - matplotlib=3.10.8
+  - matplotlib-base=3.10.8
+  - networkx=3.6.1
+  - nibabel=5.4.0
+  - numba=0.65.0
+  - numpy=2.3.5
+  - numpy-stl=3.2.0
+  - opencl-headers
+  - openpyxl=3.1.5
+  - pandas=3.0.2
+  - pefile=2023.2.7
+  - pillow=12.2.0
+  - pip=26.0.1
+  - pwlf=2.5.2
+  - pydicom=3.0.2
+  - pyinstaller=6.19.0
+  - pyinstaller-hooks-contrib=2026.2
+  - pymeshfix=0.18.0
+  - pymupdf=1.27.2.2
+  - pyopencl=2026.1.1
+  - pytest=9.0.3
+  - pytest-html=4.2.0
+  - pytest-metadata=3.1.1
+  - pytest-qt=4.5.0
+  - python=3.14.3
+  - pyvista=0.47.1
+  - pyyaml=6.0.3
+  - qtpy=2.4.3
+  - setuptools=82.0.1
+  - simpleitk=2.5.3
+  - superqt=0.8.0
+  - tifffile=2026.3.3
+  - trimesh=4.11.5
+  - vtk=9.6.1
+  - vtk-base=9.6.1
+  - xmltodict=1.0.4
+  - yaml=0.2.5
+  - pip:
+      - babelviscofdtd==1.2.6
+      - manifold3d==3.4.1
+      - scikit-image==0.26.0
+      - scipy==1.17.1
+prefix: C:\Users\Work\miniconda3\envs\env_win_py314_cupy13

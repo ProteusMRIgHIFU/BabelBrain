@@ -71,14 +71,14 @@
   <widget class="QLabel" name="label_21">
    <property name="geometry">
     <rect>
-     <x>2</x>
+     <x>14</x>
      <y>92</y>
-     <width>143</width>
+     <width>37</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Isppa (W/cm2)</string>
+    <string>Isppa</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -87,9 +87,9 @@
   <widget class="QDoubleSpinBox" name="IsppaSpinBox">
    <property name="geometry">
     <rect>
-     <x>159</x>
-     <y>90</y>
-     <width>100</width>
+     <x>58</x>
+     <y>92</y>
+     <width>78</width>
      <height>22</height>
     </rect>
    </property>
@@ -372,19 +372,81 @@
     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
    </property>
   </widget>
+  <widget class="QDoubleSpinBox" name="IsppaWaterSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>234</x>
+     <y>92</y>
+     <width>78</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+   </property>
+   <property name="decimals">
+    <number>2</number>
+   </property>
+   <property name="minimum">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="maximum">
+    <double>1000.000000000000000</double>
+   </property>
+   <property name="singleStep">
+    <double>0.100000000000000</double>
+   </property>
+   <property name="value">
+    <double>5.000000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_24">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>91</y>
+     <width>92</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Isppa in Water</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_25">
+   <property name="geometry">
+    <rect>
+     <x>309</x>
+     <y>92</y>
+     <width>55</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>(W/cm2)</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+   </property>
+  </widget>
  </widget>
  <tabstops>
-  <tabstop>SelectProfile</tabstop>
   <tabstop>CalculateThermal</tabstop>
+  <tabstop>SelectProfile</tabstop>
   <tabstop>SelCombinationDropDown</tabstop>
   <tabstop>IsppaSpinBox</tabstop>
+  <tabstop>IsppaWaterSpinBox</tabstop>
   <tabstop>tableWidget</tabstop>
   <tabstop>ExportSummary</tabstop>
   <tabstop>ExportMaps</tabstop>
-  <tabstop>HideMarkscheckBox</tabstop>
+  <tabstop>DisplayDropDown</tabstop>
   <tabstop>LocMTB</tabstop>
-  <tabstop>LocMTC</tabstop>
   <tabstop>LocMTS</tabstop>
+  <tabstop>LocMTC</tabstop>
+  <tabstop>HideMarkscheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections/>
