@@ -14,6 +14,7 @@ import logging
 #                     datefmt='%H:%M:%S')
 import os
 import platform
+import re
 import shutil
 import sys
 import time
@@ -436,7 +437,7 @@ class BabelBrain(QWidget):
             self.Config['OutputFilesPath']=os.path.dirname(self.Config['T1W'])#+os.sep+'Babel'+os.sep+self.Config['ID']
 
         
-        self.Config['T1WIso']= self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].replace('.nii.gz','-isotropic.nii.gz')
+        self.Config['T1WIso'] = self.Config['OutputFilesPath'] + os.sep + re.sub(r'\.nii(\.gz)?$', '', os.path.split(self.Config['T1W'])[1]) + '-isotropic.nii.gz'
         with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             self.Config['version'] =f.readlines()[0]
 
