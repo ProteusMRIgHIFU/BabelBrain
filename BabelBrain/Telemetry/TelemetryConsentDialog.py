@@ -127,8 +127,26 @@ class TelemetryConsentDialog(QDialog):
         layout.setContentsMargins(18, 18, 18, 14)
         layout.setSpacing(10)
 
+        Header=QLabel("ONE TIME REQUEST- promise! :)")
+        title_font = Header.font()
+        title_font.setPointSize(title_font.pointSize() + 2)
+        title_font.setBold(True)
+        Header.setFont(title_font)
+
+        layout.addWidget(Header)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(separator)
+
         self._settings = TelemetrySettingsWidget(self, current_level=current_level)
         layout.addWidget(self._settings)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        layout.addWidget(separator)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)

@@ -181,6 +181,27 @@ def GetLatestSelection():
                 res=None
     return res
 
+def SaveTelemetryLevelToConfig(level):
+    '''
+    Persist the telemetry level into the user's lastselection.yaml so the
+    first-launch consent dialog is not shown again. Used before the BabelBrain
+    main widget is constructed (which is what normally owns SaveLatestSelection).
+    '''
+    try:
+        os.makedirs(os.path.split(_LastSelConfig)[0], exist_ok=True)
+    except BaseException as e:
+        print('Unable to save telemetry level')
+        print(e)
+        return
+    cfg = GetLatestSelection() or {}
+    cfg['TelemetryLevel'] = int(level)
+    try:
+        with open(_LastSelConfig, 'w') as f:
+            yaml.safe_dump(cfg, f)
+    except BaseException as e:
+        print('Unable to save telemetry level')
+        print(e)
+
 def GetInputFromBrainsight():
     '''
     Reads and validates input files exported from Brainsight for use in BabelBrain.
@@ -1587,10 +1608,26 @@ def main():
         pass
 
     selwidget = SelFiles()
-    
+
     prevConfig=GetLatestSelection()
-    
+
+    # First-launch telemetry consent. Shown before any input dialog so the
+    # user's choice is recorded once and reused for every subsequent run.
+    if prevConfig is None or 'TelemetryLevel' not in prevConfig:
+        from Telemetry.TelemetryConsentDialog import TelemetryConsentDialog
+        consent = TelemetryConsentDialog()
+        consent.exec()
+        SaveTelemetryLevelToConfig(consent.selected_level())
+        if prevConfig is None:
+            prevConfig = {}
+        prevConfig['TelemetryLevel'] = consent.selected_level()
+
+    bFullPrevConfig=False
+
     if prevConfig is not None:
+        bFullPrevConfig = 'simbnibs_path' in prevConfig
+
+    if prevConfig is not None and bFullPrevConfig:
         selwidget.ui.SimbNIBSlineEdit.setText(prevConfig['simbnibs_path'])
         selwidget.ui.T1WlineEdit.setText(prevConfig['T1W'])
         selwidget.ui.TrajectorylineEdit.setText(prevConfig['Mat4Trajectory'])
