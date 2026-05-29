@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox
+from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout
 from PySide6.QtCore import Slot, Qt,QTimer
 
 # Important:
@@ -20,12 +20,14 @@ from glob import glob
 
 from functools import partial
 
-from Calibration.TxCalibration import RUN_FITTING_Process 
+from Calibration.TxCalibration import RUN_FITTING_Process
 from Calibration.ViewResults import PlotViewerCalibration
 from ClockDialog import ClockDialog
 
 from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
 from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
+
+from Telemetry.TelemetryConsentDialog import TelemetrySettingsWidget, TELEMETRY_OFF
 
 
 
@@ -125,6 +127,7 @@ class OptionalParams(object):
         self._DefaultAdvanced['HomogenousMediumValues']['Absorption'] = 0.85
         self._DefaultAdvanced['HomogenousMediumValues']['InitTemperature'] = 37.0
         self._DefaultAdvanced['bForceNoAbsorptionSkullScalp']=False
+        self._DefaultAdvanced['TelemetryLevel']=TELEMETRY_OFF
         self._DefaultAdvanced['TxOptimizedWeights']={}
         for tx in AllTransducers:
             self._DefaultAdvanced['TxOptimizedWeights'][tx]=''
@@ -144,6 +147,19 @@ class AdvancedOptions(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         self.setWindowTitle("Advanced Options")
+
+        # Telemetry tab — added programmatically so the .ui file does not need
+        # to be regenerated. The same widget is reused by the first-launch
+        # consent dialog (Telemetry/TelemetryConsentDialog.py).
+        self._telemetryWidget = TelemetrySettingsWidget(
+            self.ui.tabWidget, current_level=TELEMETRY_OFF, show_title=False
+        )
+        tab_container = QWidget()
+        tab_layout = QVBoxLayout(tab_container)
+        tab_layout.setContentsMargins(12, 12, 12, 12)
+        tab_layout.addWidget(self._telemetryWidget)
+        self.ui.tabWidget.addTab(tab_container, "Telemetry")
+
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
         self.ui.ResetpushButton.clicked.connect(self.ResetToDefaults)
@@ -417,6 +433,7 @@ class AdvancedOptions(QDialog):
         self.ui.HomogenousAbsorptionSpinBox.setValue(values.HomogenousMediumValues['Absorption'])
         self.ui.HomogenousInitTempSpinBox.setValue(values.HomogenousMediumValues['InitTemperature'])
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
+        self._telemetryWidget.set_level(values.TelemetryLevel)
         if self._TxSystem in ['CTX_500', 'CTX_250', 'CTX_250_2ch', 'DPX_500', 'DPXPC_300', 'R15287', 'R15473']:
             self.ui.TxWeightLabel.setText("Optimized Weights for Transducer: " +  self._TxSystem)
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
@@ -478,6 +495,7 @@ class AdvancedOptions(QDialog):
         self.NewValues.HomogenousMediumValues['InitTemperature']     = self.ui.HomogenousInitTempSpinBox.value()  
         self.NewValues.bForceNoAbsorptionSkullScalp=self.ui.bForceNoAbsorptionSkullScalpcheckBox.isChecked()
         self.NewValues.TxOptimizedWeights[self._TxSystem] = self.ui.TxOptimizedWeightsLineEdit.text()
+        self.NewValues.TelemetryLevel = self._telemetryWidget.selected_level()
 
         self.accept()
 

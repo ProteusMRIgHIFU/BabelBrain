@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
+    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -25,34 +26,30 @@ LEVEL_LABELS = {
 }
 
 
-class TelemetryConsentDialog(QDialog):
-    """Opt-in consent dialog for anonymous telemetry collection.
+class TelemetrySettingsWidget(QWidget):
+    """Reusable widget with the telemetry consent text and level selector.
 
-    Shown only on first launch (when no telemetry level is configured yet).
-    Users can change the setting later via Advanced Options. The default
-    selection is `TELEMETRY_OFF` so closing the dialog without picking a
-    different option leaves telemetry disabled.
+    Embedded in both the first-launch consent dialog and the Advanced Options
+    dialog (Telemetry tab). Use `selected_level()` / `set_level()` to read or
+    update the current choice.
     """
 
-    def __init__(self, parent=None, current_level=TELEMETRY_OFF):
-        super(TelemetryConsentDialog, self).__init__(parent)
-        self._level = current_level
-        self._initUI(current_level)
+    def __init__(self, parent=None, current_level=TELEMETRY_OFF, show_title=True):
+        super(TelemetrySettingsWidget, self).__init__(parent)
+        self._build(current_level, show_title)
 
-    def _initUI(self, current_level):
-        self.setWindowTitle("Help Improve BabelBrain")
-        self.setModal(True)
-
+    def _build(self, current_level, show_title):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 14)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        title = QLabel("Help us improve BabelBrain")
-        title_font = title.font()
-        title_font.setPointSize(title_font.pointSize() + 2)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        layout.addWidget(title)
+        if show_title:
+            title = QLabel("Help us improve BabelBrain")
+            title_font = title.font()
+            title_font.setPointSize(title_font.pointSize() + 2)
+            title_font.setBold(True)
+            title.setFont(title_font)
+            layout.addWidget(title)
 
         intro = QLabel(
             "BabelBrain is developed with academic funding. To help us demonstrate "
@@ -93,9 +90,45 @@ class TelemetryConsentDialog(QDialog):
             self._buttons[level] = rb
             layout.addWidget(rb)
 
-        if current_level not in self._buttons:
-            current_level = TELEMETRY_OFF
-        self._buttons[current_level].setChecked(True)
+        layout.addStretch(1)
+
+        self.set_level(current_level)
+
+    def selected_level(self):
+        """Return the telemetry level currently selected in the widget."""
+        level = self._group.checkedId()
+        return TELEMETRY_OFF if level == -1 else level
+
+    def set_level(self, level):
+        """Programmatically select a telemetry level."""
+        if level not in self._buttons:
+            level = TELEMETRY_OFF
+        self._buttons[level].setChecked(True)
+
+
+class TelemetryConsentDialog(QDialog):
+    """Opt-in consent dialog shown only on first launch.
+
+    Once a telemetry level has been recorded in the user configuration this
+    dialog is no longer shown; users can change the setting later from the
+    Advanced Options "Telemetry" tab.
+    """
+
+    def __init__(self, parent=None, current_level=TELEMETRY_OFF):
+        super(TelemetryConsentDialog, self).__init__(parent)
+        self._level = current_level
+        self._initUI(current_level)
+
+    def _initUI(self, current_level):
+        self.setWindowTitle("Help Improve BabelBrain")
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 14)
+        layout.setSpacing(10)
+
+        self._settings = TelemetrySettingsWidget(self, current_level=current_level)
+        layout.addWidget(self._settings)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
@@ -107,9 +140,7 @@ class TelemetryConsentDialog(QDialog):
         self._continue_btn.clicked.connect(self._on_accept)
 
     def _on_accept(self):
-        self._level = self._group.checkedId()
-        if self._level == -1:
-            self._level = TELEMETRY_OFF
+        self._level = self._settings.selected_level()
         self.accept()
 
     def selected_level(self):
