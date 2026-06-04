@@ -591,16 +591,13 @@ class BabelBrain(QWidget):
 
     def load_ui(self):
         global GetSmallestSOS
-        loader = QUiLoader()
-        #path = os.fspath(Path(__file__).resolve().parent / "form.ui")
-        path = os.path.join(resource_path(), "form.ui")
-        ui_file = QFile(path)
-        ui_file.open(QFile.ReadOnly)
-        self.Widget = loader.load(ui_file, self)
-        ui_file.close()
 
-        # Make the loaded form follow the main window's size — required for the
-        # responsive layout defined inside form.ui to actually take effect.
+        # Top-level form is now built programmatically — see MainForm.py.
+        # Widget attribute names (tabWidget, IDLabel, CTZTETabs, USMask, …)
+        # are preserved so the rest of this file references them unchanged.
+        from MainForm import BabelBrainMainForm
+        self.Widget = BabelBrainMainForm(self)
+
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.addWidget(self.Widget)
