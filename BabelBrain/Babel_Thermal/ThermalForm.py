@@ -155,9 +155,14 @@ class ThermalForm(QWidget):
         unit_lbl.setAlignment(Qt.AlignRight)
         lay.addWidget(unit_lbl)
 
-        # Results table
-        self.tableWidget = QTableWidget()
+        # Results table — pre-sized to match the original form.ui, which
+        # Babel_Thermal.py relies on (it calls `setItem(0..10, 0/1, …)`
+        # without first growing the table).
+        self.tableWidget = QTableWidget(11, 2)
         self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setShowGrid(False)
+        self.tableWidget.horizontalHeader().setVisible(False)
+        self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.setMinimumHeight(150)
         self.tableWidget.setSizePolicy(QSizePolicy.Expanding,
                                        QSizePolicy.Expanding)
