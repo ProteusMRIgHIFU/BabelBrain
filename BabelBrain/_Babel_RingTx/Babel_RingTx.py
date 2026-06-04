@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import sys
 
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
 from PySide6.QtUiTools import QUiLoader
 
@@ -48,11 +48,17 @@ class RingTx(BabelBaseTx):
     def load_ui(self):
         loader = QUiLoader()
         path = os.path.join(resource_path(), "form.ui")
-        
+
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
+
+        # Wrap the loaded form so it follows the parent tab's size — required
+        # for the responsive layout inside form.ui to take effect.
+        _l = QVBoxLayout(self)
+        _l.setContentsMargins(0, 0, 0, 0)
+        _l.addWidget(self.Widget)
 
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)

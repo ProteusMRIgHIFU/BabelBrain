@@ -60,6 +60,12 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget =loader.load(ui_file, self)
         ui_file.close()
 
+        # Wrap the loaded form so it follows the parent tab's size — required
+        # for the responsive layout inside form.ui to take effect.
+        _l = QVBoxLayout(self)
+        _l.setContentsMargins(0, 0, 0, 0)
+        _l.addWidget(self.Widget)
+
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
 
         for spinbox,ID in zip([self.Widget.XSteeringSpinBox,

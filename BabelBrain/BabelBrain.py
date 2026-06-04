@@ -598,6 +598,13 @@ class BabelBrain(QWidget):
         ui_file.open(QFile.ReadOnly)
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
+
+        # Make the loaded form follow the main window's size — required for the
+        # responsive layout defined inside form.ui to actually take effect.
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.addWidget(self.Widget)
+
         ## THIS WILL BE LOADED DYNAMICALLY in function of the active Tx
         import BabelDatasetPreps as DataPreps
 
@@ -1368,15 +1375,17 @@ class BabelBrain(QWidget):
                 kargs['bDensity']=True
         kargs['OptimizedWeightsFile']=self.Config['TxOptimizedWeights'][self.Config['TxSystem']]
         return kargs
+    
+    def _logTelemetry(self,entry):
+        pass
+        
 
 def get_color_at(widget, x,y):
     pixmap = QPixmap(widget.size())
     widget.render(pixmap)
     return pixmap.toImage().pixelColor(x,y).getRgb()
 
-def _logTelemetryType(self,entry):
-    pass
-        
+
 class RunMaskGeneration(QObject):
     '''
     Worker class for running mask generation in a separate process.
@@ -1459,7 +1468,8 @@ class RunMaskGeneration(QObject):
                                                     'bForceNoAbsorptionSkullScalp',
                                                     'TxOptimizedWeights',
                                                     'PlanTUSRoot',
-                                                     'ConnectomeRoot']:
+                                                    'ConnectomeRoot',
+                                                    'TelemetryLevel']:
                 return True
             else:
                 return False
@@ -1522,22 +1532,32 @@ class RunMaskGeneration(QObject):
             time.sleep(0.1)
             while queue.empty() == False:
                 cMsg=queue.get()
+                if type(cMsg) is str:
+                    print(cMsg,end='')
+                    if 'CTS1L3:' in cMsg:
+                        self.logTelemetry.emit(cMsg)
+                    if '--Babel-Brain-Low-Error' in cMsg:
+                        bNoError=False
+                        self.logTelemetry.emit("CTS1L1: "+cMsg)
+                elif type(cMsg) is dict:
+                    output_files=cMsg
+                else:
+                    print('WARNING: Unknown type of message from thread:', type(cMsg))
+
+        maskWorkerProcess.join()
+        while queue.empty() == False:
+            cMsg=queue.get()
+            if type(cMsg) is str:
                 print(cMsg,end='')
                 if 'CTS1L3:' in cMsg:
                     self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
                     bNoError=False
                     self.logTelemetry.emit("CTS1L1: "+cMsg)
-
-        maskWorkerProcess.join()
-        while queue.empty() == False:
-            cMsg=queue.get()
-            print(cMsg,end='')
-            if 'CTS1L3:' in cMsg:
-                self.logTelemetry.emit(cMsg)
-            if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False
-                self.logTelemetry.emit("CTS1L1: "+cMsg)
+            elif type(cMsg) is dict:
+                output_files=cMsg
+            else:
+                print('WARNING: Unknown type of message from thread:', type(cMsg))
         if bNoError:
             TEnd=time.time()
             TotalTime = TEnd-T0

@@ -106,6 +106,12 @@ class Babel_Thermal(QWidget):
         self.Widget = loader.load(ui_file, self)
         ui_file.close()
 
+        # Wrap the loaded form so it follows the parent tab's size — required
+        # for the responsive layout inside form.ui to take effect.
+        _l = QVBoxLayout(self)
+        _l.setContentsMargins(0, 0, 0, 0)
+        _l.addWidget(self.Widget)
+
         self.Widget.SelectProfile.clicked.connect(self.SelectProfile)
         self.Widget.SelectProfile.setStyleSheet("color: #2db52d")   # bright green, readable on light & dark
         self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
