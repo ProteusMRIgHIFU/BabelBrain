@@ -99,15 +99,10 @@ class Babel_Thermal(QWidget):
         self._LastTMap=-1
 
     def load_ui(self):
-        loader = QUiLoader()
-        path = os.path.join(resource_path(), "form.ui")
-        ui_file = QFile(path)
-        ui_file.open(QFile.ReadOnly)
-        self.Widget = loader.load(ui_file, self)
-        ui_file.close()
+        # Programmatic form replaces form.ui.
+        from Babel_Thermal.ThermalForm import ThermalForm
+        self.Widget = ThermalForm(self)
 
-        # Wrap the loaded form so it follows the parent tab's size — required
-        # for the responsive layout inside form.ui to take effect.
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
         _l.addWidget(self.Widget)

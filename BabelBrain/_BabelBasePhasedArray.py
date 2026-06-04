@@ -53,15 +53,21 @@ class BabelBasePhaseArray(BabelBaseTx):
 
 
     def load_ui(self,formfile):
-        loader = QUiLoader()
-        path =  formfile
-        ui_file = QFile(path)
-        ui_file.open(QFile.ReadOnly)
-        self.Widget =loader.load(ui_file, self)
-        ui_file.close()
+        # Programmatic form replaces form.ui — the concrete form class is
+        # passed in via `formfile`, which is now either a class (preferred)
+        # or a legacy path that selects the matching form class by suffix.
+        if isinstance(formfile, type):
+            form_cls = formfile
+        else:
+            # Backwards compat: map old .ui paths to the new form classes.
+            if "Babel_DomeTx" in str(formfile):
+                from Babel_DomeTx.DomeTxForm import DomeTxForm as form_cls
+            elif "Babel_H317" in str(formfile):
+                from Babel_H317.H317Form import H317Form as form_cls
+            else:
+                raise ValueError(f"No programmatic form mapping for {formfile}")
+        self.Widget = form_cls(self)
 
-        # Wrap the loaded form so it follows the parent tab's size — required
-        # for the responsive layout inside form.ui to take effect.
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
         _l.addWidget(self.Widget)

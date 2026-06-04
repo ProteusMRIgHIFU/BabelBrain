@@ -43,15 +43,10 @@ class BSonix(SingleTx):
         super(BSonix, self).__init__(parent,MainApp,formfile)       
 
     def load_ui(self,formfile):
-        loader = QUiLoader()
-        path = os.path.join(resource_path(), formfile)
-        ui_file = QFile(path)
-        ui_file.open(QFile.ReadOnly)
-        self.Widget =loader.load(ui_file, self)
-        ui_file.close()
+        # Programmatic form replaces formBx.ui.
+        from Babel_SingleTx.SingleTxForm import BSonixForm
+        self.Widget = BSonixForm(self)
 
-        # Wrap the loaded form so it follows the parent tab's size — required
-        # for the responsive layout inside formBx.ui to take effect.
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
         _l.addWidget(self.Widget)

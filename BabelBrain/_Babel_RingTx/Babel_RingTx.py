@@ -46,16 +46,10 @@ class RingTx(BabelBaseTx):
 
 
     def load_ui(self):
-        loader = QUiLoader()
-        path = os.path.join(resource_path(), "form.ui")
+        # Programmatic form replaces form.ui.
+        from _Babel_RingTx.RingTxForm import RingTxForm
+        self.Widget = RingTxForm(self)
 
-        ui_file = QFile(path)
-        ui_file.open(QFile.ReadOnly)
-        self.Widget =loader.load(ui_file, self)
-        ui_file.close()
-
-        # Wrap the loaded form so it follows the parent tab's size — required
-        # for the responsive layout inside form.ui to take effect.
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
         _l.addWidget(self.Widget)
