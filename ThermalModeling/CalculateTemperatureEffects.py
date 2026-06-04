@@ -958,18 +958,19 @@ def CalculateTemperatureEffects(InputPData,
     with CodeTimer("CTS3L3: BHTE init",unit='s'):
         if type(InputPData) is str:
             ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
-                                                            MaterialMap,
-                                                            MaterialList,
-                                                            (Input['x_vec'][1]-Input['x_vec'][0]),
-                                                            TotalDurationSteps,
-                                                            nStepsOnOffList,
-                                                            -1, #disabling slice monitor for memory saving
-                                                            nFactorMonitoring=nFactorMonitoring,
-                                                            dt=dt,
-                                                            Backend=Backend,
-                                                            stableTemp=BaselineTemperature,
-                                                            initT0=initT0,
-                                                            initDose=initDose)
+                                                        MaterialMap,
+                                                        MaterialList,
+                                                        (Input['x_vec'][1]-Input['x_vec'][0]),
+                                                        TotalDurationSteps,
+                                                        nStepsOn,
+                                                        -1, #disabling slice monitor for memory saving
+                                                        nFactorMonitoring=nFactorMonitoring,
+                                                        dt=dt,
+                                                        DutyCycle=DutyCycle,
+                                                        Backend=Backend,
+                                                        stableTemp=BaselineTemperature,
+                                                        initT0=initT0,
+                                                        initDose=initDose)
         else:
             InputsBHTE=AllInputs.copy()
             for n in range(len(InputPData)):
