@@ -39,11 +39,10 @@ def DistanceOutPlaneToFocus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
 class BSonix(SingleTx):
-    def __init__(self,parent=None,MainApp=None,formfile='formBx.ui'):
-        super(BSonix, self).__init__(parent,MainApp,formfile)       
+    def __init__(self,parent=None,MainApp=None):
+        super(BSonix, self).__init__(parent,MainApp)       
 
-    def load_ui(self,formfile):
-        # Programmatic form replaces formBx.ui.
+    def load_ui(self):
         from Babel_SingleTx.SingleTxForm import BSonixForm
         self.Widget = BSonixForm(self)
 

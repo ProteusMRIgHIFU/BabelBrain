@@ -83,8 +83,8 @@ QTabBar::tab::disabled {{
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
     border-radius: 4px;
-    padding: 3px 6px;
-    min-height: 20px;
+    padding: 0px 6px;
+    min-height: 16px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {ACCENT};

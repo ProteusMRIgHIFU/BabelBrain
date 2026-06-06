@@ -1,8 +1,9 @@
 """Shared base widget for transducer panels (Step 2 of BabelBrain).
 
 Provides:
-  * The common layout shape: left controls column · plot (expanding) over an
-    IsppaScrollBars host · bottom row with HideMarks / ShowWaterResults.
+  * The common layout shape: left controls column (ending with the
+    HideMarks / ShowWaterResults checkboxes) · plot (expanding) over an
+    IsppaScrollBars host.
   * Visual styling consistent with MainForm.py (rounded corners, cyan
     accent on hover / focus, OS-palette backgrounds).
   * Helper methods so each subclass can describe its left-panel controls
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QSizePolicy,
 )
 
@@ -49,8 +51,8 @@ QPushButton:disabled {{ color: palette(mid); }}
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
     border-radius: 4px;
-    padding: 2px 6px;
-    min-height: 20px;
+    padding: 0px 6px;
+    min-height: 16px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {ACCENT};
@@ -142,8 +144,11 @@ class TxPanelBase(QWidget):
     Subclass and implement `_build_left_panel()`. The base class wires up:
         * `self.AcField_plot1`        — plot host (expanding)
         * `self.IsppaScrollBars`      — scrollbar strip below the plot
-        * `self.HideMarkscheckBox`    — bottom-left checkbox
-        * `self.ShowWaterResultscheckBox` — bottom-right checkbox
+        * `self.HideMarkscheckBox`    — under FLHM label (left-aligned)
+        * `self.ShowWaterResultscheckBox` — under FLHM label (right-aligned)
+
+    The checkbox row and the scrollbar strip share the bottom grid row, so
+    they stay vertically aligned.
     """
 
     LEFT_PANEL_WIDTH = 340
@@ -160,13 +165,27 @@ class TxPanelBase(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        top = QHBoxLayout()
-        top.setSpacing(10)
-        top.addWidget(self._build_left_panel())
-        top.addLayout(self._build_plot_column(), stretch=1)
-        root.addLayout(top, stretch=1)
+        # A 2×2 grid keeps the checkbox row (col 0) and the scrollbar strip
+        # (col 1) on the SAME bottom row, so they stay vertically aligned
+        # regardless of how tall the plot grows.
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(6)
 
-        root.addLayout(self._build_bottom_row())
+        # Row 0: controls bottom-aligned so the FLHM label ends right above the
+        # checkboxes · expanding plot.
+        left = self._build_left_panel()
+        grid.addWidget(left, 0, 0, alignment=Qt.AlignBottom)
+        grid.addWidget(self._build_plot_host(), 0, 1)
+
+        # Row 1: checkboxes under FLHM · scrollbar strip under the plot.
+        grid.addLayout(self._build_checkbox_row(), 1, 0, alignment=Qt.AlignTop)
+        grid.addWidget(self._build_scrollbar_host(), 1, 1)
+
+        grid.setRowStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        root.addLayout(grid, stretch=1)
 
     # ── Hooks ─────────────────────────────────────────────────────────────
     def _build_left_panel(self):
@@ -182,38 +201,36 @@ class TxPanelBase(QWidget):
         layout.setSpacing(6)
         return frame, layout
 
-    def _build_plot_column(self):
-        col = QVBoxLayout()
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(4)
-
+    def _build_plot_host(self):
         self.AcField_plot1 = QWidget()
         self.AcField_plot1.setObjectName("AcField_plot1")
         self.AcField_plot1.setMinimumSize(500, 280)
         self.AcField_plot1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        col.addWidget(self.AcField_plot1, stretch=1)
+        return self.AcField_plot1
 
+    def _build_scrollbar_host(self):
         self.IsppaScrollBars = QWidget()
         self.IsppaScrollBars.setObjectName("IsppaScrollBars")
         self.IsppaScrollBars.setMinimumSize(400, 61)
         self.IsppaScrollBars.setMaximumHeight(80)
         self.IsppaScrollBars.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        col.addWidget(self.IsppaScrollBars)
-        return col
+        return self.IsppaScrollBars
 
-    def _build_bottom_row(self):
-        row = QHBoxLayout()
-        row.setSpacing(10)
-
+    def _build_checkbox_row(self):
+        """HideMarks (left) / ShowWaterResults (right) sit in the bottom-left
+        grid cell — just below the 'Distance target to FLHM' label and on the
+        same grid row as the scrollbar strip, so the two line up vertically."""
         self.HideMarkscheckBox = QCheckBox("Hide marks")
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
-        row.addWidget(self.HideMarkscheckBox)
 
-        row.addStretch(1)
-
-        self.ShowWaterResultscheckBox = QCheckBox("Show\nwater only")
+        self.ShowWaterResultscheckBox = QCheckBox("Show water only")
         self.ShowWaterResultscheckBox.setObjectName("ShowWaterResultscheckBox")
         self.ShowWaterResultscheckBox.setEnabled(False)
+
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        row.addWidget(self.HideMarkscheckBox)
+        row.addStretch(1)
         row.addWidget(self.ShowWaterResultscheckBox)
         return row

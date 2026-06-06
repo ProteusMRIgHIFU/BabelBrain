@@ -43,29 +43,29 @@ from _BabelBaseTx import BabelBaseTx
 
 
 class BabelBasePhaseArray(BabelBaseTx):
-    def __init__(self,parent=None,MainApp=None,formfile=None):
+    def __init__(self,parent=None,MainApp=None,formtype=None):
         super().__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
         self._MultiPoint = None #if None, the default is to run one single focal point
         self.DefaultConfig()
-        self.load_ui(formfile)
+        self.load_ui(formtype)
 
 
-    def load_ui(self,formfile):
+    def load_ui(self,formtype):
         # Programmatic form replaces form.ui — the concrete form class is
-        # passed in via `formfile`, which is now either a class (preferred)
+        # passed in via `formtype`, which is now either a class (preferred)
         # or a legacy path that selects the matching form class by suffix.
-        if isinstance(formfile, type):
-            form_cls = formfile
+        if isinstance(formtype, type):
+            form_cls = formtype
         else:
             # Backwards compat: map old .ui paths to the new form classes.
-            if "Babel_DomeTx" in str(formfile):
+            if "Babel_DomeTx" in str(formtype):
                 from Babel_DomeTx.DomeTxForm import DomeTxForm as form_cls
-            elif "Babel_H317" in str(formfile):
+            elif "Babel_H317" in str(formtype):
                 from Babel_H317.H317Form import H317Form as form_cls
             else:
-                raise ValueError(f"No programmatic form mapping for {formfile}")
+                raise ValueError(f"No programmatic form mapping for {formtype}")
         self.Widget = form_cls(self)
 
         _l = QVBoxLayout(self)

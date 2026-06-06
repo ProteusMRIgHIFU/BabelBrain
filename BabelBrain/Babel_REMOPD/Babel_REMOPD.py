@@ -40,9 +40,9 @@ def resource_path():  # needed for bundling
 
 class REMOPD(BabelBasePhaseArray): 
     def __init__(self,parent=None,MainApp=None):
-        super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
+        super().__init__(parent=parent,MainApp=MainApp,formtype=os.path.join(resource_path(), "."))
 
-    def load_ui(self,formfile):
+    def load_ui(self,formtype):
         # Programmatic form replaces form.ui.
         from Babel_REMOPD.REMOPDForm import REMOPDForm
         self.Widget = REMOPDForm(self)

@@ -48,8 +48,8 @@ QPushButton:disabled {{ color: palette(mid); }}
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
     border-radius: 4px;
-    padding: 2px 6px;
-    min-height: 20px;
+    padding: 0px 6px;
+    min-height: 16px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid #00c8ff;

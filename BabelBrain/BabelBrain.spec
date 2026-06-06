@@ -127,7 +127,6 @@ commonDatas = [
     ("Babel_SingleTx/formBx.ui", "./Babel_SingleTx"),
     ("Babel_REMOPD/form.ui", "./Babel_REMOPD"),
     ("Babel_DomeTx/form.ui", "./Babel_DomeTx"),
-    ("GUIComponents/scrollbars.ui", "./GUIComponents"),
     ("../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv", "./TranscranialModeling"),
     ("../TranscranialModeling/I12378.csv", "./TranscranialModeling"),
     ("../TranscranialModeling/ATACArray.csv", "./TranscranialModeling"),

@@ -24,7 +24,7 @@ def resource_path():  # needed for bundling
 
 class H317(BabelBasePhaseArray):
     def __init__(self,parent=None,MainApp=None):
-        super().__init__(parent=parent,MainApp=MainApp,formfile=os.path.join(resource_path(), "form.ui"))
+        super().__init__(parent=parent,MainApp=MainApp,formtype=os.path.join(resource_path(), "."))
 
 
     def DefaultConfig(self):

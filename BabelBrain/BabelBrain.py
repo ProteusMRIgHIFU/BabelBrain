@@ -248,7 +248,7 @@ def GetInputFromBrainsight():
             # EndWithError("Version 13 of export trajectory not supported.\nEnding BabelBrain execution")
             pass
         else:
-            if header['Version']!='14':
+            if header['Version'] not in ['14','15']:
                 msgBox = QMessageBox()
                 msgBox.setIcon(QMessageBox.Warning)
                 msgBox.setText("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur")

@@ -40,18 +40,17 @@ def DistanceOutPlaneToFocus(FocalLength,Diameter):
     return np.sqrt(FocalLength**2-(Diameter/2)**2)
 
 class SingleTx(BabelBaseTx):
-    def __init__(self,parent=None,MainApp=None,formfile='form.ui'):
+    def __init__(self,parent=None,MainApp=None):
         super(SingleTx, self).__init__(parent)
         self.static_canvas=None
         self._MainApp=MainApp
         self._bIgnoreUpdate=False
         self._ZMaxSkin = 0.0 # maximum
         self.DefaultConfig()
-        self.load_ui(formfile)
+        self.load_ui()
 
 
-    def load_ui(self,formfile):
-        # Programmatic form replaces form.ui / formBx.ui.
+    def load_ui(self):
         from Babel_SingleTx.SingleTxForm import SingleTxForm
         self.Widget = SingleTxForm(self)
 
