@@ -144,12 +144,12 @@ class ThermalForm(QWidget):
         lay.addLayout(comb_row)
 
         triplet_lbl = QLabel("[Duration, DC, PRF]")
-        triplet_lbl.setAlignment(Qt.AlignCenter)
+        triplet_lbl.setAlignment(Qt.AlignRight)
         lay.addWidget(triplet_lbl)
 
         # Isppa
         isppa_row = QHBoxLayout()
-        isppa_row.addWidget(QLabel("Isppa"))
+        isppa_row.addWidget(QLabel("Isppa (W/cm²)"))
         isppa_row.addStretch(1)
         self.IsppaSpinBox = make_dspin(
             "IsppaSpinBox", value=5.0, minimum=0.1, maximum=60.0,
@@ -159,17 +159,13 @@ class ThermalForm(QWidget):
 
         # Isppa in Water
         isppaw_row = QHBoxLayout()
-        isppaw_row.addWidget(QLabel("Isppa in Water"))
+        isppaw_row.addWidget(QLabel("Isppa in Water (W/cm²)"))
         isppaw_row.addStretch(1)
         self.IsppaWaterSpinBox = make_dspin(
             "IsppaWaterSpinBox", value=5.0, minimum=0.1, maximum=1000.0,
             decimals=2, step=0.1, width=110)
         isppaw_row.addWidget(self.IsppaWaterSpinBox)
         lay.addLayout(isppaw_row)
-
-        unit_lbl = QLabel("(W/cm²)")
-        unit_lbl.setAlignment(Qt.AlignRight)
-        lay.addWidget(unit_lbl)
 
         # Results table — pre-sized to match the original form.ui, which
         # Babel_Thermal.py relies on (it calls `setItem(0..10, 0/1, …)`
@@ -210,26 +206,19 @@ class ThermalForm(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(4)
 
-        # Row 1: Export buttons | Show + Display | IsppaScrollBar | Slice / Hide
-        row1 = QHBoxLayout()
-        row1.setSpacing(8)
-
+        # ── Controls ────────────────────────────────────────────────────────
         self.ExportSummary = make_button(
             "ExportSummary", "Export summary\n(CSV)", min_height=44)
         self.ExportSummary.setEnabled(False)
-        row1.addWidget(self.ExportSummary)
 
         self.ExportMaps = make_button(
             "ExportMaps", "Export maps\n(.nii.gz)", min_height=44)
         self.ExportMaps.setEnabled(False)
-        row1.addWidget(self.ExportMaps)
 
         self.label_22 = make_label("Show", name="label_22")
-        row1.addWidget(self.label_22)
 
         self.DisplayDropDown = make_combo(
             "DisplayDropDown", items=["Maps", "Profiles"])
-        row1.addWidget(self.DisplayDropDown)
 
         self.IsppaScrollBar = QScrollBar(Qt.Horizontal)
         self.IsppaScrollBar.setObjectName("IsppaScrollBar")
@@ -237,34 +226,56 @@ class ThermalForm(QWidget):
         self.IsppaScrollBar.setMinimumWidth(220)
         self.IsppaScrollBar.setSizePolicy(QSizePolicy.Expanding,
                                           QSizePolicy.Fixed)
-        row1.addWidget(self.IsppaScrollBar, stretch=1)
 
         self.SliceLabel = make_label("-", name="SliceLabel",
                                      bold=True, color=LABEL_BLUE)
         self.SliceLabel.setMinimumWidth(80)
-        row1.addWidget(self.SliceLabel)
 
         self.HideMarkscheckBox = QCheckBox("Hide marks")
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
-        row1.addWidget(self.HideMarkscheckBox)
-
-        outer.addLayout(row1)
-
-        # Row 2: Loc-Max-Temp buttons centred
-        row2 = QHBoxLayout()
-        row2.setSpacing(8)
-        row2.addStretch(1)
 
         self.LocMTB = make_button("LocMTB", "Max. Temp. Brain")
-        row2.addWidget(self.LocMTB)
-
         self.LocMTS = make_button("LocMTS", "Max. Temp. Skin")
-        row2.addWidget(self.LocMTS)
-
         self.LocMTC = make_button("LocMTC", "Max. Temp. Skull")
-        row2.addWidget(self.LocMTC)
 
+        # Both bottom rows share the top row's column split: a fixed-width left
+        # zone sits under the control column, the rest aligns under the plot.
+        # Row 1: export/show/display under the column · scrollbar (starting at
+        #        the plot's left edge) + slice/hide to its right under the plot.
+        row1 = QHBoxLayout()
+        row1.setSpacing(8)
+
+        left1 = QWidget()
+        left1.setFixedWidth(self.LEFT_PANEL_WIDTH)
+        left1_l = QHBoxLayout(left1)
+        left1_l.setContentsMargins(0, 0, 0, 0)
+        left1_l.setSpacing(8)
+        left1_l.addWidget(self.ExportSummary)
+        left1_l.addWidget(self.ExportMaps)
+        left1_l.addWidget(self.label_22)
+        left1_l.addWidget(self.DisplayDropDown)
+        left1_l.addStretch(3)
+        row1.addWidget(left1)
+
+        row1.addWidget(self.IsppaScrollBar, stretch=1)
+        row1.addWidget(self.SliceLabel)
+        row1.addWidget(self.HideMarkscheckBox)
+        outer.addLayout(row1)
+
+        # Row 2: Max-Temp buttons centred under the plot (left zone is an empty
+        # spacer matching the control column so the centring excludes it).
+        row2 = QHBoxLayout()
+        row2.setSpacing(8)
+
+        left2 = QWidget()
+        left2.setFixedWidth(self.LEFT_PANEL_WIDTH)
+        row2.addWidget(left2)
+
+        row2.addStretch(1)
+        row2.addWidget(self.LocMTB)
+        row2.addWidget(self.LocMTS)
+        row2.addWidget(self.LocMTC)
         row2.addStretch(1)
         outer.addLayout(row2)
 
