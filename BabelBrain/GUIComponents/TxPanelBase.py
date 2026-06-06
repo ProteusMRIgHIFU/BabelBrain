@@ -186,9 +186,11 @@ class TxPanelBase(QWidget):
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(4)
 
-        # Row 0: controls top-aligned · expanding plot.
+        # Row 0: controls fill the column (geometry rows top, action buttons +
+        # FLHM row pushed to the bottom) · expanding plot.
         left = self._build_left_panel()
-        grid.addWidget(left, 0, 0, alignment=Qt.AlignTop)
+        self._anchor_actions_to_bottom(left)
+        grid.addWidget(left, 0, 0)
         grid.addWidget(self._build_plot_host(), 0, 1)
 
         # Row 1: checkboxes under FLHM · scrollbar strip under the plot.
@@ -202,6 +204,27 @@ class TxPanelBase(QWidget):
     # ── Hooks ─────────────────────────────────────────────────────────────
     def _build_left_panel(self):
         raise NotImplementedError("Subclasses must implement _build_left_panel()")
+
+    def _anchor_actions_to_bottom(self, left_frame):
+        """Push the action buttons (Calculate Fields / Mechanical Adjustments)
+        and the 'Distance target to FLHM' row to the bottom of the left column:
+        drop the subclass's trailing stretch and insert one before the first
+        action button instead. Relies on the shared `_build_left_panel()` shape
+        (geometry rows · CalculateAcField · … · FLHM row · trailing stretch)."""
+        lay = left_frame.layout()
+        btn = getattr(self, "CalculateAcField", None)
+        if lay is None or btn is None:
+            return
+        # Drop the trailing stretch the subclass added (nothing pads below).
+        last = lay.itemAt(lay.count() - 1)
+        if last is not None and last.spacerItem() is not None:
+            lay.takeAt(lay.count() - 1)
+        # Insert a stretch immediately before the first action button so the
+        # gap opens up between the geometry controls and the buttons.
+        for i in range(lay.count()):
+            if lay.itemAt(i).widget() is btn:
+                lay.insertStretch(i, 1)
+                break
 
     # ── Common pieces ────────────────────────────────────────────────────
     def _make_left_frame(self):
