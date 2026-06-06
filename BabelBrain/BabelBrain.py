@@ -202,6 +202,18 @@ def SaveTelemetryLevelToConfig(level):
         print('Unable to save telemetry level')
         print(e)
 
+def _styled_dialog_parent():
+    """Return a stylesheet-carrying widget so QMessageBoxes raised from
+    module-level helpers (no `self` in scope) still inherit the compact app
+    font. The programmatic forms (MainForm, Tx panels) carry the stylesheet
+    under objectName "Widget"; fall back to the active window itself."""
+    app = QApplication.instance()
+    win = app.activeWindow() if app else None
+    if win is None:
+        return None
+    return win.findChild(QWidget, "Widget") or win
+
+
 def GetInputFromBrainsight():
     '''
     Reads and validates input files exported from Brainsight for use in BabelBrain.
@@ -249,7 +261,7 @@ def GetInputFromBrainsight():
             pass
         else:
             if header['Version'] not in ['14','15']:
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(_styled_dialog_parent())
                 msgBox.setIcon(QMessageBox.Warning)
                 msgBox.setText("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur")
                 msgBox.exec()
@@ -328,7 +340,7 @@ def EndWithError(msg):
     msg : str
         The error message to display.
     '''
-    msgBox = QMessageBox()
+    msgBox = QMessageBox(_styled_dialog_parent())
     msgBox.setIcon(QMessageBox.Critical)
     msgBox.setText(msg)
     msgBox.exec()
@@ -785,7 +797,7 @@ class BabelBrain(QWidget):
         bValid,msg = ValidThermalProfile(fThermalProfile)
         if not bValid:
             print('bValid,msg',bValid,msg)
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(self.Widget)
             msgBox.setText("Please indicate valid entries in the profile")
             msgBox.setDetailedText(msg)
             msgBox.exec()
@@ -861,7 +873,7 @@ class BabelBrain(QWidget):
             try:
                 os.makedirs(basedir)
             except:
-                msgBox = QMessageBox()
+                msgBox = QMessageBox(self.Widget)
                 msgBox.setIcon(QMessageBox.Critical)
                 msgBox.setText("Unable to create directory to save results at:\n" + basedir)
                 msgBox.exec()
@@ -877,7 +889,10 @@ class BabelBrain(QWidget):
         self._T1W_resampled_fname=self._outnameMask.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz'
         bCalcMask=False
         if os.path.isfile(self._outnameMask) and os.path.isfile(self._T1W_resampled_fname):
-            ret = QMessageBox.question(self,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            # Parent to self.Widget (the styled MainForm) so the dialog inherits
+            # the compact _FORM_QSS; self is the top-level app and carries no
+            # stylesheet of its own.
+            ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
             if ret == QMessageBox.Yes:
                 bCalcMask=True
@@ -965,7 +980,7 @@ class BabelBrain(QWidget):
         self.SetErrorDomainCode()
         self.hideClockDialog()
         if 'BABEL_PYTEST' not in os.environ:
-            msgBox = QMessageBox()
+            msgBox = QMessageBox(self.Widget)
             msgBox.setIcon(QMessageBox.Critical)
             msgBox.setText("There was an error in execution -\nconsult log window for details")
             msgBox.exec()
