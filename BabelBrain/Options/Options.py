@@ -147,8 +147,8 @@ class AdvancedOptions(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         # Apply the shared compact app style on top of the .ui layout.
-        from GUIComponents.AppStyle import APP_QSS
-        self.setStyleSheet(APP_QSS)
+        from GUIComponents.AppStyle import app_qss
+        self.setStyleSheet(app_qss(self))
         self.setWindowTitle("Advanced Options")
 
         # Telemetry tab — added programmatically so the .ui file does not need

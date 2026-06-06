@@ -4,18 +4,55 @@ A single compact look (matched to nifti_viewer.py: 11px text, 3px radii, tight
 padding) used by the programmatic forms and applied to the remaining `.ui`-based
 dialogs (SelFiles, Options) so the whole app is visually consistent.
 
-Apply with ``widget.setStyleSheet(APP_QSS)`` — it cascades to all children.
+A couple of colours are palette-aware (resolved at build time from the active
+palette), so call the builder when applying:
+
+    widget.setStyleSheet(app_qss(widget))   # cascades to all children
+
+`palette_is_dark`, `selected_tab_color` and `button_border_color` are exported
+so the other form stylesheets stay consistent.
 """
 
-ACCENT     = "#00c8ff"
+from PySide6.QtGui import QPalette
+from PySide6.QtWidgets import QApplication
+
+ACCENT     = "#00c8ff"      # cyan — hover / focus border (both themes)
 LABEL_BLUE = "#166eff"
+TAB_SELECTED = "#0d47a1"    # dark blue — selected tab text in LIGHT mode
 
 
-APP_QSS = f"""
+def palette_is_dark(widget=None):
+    """True when the active palette is dark (Window lightness < 128)."""
+    pal = widget.palette() if widget is not None else None
+    if pal is None:
+        app = QApplication.instance()
+        pal = app.palette() if app is not None else None
+    if pal is None:
+        return False
+    return pal.color(QPalette.Window).lightness() < 128
+
+
+def selected_tab_color(widget=None):
+    """Dark blue on light themes; cyan accent on dark themes (better contrast)."""
+    return ACCENT if palette_is_dark(widget) else TAB_SELECTED
+
+
+def button_border_color(widget=None):
+    """`palette(mid)` reads well on light themes but is nearly invisible on dark
+    ones, so fall back to the text colour there."""
+    return "palette(text)" if palette_is_dark(widget) else "palette(mid)"
+
+
+def app_qss(widget=None):
+    """Build the shared dialog stylesheet, resolving the palette-aware colours
+    (selected-tab text, button border) from `widget`'s active palette."""
+    _border = button_border_color(widget)
+    _tabsel = selected_tab_color(widget)
+    return f"""
 QLabel {{ font-size: 11px; }}
 
 QPushButton {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 3px 10px;
     min-height: 20px;
@@ -42,7 +79,7 @@ QTabBar::tab {{
     border-top-right-radius: 4px;
     font-size: 11px;
 }}
-QTabBar::tab:selected {{ color: {ACCENT}; font-weight: bold; }}
+QTabBar::tab:selected {{ color: {_tabsel}; font-weight: bold; }}
 QTabBar::tab:hover:!selected {{ color: {ACCENT}; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{

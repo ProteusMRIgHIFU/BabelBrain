@@ -30,16 +30,21 @@ from PySide6.QtWidgets import (
 
 
 # ── Accent palette (kept in sync with MainForm.py / nifti_viewer.py) ──────
+from GUIComponents.AppStyle import button_border_color
 ACCENT     = "#00c8ff"
 LABEL_BLUE = "#166eff"
 
 
 # Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
-_PANEL_QSS = f"""
+# Built from the active palette so the button border stays visible on dark
+# themes (palette(mid) is nearly invisible there).
+def _panel_qss(widget=None):
+    _border = button_border_color(widget)
+    return f"""
 QLabel {{ font-size: 11px; }}
 
 QPushButton {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 3px 8px;
     min-height: 20px;
@@ -169,7 +174,7 @@ class TxPanelBase(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Widget")
-        self.setStyleSheet(_PANEL_QSS)
+        self.setStyleSheet(_panel_qss(self))
         self._build()
 
     # ── Construction ──────────────────────────────────────────────────────

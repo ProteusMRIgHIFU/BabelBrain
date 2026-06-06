@@ -149,8 +149,8 @@ class SelFiles(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         # Apply the shared compact app style on top of the .ui layout.
-        from GUIComponents.AppStyle import APP_QSS
-        self.setStyleSheet(APP_QSS)
+        from GUIComponents.AppStyle import app_qss
+        self.setStyleSheet(app_qss(self))
         with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             version=f.readlines()[0]
         self.setWindowTitle("BabelBrain V"+version + " - Select input files ...")

@@ -24,22 +24,29 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+from GUIComponents.AppStyle import selected_tab_color, button_border_color
+
 
 # ── Accent palette (mirrors GUIComponents/nifti_viewer.py) ─────────────────
-ACCENT     = "#00c8ff"      # cyan — selected tab text, focus border
+ACCENT     = "#00c8ff"      # cyan — hover / focus border
 LABEL_BLUE = "#166eff"      # blue used by the original form for value labels
 TEXT_LBL   = "#ffda6b"      # yellow accent (reserved for future use)
+# Selected-tab text colour is palette-aware via AppStyle.selected_tab_color().
 
 
 # Form-level stylesheet. Only sets shape (rounded corners, padding, accent
 # highlight) — never sets a hard-coded background colour, so the OS palette
-# still drives surfaces.
+# still drives surfaces. A couple of colours are palette-aware (button border,
+# selected-tab text), so this is built from the active palette at runtime.
 # Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
-_FORM_QSS = f"""
+def _form_qss(widget=None):
+    _border = button_border_color(widget)
+    _tabsel = selected_tab_color(widget)
+    return f"""
 QLabel {{ font-size: 11px; }}
 
 QPushButton {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 3px 10px;
     min-height: 20px;
@@ -68,7 +75,7 @@ QTabBar::tab {{
     border-top-right-radius: 4px;
     font-size: 11px;
 }}
-QTabBar::tab:selected {{ color: {ACCENT}; font-weight: bold; }}
+QTabBar::tab:selected {{ color: {_tabsel}; font-weight: bold; }}
 QTabBar::tab:hover:!selected {{ color: {ACCENT}; }}
 QTabBar::tab::disabled {{
     width: 0; height: 0; margin: 0; padding: 0; border: none;
@@ -161,7 +168,7 @@ class BabelBrainMainForm(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Widget")  # preserves original root name
-        self.setStyleSheet(_FORM_QSS)
+        self.setStyleSheet(_form_qss(self))
         self._build()
 
     # ── Construction ──────────────────────────────────────────────────────

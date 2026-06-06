@@ -30,14 +30,19 @@ from GUIComponents.TxPanelBase import (
     make_button,
     make_label,
 )
+from GUIComponents.AppStyle import button_border_color
 
 
 # Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
-_THERMAL_QSS = f"""
+# Built from the active palette so the button border stays visible on dark
+# themes (palette(mid) is nearly invisible there).
+def _thermal_qss(widget=None):
+    _border = button_border_color(widget)
+    return f"""
 QLabel {{ font-size: 11px; }}
 
 QPushButton {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 3px 8px;
     min-height: 20px;
@@ -89,7 +94,7 @@ class ThermalForm(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Babel_Thermal")
-        self.setStyleSheet(_THERMAL_QSS)
+        self.setStyleSheet(_thermal_qss(self))
         self._build()
 
     def _build(self):
