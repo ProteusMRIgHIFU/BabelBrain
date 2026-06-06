@@ -43,7 +43,6 @@ class REMOPD(BabelBasePhaseArray):
         super().__init__(parent=parent,MainApp=MainApp,formtype=os.path.join(resource_path(), "."))
 
     def load_ui(self,formtype):
-        # Programmatic form replaces form.ui.
         from Babel_REMOPD.REMOPDForm import REMOPDForm
         self.Widget = REMOPDForm(self)
 

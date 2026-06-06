@@ -1,15 +1,4 @@
 """Programmatically constructed main form for BabelBrain.
-
-Replaces the previous Qt Designer `form.ui`. Uses QHBoxLayout / QVBoxLayout
-/ QGridLayout throughout — no absolute positioning. Visual styling borrows
-the accent palette from GUIComponents/nifti_viewer.py while letting the OS
-palette drive base background / text colours, so the form adapts to both
-light and dark system themes.
-
-All widget attribute names match those previously defined in form.ui — the
-rest of BabelBrain.py reads them via `self.Widget.<name>` and works
-unchanged. Layout-relevant lookups used elsewhere are also preserved:
-
   * ZTE tab exposes a QVBoxLayout (LayRange) discoverable via
     `ZTE.findChildren(QVBoxLayout)[0]` — used to insert the dynamic
     QLabeledDoubleRangeSlider at runtime.

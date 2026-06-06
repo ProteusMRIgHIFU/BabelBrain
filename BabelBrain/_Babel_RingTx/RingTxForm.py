@@ -1,6 +1,6 @@
 """Programmatic Step-2 form for the RingTx transducer family.
 
-Replaces _Babel_RingTx/form.ui. Inherited by R15287 and R15473 which only
+nherited by R15287 and R15473 which only
 tweak label text after construction (`self.Widget.labelTPORange.setText(...)`
 etc.) — those attribute names are preserved.
 """

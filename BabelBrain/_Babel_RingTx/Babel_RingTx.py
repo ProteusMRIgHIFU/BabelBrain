@@ -46,7 +46,6 @@ class RingTx(BabelBaseTx):
 
 
     def load_ui(self):
-        # Programmatic form replaces form.ui.
         from _Babel_RingTx.RingTxForm import RingTxForm
         self.Widget = RingTxForm(self)
 

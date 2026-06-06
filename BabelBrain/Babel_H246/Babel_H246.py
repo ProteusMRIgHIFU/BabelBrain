@@ -46,7 +46,6 @@ class H246(BabelBaseTx):
 
 
     def load_ui(self):
-        # Programmatic form replaces form.ui.
         from Babel_H246.H246Form import H246Form
         self.Widget = H246Form(self)
 

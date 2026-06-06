@@ -1,9 +1,5 @@
 """Programmatic Step-2 forms for single-element transducers.
 
-Replaces:
-    Babel_SingleTx/form.ui    (SingleTx)
-    Babel_SingleTx/formBx.ui  (BSonix)
-
 Both forms share the same layout scaffold (TxPanelBase) and differ only in
 their left-panel controls (focal length / diameter vs. transducer-model
 dropdown).
@@ -21,7 +17,7 @@ from GUIComponents.TxPanelBase import (
 
 
 class SingleTxForm(TxPanelBase):
-    """Form for the Single transducer family (formerly form.ui)."""
+    """Form for the Single transducer family."""
 
     def _build_left_panel(self):
         frame, lay = self._make_left_frame()

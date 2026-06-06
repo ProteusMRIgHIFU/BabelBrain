@@ -1,6 +1,6 @@
 """Programmatic Step-2 form for the H317 phased-array transducer.
 
-Replaces Babel_H317/form.ui. Identical to DomeTxForm except it also exposes
+ Identical to DomeTxForm except it also exposes
 a DistanceConeToFocusSpinBox — the base class uses `hasattr` to enable the
 extra cone-to-focus distance feature for H317.
 """

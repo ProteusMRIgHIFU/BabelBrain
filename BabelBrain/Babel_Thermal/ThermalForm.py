@@ -1,6 +1,6 @@
 """Programmatic Step-3 thermal panel form.
 
-Replaces Babel_Thermal/form.ui. Structurally different from the Step-2
+ Structurally different from the Step-2
 transducer panels (different control set, two-row bottom strip with Loc
 buttons), so this class extends QWidget directly rather than TxPanelBase.
 """
@@ -167,7 +167,6 @@ class ThermalForm(QWidget):
         isppaw_row.addWidget(self.IsppaWaterSpinBox)
         lay.addLayout(isppaw_row)
 
-        # Results table — pre-sized to match the original form.ui, which
         # Babel_Thermal.py relies on (it calls `setItem(0..10, 0/1, …)`
         # without first growing the table).
         self.tableWidget = QTableWidget(11, 2)

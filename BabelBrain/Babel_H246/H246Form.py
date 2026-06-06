@@ -1,6 +1,6 @@
 """Programmatic Step-2 form for the H246 transducer.
 
-Replaces Babel_H246/form.ui.
+
 """
 
 from GUIComponents.TxPanelBase import (

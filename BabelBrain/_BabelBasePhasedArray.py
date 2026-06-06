@@ -53,7 +53,7 @@ class BabelBasePhaseArray(BabelBaseTx):
 
 
     def load_ui(self,formtype):
-        # Programmatic form replaces form.ui — the concrete form class is
+        # the concrete form class is
         # passed in via `formtype`, which is now either a class (preferred)
         # or a legacy path that selects the matching form class by suffix.
         if isinstance(formtype, type):

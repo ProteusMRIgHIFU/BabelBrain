@@ -99,7 +99,6 @@ class Babel_Thermal(QWidget):
         self._LastTMap=-1
 
     def load_ui(self):
-        # Programmatic form replaces form.ui.
         from Babel_Thermal.ThermalForm import ThermalForm
         self.Widget = ThermalForm(self)
 

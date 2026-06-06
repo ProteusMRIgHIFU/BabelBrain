@@ -1,6 +1,6 @@
 """Programmatic Step-2 form for the DomeTx phased-array transducer.
 
-Replaces Babel_DomeTx/form.ui. All widget access goes through
+ All widget access goes through
 _BabelBasePhasedArray which checks `hasattr` for optional widgets like
 DistanceConeToFocusSpinBox — that is intentionally omitted here.
 """

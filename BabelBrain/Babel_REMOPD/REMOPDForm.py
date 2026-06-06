@@ -1,6 +1,4 @@
 """Programmatic Step-2 form for the REMOPD transducer.
-
-Replaces Babel_REMOPD/form.ui.
 """
 
 from GUIComponents.TxPanelBase import (
