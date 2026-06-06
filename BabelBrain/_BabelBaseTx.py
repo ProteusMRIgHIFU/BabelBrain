@@ -280,14 +280,19 @@ class BabelBaseTx(QWidget):
             toolbar=NavigationToolbar2QT(self.static_canvas,self)
             self._layout.addWidget(toolbar)
             self._layout.addWidget(self.static_canvas)
-            # static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
-            static_ax1 = self.static_canvas.figure.add_axes([0.05, 0.15, 0.45, 0.8])  
-            static_ax2 = self.static_canvas.figure.add_axes([0.55, 0.15, 0.45, 0.8])  
+            # Each plot box is centered on its scrollbar (left col x=0.25, right
+            # col x=0.75). A dedicated colorbar axis keeps the plot itself
+            # centered (plt.colorbar(ax=...) would shrink/shift the plot).
+            fig=self.static_canvas.figure
+            static_ax1 = fig.add_axes([0.10, 0.12, 0.30, 0.80])
+            cax1       = fig.add_axes([0.43, 0.12, 0.015, 0.80])
+            static_ax2 = fig.add_axes([0.60, 0.12, 0.30, 0.80])
+            cax2       = fig.add_axes([0.93, 0.12, 0.015, 0.80])
             self._static_ax1 = static_ax1
             self._static_ax2 = static_ax2
 
             self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            h=plt.colorbar(self._imContourf1,ax=static_ax1)
+            h=plt.colorbar(self._imContourf1,cax=cax1)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
@@ -302,7 +307,7 @@ class BabelBaseTx(QWidget):
             self._marker1,=static_ax1.plot(0,self._DistanceToTarget,'+k',markersize=18)
 
             self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            h=plt.colorbar(self._imContourf1,ax=static_ax2)
+            h=plt.colorbar(self._imContourf1,cax=cax2)
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
             if not self._MainApp.Config['bForceHomogenousMedium']:
                 self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
