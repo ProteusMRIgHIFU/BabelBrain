@@ -30,7 +30,9 @@ from GUIComponents.TxPanelBase import (
     make_button,
     make_label,
 )
-from GUIComponents.AppStyle import button_border_color
+from GUIComponents.AppStyle import (
+    button_border_color, scrollbar_handle_color, disabled_text_color,
+)
 
 
 # Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
@@ -38,6 +40,8 @@ from GUIComponents.AppStyle import button_border_color
 # themes (palette(mid) is nearly invisible there).
 def _thermal_qss(widget=None):
     _border = button_border_color(widget)
+    _handle = scrollbar_handle_color(widget)
+    _disabled = disabled_text_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -53,7 +57,7 @@ QPushButton:hover {{
     color: #00c8ff;
 }}
 QPushButton:pressed {{ background: palette(midlight); }}
-QPushButton:disabled {{ color: palette(mid); }}
+QPushButton:disabled {{ color: {_disabled}; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
@@ -83,6 +87,11 @@ QTableWidget {{
     font-size: 11px;
 }}
 QTableWidget::item {{ background: transparent; }}
+
+QScrollBar:horizontal {{ background: palette(base); height: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
+QScrollBar::handle:horizontal:hover {{ background: #00c8ff; }}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
 """
 
 

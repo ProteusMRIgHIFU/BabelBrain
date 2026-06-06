@@ -24,7 +24,10 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
-from GUIComponents.AppStyle import selected_tab_color, button_border_color
+from GUIComponents.AppStyle import (
+    selected_tab_color, button_border_color,
+    scrollbar_handle_color, disabled_text_color,
+)
 
 
 # ── Accent palette (mirrors GUIComponents/nifti_viewer.py) ─────────────────
@@ -42,6 +45,8 @@ TEXT_LBL   = "#ffda6b"      # yellow accent (reserved for future use)
 def _form_qss(widget=None):
     _border = button_border_color(widget)
     _tabsel = selected_tab_color(widget)
+    _handle = scrollbar_handle_color(widget)
+    _disabled = disabled_text_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -59,7 +64,7 @@ QPushButton:hover {{
 QPushButton:pressed {{
     background: palette(midlight);
 }}
-QPushButton:disabled {{ color: palette(mid); }}
+QPushButton:disabled {{ color: {_disabled}; }}
 
 QTabWidget::pane {{
     border: 1px solid palette(mid);
@@ -127,7 +132,7 @@ QScrollBar:horizontal {{
     margin: 0;
 }}
 QScrollBar::handle:horizontal {{
-    background: palette(mid);
+    background: {_handle};
     border-radius: 6px;
     min-width: 20px;
     margin: 2px;

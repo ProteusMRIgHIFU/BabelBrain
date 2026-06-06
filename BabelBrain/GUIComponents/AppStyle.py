@@ -43,11 +43,26 @@ def button_border_color(widget=None):
     return "palette(text)" if palette_is_dark(widget) else "palette(mid)"
 
 
+def scrollbar_handle_color(widget=None):
+    """Scrollbar knob: medium gray on light themes, light gray on dark themes
+    (palette(mid) is too dark to spot against a dark track)."""
+    return "#9a9a9a" if palette_is_dark(widget) else "palette(mid)"
+
+
+def disabled_text_color(widget=None):
+    """Disabled control text: dim but still legible. palette(mid) is nearly
+    invisible on dark themes, so use a mid gray there."""
+    return "#808080" if palette_is_dark(widget) else "palette(mid)"
+
+
 def app_qss(widget=None):
     """Build the shared dialog stylesheet, resolving the palette-aware colours
-    (selected-tab text, button border) from `widget`'s active palette."""
+    (selected-tab text, button border, scrollbar knob, disabled text) from
+    `widget`'s active palette."""
     _border = button_border_color(widget)
     _tabsel = selected_tab_color(widget)
+    _handle = scrollbar_handle_color(widget)
+    _disabled = disabled_text_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -63,7 +78,7 @@ QPushButton:hover {{
     color: {ACCENT};
 }}
 QPushButton:pressed {{ background: palette(midlight); }}
-QPushButton:disabled {{ color: palette(mid); }}
+QPushButton:disabled {{ color: {_disabled}; }}
 
 QTabWidget::pane {{
     border: 1px solid palette(mid);
@@ -134,4 +149,11 @@ QHeaderView::section {{
     border: none;
     font-size: 11px;
 }}
+
+QScrollBar:horizontal {{ background: palette(base); height: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar:vertical {{ background: palette(base); width: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
+QScrollBar::handle:vertical {{ background: {_handle}; border-radius: 6px; min-height: 20px; margin: 2px; }}
+QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{ background: {ACCENT}; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
 """
