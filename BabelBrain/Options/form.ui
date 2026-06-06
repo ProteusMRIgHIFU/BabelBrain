@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>505</height>
+    <height>513</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>580</x>
-     <y>470</y>
+     <y>475</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>276</x>
-     <y>472</y>
+     <y>477</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>6</x>
-     <y>470</y>
+     <y>475</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -58,7 +58,7 @@
      <x>5</x>
      <y>2</y>
      <width>644</width>
-     <height>472</height>
+     <height>468</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -172,10 +172,10 @@
      </property>
      <property name="geometry">
       <rect>
-       <x>405</x>
-       <y>243</y>
-       <width>206</width>
-       <height>72</height>
+       <x>173</x>
+       <y>250</y>
+       <width>438</width>
+       <height>44</height>
       </rect>
      </property>
      <property name="title">
@@ -185,7 +185,7 @@
       <property name="geometry">
        <rect>
         <x>105</x>
-        <y>7</y>
+        <y>13</y>
         <width>90</width>
         <height>22</height>
        </rect>
@@ -209,8 +209,8 @@
      <widget class="QLabel" name="DiameterLabel99">
       <property name="geometry">
        <rect>
-        <x>9</x>
-        <y>40</y>
+        <x>240</x>
+        <y>12</y>
         <width>82</width>
         <height>20</height>
        </rect>
@@ -222,8 +222,8 @@
      <widget class="QDoubleSpinBox" name="FOVLengthSpinBox">
       <property name="geometry">
        <rect>
-        <x>105</x>
-        <y>40</y>
+        <x>336</x>
+        <y>12</y>
         <width>90</width>
         <height>22</height>
        </rect>
@@ -248,7 +248,7 @@
       <property name="geometry">
        <rect>
         <x>9</x>
-        <y>7</y>
+        <y>13</y>
         <width>94</width>
         <height>20</height>
        </rect>
@@ -262,7 +262,7 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>264</y>
+       <y>266</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -291,7 +291,7 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>294</y>
+       <y>296</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -849,7 +849,7 @@ to skin (mm)</string>
      <property name="geometry">
       <rect>
        <x>202</x>
-       <y>292</y>
+       <y>294</y>
        <width>150</width>
        <height>20</height>
       </rect>

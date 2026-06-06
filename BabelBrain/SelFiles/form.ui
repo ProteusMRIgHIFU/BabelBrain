@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1025</width>
-    <height>420</height>
+    <height>431</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>378</x>
-     <y>389</y>
+     <y>391</y>
      <width>239</width>
      <height>32</height>
     </rect>
@@ -32,7 +32,7 @@
      <x>6</x>
      <y>3</y>
      <width>1014</width>
-     <height>251</height>
+     <height>262</height>
     </rect>
    </property>
    <property name="autoFillBackground">
@@ -50,8 +50,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>134</y>
+      <x>41</x>
+      <y>165</y>
       <width>58</width>
       <height>16</height>
      </rect>
@@ -64,7 +64,7 @@
     <property name="geometry">
      <rect>
       <x>238</x>
-      <y>93</y>
+      <y>91</y>
       <width>153</width>
       <height>32</height>
      </rect>
@@ -88,9 +88,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>287</x>
-      <y>127</y>
-      <width>102</width>
+      <x>238</x>
+      <y>129</y>
+      <width>153</width>
       <height>30</height>
      </rect>
     </property>
@@ -111,7 +111,7 @@
     <property name="geometry">
      <rect>
       <x>400</x>
-      <y>71</y>
+      <y>63</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -127,7 +127,7 @@
     <property name="geometry">
      <rect>
       <x>204</x>
-      <y>206</y>
+      <y>219</y>
       <width>187</width>
       <height>42</height>
      </rect>
@@ -148,8 +148,8 @@
    <widget class="QLineEdit" name="ThermalProfilelineEdit">
     <property name="geometry">
      <rect>
-      <x>402</x>
-      <y>217</y>
+      <x>400</x>
+      <y>230</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -168,8 +168,8 @@
     <property name="geometry">
      <rect>
       <x>400</x>
-      <y>132</y>
-      <width>607</width>
+      <y>134</y>
+      <width>604</width>
       <height>21</height>
      </rect>
     </property>
@@ -186,8 +186,8 @@
    <widget class="QLineEdit" name="T1WlineEdit">
     <property name="geometry">
      <rect>
-      <x>401</x>
-      <y>98</y>
+      <x>400</x>
+      <y>96</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -202,9 +202,9 @@
    <widget class="QComboBox" name="CTTypecomboBox">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>130</y>
-      <width>82</width>
+      <x>110</x>
+      <y>125</y>
+      <width>110</width>
       <height>30</height>
      </rect>
     </property>
@@ -241,7 +241,7 @@
     <property name="geometry">
      <rect>
       <x>238</x>
-      <y>66</y>
+      <y>58</y>
       <width>152</width>
       <height>32</height>
      </rect>
@@ -259,17 +259,15 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>13</x>
-      <y>113</y>
-      <width>58</width>
-      <height>69</height>
+      <x>-8</x>
+      <y>114</y>
+      <width>108</width>
+      <height>48</height>
      </rect>
     </property>
     <property name="text">
-     <string>Use CT,
-ZTE,
-PETRA,
-Density?</string>
+     <string>Use CT, ZTE,
+PETRA, Density?</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -279,7 +277,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>238</x>
-      <y>40</y>
+      <y>23</y>
       <width>152</width>
       <height>32</height>
      </rect>
@@ -298,7 +296,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>400</x>
-      <y>45</y>
+      <y>28</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -313,8 +311,8 @@ Density?</string>
    <widget class="QComboBox" name="TrajectoryTypecomboBox">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>42</y>
+      <x>110</x>
+      <y>25</y>
       <width>110</width>
       <height>30</height>
      </rect>
@@ -339,9 +337,9 @@ Density?</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>205</x>
-      <y>129</y>
-      <width>77</width>
+      <x>110</x>
+      <y>160</y>
+      <width>110</width>
       <height>30</height>
      </rect>
     </property>
@@ -362,10 +360,10 @@ Density?</string>
    <widget class="QComboBox" name="SimbNIBSTypecomboBox">
     <property name="geometry">
      <rect>
-      <x>100</x>
-      <y>67</y>
+      <x>110</x>
+      <y>72</y>
       <width>110</width>
-      <height>30</height>
+      <height>25</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -389,7 +387,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>310</x>
-      <y>183</y>
+      <y>193</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -404,9 +402,9 @@ Density?</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>395</x>
-      <y>178</y>
-      <width>381</width>
+      <x>400</x>
+      <y>188</y>
+      <width>377</width>
       <height>32</height>
      </rect>
     </property>
@@ -417,8 +415,8 @@ Density?</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>400</x>
-      <y>160</y>
+      <x>450</x>
+      <y>166</y>
       <width>281</width>
       <height>20</height>
      </rect>
@@ -434,7 +432,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>780</x>
-      <y>177</y>
+      <y>188</y>
       <width>136</width>
       <height>32</height>
      </rect>
@@ -443,14 +441,46 @@ Density?</string>
      <string>Reset to original</string>
     </property>
    </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>-6</x>
+      <y>23</y>
+      <width>92</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Trajectory type</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>-2</x>
+      <y>73</y>
+      <width>92</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>SimNIBS type</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
      <x>8</x>
-     <y>252</y>
+     <y>266</y>
      <width>1010</width>
-     <height>123</height>
+     <height>117</height>
     </rect>
    </property>
    <property name="styleSheet">
@@ -463,7 +493,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>34</y>
+      <y>30</y>
       <width>116</width>
       <height>30</height>
      </rect>
@@ -571,7 +601,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>40</y>
+      <y>36</y>
       <width>71</width>
       <height>16</height>
      </rect>
@@ -584,7 +614,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>250</x>
-      <y>36</y>
+      <y>32</y>
       <width>121</width>
       <height>20</height>
      </rect>
@@ -596,8 +626,8 @@ Density?</string>
    <widget class="QComboBox" name="ComputingEnginecomboBox">
     <property name="geometry">
      <rect>
-      <x>395</x>
-      <y>32</y>
+      <x>398</x>
+      <y>28</y>
       <width>275</width>
       <height>30</height>
      </rect>
@@ -613,7 +643,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>110</x>
-      <y>77</y>
+      <y>73</y>
       <width>82</width>
       <height>30</height>
      </rect>
@@ -636,7 +666,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>8</x>
-      <y>82</y>
+      <y>78</y>
       <width>102</width>
       <height>16</height>
      </rect>
@@ -652,7 +682,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>400</x>
-      <y>81</y>
+      <y>77</y>
       <width>607</width>
       <height>21</height>
      </rect>
@@ -674,7 +704,7 @@ Density?</string>
     <property name="geometry">
      <rect>
       <x>198</x>
-      <y>71</y>
+      <y>67</y>
       <width>192</width>
       <height>42</height>
      </rect>
@@ -697,7 +727,7 @@ Density?</string>
    <property name="geometry">
     <rect>
      <x>945</x>
-     <y>390</y>
+     <y>392</y>
      <width>74</width>
      <height>32</height>
     </rect>
