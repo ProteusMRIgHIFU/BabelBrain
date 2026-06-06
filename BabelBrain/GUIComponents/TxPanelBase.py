@@ -34,12 +34,16 @@ ACCENT     = "#00c8ff"
 LABEL_BLUE = "#166eff"
 
 
+# Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
 _PANEL_QSS = f"""
+QLabel {{ font-size: 11px; }}
+
 QPushButton {{
     border: 1px solid palette(mid);
-    border-radius: 5px;
-    padding: 5px 12px;
-    min-height: 22px;
+    border-radius: 3px;
+    padding: 3px 8px;
+    min-height: 20px;
+    font-size: 11px;
 }}
 QPushButton:hover {{
     border-color: {ACCENT};
@@ -50,16 +54,17 @@ QPushButton:disabled {{ color: palette(mid); }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
-    border-radius: 4px;
-    padding: 0px 6px;
-    min-height: 16px;
+    border-radius: 3px;
+    padding: 0px 4px;
+    min-height: 18px;
+    font-size: 11px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {ACCENT};
 }}
 QComboBox::drop-down {{ border: none; width: 18px; }}
 
-QCheckBox {{ spacing: 6px; }}
+QCheckBox {{ spacing: 5px; font-size: 11px; }}
 
 QFrame#panelLeftFrame {{ border: none; }}
 """
@@ -118,7 +123,7 @@ def make_label(text="", name=None, bold=False, color=None, align=None):
     return lbl
 
 
-def form_row(label_widget_or_text, *widgets, spacing=8):
+def form_row(label_widget_or_text, *widgets, spacing=6):
     """Build a horizontal row: [label] [stretch] [widgets…].
 
     `label_widget_or_text` may be a QLabel or a plain string (turned into a
@@ -144,11 +149,12 @@ class TxPanelBase(QWidget):
     Subclass and implement `_build_left_panel()`. The base class wires up:
         * `self.AcField_plot1`        — plot host (expanding)
         * `self.IsppaScrollBars`      — scrollbar strip below the plot
-        * `self.HideMarkscheckBox`    — under FLHM label (left-aligned)
-        * `self.ShowWaterResultscheckBox` — under FLHM label (right-aligned)
+        * `self.HideMarkscheckBox`    — bottom row, left-aligned
+        * `self.ShowWaterResultscheckBox` — bottom row, right-aligned
 
-    The checkbox row and the scrollbar strip share the bottom grid row, so
-    they stay vertically aligned.
+    Controls are top-aligned in the left column. The checkbox row and the
+    scrollbar strip share the bottom grid row (below the plot), so they stay
+    vertically aligned.
     """
 
     LEFT_PANEL_WIDTH = 340
@@ -162,21 +168,20 @@ class TxPanelBase(QWidget):
     # ── Construction ──────────────────────────────────────────────────────
     def _build(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(6)
+        root.setContentsMargins(6, 6, 6, 6)
+        root.setSpacing(4)
 
         # A 2×2 grid keeps the checkbox row (col 0) and the scrollbar strip
         # (col 1) on the SAME bottom row, so they stay vertically aligned
         # regardless of how tall the plot grows.
         grid = QGridLayout()
         grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(6)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
 
-        # Row 0: controls bottom-aligned so the FLHM label ends right above the
-        # checkboxes · expanding plot.
+        # Row 0: controls top-aligned · expanding plot.
         left = self._build_left_panel()
-        grid.addWidget(left, 0, 0, alignment=Qt.AlignBottom)
+        grid.addWidget(left, 0, 0, alignment=Qt.AlignTop)
         grid.addWidget(self._build_plot_host(), 0, 1)
 
         # Row 1: checkboxes under FLHM · scrollbar strip under the plot.
@@ -198,7 +203,7 @@ class TxPanelBase(QWidget):
         frame.setFixedWidth(self.LEFT_PANEL_WIDTH)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(0, 4, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
         return frame, layout
 
     def _build_plot_host(self):
@@ -218,8 +223,8 @@ class TxPanelBase(QWidget):
 
     def _build_checkbox_row(self):
         """HideMarks (left) / ShowWaterResults (right) sit in the bottom-left
-        grid cell — just below the 'Distance target to FLHM' label and on the
-        same grid row as the scrollbar strip, so the two line up vertically."""
+        grid cell, on the same grid row as the scrollbar strip, so the two line
+        up vertically below the plot."""
         self.HideMarkscheckBox = QCheckBox("Hide marks")
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)

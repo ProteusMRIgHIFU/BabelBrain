@@ -31,12 +31,16 @@ from GUIComponents.TxPanelBase import (
 )
 
 
+# Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
 _THERMAL_QSS = f"""
+QLabel {{ font-size: 11px; }}
+
 QPushButton {{
     border: 1px solid palette(mid);
-    border-radius: 5px;
-    padding: 5px 12px;
-    min-height: 22px;
+    border-radius: 3px;
+    padding: 3px 8px;
+    min-height: 20px;
+    font-size: 11px;
 }}
 QPushButton:hover {{
     border-color: #00c8ff;
@@ -47,20 +51,22 @@ QPushButton:disabled {{ color: palette(mid); }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
-    border-radius: 4px;
-    padding: 0px 6px;
-    min-height: 16px;
+    border-radius: 3px;
+    padding: 0px 4px;
+    min-height: 18px;
+    font-size: 11px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid #00c8ff;
 }}
 QComboBox::drop-down {{ border: none; width: 18px; }}
 
-QCheckBox {{ spacing: 6px; }}
+QCheckBox {{ spacing: 5px; font-size: 11px; }}
 QFrame#panelLeftFrame, QFrame#panelBottomFrame {{ border: none; }}
 QTableWidget {{
     border: 1px solid palette(mid);
-    border-radius: 4px;
+    border-radius: 3px;
+    font-size: 11px;
 }}
 """
 
@@ -78,12 +84,12 @@ class ThermalForm(QWidget):
 
     def _build(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(6)
+        root.setContentsMargins(6, 6, 6, 6)
+        root.setSpacing(4)
 
         # Top: left control panel + plot
         top = QHBoxLayout()
-        top.setSpacing(10)
+        top.setSpacing(8)
         top.addWidget(self._build_left_panel())
         top.addWidget(self._build_plot(), stretch=1)
         root.addLayout(top, stretch=1)
@@ -99,7 +105,7 @@ class ThermalForm(QWidget):
 
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(0, 4, 0, 0)
-        lay.setSpacing(8)
+        lay.setSpacing(4)
 
         # Top action buttons (Calculate Thermal / Update Profile)
         actions = QHBoxLayout()
@@ -187,11 +193,11 @@ class ThermalForm(QWidget):
 
         outer = QVBoxLayout(frame)
         outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(6)
+        outer.setSpacing(4)
 
         # Row 1: Export buttons | Show + Display | IsppaScrollBar | Slice / Hide
         row1 = QHBoxLayout()
-        row1.setSpacing(10)
+        row1.setSpacing(8)
 
         self.ExportSummary = make_button(
             "ExportSummary", "Export summary\n(CSV)", min_height=44)
@@ -232,7 +238,7 @@ class ThermalForm(QWidget):
 
         # Row 2: Loc-Max-Temp buttons centred
         row2 = QHBoxLayout()
-        row2.setSpacing(10)
+        row2.setSpacing(8)
         row2.addStretch(1)
 
         self.LocMTB = make_button("LocMTB", "Max. Temp. Brain")

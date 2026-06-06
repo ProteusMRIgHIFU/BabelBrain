@@ -45,12 +45,16 @@ TEXT_LBL   = "#ffda6b"      # yellow accent (reserved for future use)
 # Form-level stylesheet. Only sets shape (rounded corners, padding, accent
 # highlight) — never sets a hard-coded background colour, so the OS palette
 # still drives surfaces.
+# Compact look matched to nifti_viewer.py: 11px text, 3px radii, tight padding.
 _FORM_QSS = f"""
+QLabel {{ font-size: 11px; }}
+
 QPushButton {{
     border: 1px solid palette(mid);
-    border-radius: 5px;
-    padding: 5px 14px;
-    min-height: 22px;
+    border-radius: 3px;
+    padding: 3px 10px;
+    min-height: 20px;
+    font-size: 11px;
 }}
 QPushButton:hover {{
     border-color: {ACCENT};
@@ -63,16 +67,17 @@ QPushButton:disabled {{ color: palette(mid); }}
 
 QTabWidget::pane {{
     border: 1px solid palette(mid);
-    border-radius: 5px;
+    border-radius: 4px;
     top: -1px;
 }}
 QTabBar::tab {{
-    padding: 6px 16px;
+    padding: 5px 12px;
     margin-right: 2px;
     border: 1px solid palette(mid);
     border-bottom: none;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    font-size: 11px;
 }}
 QTabBar::tab:selected {{ color: {ACCENT}; font-weight: bold; }}
 QTabBar::tab:hover:!selected {{ color: {ACCENT}; }}
@@ -82,21 +87,33 @@ QTabBar::tab::disabled {{
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
-    border-radius: 4px;
-    padding: 0px 6px;
-    min-height: 16px;
+    border-radius: 3px;
+    padding: 0px 4px;
+    min-height: 18px;
+    font-size: 11px;
 }}
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {ACCENT};
 }}
 QComboBox::drop-down {{ border: none; width: 18px; }}
+/* Editable combos (e.g. USMaskkHzDropDown) render via an internal QLineEdit,
+   and the popup list is a separate view — neither inherits the combo font
+   unless targeted explicitly. */
+QComboBox QLineEdit {{
+    border: none;
+    background: transparent;
+    padding: 0px;
+    font-size: 11px;
+}}
+QComboBox QAbstractItemView {{ font-size: 11px; }}
 
 QTextBrowser {{
     border: 1px solid palette(mid);
-    border-radius: 4px;
+    border-radius: 3px;
+    font-size: 11px;
 }}
 
-QCheckBox {{ spacing: 6px; }}
+QCheckBox {{ spacing: 5px; font-size: 11px; }}
 
 QScrollBar:horizontal {{
     background: palette(base);
@@ -133,8 +150,9 @@ def _value_label(name, color=LABEL_BLUE, point_delta=2, min_width=110):
     """Dynamic-value label (Target ID, Tx system, profile name…)."""
     lbl = QLabel("")
     lbl.setObjectName(name)
-    _bold(lbl, point_delta=point_delta)
-    lbl.setStyleSheet(f"color: {color};")
+    # Slightly larger + bold so dynamic values stand out from the 11px base.
+    # Set via stylesheet (not setFont) so it wins over the QLabel rule in QSS.
+    lbl.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: bold;")
     lbl.setMinimumWidth(min_width)
     return lbl
 
@@ -151,8 +169,8 @@ class BabelBrainMainForm(QWidget):
     # ── Construction ──────────────────────────────────────────────────────
     def _build(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(6)
 
         root.addLayout(self._build_top_bar())
         root.addWidget(self._build_tab_widget(), stretch=1)
@@ -199,6 +217,8 @@ class BabelBrainMainForm(QWidget):
         self.tabWidget.setObjectName("tabWidget")
         self.tabWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.tabWidget.setMinimumSize(1180, 520)
+        # macOS elides tab labels to "…" by default; show them in full.
+        self.tabWidget.tabBar().setElideMode(Qt.ElideNone)
         # Step 1 is owned by this form; Step 2 / Step 3 are added at runtime
         # by BabelBrain.load_ui via tabWidget.addTab(...).
         self.tabWidget.addTab(self._build_step1_tab(), "Step 1 - Calculate Mask")
@@ -209,15 +229,15 @@ class BabelBrainMainForm(QWidget):
         page = QWidget()
         grid = QGridLayout(page)
         grid.setContentsMargins(8, 8, 8, 8)
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(8)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
 
         # ── Left control panel ─────────────────────────────────────────
         left = QWidget()
         left.setFixedWidth(260)
         left_l = QVBoxLayout(left)
         left_l.setContentsMargins(0, 4, 0, 0)
-        left_l.setSpacing(8)
+        left_l.setSpacing(6)
 
         # US Frequency row
         freq_row = QHBoxLayout()
@@ -250,6 +270,7 @@ class BabelBrainMainForm(QWidget):
         self.CTZTETabs = QTabWidget()
         self.CTZTETabs.setObjectName("CTZTETabs")
         self.CTZTETabs.setMinimumSize(240, 160)
+        self.CTZTETabs.tabBar().setElideMode(Qt.ElideNone)
         self.CTZTETabs.addTab(self._build_zte_tab(), "ZTE")
         self.CTZTETabs.addTab(self._build_ct_tab(),  "CT")
         self.CTZTETabs.setCurrentIndex(1)
@@ -275,7 +296,7 @@ class BabelBrainMainForm(QWidget):
 
         # ── Bottom row ──────────────────────────────────────────────────
         bottom = QHBoxLayout()
-        bottom.setSpacing(10)
+        bottom.setSpacing(8)
 
         self.HideMarkscheckBox = QCheckBox("Hide marks")
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")

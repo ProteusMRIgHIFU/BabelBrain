@@ -665,7 +665,9 @@ class BabelBrain(QWidget):
         LayRange=ZTE.findChildren(QVBoxLayout)[0]
         LayRange.addWidget(slider)
         self.Widget.ZTERangeSlider=slider
-        self.Widget.setStyleSheet("QTabBar::tab::disabled {width: 0; height: 0; margin: 0; padding: 0; border: none;} ")
+        # NB: do not call self.Widget.setStyleSheet() here — it would replace
+        # (not extend) the compact _FORM_QSS applied in BabelBrainMainForm,
+        # which already includes the QTabBar::tab::disabled rule.
         print("self.Config['CTType']",self.Config['CTType'])
         if self.Config['bUseCT'] == False:
             self.Widget.CTZTETabs.hide()
