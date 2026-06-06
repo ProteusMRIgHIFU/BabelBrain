@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QScrollBar,
     QTableWidget,
+    QHeaderView,
     QVBoxLayout,
     QHBoxLayout,
     QGridLayout,
@@ -71,10 +72,12 @@ QComboBox::down-arrow {{
 QCheckBox {{ spacing: 5px; font-size: 11px; }}
 QFrame#panelLeftFrame, QFrame#panelBottomFrame {{ border: none; }}
 QTableWidget {{
+    background: transparent;
     border: 1px solid palette(mid);
     border-radius: 3px;
     font-size: 11px;
 }}
+QTableWidget::item {{ background: transparent; }}
 """
 
 
@@ -174,7 +177,12 @@ class ThermalForm(QWidget):
         self.tableWidget = QTableWidget(11, 2)
         self.tableWidget.setObjectName("tableWidget")
         self.tableWidget.setShowGrid(False)
-        self.tableWidget.horizontalHeader().setVisible(False)
+        _hdr = self.tableWidget.horizontalHeader()
+        _hdr.setVisible(False)
+        # Fit the columns to the viewport (no horizontal scrollbar): the label
+        # column sizes to its contents, the value column fills the remainder.
+        _hdr.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        _hdr.setSectionResizeMode(1, QHeaderView.Stretch)
         self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.setMinimumHeight(150)
         self.tableWidget.setSizePolicy(QSizePolicy.Expanding,
