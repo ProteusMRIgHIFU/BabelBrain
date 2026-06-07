@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
+from GUIComponents.AppStyle import style_nav_toolbar
 
 import os
 import sys
@@ -611,7 +612,7 @@ class Babel_Thermal(QWidget):
                     self._ListMarkers=[]
                     self._figIntThermalFields=Figure(figsize=(14, 12))
                     self.static_canvas = FigureCanvas(self._figIntThermalFields)
-                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
                     self._layout.addWidget(toolbar)
                     self._layout.addWidget(self.static_canvas)
                     static_ax1,static_ax2 = self.static_canvas.figure.subplots(1,2)
@@ -645,7 +646,7 @@ class Babel_Thermal(QWidget):
                 else:
                     self._figIntThermalFields=Figure(figsize=(14, 12))
                     self.static_canvas = FigureCanvas(self._figIntThermalFields)
-                    toolbar=NavigationToolbar2QT(self.static_canvas,self)
+                    toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
                     self._layout.addWidget(toolbar)
                     self._layout.addWidget(self.static_canvas)
                     static_ax1 = self.static_canvas.figure.subplots(1,1)

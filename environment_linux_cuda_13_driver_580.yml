@@ -208,6 +208,7 @@ dependencies:
       - pillow==12.1.0
       - platformdirs==4.5.1
       - pooch==1.8.2
+      - psutil==7.2.2
       - pwlf==2.5.2
       - pydicom==3.0.1
       - pygments==2.19.2

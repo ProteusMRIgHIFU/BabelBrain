@@ -20,7 +20,7 @@ TELEMETRY_DETAILED = 3      # Step timings + granular timings of demanding secti
 
 LEVEL_LABELS = {
     TELEMETRY_OFF: "No telemetry (default)",
-    TELEMETRY_BASIC: "Basic — notify that the app ran, and report errors",
+    TELEMETRY_BASIC: "Basic — notify that the app ran, OS, main memory, GPU model and errors",
     TELEMETRY_STEP_TIMINGS: "Basic + execution times of the 3 main simulation steps",
     TELEMETRY_DETAILED: "Basic + step timings + granular timings of the most demanding sections",
 }

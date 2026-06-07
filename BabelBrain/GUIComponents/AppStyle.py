@@ -13,6 +13,7 @@ palette), so call the builder when applying:
 so the other form stylesheets stay consistent.
 """
 
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication
 
@@ -53,6 +54,28 @@ def disabled_text_color(widget=None):
     """Disabled control text: dim but still legible. palette(mid) is nearly
     invisible on dark themes, so use a mid gray there."""
     return "#808080" if palette_is_dark(widget) else "palette(mid)"
+
+
+# Compact, flat style for matplotlib's NavigationToolbar2QT (a QToolBar). The
+# default toolbar is tall (large icons + padded buttons) and unstyled; this
+# shrinks the icons and flattens the buttons so it blends with the app.
+_NAV_TOOLBAR_QSS = f"""
+QToolBar {{ border: none; padding: 0px; spacing: 1px; background: transparent; }}
+QToolButton {{ border: none; padding: 2px; margin: 0px; }}
+QToolButton:hover {{ background: palette(midlight); border-radius: 3px; }}
+QToolButton:checked {{ background: palette(midlight); border-radius: 3px; }}
+QToolBar QLabel {{ font-size: 11px; }}
+"""
+
+
+def style_nav_toolbar(toolbar, icon_px=16, max_height=26):
+    """Make a matplotlib NavigationToolbar2QT compact and flat. Returns the
+    toolbar so it can be used inline."""
+    toolbar.setIconSize(QSize(icon_px, icon_px))
+    if max_height:
+        toolbar.setMaximumHeight(max_height)
+    toolbar.setStyleSheet(_NAV_TOOLBAR_QSS)
+    return toolbar
 
 
 def app_qss(widget=None):

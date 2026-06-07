@@ -14,6 +14,7 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas,NavigationToolbar2QT)
 
 from GUIComponents.nifti_viewer import NiftiViewerWindow
+from GUIComponents.AppStyle import style_nav_toolbar
 
 from skimage.measure import label, regionprops
 import nibabel
@@ -277,7 +278,7 @@ class BabelBaseTx(QWidget):
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
             self.static_canvas = FigureCanvas(self._figAcField)
-            toolbar=NavigationToolbar2QT(self.static_canvas,self)
+            toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
             self._layout.addWidget(toolbar)
             self._layout.addWidget(self.static_canvas)
             # Each plot box is centered on its scrollbar (left col x=0.25, right

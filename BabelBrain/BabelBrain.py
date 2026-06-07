@@ -50,6 +50,7 @@ import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
+from GUIComponents.AppStyle import style_nav_toolbar
 from nibabel import processing
 from superqt import QLabeledDoubleRangeSlider
 
@@ -168,6 +169,9 @@ class OutputWrapper(QObject):
 GetSmallestSOS=None
 
 _LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','lastselection.yaml')
+
+_LocationInstallID = str(Path.home())+os.sep+os.path.join('.config','BabelBrain','installation.id')
+
 
 def GetLatestSelection():
     res=None
@@ -533,12 +537,27 @@ class BabelBrain(QWidget):
                             'Calculation time thermal':0.0}
         self._NiftiCT = None
         self._NiftiAirMask = None
+
+        self._TelmetryMsgs=[]
+        self._TimeStart = time.time()
+
+        self.LogTelemetry('CTS:L1: BabelBrain started')
+        self.LogTelemetry('CTS:L1: OS: '+ platform.platform())
+        import psutil
+        mem = psutil.virtual_memory()
+        self.LogTelemetry(f'CTS:L1: Memory: {mem.total / 1e9:.2f} GB')
+        self.LogTelemetry(f'CTS:L1: GPU: {Backend} {ComputingDevice}')
+        
+
+        
         
     def showEvent(self, event):
         super().showEvent(event)
         self.centerOnScreen()
 
     def closeEvent(self, event):
+        self.LogTelemetry('CTS:L1: BabelBrain closing')
+        self.SendTelemetry()
         if hasattr(self,'_vtk_visualization'):
             self._vtk_visualization.close()
         super().closeEvent(event)  # let the default close logic run
@@ -914,7 +933,7 @@ class BabelBrain(QWidget):
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
 
-            self.worker.logTelemetry.connect(self._logTelemetry)
+            self.worker.logTelemetry.connect(self.LogTelemetry)
 
             self.thread.start()
             self.Widget.tabWidget.setEnabled(False)
@@ -1075,7 +1094,7 @@ class BabelBrain(QWidget):
 
         self.static_canvas = FigureCanvas(self._figMasks)
         
-        toolbar=NavigationToolbar2QT(self.static_canvas,self)
+        toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
         self._layout.addWidget(toolbar)
         self._layout.addWidget(self.static_canvas)
 
@@ -1390,8 +1409,22 @@ class BabelBrain(QWidget):
         kargs['OptimizedWeightsFile']=self.Config['TxOptimizedWeights'][self.Config['TxSystem']]
         return kargs
     
-    def _logTelemetry(self,entry):
-        pass
+    def LogTelemetry(self,entry):
+        msgLevel = int(entry.split(':')[1][1])
+        if self.Config['TelemetryLevel'] >= msgLevel:
+            self._TelmetryMsgs.append({'time':time.time()-self._TimeStart,'event':entry})
+
+    def SendTelemetry(self):
+        from Telemetry.Telemetry import send_telemetry
+        from datetime import datetime, timezone
+
+        now_utc = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        #we will break in segments of 
+        send_telemetry('BabelBrain log',
+                       idpath=_LocationInstallID,
+                       date_sesssion=now_utc,
+                       APP_VERSION=self.Config['version'].rstrip(),
+                       data=self._TelmetryMsgs)
         
 
 def get_color_at(widget, x,y):
@@ -1548,11 +1581,11 @@ class RunMaskGeneration(QObject):
                 cMsg=queue.get()
                 if type(cMsg) is str:
                     print(cMsg,end='')
-                    if 'CTS1L3:' in cMsg:
+                    if 'CTS:' in cMsg:
                         self.logTelemetry.emit(cMsg)
                     if '--Babel-Brain-Low-Error' in cMsg:
                         bNoError=False
-                        self.logTelemetry.emit("CTS1L1: "+cMsg)
+                        self.logTelemetry.emit("CTS:L2: "+cMsg)
                 elif type(cMsg) is dict:
                     output_files=cMsg
                 else:
@@ -1563,11 +1596,11 @@ class RunMaskGeneration(QObject):
             cMsg=queue.get()
             if type(cMsg) is str:
                 print(cMsg,end='')
-                if 'CTS1L3:' in cMsg:
+                if 'CTS:' in cMsg:
                     self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
                     bNoError=False
-                    self.logTelemetry.emit("CTS1L1: "+cMsg)
+                    self.logTelemetry.emit("CTS:L2: "+cMsg)
             elif type(cMsg) is dict:
                 output_files=cMsg
             else:
@@ -1579,7 +1612,7 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             print("*"*5+" DONE calculating mask.")
             print("*"*40)
-            self.logTelemetry.emit("CTS1L1: TOTAL TIME " + str(TotalTime))
+            self.logTelemetry.emit("CTS:L2: Step 1 TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('domain',TotalTime)
             self.finished.emit(output_files)
         else:

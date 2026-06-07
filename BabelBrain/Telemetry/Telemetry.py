@@ -4,6 +4,7 @@ import threading
 import time
 import os
 import uuid
+import numpy as np
 
 
 # Google Forms endpoint
@@ -36,9 +37,7 @@ def telemetry_enabled():
 # Stable anonymous install ID
 # --------------------------------------------------
 
-def get_install_id():
-
-    path = os.path.expanduser("~/.myapp_install_id")
+def get_install_id(path):
 
     if os.path.exists(path):
         return open(path).read().strip()
@@ -55,34 +54,42 @@ def get_install_id():
 # Main API
 # --------------------------------------------------
 
-def send_telemetry(event, data=None):
+def send_telemetry(event,
+                   idpath=os.path.expanduser("~/.myapp_install_id"),
+                   date_sesssion='ids1',
+                   APP_NAME = "BabelBrain",
+                   APP_VERSION = "1.0.0", 
+                   data=[]):
 
-    if not telemetry_enabled():
-        return
-
-    payload = {
-        "schema": 1,
-        "app": APP_NAME,
-        "version": APP_VERSION,
-        "event": event,
-        "timestamp": time.time(),
-        "install_id": get_install_id(),
-        "data": data or {},
-    }
-
-    post_data = {
-        PAYLOAD_FIELD: json.dumps(payload, ensure_ascii=False)
-    }
 
     def _send():
-
         try:
-            requests.post(
-                FORM_URL,
-                data=post_data,
-                timeout=TIMEOUT,
-                allow_redirects=True,
-            )
+            #we split data by 5 msgs to avoid ending with a way too wide entry in a single cell
+            for n in range(0,len(data),5): 
+                subdata=[]
+                for k in range(n,np.min((len(data),n+5))):
+                    subdata.append(data[k])
+
+                payload = {
+                    "schema": 1,
+                    "app": APP_NAME,
+                    "version": APP_VERSION,
+                    "install_id": get_install_id(idpath),
+                    "date_sesssion": date_sesssion,
+                    "event": event,
+                    "data": subdata ,
+                }
+
+                post_data = {
+                    PAYLOAD_FIELD: json.dumps(payload, ensure_ascii=False)
+                }
+                requests.post(
+                    FORM_URL,
+                    data=post_data,
+                    timeout=TIMEOUT,
+                    allow_redirects=True,
+                )
+                time.sleep(0.01)
 
         except Exception:
             # Never affect GUI

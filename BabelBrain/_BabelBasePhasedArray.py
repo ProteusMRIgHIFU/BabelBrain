@@ -35,6 +35,7 @@ import time
 import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+from GUIComponents.AppStyle import style_nav_toolbar
 
 from CalculateFieldProcess import CalculateFieldProcess
 import platform 
@@ -445,7 +446,7 @@ class BabelBasePhaseArray(BabelBaseTx):
                 self._layout = QVBoxLayout(self.Widget.AcField_plot1)
 
             self.static_canvas = FigureCanvas(self._figAcField)
-            toolbar=NavigationToolbar2QT(self.static_canvas,self)
+            toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
             self._layout.addWidget(toolbar)
             self._layout.addWidget(self.static_canvas)
             # Each plot box is centered on its scrollbar (left col x=0.25, right
@@ -626,7 +627,7 @@ class RunAcousticSim(QObject):
                         if 'CTS2L3:' in cMsg:
                             self.logTelemetry.emit(cMsg)
                         if '--Babel-Brain-Low-Error' in cMsg:
-                            self.logTelemetry.emit("CTS1L1: "+cMsg)
+                            self.logTelemetry.emit("CTS:L2: "+cMsg)
                             bNoError=False
                     else:
                         assert(type(cMsg) is dict)

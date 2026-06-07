@@ -239,7 +239,7 @@ class RunAcousticSim(QObject):
                 if 'CTS2L3:' in cMsg:
                     self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
-                    self.logTelemetry.emit("CTS1L1: "+cMsg)
+                    self.logTelemetry.emit("CTS:L2: "+cMsg)
                     bNoError=False 
         fieldWorkerProcess.join()
         while queue.empty() == False:
@@ -248,7 +248,7 @@ class RunAcousticSim(QObject):
             if 'CTS2L3:' in cMsg:
                 self.logTelemetry.emit(cMsg)
             if '--Babel-Brain-Low-Error' in cMsg:
-                self.logTelemetry.emit("CTS1L1: "+cMsg)
+                self.logTelemetry.emit("CTS:L2: "+cMsg)
                 bNoError=False 
         if bNoError:
             TEnd=time.time()
