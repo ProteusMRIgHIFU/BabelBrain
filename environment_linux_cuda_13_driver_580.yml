@@ -210,6 +210,7 @@ dependencies:
       - pooch==1.8.2
       - psutil==7.2.2
       - pwlf==2.5.2
+      - py-cpuinfo==9.0.0
       - pydicom==3.0.1
       - pygments==2.19.2
       - pymeshfix==0.16.2

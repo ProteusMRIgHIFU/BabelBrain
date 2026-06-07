@@ -20,6 +20,8 @@ import sys
 import time
 from multiprocessing import Process, Queue
 from pathlib import Path
+import psutil
+import cpuinfo
 
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
@@ -70,6 +72,9 @@ from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 from Options.Options import AdvancedOptions, OptionalParams
 from ClockDialog import ClockDialog
 from GUIComponents.nifti_viewer import NiftiViewerWindow
+
+from Telemetry.Telemetry import send_telemetry
+from datetime import datetime, timezone
 
 
 multiprocessing.freeze_support()
@@ -172,6 +177,7 @@ _LastSelConfig=str(Path.home())+os.sep+os.path.join('.config','BabelBrain','last
 
 _LocationInstallID = str(Path.home())+os.sep+os.path.join('.config','BabelBrain','installation.id')
 
+_date_session = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 def GetLatestSelection():
     res=None
@@ -543,12 +549,16 @@ class BabelBrain(QWidget):
 
         self.LogTelemetry('CTS:L1: BabelBrain started')
         self.LogTelemetry('CTS:L1: OS: '+ platform.platform())
-        import psutil
-        mem = psutil.virtual_memory()
-        self.LogTelemetry(f'CTS:L1: Memory: {mem.total / 1e9:.2f} GB')
-        self.LogTelemetry(f'CTS:L1: GPU: {Backend} {ComputingDevice}')
-        
 
+        mem = psutil.virtual_memory()
+        info = cpuinfo.get_cpu_info()
+        print(f'CPU: {info['brand_raw']}')
+        print(f'Total memory:{mem.total / 2**30:.2f} GB')
+        self.LogTelemetry(f'CTS:L1: CPU: {info['brand_raw']}')
+        self.LogTelemetry(f'CTS:L1: Memory: {mem.total / 2**30:.2f} GB')
+        self.LogTelemetry(f'CTS:L1: GPU: {Backend} {ComputingDevice}')
+        self.LogTelemetry(f'CTS:L4: Device: {self.Config['TxSystem']}')
+        self.SendTelemetry()
         
         
     def showEvent(self, event):
@@ -557,7 +567,7 @@ class BabelBrain(QWidget):
 
     def closeEvent(self, event):
         self.LogTelemetry('CTS:L1: BabelBrain closing')
-        self.SendTelemetry()
+        self.SendTelemetry(waittocomplete=True)
         if hasattr(self,'_vtk_visualization'):
             self._vtk_visualization.close()
         super().closeEvent(event)  # let the default close logic run
@@ -925,11 +935,14 @@ class BabelBrain(QWidget):
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.VerifyResults)
+            self.worker.finished.connect(self.SendTelemetry)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
+
             
             self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self.SendTelemetry)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
 
@@ -1414,17 +1427,15 @@ class BabelBrain(QWidget):
         if self.Config['TelemetryLevel'] >= msgLevel:
             self._TelmetryMsgs.append({'time':time.time()-self._TimeStart,'event':entry})
 
-    def SendTelemetry(self):
-        from Telemetry.Telemetry import send_telemetry
-        from datetime import datetime, timezone
-
-        now_utc = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    def SendTelemetry(self,waittocomplete=False):
         #we will break in segments of 
         send_telemetry('BabelBrain log',
                        idpath=_LocationInstallID,
-                       date_sesssion=now_utc,
+                       session_date=_date_session,
                        APP_VERSION=self.Config['version'].rstrip(),
-                       data=self._TelmetryMsgs)
+                       data=self._TelmetryMsgs,
+                       waittocomplete=waittocomplete)
+        self._TelmetryMsgs=[] #we clean the list
         
 
 def get_color_at(widget, x,y):
@@ -1475,6 +1486,7 @@ class RunMaskGeneration(QObject):
 
         BasePPW=self._mainApp._BasePPW
         SpatialStep=np.round(SmallestSoS/Frequency/BasePPW*1e3,3) #step of mask to reconstruct , mm
+        self.logTelemetry.emit(f"CTS:L3:S1: Frequency={Frequency} PPW={BasePPW}")
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 
         prefix=self._mainApp._prefix
@@ -1585,7 +1597,7 @@ class RunMaskGeneration(QObject):
                         self.logTelemetry.emit(cMsg)
                     if '--Babel-Brain-Low-Error' in cMsg:
                         bNoError=False
-                        self.logTelemetry.emit("CTS:L2: "+cMsg)
+                        self.logTelemetry.emit("CTS:L2:S1: "+cMsg)
                 elif type(cMsg) is dict:
                     output_files=cMsg
                 else:
@@ -1600,7 +1612,7 @@ class RunMaskGeneration(QObject):
                     self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
                     bNoError=False
-                    self.logTelemetry.emit("CTS:L2: "+cMsg)
+                    self.logTelemetry.emit("CTS:L2:S1: "+cMsg)
             elif type(cMsg) is dict:
                 output_files=cMsg
             else:
@@ -1612,7 +1624,7 @@ class RunMaskGeneration(QObject):
             print("*"*40)
             print("*"*5+" DONE calculating mask.")
             print("*"*40)
-            self.logTelemetry.emit("CTS:L2: Step 1 TOTAL TIME " + str(TotalTime))
+            self.logTelemetry.emit("CTS:L2:S1: TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('domain',TotalTime)
             self.finished.emit(output_files)
         else:

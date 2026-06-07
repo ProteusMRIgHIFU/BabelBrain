@@ -360,7 +360,7 @@ def RunBHTECycles(nCurrent,
                 initT0=None
                 initDose=None
             
-        with CodeTimer("CTS3L3: BHTE steps on",unit='s'):
+        with CodeTimer("CTS:L3:S3: BHTE steps on",unit='s'):
             if type(InputPData) is str:
                 ResTemp,ResDose,MonitorSlice,Qarr,TemperaturePointsOn=BHTE(PMaps,
                                                                 MaterialMap,
@@ -402,7 +402,7 @@ def RunBHTECycles(nCurrent,
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
-            with CodeTimer("CTS3L3: BHTE SP steps off",unit='s'):
+            with CodeTimer("CTS:L3:S3: BHTE SP steps off",unit='s'):
                 FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
                                                                 MaterialMap,
                                                                 MaterialList,
@@ -435,7 +435,7 @@ def RunBHTECycles(nCurrent,
 
         if (nCurrent+1)%Repetitions == 0 and TotalDurationBetweenGroups>0.0:
             #we ran the extra time off pause
-            with CodeTimer("CTS3L3: BHTE SP group off",unit='s'):
+            with CodeTimer("CTS:L3:S3: BHTE SP group off",unit='s'):
                 FinalTemp,FinalDose,MonitorSliceOff,dum,TemperaturePointsOff=BHTE(p0,
                                                             MaterialMap,
                                                             MaterialList,
@@ -955,7 +955,7 @@ def CalculateTemperatureEffects(InputPData,
         initT0=None
         initDose=None
 
-    with CodeTimer("CTS3L3: BHTE init",unit='s'):
+    with CodeTimer("CTS:L3:S3: BHTE init",unit='s'):
         if type(InputPData) is str:
             ResTemp,ResDose,MonitorSlice,Qarr=BHTE(pAmp*PressureRatio,
                                                         MaterialMap,
@@ -1129,7 +1129,7 @@ def CalculateTemperatureEffects(InputPData,
 
     TIC=ResTemp[SelSkull].max()
     
-    print('Max. Temp. Brain, Max Temp. Skin, Max Temp. Skull',TI,TIS,TIC);
+    print('Max. Temp. Brain, Max Temp. Skin, Max Temp. Skull',TI,TIS,TIC)
 
     CEMBrain=FinalDose[SelBrain].max()/60 # in min
     
@@ -1170,6 +1170,8 @@ def CalculateTemperatureEffects(InputPData,
         SaveDict['TimeProfileTarget']=np.hstack((PreviousData['TimeProfileTarget'],PreviousData['TimeProfileTarget'][-1]+dt+np.arange(TemperaturePoints.shape[1])*dt))
         SaveDict['TempProfileTarget']=np.hstack((PreviousData['TempProfileTarget'],TemperaturePoints[IndTarget,:]))
         SaveDict['TemperaturePoints']=np.hstack((PreviousData['TemperaturePoints'],TemperaturePoints))
+        
+    print(f'CTS:L4:S3 total duration (time, steps): ({SaveDict['TimeProfileTarget'][-1]},{TemperaturePoints.shape[1]})')
         
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3

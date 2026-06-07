@@ -56,18 +56,19 @@ def get_install_id(path):
 
 def send_telemetry(event,
                    idpath=os.path.expanduser("~/.myapp_install_id"),
-                   date_sesssion='ids1',
+                   session_date='ids1',
                    APP_NAME = "BabelBrain",
                    APP_VERSION = "1.0.0", 
-                   data=[]):
+                   data=[],
+                   waittocomplete=False):
 
 
     def _send():
         try:
-            #we split data by 5 msgs to avoid ending with a way too wide entry in a single cell
-            for n in range(0,len(data),5): 
+            #we split data by 15 msgs to avoid ending with a way too wide entry in a single cell
+            for n in range(0,len(data),15): 
                 subdata=[]
-                for k in range(n,np.min((len(data),n+5))):
+                for k in range(n,np.min((len(data),n+15))):
                     subdata.append(data[k])
 
                 payload = {
@@ -75,7 +76,7 @@ def send_telemetry(event,
                     "app": APP_NAME,
                     "version": APP_VERSION,
                     "install_id": get_install_id(idpath),
-                    "date_sesssion": date_sesssion,
+                    "session_date": session_date,
                     "event": event,
                     "data": subdata ,
                 }
@@ -101,7 +102,8 @@ def send_telemetry(event,
         daemon=True
     )
     T.start()
-    T.join()
+    if waittocomplete:
+        T.join()
 
 if __name__ == "__main__":
     print("testing")

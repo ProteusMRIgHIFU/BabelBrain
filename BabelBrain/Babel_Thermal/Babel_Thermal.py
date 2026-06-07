@@ -265,13 +265,18 @@ class Babel_Thermal(QWidget):
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateThermalResults)
+            self.worker.finished.connect(self._MainApp.SendTelemetry)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
             self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self._MainApp.SendTelemetry)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
+
+            self.worker.logTelemetry.connect(self._MainApp.LogTelemetry)
+ 
             self.thread.start()
             self._MainApp.Widget.tabWidget.setEnabled(False)
             self._MainApp.showClockDialog()
@@ -864,6 +869,7 @@ class RunThermalSim(QObject):
 
     finished = Signal()
     endError = Signal()
+    logTelemetry = Signal(str)
 
     def __init__(self,mainApp):
          super(RunThermalSim, self).__init__()
@@ -912,14 +918,19 @@ class RunThermalSim(QObject):
             while queue.empty() == False:
                 cMsg=queue.get()
                 print(cMsg,end='')
+                if 'CTS:' in cMsg:
+                    self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
+                    self.logTelemetry.emit("CTS:L1:S3: "+cMsg)
                     bNoError=False  
         fieldWorkerProcess.join()
         while queue.empty() == False:
             cMsg=queue.get()
-            print(cMsg,end='')
+            if 'CTS:' in cMsg:
+                self.logTelemetry.emit(cMsg)
             if '--Babel-Brain-Low-Error' in cMsg:
-                bNoError=False
+                self.logTelemetry.emit("CTS:L1:S3: "+cMsg)
+                bNoError=False 
         if bNoError:
             TEnd=time.time()
             TotalTime = TEnd-T0
@@ -927,6 +938,7 @@ class RunThermalSim(QObject):
             print("*"*40)
             print("*"*5+" DONE thermal simulation.")
             print("*"*40)
+            self.logTelemetry.emit("CTS:L2:S3: TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('thermal',TotalTime)
             self.finished.emit()
         else:

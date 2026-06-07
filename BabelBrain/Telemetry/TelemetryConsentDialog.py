@@ -14,15 +14,17 @@ from PySide6.QtWidgets import (
 
 # Telemetry levels — keep stable; values are persisted in user config.
 TELEMETRY_OFF = 0           # Default. Nothing is sent.
-TELEMETRY_BASIC = 1         # App start/stop + errors only.
-TELEMETRY_STEP_TIMINGS = 2  # Basic + per-step (Steps 1/2/3) execution times.
-TELEMETRY_DETAILED = 3      # Step timings + granular timings of demanding sections.
+TELEMETRY_BASIC = 1        
+TELEMETRY_STEP_TIMINGS = 2  
+TELEMETRY_DETAILED = 3      
+TELEMETRY_HIGHLY_DETAILED = 4      
 
 LEVEL_LABELS = {
-    TELEMETRY_OFF: "No telemetry (default)",
-    TELEMETRY_BASIC: "Basic — notify that the app ran, OS, main memory, GPU model and errors",
-    TELEMETRY_STEP_TIMINGS: "Basic + execution times of the 3 main simulation steps",
-    TELEMETRY_DETAILED: "Basic + step timings + granular timings of the most demanding sections",
+    TELEMETRY_OFF: "L0: No telemetry (default)",
+    TELEMETRY_BASIC: "L1: Basic — notify that the app ran, CPU, OS, main memory, GPU model and errors",
+    TELEMETRY_STEP_TIMINGS: "L2: L1  + execution times of the 3 main simulation steps",
+    TELEMETRY_DETAILED: "L3: L2 + Frequency, PPW, domain size and granular timings of the most demanding sections",
+    TELEMETRY_HIGHLY_DETAILED: "L4: L3 + Tx model, total duration (with no details of timing)",
 }
 
 
@@ -63,8 +65,12 @@ class TelemetrySettingsWidget(QWidget):
             "<b>Your privacy:</b> data collection is <b>opt-in</b> and is "
             "<b>disabled by default</b>. No personal data, no file contents, no "
             "patient information and <b>no IP address</b> are collected or stored. "
-            "Only anonymous execution times and error occurrences are reported, "
-            "tagged with a random install identifier that cannot be tied back to you. "
+            "The collected data is particularly useful to understand the performance "
+            "of the tool.Depending on the level of data collection, this can include "
+            "from basic hardware information, anonymous execution times, to the "
+            "selected device and total duration (no details of timing are sent). This "
+            "data is tagged with a random install identifier that cannot be tied back "
+            "to you. "
             "You can change or revoke this choice at any time from "
             "<b>Advanced Options</b>."
         )
@@ -83,7 +89,7 @@ class TelemetrySettingsWidget(QWidget):
 
         self._group = QButtonGroup(self)
         self._buttons = {}
-        for level in (TELEMETRY_OFF, TELEMETRY_BASIC, TELEMETRY_STEP_TIMINGS, TELEMETRY_DETAILED):
+        for level in (TELEMETRY_OFF, TELEMETRY_BASIC, TELEMETRY_STEP_TIMINGS, TELEMETRY_DETAILED,TELEMETRY_HIGHLY_DETAILED):
             rb = QRadioButton(LEVEL_LABELS[level])
             rb.setStyleSheet("QRadioButton { padding: 2px 0px; }")
             self._group.addButton(rb, level)

@@ -27,6 +27,7 @@ dependencies:
   - pip=26.0.1=pyh145f28c_0
   - psutil==7.2.2
   - pwlf=2.5.2=pyhd8ed1ab_0
+  - py-cpuinfo==9.0.0
   - pydicom=3.0.2=pyhd8ed1ab_0
   - pyinstaller=6.19.0=py314h05bb05a_1
   - pyinstaller-hooks-contrib=2026.2=pyhd8ed1ab_0

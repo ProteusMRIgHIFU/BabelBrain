@@ -171,14 +171,18 @@ class SingleTx(BabelBaseTx):
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateAcResults)
+            self.worker.finished.connect(self._MainApp.SendTelemetry)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
 
             self.worker.endError.connect(self.NotifyError)
+            self.worker.endError.connect(self._MainApp.SendTelemetry)
             self.worker.endError.connect(self.thread.quit)
             self.worker.endError.connect(self.worker.deleteLater)
  
+            self.worker.logTelemetry.connect(self._MainApp.LogTelemetry)
+
             self.thread.start()
 
             self._MainApp.showClockDialog()
@@ -197,6 +201,7 @@ class RunAcousticSim(QObject):
 
     finished = Signal()
     endError = Signal()
+    logTelemetry = Signal(str)
 
     def __init__(self,mainApp,extrasuffix,Aperture,FocalLength):
         super(RunAcousticSim, self).__init__()
@@ -260,13 +265,19 @@ class RunAcousticSim(QObject):
             while queue.empty() == False:
                 cMsg=queue.get()
                 print(cMsg,end='')
+                if 'CTS:' in cMsg:
+                    self.logTelemetry.emit(cMsg)
                 if '--Babel-Brain-Low-Error' in cMsg:
+                    self.logTelemetry.emit("CTS:L1:S2: "+cMsg)
                     bNoError=False  
         fieldWorkerProcess.join()
         while queue.empty() == False:
             cMsg=queue.get()
             print(cMsg,end='')
+            if 'CTS:' in cMsg:
+                self.logTelemetry.emit(cMsg)
             if '--Babel-Brain-Low-Error' in cMsg:
+                self.logTelemetry.emit("CTS:L1:S2: "+cMsg)
                 bNoError=False
         if bNoError:
             TEnd=time.time()
@@ -275,6 +286,7 @@ class RunAcousticSim(QObject):
             print("*"*40)
             print("*"*5+" DONE ultrasound simulation.")
             print("*"*40)
+            self.logTelemetry.emit("CTS:L2:S2: TOTAL TIME " + str(TotalTime))
             self._mainApp.UpdateComputationalTime('ultrasound',TotalTime)
             self.finished.emit()
         else:
