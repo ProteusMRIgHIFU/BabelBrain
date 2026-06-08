@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 
 from GUIComponents.AppStyle import (
     selected_tab_color, button_border_color,
-    scrollbar_handle_color, disabled_text_color,
+    scrollbar_handle_color, disabled_text_color, scrollbar_track_color,
 )
 
 
@@ -47,6 +47,7 @@ def _form_qss(widget=None):
     _tabsel = selected_tab_color(widget)
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
+    _track = scrollbar_track_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -87,7 +88,7 @@ QTabBar::tab::disabled {{
 }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 0px 4px;
     min-height: 18px;
@@ -126,7 +127,7 @@ QTextBrowser {{
 QCheckBox {{ spacing: 5px; font-size: 11px; }}
 
 QScrollBar:horizontal {{
-    background: palette(base);
+    background: {_track};
     height: 14px;
     border-radius: 7px;
     margin: 0;

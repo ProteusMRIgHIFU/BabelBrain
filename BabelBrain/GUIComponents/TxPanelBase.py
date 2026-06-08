@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 # ── Accent palette (kept in sync with MainForm.py / nifti_viewer.py) ──────
 from GUIComponents.AppStyle import (
     button_border_color, scrollbar_handle_color, disabled_text_color,
+    scrollbar_track_color,
 )
 ACCENT     = "#00c8ff"
 LABEL_BLUE = "#166eff"
@@ -44,6 +45,7 @@ def _panel_qss(widget=None):
     _border = button_border_color(widget)
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
+    _track = scrollbar_track_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -62,7 +64,7 @@ QPushButton:pressed {{ background: palette(midlight); }}
 QPushButton:disabled {{ color: {_disabled}; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 0px 4px;
     min-height: 18px;
@@ -82,7 +84,7 @@ QComboBox::down-arrow {{
 
 QCheckBox {{ spacing: 5px; font-size: 11px; }}
 
-QScrollBar:horizontal {{ background: palette(base); height: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar:horizontal {{ background: {_track}; height: 14px; border-radius: 7px; margin: 0; }}
 QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}

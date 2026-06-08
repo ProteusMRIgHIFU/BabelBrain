@@ -32,6 +32,7 @@ from GUIComponents.TxPanelBase import (
 )
 from GUIComponents.AppStyle import (
     button_border_color, scrollbar_handle_color, disabled_text_color,
+    scrollbar_track_color,
 )
 
 
@@ -42,6 +43,7 @@ def _thermal_qss(widget=None):
     _border = button_border_color(widget)
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
+    _track = scrollbar_track_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -58,14 +60,12 @@ QPushButton:hover {{
 }}
 QPushButton:pressed {{ background: palette(midlight); }}
 QPushButton:disabled {{ color: {_disabled}; }}
-/* These two have two-line labels. A stylesheet min-height overrides
-   setMinimumHeight(), so the extra room has to be set here or the second line
-   gets clipped. 30px content clears two 13px lines with margin while keeping the
-   bottom strip short (so the results table keeps its vertical space). */
+/* Two-line labels: a stylesheet min-height overrides setMinimumHeight(), so the
+   extra room is set here. 30px clears two 13px lines while staying compact. */
 QPushButton#ExportSummary, QPushButton#ExportMaps {{ min-height: 30px; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 0px 4px;
     min-height: 18px;
@@ -93,7 +93,7 @@ QTableWidget {{
 }}
 QTableWidget::item {{ background: transparent; }}
 
-QScrollBar:horizontal {{ background: palette(base); height: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar:horizontal {{ background: {_track}; height: 14px; border-radius: 7px; margin: 0; }}
 QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover {{ background: #00c8ff; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
@@ -226,6 +226,8 @@ class ThermalForm(QWidget):
         outer.setSpacing(4)
 
         # ── Controls ────────────────────────────────────────────────────────
+        # Height comes from the QSS #ExportSummary/#ExportMaps rule (two-line
+        # labels); the value below is a no-op floor kept for clarity.
         self.ExportSummary = make_button(
             "ExportSummary", "Export summary\n(CSV)", min_height=40)
         self.ExportSummary.setEnabled(False)

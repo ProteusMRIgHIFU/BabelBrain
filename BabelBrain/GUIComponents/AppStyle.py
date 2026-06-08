@@ -56,6 +56,12 @@ def disabled_text_color(widget=None):
     return "#808080" if palette_is_dark(widget) else "palette(mid)"
 
 
+def scrollbar_track_color(widget=None):
+    """Scrollbar groove. palette(base) barely separates from the window on dark
+    themes, so use the slightly lighter palette(mid) there to define the track."""
+    return "palette(mid)" if palette_is_dark(widget) else "palette(base)"
+
+
 # Compact, flat style for matplotlib's NavigationToolbar2QT (a QToolBar). The
 # default toolbar is tall (large icons + padded buttons) and unstyled; this
 # shrinks the icons and flattens the buttons so it blends with the app.
@@ -86,6 +92,7 @@ def app_qss(widget=None):
     _tabsel = selected_tab_color(widget)
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
+    _track = scrollbar_track_color(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -121,7 +128,7 @@ QTabBar::tab:selected {{ color: {_tabsel}; font-weight: bold; }}
 QTabBar::tab:hover:!selected {{ color: {ACCENT}; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-    border: 1px solid palette(mid);
+    border: 1px solid {_border};
     border-radius: 3px;
     padding: 0px 4px;
     min-height: 18px;
@@ -173,8 +180,8 @@ QHeaderView::section {{
     font-size: 11px;
 }}
 
-QScrollBar:horizontal {{ background: palette(base); height: 14px; border-radius: 7px; margin: 0; }}
-QScrollBar:vertical {{ background: palette(base); width: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar:horizontal {{ background: {_track}; height: 14px; border-radius: 7px; margin: 0; }}
+QScrollBar:vertical {{ background: {_track}; width: 14px; border-radius: 7px; margin: 0; }}
 QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
 QScrollBar::handle:vertical {{ background: {_handle}; border-radius: 6px; min-height: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{ background: {ACCENT}; }}
