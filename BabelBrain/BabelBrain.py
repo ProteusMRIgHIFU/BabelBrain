@@ -1114,6 +1114,11 @@ class BabelBrain(QWidget):
         self._layout.addWidget(self.static_canvas)
 
         axes=self.static_canvas.figure.subplots(1,3)
+        # Shrink the plotting area on the right (keeping the default left margin
+        # so the leftmost subplot's y labels aren't clipped). This shifts the
+        # subplots slightly left — more centered — and reserves room on the
+        # right so the legend anchored past the last subplot isn't clipped.
+        self._figMasks.subplots_adjust(right=0.86, wspace=0.22)
         self._axes=axes
 
         for CMap,T1WMap,CTMap,AirMap,extent,static_ax,vec1,vec2,c1,c2 in zip([CMapXZ,CMapYZ,CMapXY],
@@ -1189,7 +1194,7 @@ class BabelBrain(QWidget):
             #we use manual color asignation 
                 
         patches = [ mpatches.Patch(color=colors[i], label=legends[i] ) for i in range(len(values)) ]
-        leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0. )
+        leg=axes[-1].legend(handles=patches, bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0. )
         self._figMasks.set_facecolor(self._BackgroundColorFigures)
         leg.get_frame().set_facecolor(self._BackgroundColorFigures)
         self.Widget.TransparencyScrollBar.setEnabled(True)
