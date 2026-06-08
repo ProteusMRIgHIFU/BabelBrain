@@ -154,11 +154,11 @@ class Babel_Thermal(QWidget):
         table_palette.setColor(QPalette.Base, bg_color)
         table_palette.setColor(QPalette.Text, text_color)
         self.Widget.tableWidget.setPalette(table_palette)
-        if 'Windows' in platform.system():
-            
-            # self.Widget.tableWidget.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-            self.Widget.tableWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-            # self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(5)
+        # NOTE: a former Windows-only setSizePolicy(Fixed, Fixed) was removed
+        # here. The programmatic ThermalForm adds the table with stretch=1 and an
+        # Expanding policy so it fills the left column; pinning it Fixed capped
+        # its height on Windows, pushing the rows down and forcing a vertical
+        # scrollbar. Leaving it Expanding makes Windows match macOS.
         for n,v in enumerate(Ids):
             item=QTableWidgetItem(v)
             item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
