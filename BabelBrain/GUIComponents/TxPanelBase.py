@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 # ── Accent palette (kept in sync with MainForm.py / nifti_viewer.py) ──────
 from GUIComponents.AppStyle import (
     button_border_color, scrollbar_handle_color, disabled_text_color,
-    scrollbar_track_color,
+    scrollbar_track_color, spinbox_arrows_qss,
 )
 ACCENT     = "#00c8ff"
 LABEL_BLUE = "#166eff"
@@ -46,6 +46,7 @@ def _panel_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
+    _spin = spinbox_arrows_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -82,6 +83,7 @@ QScrollBar::handle:horizontal:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
 
 QFrame#panelLeftFrame {{ border: none; }}
+{_spin}
 """
 
 
