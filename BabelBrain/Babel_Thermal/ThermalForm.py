@@ -58,6 +58,11 @@ QPushButton:hover {{
 }}
 QPushButton:pressed {{ background: palette(midlight); }}
 QPushButton:disabled {{ color: {_disabled}; }}
+/* These two have two-line labels. A stylesheet min-height overrides
+   setMinimumHeight(), so the extra room has to be set here or the second line
+   gets clipped. 30px content clears two 13px lines with margin while keeping the
+   bottom strip short (so the results table keeps its vertical space). */
+QPushButton#ExportSummary, QPushButton#ExportMaps {{ min-height: 30px; }}
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     border: 1px solid palette(mid);
@@ -129,7 +134,8 @@ class ThermalForm(QWidget):
 
         lay = QVBoxLayout(frame)
         lay.setContentsMargins(0, 4, 0, 0)
-        lay.setSpacing(4)
+        # Tight row spacing leaves the results table as much height as possible.
+        lay.setSpacing(2)
 
         # Top action buttons (Calculate Thermal / Update Profile)
         actions = QHBoxLayout()
@@ -221,11 +227,11 @@ class ThermalForm(QWidget):
 
         # ── Controls ────────────────────────────────────────────────────────
         self.ExportSummary = make_button(
-            "ExportSummary", "Export summary\n(CSV)", min_height=44)
+            "ExportSummary", "Export summary\n(CSV)", min_height=40)
         self.ExportSummary.setEnabled(False)
 
         self.ExportMaps = make_button(
-            "ExportMaps", "Export maps\n(.nii.gz)", min_height=44)
+            "ExportMaps", "Export maps\n(.nii.gz)", min_height=40)
         self.ExportMaps.setEnabled(False)
 
         self.label_22 = make_label("Show", name="label_22")
