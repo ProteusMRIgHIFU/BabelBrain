@@ -97,16 +97,6 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid {ACCENT};
 }}
-QComboBox::drop-down {{ border: none; width: 18px; }}
-/* A stylesheet-rendered combo with a customized ::drop-down draws no arrow
-   unless ::down-arrow is given — draw one with a CSS triangle (no image). */
-QComboBox::down-arrow {{
-    width: 0; height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid palette(text);
-    margin-right: 6px;
-}}
 /* Editable combos (e.g. USMaskkHzDropDown) render via an internal QLineEdit,
    and the popup list is a separate view — neither inherits the combo font
    unless targeted explicitly. */

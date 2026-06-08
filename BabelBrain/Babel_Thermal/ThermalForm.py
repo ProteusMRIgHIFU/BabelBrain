@@ -74,14 +74,6 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 1px solid #00c8ff;
 }}
-QComboBox::drop-down {{ border: none; width: 18px; }}
-QComboBox::down-arrow {{
-    width: 0; height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid palette(text);
-    margin-right: 6px;
-}}
 
 QCheckBox {{ spacing: 5px; font-size: 11px; }}
 QFrame#panelLeftFrame, QFrame#panelBottomFrame {{ border: none; }}
