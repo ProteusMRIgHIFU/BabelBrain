@@ -149,8 +149,9 @@ class SelFiles(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         # Apply the shared compact app style on top of the .ui layout.
-        from GUIComponents.AppStyle import app_qss
+        from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style
         self.setStyleSheet(app_qss(self))
+        apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
         with open(os.path.join(resource_path(),'version-gui.txt'), 'r') as f:
             version=f.readlines()[0]
         self.setWindowTitle("BabelBrain V"+version + " - Select input files ...")

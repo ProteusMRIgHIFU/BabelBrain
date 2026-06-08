@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 from GUIComponents.AppStyle import (
     selected_tab_color, button_border_color,
     scrollbar_handle_color, disabled_text_color, scrollbar_track_color,
-    spinbox_arrows_qss,
+    apply_native_spinbox_style,
 )
 
 
@@ -49,7 +49,6 @@ def _form_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
-    _spin = spinbox_arrows_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -132,7 +131,6 @@ QScrollBar::handle:horizontal {{
 }}
 QScrollBar::handle:horizontal:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
-{_spin}
 """
 
 
@@ -169,6 +167,7 @@ class BabelBrainMainForm(QWidget):
         self.setObjectName("Widget")  # preserves original root name
         self.setStyleSheet(_form_qss(self))
         self._build()
+        apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
 
     # ── Construction ──────────────────────────────────────────────────────
     def _build(self):

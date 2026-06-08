@@ -32,7 +32,7 @@ from GUIComponents.TxPanelBase import (
 )
 from GUIComponents.AppStyle import (
     button_border_color, scrollbar_handle_color, disabled_text_color,
-    scrollbar_track_color, spinbox_arrows_qss,
+    scrollbar_track_color, apply_native_spinbox_style,
 )
 
 
@@ -44,7 +44,6 @@ def _thermal_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
-    _spin = spinbox_arrows_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -90,7 +89,6 @@ QScrollBar:horizontal {{ background: {_track}; height: 14px; border-radius: 7px;
 QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-width: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover {{ background: #00c8ff; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
-{_spin}
 """
 
 
@@ -104,6 +102,7 @@ class ThermalForm(QWidget):
         self.setObjectName("Babel_Thermal")
         self.setStyleSheet(_thermal_qss(self))
         self._build()
+        apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
 
     def _build(self):
         root = QVBoxLayout(self)

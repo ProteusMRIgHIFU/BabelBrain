@@ -147,8 +147,9 @@ class AdvancedOptions(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
         # Apply the shared compact app style on top of the .ui layout.
-        from GUIComponents.AppStyle import app_qss
+        from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style
         self.setStyleSheet(app_qss(self))
+        apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
         self.setWindowTitle("Advanced Options")
 
         # Telemetry tab — added programmatically so the .ui file does not need

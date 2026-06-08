@@ -13,13 +13,11 @@ palette), so call the builder when applying:
 so the other form stylesheets stay consistent.
 """
 
-import os
 import platform
-import tempfile
 
-from PySide6.QtCore import QSize, QPoint, Qt
-from PySide6.QtGui import QPalette, QPixmap, QPainter, QColor, QPolygon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QPalette
+from PySide6.QtWidgets import QApplication, QStyleFactory, QAbstractSpinBox
 
 _IS_WINDOWS = platform.system() == "Windows"
 
@@ -68,59 +66,29 @@ def scrollbar_track_color(widget=None):
     return "palette(mid)" if palette_is_dark(widget) else "palette(base)"
 
 
-_spin_arrow_paths = None
+_fusion_style = None
 
 
-def _spinbox_arrow_icons():
-    """Generate small grey up/down triangle PNGs once and return their
-    QSS-url()-ready paths. Grey (#888) reads on both light and dark themes. Qt
-    has no neutral arrow resource and CSS-border triangles render as a filled
-    box, so we draw our own. Needs a QApplication, hence lazy generation."""
-    global _spin_arrow_paths
-    if _spin_arrow_paths is None:
-        d = tempfile.mkdtemp(prefix="babelbrain_spin_")
-        polys = {
-            "up.png":   QPolygon([QPoint(3, 11), QPoint(13, 11), QPoint(8, 5)]),
-            "down.png": QPolygon([QPoint(3, 5),  QPoint(13, 5),  QPoint(8, 11)]),
-        }
-        out = {}
-        for fname, poly in polys.items():
-            pm = QPixmap(16, 16)
-            pm.fill(Qt.transparent)
-            p = QPainter(pm)
-            p.setRenderHint(QPainter.Antialiasing, True)
-            p.setPen(Qt.NoPen)
-            p.setBrush(QColor("#888888"))
-            p.drawPolygon(poly)
-            p.end()
-            fp = os.path.join(d, fname)
-            pm.save(fp)
-            out[fname] = fp.replace(os.sep, "/")
-        _spin_arrow_paths = (out["up.png"], out["down.png"])
-    return _spin_arrow_paths
+def apply_native_spinbox_style(root):
+    """Windows only: render every spin box under `root` with the Fusion style.
 
+    The windowsvista style draws stylesheet'd spin boxes with big side-by-side
+    buttons that overlap the text and size inconsistently; Fusion draws small,
+    vertically stacked, palette-aware arrows with uniform sizing (like macOS).
+    Our border/padding QSS still applies on top. No-op on macOS/Linux.
 
-def spinbox_arrows_qss(widget=None):
-    """Windows-only: the windowsvista style renders stylesheet'd spin-box
-    buttons large and side-by-side, overlapping the text. Force the macOS-like
-    small, vertically stacked arrows. No-op on macOS/Linux (native is fine)."""
+    One shared style instance is kept alive (QWidget.setStyle does not take
+    ownership) and reused for all spin boxes.
+    """
     if not _IS_WINDOWS:
-        return ""
-    up, down = _spinbox_arrow_icons()
-    border = button_border_color(widget)
-    return f"""
-QSpinBox, QDoubleSpinBox {{ padding-right: 18px; }}
-QSpinBox::up-button, QDoubleSpinBox::up-button {{
-    subcontrol-origin: border; subcontrol-position: top right;
-    width: 16px; border-left: 1px solid {border};
-}}
-QSpinBox::down-button, QDoubleSpinBox::down-button {{
-    subcontrol-origin: border; subcontrol-position: bottom right;
-    width: 16px; border-left: 1px solid {border};
-}}
-QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{ image: url("{up}"); width: 9px; height: 9px; }}
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{ image: url("{down}"); width: 9px; height: 9px; }}
-"""
+        return
+    global _fusion_style
+    if _fusion_style is None:
+        _fusion_style = QStyleFactory.create("Fusion")
+    if _fusion_style is None:
+        return
+    for sb in root.findChildren(QAbstractSpinBox):
+        sb.setStyle(_fusion_style)
 
 
 # Compact, flat style for matplotlib's NavigationToolbar2QT (a QToolBar). The
@@ -154,7 +122,6 @@ def app_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
-    _spin = spinbox_arrows_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -240,5 +207,4 @@ QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-
 QScrollBar::handle:vertical {{ background: {_handle}; border-radius: 6px; min-height: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
-{_spin}
 """
