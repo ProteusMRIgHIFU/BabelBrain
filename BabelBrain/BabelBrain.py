@@ -704,7 +704,9 @@ class BabelBrain(QWidget):
         slider.setValue((0.1, 0.6))
         ZTE=self.Widget.CTZTETabs.widget(0)
         LayRange=ZTE.findChildren(QVBoxLayout)[0]
-        LayRange.addWidget(slider)
+        # Insert before the layout's trailing stretch so the slider aligns to the
+        # top of the tab (like the CT tab's HU threshold), not the bottom.
+        LayRange.insertWidget(LayRange.count()-1, slider)
         self.Widget.ZTERangeSlider=slider
         # NB: do not call self.Widget.setStyleSheet() here — it would replace
         # (not extend) the compact _FORM_QSS applied in BabelBrainMainForm,

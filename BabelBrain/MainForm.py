@@ -247,7 +247,10 @@ class BabelBrainMainForm(QWidget):
         left.setFixedWidth(260)
         left_l = QVBoxLayout(left)
         left_l.setContentsMargins(0, 4, 0, 0)
-        left_l.setSpacing(6)
+        # Spread the input rows out (~2–3× a label's height) and nudge the whole
+        # block down from the top so the column isn't mostly empty for CT/ZTE.
+        left_l.setSpacing(18)
+        left_l.addStretch(1)
 
         # US Frequency row
         freq_row = QHBoxLayout()
@@ -286,7 +289,9 @@ class BabelBrainMainForm(QWidget):
         self.CTZTETabs.setCurrentIndex(1)
         left_l.addWidget(self.CTZTETabs)
 
-        left_l.addStretch(1)
+        # Larger bottom stretch keeps the block in the upper portion (a little
+        # lower than the top) while the action button stays pinned at the bottom.
+        left_l.addStretch(2)
 
         # Calculate planning mask button
         self.CalculatePlanningMask = QPushButton("Calculate planning\nmask")
