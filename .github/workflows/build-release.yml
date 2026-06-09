@@ -19,6 +19,16 @@ on:
 permissions:
   contents: write   # needed to create the GitHub Release on tag push
 
+env:
+  # Run JavaScript-based actions (actions/checkout, actions/upload-artifact,
+  # actions/download-artifact, mamba-org/setup-micromamba, …) on the Node.js 24
+  # runtime instead of the deprecated Node.js 20. This clears the
+  # "Node.js 20 actions are deprecated" warning for all of them at once, ahead
+  # of GitHub forcing Node 24 by default on 2026-06-16 (Node 20 is removed from
+  # runners on 2026-09-16). No action-version bumps needed; their JS is
+  # compatible with Node 24.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build on ${{ matrix.label }}
@@ -53,9 +63,15 @@ jobs:
 
     steps:
       - name: Checkout
+        # Shallow, single-branch checkout (the default). The build reads the
+        # version from BabelBrain/version.txt and the release is driven by the
+        # GitHub ref, so full history isn't needed. fetch-depth: 0 used to pull
+        # in ALL branches, which on the case-insensitive macOS/Windows runners
+        # triggered git's "case-insensitive filesystem" warning because the
+        # remote has two branches differing only in case (MLX vs mlx).
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install Rosetta 2 (cross-arch x86_64 build on Apple Silicon)
         if: runner.os == 'macOS' && matrix.conda_subdir == 'osx-64'
