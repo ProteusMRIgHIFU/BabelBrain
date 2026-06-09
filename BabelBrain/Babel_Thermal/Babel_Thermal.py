@@ -827,6 +827,11 @@ class Babel_Thermal(QWidget):
         OutName3=OutName.replace('ThermalField','IntensityField')
         nii=nibabel.Nifti1Image(intensityField,affine=nidata.affine)
         nii.to_filename(OutName3)
+
+        MIField = pressureField/1e6/np.sqrt(self._MainApp._Frequency/1e6)
+        OutName4=OutName.replace('ThermalField','MI')
+        nii=nibabel.Nifti1Image(MIField,affine=nidata.affine)
+        nii.to_filename(OutName4)
             
 
         #If running with Brainsight, we save the path of thermal map
@@ -836,6 +841,7 @@ class Babel_Thermal(QWidget):
         txt =  'Thermal map file\n' + os.path.basename(OutName) +',\n'
         txt += 'Pressure map file\n' + os.path.basename(OutName2) +',\n'
         txt += 'Intensiy map file\n' + os.path.basename(OutName3) +',\n'
+        txt += 'MI map file\n' + os.path.basename(OutName4) +',\n'
         txt += 'saved at:\n '+os.path.dirname(OutName)
 
         maxL=np.max([len(os.path.basename(OutName)), len(os.path.dirname(OutName))])

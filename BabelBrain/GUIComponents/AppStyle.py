@@ -60,6 +60,19 @@ def disabled_text_color(widget=None):
     return "#808080" if palette_is_dark(widget) else "palette(mid)"
 
 
+def disabled_input_qss(widget=None):
+    """Dark mode only: grey out the text of disabled spin boxes / combos / line
+    edits so they visibly read as disabled (matching disabled buttons). Light
+    mode already conveys the disabled state natively, so emit nothing there."""
+    if not palette_is_dark(widget):
+        return ""
+    c = disabled_text_color(widget)
+    return (
+        "QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, "
+        f"QComboBox:disabled {{ color: {c}; }}"
+    )
+
+
 def scrollbar_track_color(widget=None):
     """Scrollbar groove. palette(base) barely separates from the window on dark
     themes, so use the slightly lighter palette(mid) there to define the track."""
@@ -122,6 +135,7 @@ def app_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
+    _dis_inputs = disabled_input_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -207,4 +221,5 @@ QScrollBar::handle:horizontal {{ background: {_handle}; border-radius: 6px; min-
 QScrollBar::handle:vertical {{ background: {_handle}; border-radius: 6px; min-height: 20px; margin: 2px; }}
 QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
+{_dis_inputs}
 """

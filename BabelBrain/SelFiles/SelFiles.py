@@ -435,14 +435,15 @@ class SelFiles(QDialog):
     @Slot()
     def SelectCTType(self,value):
         bv = value >0
+        bvCTScanner = value >0 and value != 4
         self.ui.CTlineEdit.setEnabled(bv)
         self.ui.SelCTpushButton.setEnabled(bv)
         self.ui.CoregCTlabel.setEnabled(bv)
         self.ui.CoregCTlabel_2.setEnabled(bv)
         self.ui.CoregCTlabel_3.setEnabled(bv)
         self.ui.CoregCTcomboBox.setEnabled(bv)
-        self.ui.CTMappingcomboBox.setEnabled(bv)
-        self.ui.ResetCTMapOriginalpushButton.setEnabled(bv)
+        self.ui.CTMappingcomboBox.setEnabled(bvCTScanner)
+        self.ui.ResetCTMapOriginalpushButton.setEnabled(bvCTScanner)
         self.ResetOriginalCTCombo()
     
     @Slot()

@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 from GUIComponents.AppStyle import (
     selected_tab_color, button_border_color,
     scrollbar_handle_color, disabled_text_color, scrollbar_track_color,
-    apply_native_spinbox_style,
+    apply_native_spinbox_style, disabled_input_qss,
 )
 
 
@@ -49,6 +49,7 @@ def _form_qss(widget=None):
     _handle = scrollbar_handle_color(widget)
     _disabled = disabled_text_color(widget)
     _track = scrollbar_track_color(widget)
+    _dis_inputs = disabled_input_qss(widget)
     return f"""
 QLabel {{ font-size: 11px; }}
 
@@ -131,6 +132,7 @@ QScrollBar::handle:horizontal {{
 }}
 QScrollBar::handle:horizontal:hover {{ background: {ACCENT}; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
+{_dis_inputs}
 """
 
 
