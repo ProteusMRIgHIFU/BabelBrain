@@ -2,7 +2,8 @@
 
  Identical to DomeTxForm except it also exposes
 a DistanceConeToFocusSpinBox — the base class uses `hasattr` to enable the
-extra cone-to-focus distance feature for H317.
+extra cone-to-focus distance feature for H317. The common bottom half is built
+by TxPanelBase._build_mech_and_actions().
 """
 
 from GUIComponents.TxPanelBase import (
@@ -10,7 +11,6 @@ from GUIComponents.TxPanelBase import (
     LABEL_BLUE,
     make_dspin,
     make_combo,
-    make_button,
     make_label,
     form_row,
 )
@@ -68,45 +68,7 @@ class H317Form(TxPanelBase):
 
         lay.addSpacing(6)
 
-        # Mechanical adjustments
-        self.XMechanicSpinBox = make_dspin(
-            "XMechanicSpinBox", minimum=-10.0, maximum=10.0)
-        lay.addLayout(form_row("Mechanical adj. X (mm)", self.XMechanicSpinBox))
-
-        self.YMechanicSpinBox = make_dspin(
-            "YMechanicSpinBox", minimum=-10.0, maximum=10.0)
-        lay.addLayout(form_row("Mechanical adj. Y (mm)", self.YMechanicSpinBox))
-
-        self.ZMechaniclabel = make_label("Mechanical adj. Z (mm)",
-                                         name="ZMechaniclabel")
-        self.ZMechanicSpinBox = make_dspin(
-            "ZMechanicSpinBox", minimum=-90.0, maximum=90.0)
-        lay.addLayout(form_row(self.ZMechaniclabel, self.ZMechanicSpinBox))
-
-        self.MaxDepthSpinBox = make_dspin(
-            "MaxDepthSpinBox", value=40.0, minimum=20.0, maximum=100.0,
-            decimals=1, step=1.0)
-        lay.addLayout(form_row(
-            make_label("Max. depth beyond\ntarget (mm)"),
-            self.MaxDepthSpinBox))
-
-        lay.addSpacing(8)
-
-        self.CalculateAcField = make_button(
-            "CalculateAcField", "Calculate Fields",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateAcField)
-
-        self.CalculateMechAdj = make_button(
-            "CalculateMechAdj", "Calculate Mechanical Adjustments",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateMechAdj)
-
-        self.DistanceTargetLabel = make_label(
-            "-", name="DistanceTargetLabel", bold=True, color=LABEL_BLUE)
-        lay.addLayout(form_row(
-            make_label("Distance target to FLHM\ncenter [X, Y, Z] (mm):"),
-            self.DistanceTargetLabel))
-
-        lay.addStretch(1)
+        self._build_mech_and_actions(
+            lay, xy_mech=(-10.0, 10.0), z_mechanic=(-90.0, 90.0),
+            tissue_warning=None)
         return frame

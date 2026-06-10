@@ -253,6 +253,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
 
     def AddSaveDataSim(self,DataForSim):
+        super().AddSaveDataSim(DataForSim)
         DataForSim['ZSteering']=self._ZSteering
         DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
 

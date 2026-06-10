@@ -239,7 +239,7 @@ class BabelBasePhaseArray(BabelBaseTx):
         return Export
     
     def GetExtraDataForThermal(self):
-        ExtraValues={}
+        ExtraValues=super().GetExtraDataForThermal()
         ExtraValues['DistanceConeToFocus']=self._LastDistanceConeToFocus
         return ExtraValues         
 
@@ -269,7 +269,11 @@ class BabelBasePhaseArray(BabelBaseTx):
             for fwater,fskull in zip(self._WaterSolName,self._FullSolName):
                 Skull=ReadFromH5py(fskull)
                 Water=ReadFromH5py(fwater)
-    
+
+                if 'SDR' in Skull and hasattr(self.Widget,'SDRLabel'):
+                    self._SDR=Skull['SDR']
+                    self.Widget.SDRLabel.setText('%0.2f' %(Skull['SDR']))
+                    
                 if Skull['bDoRefocusing']:
                     SelP='p_amp_refocus'
                 else:

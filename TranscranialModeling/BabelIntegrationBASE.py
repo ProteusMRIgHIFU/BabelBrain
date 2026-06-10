@@ -812,6 +812,46 @@ def ResaveNormalized(rpath, mask):
     ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
+
+def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
+                                      ray_spacing_mm=1.8, min_skull_voxels=3,center_region=0.5):
+    """
+    Casts rays along `axis` through skull voxels, spaced ~1.8 mm apart.
+    Returns mean SDR across all rays.
+    
+    Per literature (SkullGAN paper, arxiv 2308.00206):
+        SDR_per_ray = min(HU along ray) / max(HU along ray)
+        SDR_global  = mean over all rays
+    """
+    rows, cols,depth = volume.shape
+    step_i = max(1, int(round(ray_spacing_mm / spacing_mm[0])))
+    step_j = max(1, int(round(ray_spacing_mm / spacing_mm[1])))
+    
+    sdr_values = []
+    for r in range(0, rows, step_i):
+        for c in range(0, cols, step_j):
+            ray_hu = volume[r, c,:]
+            ray_skull = skull_mask[r, c,:]
+            
+            skull_indices = np.where(ray_skull)[0]
+            if skull_indices.size < min_skull_voxels:
+                continue
+            
+            # Midpoint index of the contiguous skull segment
+            mid_idx = len(skull_indices) // 2
+            l_half = float(len(skull_indices))*center_region
+            beg_indx=np.max([0,int(np.round(mid_idx-l_half/2))])
+            end_idx=np.min([len(skull_indices),1+int(np.round(mid_idx+l_half/2))])
+
+            hu_center = ray_hu[skull_indices[beg_indx]:skull_indices[end_idx]].min()
+            
+            skull_hu = ray_hu[skull_indices]
+            hu_max = skull_hu.max()
+
+            if hu_max > 0:
+                sdr_values.append(hu_center / hu_max)
+    print("len of SDR",len(sdr_values))
+    return np.mean(sdr_values) if sdr_values else float('nan')
     
 ####
 bGPU_INITIALIZED = False
@@ -1134,6 +1174,7 @@ class BabelFTD_Simulations_BASE(object):
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
             DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            DensitCTMapOrig=DensityCTMap.copy()
             if self._AIRMASK:
                 AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
@@ -1146,6 +1187,7 @@ class BabelFTD_Simulations_BASE(object):
                 print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
                 AllBoneHU = DensityToHUBony(DensityCTIT)
                 print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
+
             
             Porosity=HUtoPorosity(AllBoneHU)
             if self._MappingMethod=='Webb-Marsac':
@@ -1339,7 +1381,17 @@ class BabelFTD_Simulations_BASE(object):
                                             bForceHomogenousMedium=self._bForceHomogenousMedium,
                                             BenchmarkTestFile=self._BenchmarkTestFile)
         gc.collect()
-
+        if DensityCTMap is not None:
+            SubCTMap=DensitCTMapOrig[self._SIM_SETTINGS._XShrink_L:self._SIM_SETTINGS._upperXR,
+                                self._SIM_SETTINGS._YShrink_L:self._SIM_SETTINGS._upperYR,
+                                self._SIM_SETTINGS._ZShrink_L:self._SIM_SETTINGS._upperZR]
+            
+            SubCT=AllBoneHU[SubCTMap] #back from indexed to HU
+            
+            # SelSkullSDR[:,:,LocIJK[2]:]=False
+            self._SDR=compute_sdr_from_rays(SubCT,SubCTMap>0, spacing_mm=(self._SIM_SETTINGS._SpatialStep*1e3, self._SIM_SETTINGS._SpatialStep*1e3))
+            print('SDR =',self._SDR)
+        
     def GenerateSTLTx(self,prefix):
         pass
         
@@ -1401,7 +1453,8 @@ class BabelFTD_Simulations_BASE(object):
         gc.collect()
         
     def AddSaveDataSim(self,DataForSim):
-        pass
+        if hasattr(self,'_SDR'):
+            DataForSim['SDR']=self._SDR
 
     def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
         ss=subsamplingFactor
@@ -1828,25 +1881,25 @@ class SimulationConditionsBASE(object):
             print('self._N3',self._N3,self._ZLOffset,self._ZROffset,self._ZShrink_L,self._ZShrink_R)
 
             if self._XShrink_R==0:
-                upperXR=self._SkullMaskDataOrig.shape[0]
+                self._upperXR=self._SkullMaskDataOrig.shape[0]
             else:
-                upperXR=-self._XShrink_R
+                self._upperXR=-self._XShrink_R
             if self._YShrink_R==0:
-                upperYR=self._SkullMaskDataOrig.shape[1]
+                self._upperYR=self._SkullMaskDataOrig.shape[1]
             else:
-                upperYR=-self._YShrink_R
+                self._upperYR=-self._YShrink_R
             if self._ZShrink_R==0:
-                upperZR=self._SkullMaskDataOrig.shape[2]
+                self._upperZR=self._SkullMaskDataOrig.shape[2]
             else:
-                upperZR=-self._ZShrink_R
+                self._upperZR=-self._ZShrink_R
 
             TempMaterialMap=np.zeros((self._N1,self._N2,self._N3),np.uint32)
             TempMaterialMap[self._XLOffset:-self._XROffset,
                               self._YLOffset:-self._YROffset,
                               self._ZLOffset:-self._ZROffset]=\
-                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
-                                                                         self._YShrink_L:upperYR,
-                                                                         self._ZShrink_L:upperZR]
+                                self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:self._upperXR,
+                                                                         self._YShrink_L:self._upperYR,
+                                                                         self._ZShrink_L:self._upperZR]
             [mx,my,mz]=np.where(TempMaterialMap>0)
             FirstVoxelTissueZ=np.min(mz)
             print('FirstVoxelTissueZ',FirstVoxelTissueZ )
@@ -2059,32 +2112,32 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         self._SubAirRegions=None
         #we add the material map
         if self._XShrink_R==0:
-            upperXR=self._SkullMaskDataOrig.shape[0]
+            self._upperXR=self._SkullMaskDataOrig.shape[0]
         else:
-            upperXR=-self._XShrink_R
+            self._upperXR=-self._XShrink_R
         if self._YShrink_R==0:
-            upperYR=self._SkullMaskDataOrig.shape[1]
+            self._upperYR=self._SkullMaskDataOrig.shape[1]
         else:
-            upperYR=-self._YShrink_R
+            self._upperYR=-self._YShrink_R
         if self._ZShrink_R==0:
-            upperZR=self._SkullMaskDataOrig.shape[2]
+            self._upperZR=self._SkullMaskDataOrig.shape[2]
         else:
-            upperZR=-self._ZShrink_R
+            self._upperZR=-self._ZShrink_R
 
         if 'BABELBRAIN_SEL_MASK' in os.environ:
             affineSub=self._SkullMaskNii.affine.copy()
 
             LargeMask=np.zeros(self._SkullMaskDataOrig.shape,np.uint8)
-            LargeMask[self._XShrink_L:upperXR,
-                        self._YShrink_L:upperYR,
-                        self._ZShrink_L:upperZR]=\
+            LargeMask[self._XShrink_L:self._upperXR,
+                        self._YShrink_L:self._upperYR,
+                        self._ZShrink_L:self._upperZR]=\
                         RegionMap[self._XLOffset:-self._XROffset,
                                     self._YLOffset:-self._YROffset,
                                     self._ZLOffset:-self._ZROffset]
             LargeMask=np.flip(LargeMask,axis=2)
 
             MaskCalcRegions=np.zeros(self._SkullMaskDataOrig.shape,bool)
-            MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
+            MaskCalcRegions[self._XShrink_L:self._upperXR, self._YShrink_L:self._upperYR,self._ZShrink_L:self._upperZR ]=True
             MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
             [mx,my,mz]=np.where(MaskCalcRegions)
             locm=np.array([[mx[0],my[0],mz[0],1]]).T
@@ -2101,9 +2154,9 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         self._MaterialMapRef[self._XLOffset:-self._XROffset,
                             self._YLOffset:-self._YROffset,
                             self._ZLOffset:-self._ZROffset]=\
-                            self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:upperXR,
-                                                                        self._YShrink_L:upperYR,
-                                                                        self._ZShrink_L:upperZR]
+                            self._SkullMaskDataOrig.astype(np.uint32)[self._XShrink_L:self._upperXR,
+                                                                        self._YShrink_L:self._upperYR,
+                                                                        self._ZShrink_L:self._upperZR]
         if bWaterOnly==False and bForceHomogenousMedium == False and len(BenchmarkTestFile)==0:
             self._MaterialMap=self._MaterialMapRef
             bBrainSegmentation = np.any(self._MaterialMap>5)
@@ -2122,18 +2175,18 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
                 SubCTMap[self._XLOffset:-self._XROffset,
                               self._YLOffset:-self._YROffset,
                               self._ZLOffset:-self._ZROffset]=\
-                                self._DensityCTMap[self._XShrink_L:upperXR,
-                                                                         self._YShrink_L:upperYR,
-                                                                         self._ZShrink_L:upperZR]
+                                self._DensityCTMap[self._XShrink_L:self._upperXR,
+                                                                         self._YShrink_L:self._upperYR,
+                                                                         self._ZShrink_L:self._upperZR]
                 self._MaterialMap[BoneRegion]=SubCTMap[BoneRegion]
                 if self._AirRegions is not None:
                     SubAirRegions=np.zeros_like(self._MaterialMap)
                     SubAirRegions[self._XLOffset:-self._XROffset,
                                 self._YLOffset:-self._YROffset,
                                 self._ZLOffset:-self._ZROffset]=\
-                                    self._AirRegions[self._XShrink_L:upperXR,
-                                                                            self._YShrink_L:upperYR,
-                                                                            self._ZShrink_L:upperZR]
+                                    self._AirRegions[self._XShrink_L:self._upperXR,
+                                                                            self._YShrink_L:self._upperYR,
+                                                                            self._ZShrink_L:self._upperZR]
                     self._SubAirRegions=SubAirRegions
                 assert(SubCTMap[BoneRegion].min()>=3)
                 assert(SubCTMap[BoneRegion].max()<=self.ReturnArrayMaterial().shape[0])
@@ -2689,26 +2742,14 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         tuple
             Contains Rayleigh field, overlays, pressure/phase maps, and simulation data.
         '''
-        if self._XShrink_R==0:
-            upperXR=self._SkullMaskDataOrig.shape[0]
-        else:
-            upperXR=-self._XShrink_R
-        if self._YShrink_R==0:
-            upperYR=self._SkullMaskDataOrig.shape[1]
-        else:
-            upperYR=-self._YShrink_R
-        if self._ZShrink_R==0:
-            upperZR=self._SkullMaskDataOrig.shape[2]
-        else:
-            upperZR=-self._ZShrink_R
 
         self._u2RayleighField[:,:,:self._ZSourceLocation+1]=0.0
         
         #we return the region not including the PML and padding
         RayleighWater=np.zeros(self._SkullMaskDataOrig.shape,np.complex64)
-        RayleighWater[self._XShrink_L:upperXR,
-                      self._YShrink_L:upperYR,
-                      self._ZShrink_L:upperZR]=\
+        RayleighWater[self._XShrink_L:self._upperXR,
+                      self._YShrink_L:self._upperYR,
+                      self._ZShrink_L:self._upperZR]=\
                       self._u2RayleighField[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
@@ -2729,25 +2770,25 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         
         
         FullSolutionPressure=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
-        FullSolutionPressure[self._XShrink_L:upperXR,
-                      self._YShrink_L:upperYR,
-                      self._ZShrink_L:upperZR]=\
+        FullSolutionPressure[self._XShrink_L:self._upperXR,
+                      self._YShrink_L:self._upperYR,
+                      self._ZShrink_L:self._upperZR]=\
                       self._InPeakValue[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
         FullSolutionPressure=np.flip(FullSolutionPressure,axis=2)
 
         FullSolutionPhase=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
-        FullSolutionPhase[self._XShrink_L:upperXR,
-                      self._YShrink_L:upperYR,
-                      self._ZShrink_L:upperZR]=\
+        FullSolutionPhase[self._XShrink_L:self._upperXR,
+                      self._YShrink_L:self._upperYR,
+                      self._ZShrink_L:self._upperZR]=\
                       self._PhaseMap[self._XLOffset:-self._XROffset,
                                    self._YLOffset:-self._YROffset,
                                    self._ZLOffset:-self._ZROffset]
         FullSolutionPhase=np.flip(FullSolutionPhase,axis=2)
 
 
-        MaskCalcRegions[self._XShrink_L:upperXR, self._YShrink_L:upperYR,self._ZShrink_L:upperZR ]=True
+        MaskCalcRegions[self._XShrink_L:self._upperXR, self._YShrink_L:self._upperYR,self._ZShrink_L:self._upperZR ]=True
         MaskCalcRegions=np.flip(MaskCalcRegions,axis=2)
         FullSolutionPressureRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
         FullSolutionPhaseRefocus=np.zeros(self._SkullMaskDataOrig.shape,np.float32)
@@ -2756,16 +2797,16 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             self._InPeakValueRefocus[:,:,:self._ZSourceLocation+1]=0.0
             self._PhaseMapRefocus[:,:,:self._ZSourceLocation+1]=0.0
             self._PressMapFourierRefocus[:,:,:self._ZSourceLocation+1]=0.0
-            FullSolutionPressureRefocus[self._XShrink_L:upperXR,
-                          self._YShrink_L:upperYR,
-                          self._ZShrink_L:upperZR]=\
+            FullSolutionPressureRefocus[self._XShrink_L:self._upperXR,
+                          self._YShrink_L:self._upperYR,
+                          self._ZShrink_L:self._upperZR]=\
                           self._InPeakValueRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset]
             FullSolutionPressureRefocus=np.flip(FullSolutionPressureRefocus,axis=2)
-            FullSolutionPhaseRefocus[self._XShrink_L:upperXR,
-                          self._YShrink_L:upperYR,
-                          self._ZShrink_L:upperZR]=\
+            FullSolutionPhaseRefocus[self._XShrink_L:self._upperXR,
+                          self._YShrink_L:self._upperYR,
+                          self._ZShrink_L:self._upperZR]=\
                           self._PhaseMapRefocus[self._XLOffset:-self._XROffset,
                                        self._YLOffset:-self._YROffset,
                                        self._ZLOffset:-self._ZROffset]

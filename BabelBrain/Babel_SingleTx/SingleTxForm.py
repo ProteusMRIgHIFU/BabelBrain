@@ -2,7 +2,8 @@
 
 Both forms share the same layout scaffold (TxPanelBase) and differ only in
 their left-panel controls (focal length / diameter vs. transducer-model
-dropdown).
+dropdown). The common bottom half (mechanical adjustments, action buttons,
+FLHM readout, warning) is built by TxPanelBase._build_mech_and_actions().
 """
 
 from GUIComponents.TxPanelBase import (
@@ -10,7 +11,6 @@ from GUIComponents.TxPanelBase import (
     LABEL_BLUE,
     make_dspin,
     make_combo,
-    make_button,
     make_label,
     form_row,
 )
@@ -56,54 +56,8 @@ class SingleTxForm(TxPanelBase):
 
         lay.addSpacing(6)
 
-        # Mechanical adjustments
-        self.XMechanicSpinBox = make_dspin(
-            "XMechanicSpinBox", minimum=-5.0, maximum=5.0)
-        lay.addLayout(form_row("Mechanical adj. X (mm)", self.XMechanicSpinBox))
-
-        self.YMechanicSpinBox = make_dspin(
-            "YMechanicSpinBox", minimum=-5.0, maximum=5.0)
-        lay.addLayout(form_row("Mechanical adj. Y (mm)", self.YMechanicSpinBox))
-
-        self.SkinDistanceSpinBox = make_dspin(
-            "SkinDistanceSpinBox", minimum=-5.0, maximum=5.0)
-        lay.addLayout(form_row(
-            make_label("Distance Tx outplane\nto skin (mm)"),
-            self.SkinDistanceSpinBox))
-
-        self.MaxDepthSpinBox = make_dspin(
-            "MaxDepthSpinBox", value=40.0, minimum=20.0, maximum=100.0,
-            decimals=1, step=1.0)
-        lay.addLayout(form_row(
-            make_label("Max. depth beyond\ntarget (mm)"),
-            self.MaxDepthSpinBox))
-
-        lay.addSpacing(8)
-
-        # Action buttons
-        self.CalculateAcField = make_button(
-            "CalculateAcField", "Calculate Fields",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateAcField)
-
-        self.CalculateMechAdj = make_button(
-            "CalculateMechAdj", "Calculate Mechanical Adjustments",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateMechAdj)
-
-        # Result + warning
-        self.DistanceTargetLabel = make_label(
-            "-", name="DistanceTargetLabel", bold=True, color=LABEL_BLUE)
-        lay.addLayout(form_row(
-            make_label("Distance target to FLHM\ncenter [X, Y, Z] (mm):"),
-            self.DistanceTargetLabel))
-
-        self.LabelTissueRemoved = make_label(
-            "Tissue layers will be removed!", name="LabelTissueRemoved")
-        self.LabelTissueRemoved.setStyleSheet("color: #e03030;")
-        lay.addWidget(self.LabelTissueRemoved)
-
-        lay.addStretch(1)
+        self._build_mech_and_actions(
+            lay, xy_mech=(-5.0, 5.0), skin_distance=(-5.0, 5.0))
         return frame
 
 
@@ -135,52 +89,6 @@ class BSonixForm(TxPanelBase):
 
         lay.addSpacing(6)
 
-        # Mechanical adjustments
-        self.XMechanicSpinBox = make_dspin(
-            "XMechanicSpinBox", minimum=-5.0, maximum=5.0)
-        lay.addLayout(form_row("Mechanical adj. X (mm)", self.XMechanicSpinBox))
-
-        self.YMechanicSpinBox = make_dspin(
-            "YMechanicSpinBox", minimum=-5.0, maximum=5.0)
-        lay.addLayout(form_row("Mechanical adj. Y (mm)", self.YMechanicSpinBox))
-
-        self.SkinDistanceSpinBox = make_dspin(
-            "SkinDistanceSpinBox", minimum=-25.0, maximum=5.0)
-        lay.addLayout(form_row(
-            make_label("Distance Tx outplane\nto skin (mm)"),
-            self.SkinDistanceSpinBox))
-
-        self.MaxDepthSpinBox = make_dspin(
-            "MaxDepthSpinBox", value=40.0, minimum=20.0, maximum=100.0,
-            decimals=1, step=1.0)
-        lay.addLayout(form_row(
-            make_label("Max. depth beyond\ntarget (mm)"),
-            self.MaxDepthSpinBox))
-
-        lay.addSpacing(8)
-
-        # Action buttons
-        self.CalculateAcField = make_button(
-            "CalculateAcField", "Calculate Fields",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateAcField)
-
-        self.CalculateMechAdj = make_button(
-            "CalculateMechAdj", "Calculate Mechanical Adjustments",
-            bold=True, min_height=40)
-        lay.addWidget(self.CalculateMechAdj)
-
-        # Result + warning
-        self.DistanceTargetLabel = make_label(
-            "-", name="DistanceTargetLabel", bold=True, color=LABEL_BLUE)
-        lay.addLayout(form_row(
-            make_label("Distance target to FLHM\ncenter [X, Y, Z] (mm):"),
-            self.DistanceTargetLabel))
-
-        self.LabelTissueRemoved = make_label(
-            "Tissue layers will be removed!", name="LabelTissueRemoved")
-        self.LabelTissueRemoved.setStyleSheet("color: #e03030;")
-        lay.addWidget(self.LabelTissueRemoved)
-
-        lay.addStretch(1)
+        self._build_mech_and_actions(
+            lay, xy_mech=(-5.0, 5.0), skin_distance=(-25.0, 5.0))
         return frame

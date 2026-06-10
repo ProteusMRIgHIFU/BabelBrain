@@ -133,6 +133,12 @@ class BabelBaseTx(QWidget):
             
             Water=ReadFromH5py(self._WaterSolName)
             Skull=ReadFromH5py(self._FullSolName)
+            print('_FullSolName',self._FullSolName)
+
+            if 'SDR' in Skull and hasattr(self.Widget,'SDRLabel'):
+                self._SDR=Skull['SDR']
+                self.Widget.SDRLabel.setText('%0.2f' %(Skull['SDR']))
+                
 
             extrasuffix=self.GetExtraSuffixAcFields()
 
@@ -354,9 +360,10 @@ class BabelBaseTx(QWidget):
         return Export
     
     def GetExtraDataForThermal(self):
-        #we use this to save extra data in thermal files if required,
-        #to be redefined in child class 
-        return {}
+        retDict={}
+        if hasattr(self,'_SDR'):
+            retDict['SDR']=self._SDR
+        return retDict
     
     def EnableMultiPoint(self,MultiPoint):
         #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
