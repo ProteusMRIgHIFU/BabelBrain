@@ -357,12 +357,12 @@ class BabelBaseTx(QWidget):
     def GetExport(self):
         Export={}
         Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
+        if hasattr(self,'_SDR'):
+            Export['SDR']=self._SDR
         return Export
     
     def GetExtraDataForThermal(self):
         retDict={}
-        if hasattr(self,'_SDR'):
-            retDict['SDR']=self._SDR
         return retDict
     
     def EnableMultiPoint(self,MultiPoint):
