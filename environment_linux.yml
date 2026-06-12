@@ -9,6 +9,7 @@ dependencies:
   - bzip2=1.0.8=h7b6447c_0
   - ca-certificates=2022.12.7=ha878542_0
   - certifi=2022.12.7=pyhd8ed1ab_0
+  - cmake
   - cudatoolkit=10.2.89=h713d32c_10
   - cudatoolkit-dev=11.7.0=h1de0b5d_6
   - cupy=12.0.0=py310h5a5d52f_0
@@ -101,7 +102,7 @@ dependencies:
       - superqt==0.4.1
       - tifffile==2023.3.21
       - trimesh==4.7.3
-      - typing-extensions==4.5.0
+      - typing-extensions>=4.10
       - uhi==0.3.3
       - urllib3==1.26.15
       - vtk==9.5.2
