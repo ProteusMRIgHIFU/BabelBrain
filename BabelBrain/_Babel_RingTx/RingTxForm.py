@@ -20,7 +20,7 @@ class RingTxForm(TxPanelBase):
         frame, lay = self._make_left_frame()
 
         # Z distance / TPO
-        self.labelTPODistance = make_label("Z Distance (mm)",
+        self.labelTPODistance = make_label("Z Steering (mm)",
                                            name="labelTPODistance")
         self.TPODistanceSpinBox = make_dspin(
             "TPODistanceSpinBox", minimum=-5.0, maximum=5.0)
