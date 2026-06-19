@@ -284,7 +284,12 @@ jobs:
       # structure stays the same.
       # --------------------------------------------------------------------
       - name: Prepare Windows code signing
-        if: runner.os == 'Windows'
+        # Sign only REAL releases — a v* tag push, or a manual dispatch that
+        # publishes a Release (same condition the release job uses). test-* tags
+        # and plain dev dispatches build an UNSIGNED installer, so signing volume
+        # stays at ~your actual release count regardless of how many test builds
+        # you run.
+        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/v') || inputs.publish_release == true)
         shell: pwsh
         env:
           PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
@@ -308,7 +313,7 @@ jobs:
           Write-Host "signtool: $signtool"
 
       - name: Sign app binaries (Windows)
-        if: runner.os == 'Windows' && env.WINDOWS_SIGNING_AVAILABLE == 'true'
+        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/v') || inputs.publish_release == true) && env.WINDOWS_SIGNING_AVAILABLE == 'true'
         shell: pwsh
         working-directory: BabelBrain
         env:
@@ -356,7 +361,7 @@ jobs:
           Get-Item "..\artifacts\${{ matrix.artifact_name }}.exe" | Select-Object FullName, Length
 
       - name: Sign installer (Windows)
-        if: runner.os == 'Windows' && env.WINDOWS_SIGNING_AVAILABLE == 'true'
+        if: runner.os == 'Windows' && (startsWith(github.ref, 'refs/tags/v') || inputs.publish_release == true) && env.WINDOWS_SIGNING_AVAILABLE == 'true'
         shell: pwsh
         env:
           PFX_PASSWORD: ${{ secrets.WINDOWS_CERT_PFX_PASSWORD }}
