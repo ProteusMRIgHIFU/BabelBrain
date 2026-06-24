@@ -208,7 +208,7 @@ class RUN_PLAN_TUS(QObject):
         PlanTUSRoot=self.OptionsDlg.ui.PlanTUSRootlineEdit.text()
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
         ConnectomeRoot=self.OptionsDlg.ui.ConnectomeRootlineEdit.text()
-        VolumeROIPlanTUS=self.OptionsDlg.ui.VolumeROIPlanTUS.text()
+        VolumeROIPlanTUS=self.OptionsDlg.ui.VolumeROIPlanTUSlineEdit.text()
 
         if TrajectoryType =='brainsight':
             RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
@@ -335,7 +335,7 @@ class RUN_PLAN_TUS(QObject):
         
         #we check if files are already generated, in case the user may just want to refine the location
 
-        if os.path.isfile(self.PlanOutputPath+os.sep+'skin.surf.gii'):
+        if os.path.isfile(self.PlanOutputPath+os.sep+'distances_skin.func.gii'):
             ret = QMessageBox.question(self.OptionsDlg,'', "PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
             if ret == QMessageBox.No:
                 if not self.showTUSPlanViewer():
@@ -522,6 +522,14 @@ class RUN_PLAN_TUS(QObject):
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")
                 print("*"*40)
+                msg = QMessageBox(self.OptionsDlg)
+                msg.setIcon(QMessageBox.Icon.Critical)
+                msg.setWindowTitle("Error in PlanTUS.")
+                msg.setText("An error occurred during execution of PlanTUS.")
+                msg.setInformativeText("Check console terminal output in main Window for detailed error")
+                msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msg.exec()
+
 
     def showFinalResults(self,TxResultSurface):
         DlgResults=QDialog(self.OptionsDlg)
@@ -623,28 +631,22 @@ def RunPlanTUSBackground(queue,
                 path_script = scriptbase+"run_mac.sh"
 
             print("Starting PlanTUS")
-            if _IS_MAC:
-                cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + PlanTUSRoot + '" "' + t1Path + '" "' + mshPath +'" "' + maskPath + '" "'+TxConfigName+'"'
-                if runOnlyTrajectory>-1:
-                    cmd += ' --do_only_trajectory '+str(runOnlyTrajectory)
-                print(cmd)
-                result = os.system(cmd)
-            else:
-                args= [shell,
-                        path_script,
-                        SimbNINBSRoot,
-                        PlanTUSRoot,
-                        t1Path,
-                        mshPath,
-                        maskPath,
-                        TxConfigName]
-                if runOnlyTrajectory>-1:
-                    args.append('--do_only_trajectory')
-                    args.append(str(runOnlyTrajectory))
-                result = subprocess.run(args, capture_output=True, text=True)
-                print("stdout:", result.stdout)
-                print("stderr:", result.stderr)
-                result=result.returncode 
+            args= [shell,
+                    path_script,
+                    SimbNINBSRoot,
+                    PlanTUSRoot,
+                    t1Path,
+                    mshPath,
+                    maskPath,
+                    TxConfigName]
+            if runOnlyTrajectory>-1:
+                args.append('--do_only_trajectory')
+                args.append(str(runOnlyTrajectory))
+            result = subprocess.run(args, capture_output=True, text=True,check=True)
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            result=result.returncode 
+            
         else:
             path_script = os.path.join(resource_path(),"ExternalBin/PlanTUS/run_win.bat")
             
@@ -659,14 +661,20 @@ def RunPlanTUSBackground(queue,
             if runOnlyTrajectory>-1:
                     args.append('--do_only_trajectory')
                     args.append(str(runOnlyTrajectory))
-            result = subprocess.run(args, capture_output=True, text=True,shell=True)
+            result = subprocess.run(args, capture_output=True, text=True,shell=True,check=True)
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             result=result.returncode 
         print("PlanTUS Finished")
         print("--Babel-Brain-Success")
+    except subprocess.CalledProcessError as e:
+        print('--Babel-Brain-Low-Error')
+        print('Error when invoking PlanTUS')
+        print(e.stdout)
+        print(e.stderr)
     except BaseException as e:
         print('--Babel-Brain-Low-Error')
+        print('Error when invoking PlanTUS')
         print(traceback.format_exc())
         print(str(e))
     
