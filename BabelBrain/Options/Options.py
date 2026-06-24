@@ -195,6 +195,7 @@ class AdvancedOptions(QDialog):
             
         buttons = [
                 (self.ui.YAMLCalibrationpushButton, self.ui.YAMLCalibrationLineEdit, "Select YAML file with input fields to run calibration","YAML files (*.yaml *.yml)"),
+                (self.ui.VolumeROIPlanTUSpushButton, self.ui.VolumeROIPlanTUSlineEdit, "Select Volume ROI for PlanTUS","Nifti files (*.nii *.nii.gz)")
                ]
         for button, line_edit, title, mask in buttons:
             connect_file_button(self,button, line_edit, title, mask)

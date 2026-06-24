@@ -208,6 +208,7 @@ class RUN_PLAN_TUS(QObject):
         PlanTUSRoot=self.OptionsDlg.ui.PlanTUSRootlineEdit.text()
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
         ConnectomeRoot=self.OptionsDlg.ui.ConnectomeRootlineEdit.text()
+        VolumeROIPlanTUS=self.OptionsDlg.ui.VolumeROIPlanTUS.text()
 
         if TrajectoryType =='brainsight':
             RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
@@ -312,7 +313,12 @@ class RUN_PLAN_TUS(QObject):
         self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+Path(maskPath).name.replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
-        create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
+        #if a user define mask is specified , we use that for input
+        if len(VolumeROIPlanTUS)>0 and VolumeROIPlanTUS!='...':
+            if os.path.isfile(VolumeROIPlanTUS):
+                shutil.copyfile(VolumeROIPlanTUS,maskPath)
+        else:
+            create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
 
         scriptbase=os.path.join(resource_path(),"ExternalBin"+os.sep+"PlanTUS"+os.sep)
         queue=Queue()

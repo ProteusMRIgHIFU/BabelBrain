@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>664</width>
-    <height>513</height>
+    <height>546</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <property name="geometry">
     <rect>
      <x>580</x>
-     <y>475</y>
+     <y>510</y>
      <width>74</width>
      <height>32</height>
     </rect>
@@ -30,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>276</x>
-     <y>477</y>
+     <y>512</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -43,7 +43,7 @@
    <property name="geometry">
     <rect>
      <x>6</x>
-     <y>475</y>
+     <y>510</y>
      <width>136</width>
      <height>32</height>
     </rect>
@@ -58,7 +58,7 @@
      <x>5</x>
      <y>2</y>
      <width>644</width>
-     <height>468</height>
+     <height>500</height>
     </rect>
    </property>
    <property name="currentIndex">
@@ -116,7 +116,7 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>240</y>
+       <y>274</y>
        <width>349</width>
        <height>20</height>
       </rect>
@@ -173,7 +173,7 @@
      <property name="geometry">
       <rect>
        <x>173</x>
-       <y>250</y>
+       <y>284</y>
        <width>438</width>
        <height>44</height>
       </rect>
@@ -262,7 +262,7 @@
      <property name="geometry">
       <rect>
        <x>15</x>
-       <y>266</y>
+       <y>300</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -291,7 +291,7 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>296</y>
+       <y>330</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -307,7 +307,7 @@
      <property name="geometry">
       <rect>
        <x>13</x>
-       <y>320</y>
+       <y>354</y>
        <width>251</width>
        <height>20</height>
       </rect>
@@ -323,7 +323,7 @@
      <property name="geometry">
       <rect>
        <x>18</x>
-       <y>343</y>
+       <y>377</y>
        <width>156</width>
        <height>20</height>
       </rect>
@@ -336,7 +336,7 @@
      <property name="geometry">
       <rect>
        <x>239</x>
-       <y>342</y>
+       <y>376</y>
        <width>241</width>
        <height>20</height>
       </rect>
@@ -349,7 +349,7 @@
      <property name="geometry">
       <rect>
        <x>16</x>
-       <y>366</y>
+       <y>400</y>
        <width>251</width>
        <height>18</height>
       </rect>
@@ -365,7 +365,7 @@
      <property name="geometry">
       <rect>
        <x>273</x>
-       <y>366</y>
+       <y>400</y>
        <width>276</width>
        <height>18</height>
       </rect>
@@ -378,7 +378,7 @@
      <property name="geometry">
       <rect>
        <x>175</x>
-       <y>343</y>
+       <y>377</y>
        <width>42</width>
        <height>21</height>
       </rect>
@@ -394,7 +394,7 @@
      <property name="geometry">
       <rect>
        <x>483</x>
-       <y>342</y>
+       <y>376</y>
        <width>42</width>
        <height>22</height>
       </rect>
@@ -413,7 +413,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>390</y>
+       <y>424</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -438,7 +438,7 @@
      <property name="geometry">
       <rect>
        <x>53</x>
-       <y>390</y>
+       <y>424</y>
        <width>255</width>
        <height>18</height>
       </rect>
@@ -451,7 +451,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>390</y>
+       <y>424</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -476,7 +476,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>390</y>
+       <y>424</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -489,7 +489,7 @@
      <property name="geometry">
       <rect>
        <x>309</x>
-       <y>414</y>
+       <y>448</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -514,7 +514,7 @@
      <property name="geometry">
       <rect>
        <x>479</x>
-       <y>414</y>
+       <y>448</y>
        <width>86</width>
        <height>20</height>
       </rect>
@@ -539,7 +539,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>414</y>
+       <y>448</y>
        <width>288</width>
        <height>18</height>
       </rect>
@@ -552,7 +552,7 @@
      <property name="geometry">
       <rect>
        <x>419</x>
-       <y>414</y>
+       <y>448</y>
        <width>70</width>
        <height>18</height>
       </rect>
@@ -583,7 +583,7 @@
        <x>3</x>
        <y>90</y>
        <width>636</width>
-       <height>150</height>
+       <height>179</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -598,7 +598,7 @@
         <x>543</x>
         <y>3</y>
         <width>86</width>
-        <height>143</height>
+        <height>172</height>
        </rect>
       </property>
       <property name="text">
@@ -611,7 +611,7 @@ PlanTUS</string>
        <rect>
         <x>8</x>
         <y>89</y>
-        <width>120</width>
+        <width>149</width>
         <height>32</height>
        </rect>
       </property>
@@ -619,7 +619,7 @@ PlanTUS</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>PlanTUS root...</string>
+       <string>PlanTUS root</string>
       </property>
       <property name="autoDefault">
        <bool>false</bool>
@@ -633,7 +633,7 @@ PlanTUS</string>
        <rect>
         <x>8</x>
         <y>62</y>
-        <width>120</width>
+        <width>149</width>
         <height>32</height>
        </rect>
       </property>
@@ -641,7 +641,7 @@ PlanTUS</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>SimNIBS root...</string>
+       <string>SimNIBS root</string>
       </property>
       <property name="autoDefault">
        <bool>false</bool>
@@ -653,9 +653,9 @@ PlanTUS</string>
      <widget class="QLineEdit" name="PlanTUSRootlineEdit">
       <property name="geometry">
        <rect>
-        <x>141</x>
+        <x>163</x>
         <y>94</y>
-        <width>397</width>
+        <width>375</width>
         <height>21</height>
        </rect>
       </property>
@@ -669,9 +669,9 @@ PlanTUS</string>
      <widget class="QLineEdit" name="SimbNINBSRootlineEdit">
       <property name="geometry">
        <rect>
-        <x>141</x>
+        <x>163</x>
         <y>67</y>
-        <width>398</width>
+        <width>375</width>
         <height>21</height>
        </rect>
       </property>
@@ -685,9 +685,9 @@ PlanTUS</string>
      <widget class="QPushButton" name="ConnectomeRootpushButton">
       <property name="geometry">
        <rect>
-        <x>9</x>
+        <x>8</x>
         <y>115</y>
-        <width>118</width>
+        <width>149</width>
         <height>32</height>
        </rect>
       </property>
@@ -695,7 +695,7 @@ PlanTUS</string>
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Connectome ...</string>
+       <string>Connectome root</string>
       </property>
       <property name="autoDefault">
        <bool>false</bool>
@@ -707,9 +707,9 @@ PlanTUS</string>
      <widget class="QLineEdit" name="ConnectomeRootlineEdit">
       <property name="geometry">
        <rect>
-        <x>143</x>
+        <x>163</x>
         <y>120</y>
-        <width>396</width>
+        <width>375</width>
         <height>21</height>
        </rect>
       </property>
@@ -844,12 +844,50 @@ to skin (mm)</string>
        <double>0.000000000000000</double>
       </property>
      </widget>
+     <widget class="QLineEdit" name="VolumeROIPlanTUSlineEdit">
+      <property name="geometry">
+       <rect>
+        <x>163</x>
+        <y>150</y>
+        <width>375</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>...</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="VolumeROIPlanTUSpushButton">
+      <property name="geometry">
+       <rect>
+        <x>8</x>
+        <y>145</y>
+        <width>149</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string>Vol. ROI (optional)</string>
+      </property>
+      <property name="autoDefault">
+       <bool>false</bool>
+      </property>
+      <property name="flat">
+       <bool>false</bool>
+      </property>
+     </widget>
     </widget>
     <widget class="QCheckBox" name="ExtractAirRegionscheckBox">
      <property name="geometry">
       <rect>
        <x>202</x>
-       <y>294</y>
+       <y>328</y>
        <width>150</width>
        <height>20</height>
       </rect>
