@@ -1190,6 +1190,8 @@ class LayerRow(QWidget):
     remove_requested   = Signal(int)
     wl_select          = Signal(int)
     cutoff_changed     = Signal(int, object)   # (vol_idx, float | None)
+    wl_changed         = Signal(int, float, float)  # (vol_idx, window, level)
+    wl_reset           = Signal(int)                # (vol_idx) — restore default W/L
 
     def __init__(self, vol_idx: int, rec: VolumeRecord,parent=None,tissue_label=False):
         super().__init__(parent)
@@ -1215,7 +1217,10 @@ class LayerRow(QWidget):
             """)
 
     def update_wl_readout(self, window: float, level: float) -> None:
-        self._wl_lbl.setText(f"W {window:.0f}  L {level:.0f}")
+        for edit, value in ((self._w_edit, window), (self._l_edit, level)):
+            edit.blockSignals(True)
+            edit.setText(f"{value:.4g}")
+            edit.blockSignals(False)
 
     def _build_ui(self, rec: VolumeRecord):
         color = VOL_COLORS[self._vol_idx % len(VOL_COLORS)]
@@ -1309,18 +1314,67 @@ class LayerRow(QWidget):
 
         lay.addLayout(hrow)
 
-        # ── W/L readout ────────────────────────────────────────────────
-        self._wl_lbl = QLabel(
-            f"W {rec.wl_window:.0f}  L {rec.wl_level:.0f}")
-        self._wl_lbl.setStyleSheet(
-            f"color:{TEXT_DIM}; font-size:10px; font-family:monospace;")
-        lay.addWidget(self._wl_lbl)
+        # ── W/L editable fields + per-layer reset ──────────────────────
+        # Window/Level can be typed directly (handy for restoring a scalar
+        # overlay that was windowed by accident), and the ↺ button restores
+        # this layer's W/L to its default data range without touching the
+        # camera, slice, cutoff, or any other layer.
+        wlrow = QHBoxLayout(); wlrow.setSpacing(4)
+
+        def _wl_edit(value: float) -> QLineEdit:
+            e = QLineEdit(f"{value:.4g}")
+            e.setFixedWidth(50)
+            e.setFixedHeight(20)
+            e.setValidator(QDoubleValidator())
+            e.setStyleSheet(f"""
+                QLineEdit {{
+                    background:#1a1a22; color:{TEXT_DIM};
+                    border:1px solid #444455; border-radius:3px;
+                    padding:0 3px; font-size:10px; font-family:monospace;
+                }}
+                QLineEdit:focus {{ border-color:{color}; }}
+            """)
+            return e
+
+        w_cap = QLabel("W"); w_cap.setStyleSheet(f"color:{TEXT_DIM}; font-size:10px;")
+        l_cap = QLabel("L"); l_cap.setStyleSheet(f"color:{TEXT_DIM}; font-size:10px;")
+        self._w_edit = _wl_edit(rec.wl_window)
+        self._l_edit = _wl_edit(rec.wl_level)
+        self._w_edit.setToolTip("Window width (contrast). Press Enter to apply.")
+        self._l_edit.setToolTip("Window level (brightness centre). Press Enter to apply.")
+        self._w_edit.editingFinished.connect(self._on_wl_edited)
+        self._l_edit.editingFinished.connect(self._on_wl_edited)
+
+        self._wl_reset_btn = QToolButton()
+        self._wl_reset_btn.setText("↺")
+        self._wl_reset_btn.setFixedSize(20, 20)
+        self._wl_reset_btn.setToolTip("Reset this layer's window/level to default")
+        self._wl_reset_btn.setStyleSheet(f"""
+            QToolButton {{ border:1px solid #444455; background:transparent;
+                           color:{TEXT_DIM}; border-radius:3px; font-size:12px; }}
+            QToolButton:hover {{ border-color:{color}; color:{color}; }}
+        """)
+        self._wl_reset_btn.clicked.connect(
+            lambda: self.wl_reset.emit(self._vol_idx))
+
+        wlrow.addWidget(w_cap)
+        wlrow.addWidget(self._w_edit)
+        wlrow.addWidget(l_cap)
+        wlrow.addWidget(self._l_edit)
+        wlrow.addStretch(1)
+        wlrow.addWidget(self._wl_reset_btn)
+        lay.addLayout(wlrow)
+
+        # Widgets hidden for tissue-label layers (they have no W/L meaning).
+        self._wl_widgets = [w_cap, self._w_edit, l_cap, self._l_edit,
+                            self._wl_reset_btn]
 
         # Style the WL button initially (inactive)
         self.set_wl_active(False)
 
         if self._tissue_label:
-            self._wl_lbl.setVisible(False)
+            for wdg in self._wl_widgets:
+                wdg.setVisible(False)
 
         # ── Opacity row (overlays only) ────────────────────────────────
         # if not self._is_base:
@@ -1392,6 +1446,14 @@ class LayerRow(QWidget):
             except ValueError:
                 pass
 
+    def _on_wl_edited(self):
+        try:
+            window = float(self._w_edit.text())
+            level  = float(self._l_edit.text())
+        except ValueError:
+            return
+        self.wl_changed.emit(self._vol_idx, max(1.0, window), level)
+
 # ── LayerPanel ─────────────────────────────────────────────────────────────
 
 class LayerPanel(QWidget):
@@ -1404,6 +1466,8 @@ class LayerPanel(QWidget):
     remove_requested   = Signal(int)
     wl_select_changed  = Signal(int)    # (vol_idx) — WL target changed
     cutoff_changed     = Signal(int, object)   # (vol_idx, float | None)
+    wl_changed         = Signal(int, float, float)  # (vol_idx, window, level)
+    wl_reset           = Signal(int)                # (vol_idx) — restore default W/L
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1448,6 +1512,8 @@ class LayerPanel(QWidget):
         row.remove_requested.connect(self.remove_requested)
         row.wl_select.connect(self._on_row_wl_select)
         row.cutoff_changed.connect(self.cutoff_changed)
+        row.wl_changed.connect(self.wl_changed)
+        row.wl_reset.connect(self.wl_reset)
         self._vlay.insertWidget(self._vlay.count() - 1, row)
         self._rows.append(row)
         # Auto-select WL on the newest row
@@ -1565,6 +1631,8 @@ class NiftiViewer(QWidget):
         self._layer_panel.remove_requested.connect(self._on_remove_requested)
         self._layer_panel.wl_select_changed.connect(self._on_wl_select_changed)
         self._layer_panel.cutoff_changed.connect(self._on_cutoff_changed)
+        self._layer_panel.wl_changed.connect(self._on_wl_edited)
+        self._layer_panel.wl_reset.connect(self._on_wl_reset)
         outer_spl.addWidget(self._layer_panel)
 
         # Viewports expand, colorbar and layer panel stay fixed
@@ -1907,6 +1975,32 @@ class NiftiViewer(QWidget):
 
     def _on_wl_end(self) -> None:
         pass   # could trigger a full property refresh if needed
+
+    def _on_wl_edited(self, vol_idx: int, window: float, level: float) -> None:
+        """Apply window/level typed directly into a layer's W/L fields."""
+        if vol_idx >= len(self._volumes):
+            return
+        rec = self._volumes[vol_idx]
+        rec.wl_window = max(1.0, window)
+        rec.wl_level  = level
+        for vp in self._vps:
+            vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
+        if vol_idx == self._selected_vol:
+            self._colorbar.update_bar(rec)
+        self.wl_updated.emit(vol_idx, rec.wl_window, rec.wl_level)
+
+    def _on_wl_reset(self, vol_idx: int) -> None:
+        """Restore one layer's window/level to its default data range."""
+        if vol_idx >= len(self._volumes):
+            return
+        rec = self._volumes[vol_idx]
+        rec.wl_window = rec.hi - rec.lo or 1.0
+        rec.wl_level  = (rec.hi + rec.lo) / 2.0
+        for vp in self._vps:
+            vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
+        if vol_idx == self._selected_vol:
+            self._colorbar.update_bar(rec)
+        self.wl_updated.emit(vol_idx, rec.wl_window, rec.wl_level)
 
     # ── Layer signal handlers ─────────────────────────────────────────────
 
