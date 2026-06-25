@@ -144,9 +144,10 @@ def _make_lut(
 ) -> vtk.vtkLookupTable:
     """
     Build a vtkLookupTable for the given colour map.
-    If cutoff is not None, all scalar values < cutoff are mapped to alpha=0
-    (fully transparent), effectively masking them out.  Values >= cutoff use
-    the normal colour map with alpha=1.
+    If cutoff is not None, values below the cutoff are made fully transparent
+    (alpha=0) AND the colour map is rescaled so the remaining range
+    [cutoff, hi] spans the full gradient (cutoff -> first colour, hi -> last
+    colour) instead of only its upper portion.
     """
 
     if name == 'tissue_label':
@@ -210,14 +211,27 @@ def _make_lut(
             lut.SetValueRange(0, 1)
         lut.Build()
 
-    # Apply cutoff: zero the alpha of every entry whose scalar < cutoff.
+    # Apply cutoff.  Values below the cutoff are made fully transparent AND the
+    # colour map is rescaled so the remaining range [cutoff, hi] spans the full
+    # gradient (cutoff -> first colour, hi -> last colour) instead of only its
+    # upper portion.  This keeps the visible overlay consistent with the
+    # colourbar and removes the blank band that used to sit below the cutoff.
     if cutoff is not None and hi > lo:
-        span = hi - lo
+        span  = hi - lo
+        t_cut = min(max((cutoff - lo) / span, 0.0), 1.0)
+        # Snapshot the freshly built gradient before overwriting any entries.
+        src   = [lut.GetTableValue(i) for i in range(N)]
+        denom = 1.0 - t_cut
         for i in range(N):
-            scalar = lo + (i / (N - 1)) * span
-            if scalar < cutoff:
-                r, g, b, _ = lut.GetTableValue(i)
-                lut.SetTableValue(i, r, g, b, 0.0)
+            t = i / (N - 1)
+            if t < t_cut or denom <= 0.0:
+                r, g, b, _ = src[i]
+                lut.SetTableValue(i, r, g, b, 0.0)   # below cutoff -> transparent
+            else:
+                s  = (t - t_cut) / denom             # rescale [cutoff, hi] -> [0, 1]
+                si = int(round(s * (N - 1)))
+                r, g, b, _ = src[si]
+                lut.SetTableValue(i, r, g, b, 1.0)
 
     return lut
 
@@ -1031,8 +1045,10 @@ class ColourBar(QWidget):
     selected volume.
 
     The bar spans [level - window/2, level + window/2] (the visible data
-    range).  Five evenly-spaced tick marks with numeric labels are drawn on
-    the right side.  The colourmap exactly mirrors the LUT used by VTK.
+    range), or [cutoff, level + window/2] when a cutoff is active so the
+    gradient starts at the cutoff value with no blank band below it.  Five
+    evenly-spaced tick marks with numeric labels are drawn on the right side.
+    The colourmap exactly mirrors the LUT used by VTK.
 
     Call update_bar(rec) whenever the selected volume or its WL/cmap changes.
     """
@@ -1110,20 +1126,22 @@ class ColourBar(QWidget):
         half_w    = self._window / 2.0
         disp_lo   = self._level - half_w
         disp_hi   = self._level + half_w
-        data_span = self._hi - self._lo or 1.0
+
+        # When a cutoff is set the bar starts at the cutoff value: the gradient is
+        # recomputed so cutoff -> first colour and disp_hi -> last colour, leaving
+        # no blank band below the cutoff.  Otherwise it spans the full WL range.
+        bar_lo = disp_lo
+        if self._cutoff is not None:
+            bar_lo = min(max(self._cutoff, disp_lo), disp_hi)
+        bar_span = (disp_hi - bar_lo) or 1.0
 
         # ── gradient strip ───────────────────────────────────────────────────
         for py in range(bar_h):
             t_bar  = 1.0 - py / max(bar_h - 1, 1)
-            scalar = disp_lo + t_bar * (disp_hi - disp_lo)
-            t_lut  = max(0.0, min(1.0, (scalar - self._lo) / data_span))
-
-            if self._cutoff is not None and scalar < self._cutoff:
-                painter.setPen(bg_color)
-            else:
-                r, g, b = _cmap_rgb(self._cmap, t_lut)
-                painter.setPen(QColor(r, g, b))
-
+            scalar = bar_lo + t_bar * (disp_hi - bar_lo)
+            t_lut  = max(0.0, min(1.0, (scalar - bar_lo) / bar_span))
+            r, g, b = _cmap_rgb(self._cmap, t_lut)
+            painter.setPen(QColor(r, g, b))
             painter.drawLine(bar_x, bar_y + py,
                              bar_x + self.BAR_W - 1, bar_y + py)
 
@@ -1141,7 +1159,7 @@ class ColourBar(QWidget):
 
         for i in range(5):
             t_tick = i / 4
-            scalar = disp_lo + t_tick * (disp_hi - disp_lo)
+            scalar = bar_lo + t_tick * (disp_hi - bar_lo)
             py     = bar_y + bar_h - 1 - int(t_tick * (bar_h - 1))
 
             painter.setPen(tick_color)
