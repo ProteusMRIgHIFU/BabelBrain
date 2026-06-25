@@ -563,7 +563,7 @@ class RUN_PLAN_TUS(QObject):
         gifti_files.append((self.PlanOutputPath+os.sep+'skin.surf.gii',
                             self.PlanOutputPath+os.sep+'target_intersection_skin.func.gii',
                             self.PlanOutputPath+os.sep+'distances_skin_thresholded.func.gii',
-                            [0,5],
+                            None,
                             'Target Intersection'))
         gifti_files.append((self.PlanOutputPath+os.sep+'skin.surf.gii',
                             self.PlanOutputPath+os.sep+'angles_skin.func.gii',
