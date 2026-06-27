@@ -92,6 +92,11 @@ class BabelBaseTx(QWidget):
         self._txTabs.tabBar().setElideMode(Qt.ElideNone)
         self._txTabs.tabBar().setExpanding(False)
         self._txTabs.setUsesScrollButtons(True)
+        # Drop the pane's left/right/bottom borders (they sit right next to the
+        # Step-2 tab's own frame and look doubled-up); keep only the top line
+        # under the trajectory tab row.
+        self._txTabs.setStyleSheet(
+            "QTabWidget::pane { border: 0px; border-top: 1px solid palette(mid); }")
 
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
