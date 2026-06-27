@@ -125,13 +125,28 @@ def ReadTrajectoryBrainsight(fname,bGetID=False):
       'm1n0','m1n1','m1n2',
       'm2n0','m2n1','m2n2']
     df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python')
-    ID=df['Target name'][0]
-    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:]).iloc[0].to_numpy()
-    Mat4=np.eye(4)
-    Mat4[:3,3]=df[:3]
-    Mat4[:3,0]=df[3:6]
-    Mat4[:3,1]=df[6:9]
-    Mat4[:3,2]=df[9:]
+    if len(df)==1:
+        ID=df['Target name'][0]
+    else:
+        ID=list(df['Target name'])
+
+    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names[1:])
+    if len(df)==1:
+        line=df.iloc[0].to_numpy()
+        Mat4=np.eye(4)
+        Mat4[:3,3]=line[:3]
+        Mat4[:3,0]=line[3:6]
+        Mat4[:3,1]=line[6:9]
+        Mat4[:3,2]=line[9:]
+    else:
+        Mat4=np.zeros((4,4,len(df)))
+        for n in range(len(df)):
+            Mat4[:4,:4,n]=np.eye(4)
+            line=df.iloc[n].to_numpy()
+            Mat4[:3,3,n]=line[:3]
+            Mat4[:3,0,n]=line[3:6]
+            Mat4[:3,1,n]=line[6:9]
+            Mat4[:3,2,n]=line[9:]
     if bGetID:
         return Mat4, ID
     else:

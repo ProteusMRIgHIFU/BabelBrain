@@ -455,10 +455,18 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['CTMapCombo']=CTMapCombo
+        self.Config['NumberTransducers']=1 
         if self.Config['TrajectoryType']=='brainsight':
-            self.Config['ID'] = ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
+            ID=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
+            if type(ID) is list:
+                self.Config['NumberTransducers']=len(ID) #multiple devices
+            else:
+                ID=[ID] #we enforce a list of 1 ID to simpliy processing
+            self.Config['ID'] = ID
         else:
-            self.Config['ID'] = os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]
+            #for 3DSlicer, we will limit to only one - the time we found a better strategy
+            self.Config['ID'] = [os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]]
+            
 
         #filenames when saving results for Brainsight
         self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
@@ -815,12 +823,13 @@ class BabelBrain(QWidget):
         self.Widget.vtkVisualizationqPushButton.setEnabled(False)
 
     def UpdateWindowTitle(self):
+        IDTitle='+'.join(self.Config['ID'])
         self.setWindowTitle('BabelBrain V'+
                             self.Config['version'] +' - ' + 
-                            self.Config['ID'] + ' - ' + 
+                            IDTitle + ' - ' + 
                             self.Config['TxSystem'] + ' - ' + 
                             os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
-        self.Widget.IDLabel.setText(self.Config['ID'])
+        self.Widget.IDLabel.setText(IDTitle)
         self.Widget.TXLabel.setText(self.Config['TxSystem'])
         self.Widget.ThermalProfileLabel.setText(os.path.split(self.Config['ThermalProfile'])[1].split('.yaml')[0])
     
@@ -896,8 +905,15 @@ class BabelBrain(QWidget):
         self._Frequency =Frequency
         self._BasePPW =BasePPW
 
-        self._prefix= self.Config['ID'] + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
-        
+        #we run first trajectory, most cases it will be only one
+        self._TrajectoryNumber=0
+        self.ExecuteTrajectory()
+
+    def ExecuteTrajectory(self):
+
+        ID =self.Config['ID'][self._TrajectoryNumber]
+
+        self._prefix= ID + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(self._Frequency/1e3),self._BasePPW)
         
         basedir = self.Config['OutputFilesPath']
         if not os.path.isdir(basedir):
@@ -932,6 +948,9 @@ class BabelBrain(QWidget):
 
         if bCalcMask:
             #We run the Background
+            # Reset the chaining flag; VerifyResults sets it True only on a
+            # successful run that should be followed by another trajectory.
+            self._bRunNextTrajectory = False
             self.thread = QThread()
             self.worker = RunMaskGeneration(self)
             self.worker.moveToThread(self.thread)
@@ -941,8 +960,13 @@ class BabelBrain(QWidget):
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
             self.thread.finished.connect(self.thread.deleteLater)
+            # Chain the next trajectory only once the thread's event loop has
+            # actually exited (thread.finished), never from worker.finished —
+            # at that earlier point thread.quit() is still queued and the
+            # thread is alive, so starting a new run would deadlock/crash.
+            self.thread.finished.connect(self._StartNextTrajectory)
 
-            
+
             self.worker.endError.connect(self.NotifyError)
             self.worker.endError.connect(self.SendTelemetry)
             self.worker.endError.connect(self.thread.quit)
@@ -956,6 +980,11 @@ class BabelBrain(QWidget):
 
         else:
             self.UpdateMask()
+            # Reload path: no worker thread is spawned, so advance to the next
+            # trajectory directly.
+            if self._TrajectoryNumber<len(self.Config['ID'])-1:
+                self._TrajectoryNumber+=1
+                self.ExecuteTrajectory()
 
 
     #this will modify the coordinates of the trajectory
@@ -1031,6 +1060,21 @@ class BabelBrain(QWidget):
                     self.UpdateMask(bDeleteOnly=True)
                     return
         self.UpdateMask()
+        # Only flag that the next trajectory should run; the actual launch is
+        # deferred to _StartNextTrajectory, fired by thread.finished once the
+        # current worker thread has fully stopped.
+        if self._TrajectoryNumber<len(self.Config['ID'])-1:
+            self._bRunNextTrajectory = True
+
+    def _StartNextTrajectory(self):
+        '''
+        Invoked from thread.finished (current worker thread fully stopped).
+        Carries over to the next trajectory if VerifyResults flagged one.
+        '''
+        if getattr(self,'_bRunNextTrajectory',False):
+            self._bRunNextTrajectory = False
+            self._TrajectoryNumber += 1
+            self.ExecuteTrajectory()
 
     def _showMatplotlibVisualization(self,bDeleteOnly:bool):
         AirMask=None
@@ -1497,6 +1541,7 @@ class RunMaskGeneration(QObject):
         print("Frequency, SmallestSoS, BasePPW,SpatialStep",Frequency, SmallestSoS, BasePPW,SpatialStep)
 
         prefix=self._mainApp._prefix
+        TrajectoryNumber=self._mainApp._TrajectoryNumber
         print("Config['Mat4Trajectory']",self._mainApp.Config['Mat4Trajectory'])
 
         #first we ensure we have isotropic scans at 1 mm required to get affine matrix at 1.0 mm isotropic
@@ -1513,6 +1558,7 @@ class RunMaskGeneration(QObject):
         kargs['SpatialStep']=SpatialStep
         kargs['Location']=[0,0,0] #This coordinate will be ignored
         kargs['prefix']=prefix
+        kargs['TrajectoryNumber']=TrajectoryNumber
         kargs['bPlot']=False
         if self._mainApp.Config['bUseCT']:
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
@@ -1535,7 +1581,8 @@ class RunMaskGeneration(QObject):
                                                     'TxOptimizedWeights',
                                                     'PlanTUSRoot',
                                                     'ConnectomeRoot',
-                                                    'TelemetryLevel']:
+                                                    'TelemetryLevel',
+                                                    'NumberTransducers']:
                 return True
             else:
                 return False

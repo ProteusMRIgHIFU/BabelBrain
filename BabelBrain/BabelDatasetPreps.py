@@ -393,6 +393,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 bMaximizeBoneRim=False,
                                 bSaveCTMaximized=False,
                                 bExtractAirRegions=True,
+                                TrajectoryNumber=0,
                                 RegionAirCT=[-1200,-400]): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
@@ -513,6 +514,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     if TrajectoryType =='brainsight':
         print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
         RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+        if len(RMat.shape)==3: #multi trajectory
+            RMat=RMat[:,:,TrajectoryNumber]
     else:
         inMat=read_itk_affine_transform(Mat4Trajectory)
          #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
