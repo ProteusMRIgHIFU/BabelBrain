@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLineEdit,
     QMessageBox,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
     QLabel
@@ -1076,6 +1077,51 @@ class BabelBrain(QWidget):
             self._TrajectoryNumber += 1
             self.ExecuteTrajectory()
 
+    def _ensurePlanningTabs(self):
+        '''
+        Build (or rebuild) the per-trajectory tab container inside USMask.
+
+        One tab is created per entry in self.Config['ID'], using the ID as the
+        tab title. Each tab owns its own matplotlib figure/canvas; the artists
+        and per-trajectory state are stored in self._trajPanels[i]. When there
+        is a single trajectory the tab bar is hidden so the layout matches the
+        original single-plot appearance.
+        '''
+        IDs = list(self.Config['ID'])
+        if not hasattr(self,'_planningTabs'):
+            outer = QVBoxLayout(self.Widget.USMask)
+            outer.setContentsMargins(0, 0, 0, 0)
+            self._planningTabs = QTabWidget(self.Widget.USMask)
+            # Keep trajectory names fully visible: never elide the labels, and
+            # let the bar scroll (rather than squeeze tabs into "...") when many
+            # trajectories don't fit the available width.
+            tab_bar = self._planningTabs.tabBar()
+            tab_bar.setElideMode(Qt.ElideNone)
+            tab_bar.setExpanding(False)
+            self._planningTabs.setUsesScrollButtons(True)
+            outer.addWidget(self._planningTabs)
+            self._trajPanels = []
+            self._trajPanelIDs = None
+
+        if self._trajPanelIDs != IDs:
+            # Trajectory set changed — discard old tabs and rebuild from scratch.
+            while self._planningTabs.count():
+                w = self._planningTabs.widget(0)
+                self._planningTabs.removeTab(0)
+                if w is not None:
+                    w.deleteLater()
+            self._trajPanels = []
+            for tid in IDs:
+                tab = QWidget()
+                lay = QVBoxLayout(tab)
+                lay.setContentsMargins(0, 0, 0, 0)
+                self._planningTabs.addTab(tab, str(tid))
+                self._trajPanels.append({'layout': lay, 'figure': None})
+            self._trajPanelIDs = IDs
+
+        # Hide the tab bar for the common single-trajectory case.
+        self._planningTabs.tabBar().setVisible(len(IDs) > 1)
+
     def _showMatplotlibVisualization(self,bDeleteOnly:bool):
         AirMask=None
         if self.Config['bUseCT']:
@@ -1127,17 +1173,19 @@ class BabelBrain(QWidget):
                         AirMask[LocFocalPoint[0],:,:].T,
                         AirMask[:,:,LocFocalPoint[2]].T]
                 
-        # --- tear down previous VTK viewer if present ---
-        if hasattr(self,'_slice_viewer'):
-            while (child := self._layout.takeAt(0)) is not None:
-                w = child.widget()
-                if w is not None:
-                    w.deleteLater()
-            del self._slice_viewer
+        # Render this trajectory's plots into its own tab so multiple
+        # trajectories can be visualized side by side. The active trajectory
+        # (self._TrajectoryNumber) selects which tab is (re)populated.
+        self._ensurePlanningTabs()
+        panel = self._trajPanels[self._TrajectoryNumber]
 
-        if hasattr(self,'_figMasks'):
-            while ((child := self._layout.takeAt(0)) != None):
-                child.widget().deleteLater()
+        # Clear any previous content (toolbar + canvas) from this tab.
+        while (child := panel['layout'].takeAt(0)) is not None:
+            w = child.widget()
+            if w is not None:
+                w.deleteLater()
+        panel['figure'] = None
+
         if bDeleteOnly:
             self.AcSim.setEnabled(False)
             self.ThermalSim.setEnabled(False)
@@ -1148,14 +1196,12 @@ class BabelBrain(QWidget):
         self._markers=[]
 
         self._figMasks = Figure(figsize=(18, 6))
-        if not hasattr(self,'_layout'):
-            self._layout = QVBoxLayout(self.Widget.USMask)
 
         self.static_canvas = FigureCanvas(self._figMasks)
-        
+
         toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
-        self._layout.addWidget(toolbar)
-        self._layout.addWidget(self.static_canvas)
+        panel['layout'].addWidget(toolbar)
+        panel['layout'].addWidget(self.static_canvas)
 
         axes=self.static_canvas.figure.subplots(1,3)
         # Shrink the plotting area on the right (keeping the default left margin
@@ -1244,6 +1290,25 @@ class BabelBrain(QWidget):
         self.Widget.TransparencyScrollBar.setEnabled(True)
         if not self.Widget.HideMarkscheckBox.isEnabled():
             self.Widget.HideMarkscheckBox.setEnabled(True)
+
+        # Persist this tab's artists/state so HideMarks and UpdateTransparency
+        # can update every trajectory's plots, not just the active one.
+        panel['figure']=self._figMasks
+        panel['canvas']=self.static_canvas
+        panel['axes']=axes
+        panel['imMasks']=self._imMasks
+        panel['imT1W']=self._imT1W
+        panel['imCtMasks']=self._imCtMasks
+        panel['markers']=self._markers
+        panel['T1WData']=self._T1WData
+        panel['LocFocalPoint']=self._LocFocalPoint
+
+        # Honor the current marker-visibility setting on the freshly built plots
+        # (transparency already applied above via the live scrollbar value).
+        self._applyMarkerVisibility(panel)
+
+        # Bring the just-computed trajectory's tab to the front.
+        self._planningTabs.setCurrentIndex(self._TrajectoryNumber)
 
     def UpdateMask(self, bDeleteOnly=False):
         self.hideClockDialog()
@@ -1391,27 +1456,43 @@ class BabelBrain(QWidget):
     def _closingVtkVisualization(self):
         delattr(self,'_vtk_visualization')
 
-    @Slot()
-    def HideMarks(self,v):
+    def _applyMarkerVisibility(self,panel):
         mc=[0.75, 0.75, 0.0,1.0]
         if self.Widget.HideMarkscheckBox.isChecked():
             mc[3] = 0.0
-        for m in self._markers:
+        for m in panel['markers']:
             m.set_markerfacecolor(mc)
             m.set_markeredgecolor(mc)
-        self._figMasks.canvas.draw_idle()
-    
+
     @Slot()
-    def UpdateTransparency(self):
+    def HideMarks(self,v):
+        # Apply to every trajectory tab so the toggle stays consistent.
+        for panel in getattr(self,'_trajPanels',[]):
+            if panel.get('figure') is None:
+                continue
+            self._applyMarkerVisibility(panel)
+            panel['figure'].canvas.draw_idle()
+
+    def _applyTransparency(self,panel):
         alpha=self.Widget.TransparencyScrollBar.value()/100.0
         sm=plt.cm.ScalarMappable(cmap='gray')
-        T1WXZ=sm.to_rgba(self._T1WData[:,self._LocFocalPoint[1],:].T,alpha=alpha)
-        T1WYZ=sm.to_rgba(self._T1WData[self._LocFocalPoint[0],:,:].T,alpha=alpha)
-        T1WXY=sm.to_rgba(self._T1WData[:,:,self._LocFocalPoint[2]].T,alpha=alpha)
-        for im,T1WMap in zip(self._imT1W,
+        T1WData=panel['T1WData']
+        loc=panel['LocFocalPoint']
+        T1WXZ=sm.to_rgba(T1WData[:,loc[1],:].T,alpha=alpha)
+        T1WYZ=sm.to_rgba(T1WData[loc[0],:,:].T,alpha=alpha)
+        T1WXY=sm.to_rgba(T1WData[:,:,loc[2]].T,alpha=alpha)
+        for im,T1WMap in zip(panel['imT1W'],
                                     [T1WXZ,T1WYZ,T1WXY]):
             im.set_data(T1WMap)
-        self._figMasks.canvas.draw_idle()
+
+    @Slot()
+    def UpdateTransparency(self):
+        # Apply to every trajectory tab so the slider affects all plots.
+        for panel in getattr(self,'_trajPanels',[]):
+            if panel.get('figure') is None:
+                continue
+            self._applyTransparency(panel)
+            panel['figure'].canvas.draw_idle()
             
           
     def GetExport(self):
