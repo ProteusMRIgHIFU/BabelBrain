@@ -46,20 +46,20 @@ class H246(BabelBaseTx):
 
 
     def load_ui(self):
+        self._setupTrajectoryTabs()
+
+    def _CreateForm(self):
         from Babel_H246.H246Form import H246Form
-        self.Widget = H246Form(self)
+        return H246Form(self)
 
-        _l = QVBoxLayout(self)
-        _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
-
+    def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.valueChanged.connect(self.TPODistanceUpdate)
         self.Widget.TPORangeLabel.setText('[%3.1f - %3.1f]' % (self.Config['MinimalTPODistance']*1e3,self.Config['MaximalTPODistance']*1e3))
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
-        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])
         self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateDistanceFromSkin)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.LabelTissueRemoved.setVisible(False)
@@ -93,6 +93,7 @@ class H246(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
+        self._SyncActiveTrajectoryFromMainApp()
         VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]

@@ -46,13 +46,13 @@ class RingTx(BabelBaseTx):
 
 
     def load_ui(self):
+        self._setupTrajectoryTabs()
+
+    def _CreateForm(self):
         from _Babel_RingTx.RingTxForm import RingTxForm
-        self.Widget = RingTxForm(self)
+        return RingTxForm(self)
 
-        _l = QVBoxLayout(self)
-        _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
-
+    def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.TPODistanceSpinBox.setMinimum(self.Config['MinimalTPODistance']*1e3)
         self.Widget.TPODistanceSpinBox.setMaximum(self.Config['MaximalTPODistance']*1e3)
@@ -69,6 +69,7 @@ class RingTx(BabelBaseTx):
         raise NotImplementedError("DefaultConfig must be implemented in the derived class")
     
     def NotifyGeneratedMask(self):
+        self._SyncActiveTrajectoryFromMainApp()
         VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]

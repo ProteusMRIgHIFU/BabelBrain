@@ -42,14 +42,13 @@ class REMOPD(BabelBasePhaseArray):
     def __init__(self,parent=None,MainApp=None):
         super().__init__(parent=parent,MainApp=MainApp,formtype=os.path.join(resource_path(), "."))
 
-    def load_ui(self,formtype):
+    # Inherits BabelBasePhaseArray.load_ui (-> _setupTrajectoryTabs); only the
+    # form and its wiring differ.
+    def _CreateForm(self):
         from Babel_REMOPD.REMOPDForm import REMOPDForm
-        self.Widget = REMOPDForm(self)
+        return REMOPDForm(self)
 
-        _l = QVBoxLayout(self)
-        _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
-
+    def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
 
         self.Widget.XSteeringSpinBox.setMinimum(self.Config['MinimalXSteering']*1e3)
@@ -59,9 +58,9 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.ZSteeringSpinBox.setMinimum(self.Config['MinimalZSteering']*1e3)
         self.Widget.ZSteeringSpinBox.setMaximum(self.Config['MaximalZSteering']*1e3)
         self.Widget.ZSteeringSpinBox.setValue(self.Config['DefaultZSteering']*1e3)
-        
+
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
-        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])  
+        self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance'])
         self.Widget.SkinDistanceSpinBox.setValue(0.0)
 
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
@@ -92,6 +91,7 @@ class REMOPD(BabelBasePhaseArray):
         self.Config=config
 
     def NotifyGeneratedMask(self):
+        self._SyncActiveTrajectoryFromMainApp()
         VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]

@@ -51,13 +51,13 @@ class SingleTx(BabelBaseTx):
 
 
     def load_ui(self):
+        self._setupTrajectoryTabs()
+
+    def _CreateForm(self):
         from Babel_SingleTx.SingleTxForm import SingleTxForm
-        self.Widget = SingleTxForm(self)
+        return SingleTxForm(self)
 
-        _l = QVBoxLayout(self)
-        _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
-
+    def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)
@@ -76,6 +76,7 @@ class SingleTx(BabelBaseTx):
         self.Config=config
 
     def NotifyGeneratedMask(self):
+        self._SyncActiveTrajectoryFromMainApp()
         VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]

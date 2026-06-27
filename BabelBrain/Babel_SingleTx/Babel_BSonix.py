@@ -42,14 +42,13 @@ class BSonix(SingleTx):
     def __init__(self,parent=None,MainApp=None):
         super(BSonix, self).__init__(parent,MainApp)       
 
-    def load_ui(self):
+    # Inherits SingleTx.load_ui (-> _setupTrajectoryTabs); only the form and its
+    # wiring differ.
+    def _CreateForm(self):
         from Babel_SingleTx.SingleTxForm import BSonixForm
-        self.Widget = BSonixForm(self)
+        return BSonixForm(self)
 
-        _l = QVBoxLayout(self)
-        _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
-
+    def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.UpdateTxInfo)

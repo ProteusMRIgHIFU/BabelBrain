@@ -2,8 +2,8 @@
 Base Class for Tx GUI, not to be instantiated directly
 '''
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox
-from PySide6.QtCore import Slot, QThread
+from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox, QTabWidget
+from PySide6.QtCore import Slot, QThread, Qt
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 
 import numpy as np
@@ -72,6 +72,83 @@ def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.5):
 class BabelBaseTx(QWidget):
     def __init__(self,parent=None):
         super(BabelBaseTx, self).__init__(parent)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Step-2 layout: one tab per trajectory, each an independent transducer
+    # form (own inputs, scrollbars, plot and Calculate action).  self.Widget
+    # always points at the active tab's form, and self._TrajectoryNumber at its
+    # index; both are re-synced on tab change.  Because every tab is a distinct
+    # form instance, parameter values are preserved per tab automatically.
+    #
+    # Each device subclass provides:
+    #   _CreateForm()  – build and return a fresh transducer form (TxPanelBase).
+    #   _WirePanel()   – wire the form currently held in self.Widget (signals,
+    #                    spin-box ranges, per-form IsppaScrollBars, up_load_ui()).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _setupTrajectoryTabs(self):
+        IDs = list(self._MainApp.Config['ID'])
+        self._txTabs = QTabWidget(self)
+        self._txTabs.tabBar().setElideMode(Qt.ElideNone)
+        self._txTabs.tabBar().setExpanding(False)
+        self._txTabs.setUsesScrollButtons(True)
+
+        _l = QVBoxLayout(self)
+        _l.setContentsMargins(0, 0, 0, 0)
+        _l.addWidget(self._txTabs)
+
+        self._Widgets = []
+        self._acPanels = [None] * len(IDs)
+        for i, tid in enumerate(IDs):
+            form = self._CreateForm()
+            self._txTabs.addTab(form, str(tid))
+            self._Widgets.append(form)
+            # Point at this form while wiring so the connections bind to *its*
+            # widgets (button -> self.RunSimulation, etc.).
+            self.Widget = form
+            self._TrajectoryNumber = i
+            self._WirePanel()
+
+        # Activate the first tab; only now listen for user tab switches so the
+        # addTab loop above doesn't fire the handler prematurely.
+        self.Widget = self._Widgets[0]
+        self._TrajectoryNumber = 0
+        self._txTabs.setCurrentIndex(0)
+        self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
+
+    @Slot(int)
+    def _OnTrajectoryTabChanged(self, idx):
+        if not hasattr(self, '_Widgets') or idx < 0 or idx >= len(self._Widgets):
+            return
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        # Re-point the controller's active-trajectory state so Mechanical-Adjust,
+        # the distance readout and the nifti reload act on the visible tab.  The
+        # form keeps its own plot and scrollbar positions, so nothing is redrawn
+        # or reset here (this is what makes the scrollbars independent per tab).
+        panel = self._acPanels[idx]
+        if panel is not None and panel.get('figure') is not None:
+            self._ActivatePanel(panel)
+
+    def _CreateForm(self):
+        raise NotImplementedError("Subclasses must build their transducer form")
+
+    def _WirePanel(self):
+        raise NotImplementedError("Subclasses must wire their transducer form")
+
+    def _SyncActiveTrajectoryFromMainApp(self):
+        '''
+        Point self.Widget / _TrajectoryNumber (and the visible tab) at the
+        trajectory Step 1 just finished.  Step 1 calls NotifyGeneratedMask once
+        per trajectory (UpdateMask -> UpdateAcousticTab) with _MainApp._TrajectoryNumber
+        set, so each device's NotifyGeneratedMask calls this first to initialize
+        the matching tab's form.
+        '''
+        idx = self._MainApp._TrajectoryNumber
+        if hasattr(self, '_Widgets') and 0 <= idx < len(self._Widgets):
+            self._TrajectoryNumber = idx
+            self.Widget = self._Widgets[idx]
+            self._txTabs.setCurrentIndex(idx)
 
     def ExportStep2Results(self,Results):
         FocIJK=np.ones((4,1))
@@ -149,70 +226,26 @@ class BabelBaseTx(QWidget):
     # ──────────────────────────────────────────────────────────────────────
 
     def RunSimulation(self):
-        # Run each trajectory in turn.  Because the actual computation happens
-        # on a background QThread, the trajectories cannot be launched in a plain
-        # for-loop (they would all start at once, racing over self.thread /
-        # self.worker and crashing).  Instead we run the first trajectory and
-        # chain the next one only once the current thread has fully finished
-        # (see _AdvanceTrajectorySim, fired on thread.finished).
-        self._TrajectoryNumber = 0
-        self._RunCurrentTrajectorySim()
-
-    def _RunCurrentTrajectorySim(self):
-        # Cleared here and only re-armed on a *successful* worker.finished, so an
-        # error (or the final trajectory) stops the chain.
-        self._bAdvanceTrajectory = False
-        # (1) Device-specific: resolve the skull/water solution filenames.
+        # Runs only the active trajectory (the visible tab).  The user runs each
+        # trajectory's tab one at a time, adjusting and re-running as needed;
+        # self._TrajectoryNumber tracks the active tab.
         self._ResolveSimulationFilenames()
-        # (2) Decide whether to (re)compute or reuse existing results.
         if self._ExistingSimulationFiles():
             bCalcFields = self._PromptReuseOrRecalc()
         else:
             bCalcFields = True
         self._bRecalculated = True
-        # (3) Launch the background simulation, or reload existing results.
         if bCalcFields:
-            # Advancement is driven by thread.finished -> _AdvanceTrajectorySim.
             self._LaunchAcousticSim(self._CreateAcousticWorker(),
                                     self._SimulationFinishedSlot())
         else:
-            # No worker thread is spawned for a reload, so advance directly.
             self._ReloadExistingResults()
-            self._GotoNextTrajectory()
-
-    def _MarkTrajectoryAdvance(self, *args):
-        '''
-        Connected to worker.finished (success path only).  Arms the chain so the
-        next trajectory runs once the thread has fully stopped.  Accepts *args
-        because some devices emit finished as Signal(object).
-        '''
-        self._bAdvanceTrajectory = True
-
-    def _AdvanceTrajectorySim(self):
-        '''
-        Fired on thread.finished, i.e. once the worker thread's event loop has
-        fully exited.  Only chains to the next trajectory after a successful run;
-        an error leaves _bAdvanceTrajectory cleared and halts the batch.
-        '''
-        if not getattr(self, '_bAdvanceTrajectory', False):
-            return
-        self._GotoNextTrajectory()
-
-    def _GotoNextTrajectory(self):
-        self._bAdvanceTrajectory = False
-        if self._TrajectoryNumber < len(self._MainApp.Config['ID']) - 1:
-            self._TrajectoryNumber += 1
-            self._RunCurrentTrajectorySim()
 
     def _LaunchAcousticSim(self, worker, on_finished):
         '''
         Common worker-thread plumbing shared by every transducer.  Moves the
         device's RunAcousticSim worker onto a QThread and wires the standard
         finished/error/telemetry signals before starting it.
-
-        The next trajectory (if any) is chained on thread.finished rather than
-        worker.finished: at the earlier point thread.quit() is still queued and
-        the thread is alive, so starting a new run there would race/crash.
         '''
         self._MainApp.Widget.tabWidget.setEnabled(False)
         self.thread = QThread()
@@ -220,12 +253,10 @@ class BabelBaseTx(QWidget):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(on_finished)
-        self.worker.finished.connect(self._MarkTrajectoryAdvance)
         self.worker.finished.connect(self._MainApp.SendTelemetry)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.finished.connect(self._AdvanceTrajectorySim)
 
         self.worker.endError.connect(self.NotifyError)
         self.worker.endError.connect(self._MainApp.SendTelemetry)
@@ -261,220 +292,269 @@ class BabelBaseTx(QWidget):
     def _ReloadExistingResults(self):
         self.UpdateAcResults()
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Acoustic-result display — rendered into the active trajectory tab's own
+    # plot host (self.Widget.AcField_plot1).  Each trajectory keeps its full
+    # result/plot state in self._acPanels[i]; switching tabs re-points self._*
+    # at the visible trajectory via _ActivatePanel (the form keeps its own
+    # canvas and scrollbar positions, so nothing is rebuilt or reset).
+    #
+    # Device specifics live in three small hooks:
+    #   _LoadAcResultData(panel) – read the H5 results and stash the per-panel
+    #                              arrays (base: single field; phased: field cols).
+    #   _AcResultFigure()        – the matplotlib Figure (phased uses a larger one).
+    #   _GetActiveFields(panel)  – return (IWater, ISkull) to display for the panel
+    #                              (phased selects by the multifocus dropdown).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _AcPanel(self, idx):
+        '''Per-trajectory Step-2 result/plot state, lazily created, keyed by tab.'''
+        if self._acPanels[idx] is None:
+            host = self._Widgets[idx].AcField_plot1
+            lay = host.layout()
+            if lay is None:
+                lay = QVBoxLayout(host)
+                lay.setContentsMargins(0, 0, 0, 0)
+            self._acPanels[idx] = {'layout': lay, 'figure': None}
+        return self._acPanels[idx]
+
     def _showMatplotlibVisualization(self):
+        '''
+        (Re)draw the acoustic-field result for the active trajectory's tab.
+        On a fresh result (_bRecalculated) the figure is built into that tab's
+        own AcField_plot1; user interactions (slice scroll / water-skull toggle /
+        hide-marks / multifocus dropdown) re-render the same tab.
+        '''
+        panel = self._AcPanel(self._TrajectoryNumber)
         if self._bRecalculated:
-            if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
+            if self.Widget.ShowWaterResultscheckBox.isEnabled() == False:
                 self.Widget.ShowWaterResultscheckBox.setEnabled(True)
-            if self.Widget.HideMarkscheckBox.isEnabled()== False:
+            if self.Widget.HideMarkscheckBox.isEnabled() == False:
                 self.Widget.HideMarkscheckBox.setEnabled(True)
             self._MainApp.Widget.tabWidget.setEnabled(True)
-            
-            Water=ReadFromH5py(self._WaterSolName)
-            Skull=ReadFromH5py(self._FullSolName)
-            print('_FullSolName',self._FullSolName)
 
-            if 'SDR' in Skull and hasattr(self.Widget,'SDRLabel'):
-                self._SDR=Skull['SDR']
-                self.Widget.SDRLabel.setText('%0.2f' %(Skull['SDR']))
-                
-
-            extrasuffix=self.GetExtraSuffixAcFields()
-
-            self._MainApp._BrainsightInput=self._MainApp._prefix_path[self._TrajectoryNumber]+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
-
-            self.ExportStep2Results(Skull)    
-
-            LocTarget=Skull['TargetLocation']
-            print('LocTarget',LocTarget)
-
-            for d in [Water,Skull]:
-                keys=['p_amp','MaterialMap']
-                if 'AirMask' in d:
-                    keys.append('AirMask')
-                for t in keys:
-                    d[t]=np.ascontiguousarray(np.flip(d[t],axis=2))
-
-            DistanceToTarget=self.Widget.DistanceSkinLabel.property('UserData')
-            dx=  np.mean(np.diff(Skull['x_vec']))
-
-            Water['z_vec']*=1e3
-            Skull['z_vec']*=1e3
-            Skull['x_vec']*=1e3
-            Skull['y_vec']*=1e3
-            DensityMap=Skull['Material'][:,0][Skull['MaterialMap']]
-            SoSMap=    Skull['Material'][:,1][Skull['MaterialMap']]
-            
-            Skull['MaterialMap'][Skull['MaterialMap']==3]=2
-            Skull['MaterialMap'][Skull['MaterialMap']==4]=3
-
-            IWater=Water['p_amp']**2/2/Water['Material'][0,0]/Water['Material'][0,1]
-
-            ISkull=Skull['p_amp']**2/2/DensityMap/SoSMap
-
-            if not self._MainApp.Config['bForceHomogenousMedium']:
-                ISkull[Skull['MaterialMap']<3]=0
-            cxr,cyr,czr=np.where(ISkull==ISkull.max())
-            cxr=cxr[0]
-            cyr=cyr[0]
-            czr=czr[0]
-
-            EnergyAtFocusSkull=ISkull[:,:,czr].sum()*dx**2
-
-            cxr,cyr,czr=np.where(IWater==IWater.max())
-            cxr=cxr[0]
-            cyr=cyr[0]
-            czr=czr[0]
-            
-            ISkull/=ISkull.max()
-            IWater/=IWater.max()
-
-            dz=np.diff(Skull['z_vec']).mean()
-            Zvec=Skull['z_vec'].copy()
-            Zvec-=Zvec[LocTarget[2]]
-            Zvec+=DistanceToTarget
-            XX,ZZ=np.meshgrid(Skull['x_vec'],Zvec)
-            self._XX = XX
-            self._ZZX = ZZ
-            YY,ZZ=np.meshgrid(Skull['y_vec'],Zvec)
-            self._YY = YY
-            self._ZZY = ZZ
-
-            self.Widget.IsppaScrollBars.set_default_values(LocTarget,Skull['x_vec']-Skull['x_vec'][LocTarget[0]],Skull['y_vec']-Skull['y_vec'][LocTarget[1]])
-
-            self._Water = Water
-            self._IWater = IWater
-            self._Skull = Skull
-            self._ISkull = ISkull
-            self._DistanceToTarget = DistanceToTarget
-
-            # --- tear down previous VTK viewer if present ---
-            if hasattr(self,'_slice_viewer'):
-                while (child := self._layout.takeAt(0)) is not None:
-                    w = child.widget()
-                    if w is not None:
-                        w.deleteLater()
-                del self._slice_viewer
-        
-            if hasattr(self,'_figAcField'):
-                    children = []
-                    for i in range(self._layout.count()):
-                        child = self._layout.itemAt(i).widget()
-                        if child:
-                            children.append(child)
-                    for child in children:
-                        child.deleteLater()
-                    delattr(self,'_figAcField')
-                    self.Widget.AcField_plot1.repaint()
-                    
-            Total_Distance,X_dist,Y_dist,Z_dist=self.CalculateDistancesTarget()
-            self.Widget.DistanceTargetLabel.setText('[%2.1f, %2.1f ,%2.1f]' %(X_dist,Y_dist,Z_dist))
-        
-        if self.Widget.ShowWaterResultscheckBox.isChecked():
-            Field=self._IWater
+            self._LoadAcResultData(panel)        # device-specific data load
+            self._BuildAcResultFigure(panel)     # fresh fig/canvas in this tab's plot host
+            self._ActivatePanel(panel)           # mirror data into self._* aliases
+            self._SyncScrollAndDistance(panel)   # scrollbar defaults + distance label
+            self._RenderAcResultPanel(panel)
+            self._bRecalculated = False
         else:
-            Field=self._ISkull
+            if panel.get('figure') is None:
+                return
+            self._ActivatePanel(panel)
+            self._RenderAcResultPanel(panel)
+
+    def _ActivatePanel(self, panel):
+        '''
+        Mirror a tab's stored result state into the self._* attributes that the
+        shared helpers (CalculateDistancesTarget / CalculateMechAdj /
+        UpdateAcResults / _RenderAcResultPanel) read, so they act on the visible
+        trajectory.
+        '''
+        self._Skull = panel['Skull']
+        self._XX, self._ZZX = panel['XX'], panel['ZZX']
+        self._YY, self._ZZY = panel['YY'], panel['ZZY']
+        self._DistanceToTarget = panel['DistanceToTarget']
+        self._figAcField = panel['figure']
+        self._static_ax1 = panel.get('static_ax1')
+        self._static_ax2 = panel.get('static_ax2')
+        self._marker1 = panel.get('marker1')
+        self._marker2 = panel.get('marker2')
+        self._FullSolName = panel['FullSolName']
+        self._WaterSolName = panel['WaterSolName']
+        if 'SDR' in panel:
+            self._SDR = panel['SDR']
+        if 'AcResults' in panel:
+            self._AcResults = panel['AcResults']
+        if 'LastDistanceConeToFocus' in panel:
+            self._LastDistanceConeToFocus = panel['LastDistanceConeToFocus']
+        if 'ISkullCol' in panel:
+            self._ISkullCol = panel['ISkullCol']
+            self._IWaterCol = panel['IWaterCol']
+        IWater, ISkull = self._GetActiveFields(panel)
+        self._IWater = IWater
+        self._ISkull = ISkull
+
+    def _SyncScrollAndDistance(self, panel):
+        '''Set this tab's slice scrollbar defaults and distance readout (build only).'''
+        self.Widget.IsppaScrollBars.set_default_values(
+            panel['LocTarget'], panel['xvec'], panel['yvec'])
+        Total_Distance, X_dist, Y_dist, Z_dist = self.CalculateDistancesTarget()
+        self.Widget.DistanceTargetLabel.setText(
+            '[%2.1f, %2.1f ,%2.1f]' % (X_dist, Y_dist, Z_dist))
+
+    def _BuildAcResultFigure(self, panel):
+        '''Create a fresh figure/canvas/axes/markers inside this tab's AcField_plot1.'''
+        # Clear any previous content (toolbar + canvas) from this tab's plot host.
+        while (child := panel['layout'].takeAt(0)) is not None:
+            w = child.widget()
+            if w is not None:
+                w.deleteLater()
+        for k in ('imContourf1', 'imContourf2', 'contour1', 'contour2',
+                  'airmask1', 'airmask2'):
+            panel[k] = None
+        panel['cbDone'] = False
+
+        fig = self._AcResultFigure()
+        panel['figure'] = fig
+        canvas = FigureCanvas(fig)
+        panel['canvas'] = canvas
+        self.static_canvas = canvas
+        toolbar = style_nav_toolbar(NavigationToolbar2QT(canvas, self))
+        panel['layout'].addWidget(toolbar)
+        panel['layout'].addWidget(canvas)
+        # Each plot box is centered on its scrollbar (left col x=0.25, right
+        # col x=0.75). A dedicated colorbar axis keeps the plot itself
+        # centered (plt.colorbar(ax=...) would shrink/shift the plot).
+        static_ax1 = fig.add_axes([0.10, 0.12, 0.30, 0.80])
+        cax1       = fig.add_axes([0.43, 0.12, 0.015, 0.80])
+        static_ax2 = fig.add_axes([0.60, 0.12, 0.30, 0.80])
+        cax2       = fig.add_axes([0.93, 0.12, 0.015, 0.80])
+        panel['static_ax1'] = static_ax1
+        panel['static_ax2'] = static_ax2
+        panel['cax1'] = cax1
+        panel['cax2'] = cax2
+        for ax, xl in ((static_ax1, 'X mm'), (static_ax2, 'Y mm')):
+            ax.set_aspect('equal')
+            ax.set_xlabel(xl)
+            ax.set_ylabel('Z mm')
+        panel['marker1'], = static_ax1.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
+        panel['marker2'], = static_ax2.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
+        fig.set_facecolor(self._MainApp._BackgroundColorFigures)
+
+    def _RenderAcResultPanel(self, panel):
+        '''Draw / refresh the acoustic-field contours in a panel from self._* data.'''
+        homog = self._MainApp.Config['bForceHomogenousMedium']
+        Skull = self._Skull
+        XX, ZZX, YY, ZZY = self._XX, self._ZZX, self._YY, self._ZZY
+        ax1, ax2 = panel['static_ax1'], panel['static_ax2']
 
         SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
-
-        if hasattr(self,'_figAcField'):
-            if hasattr(self,'_imContourf1'):
-                listObjects=[self._imContourf1,self._imContourf2]
-                if not self._MainApp.Config['bForceHomogenousMedium']:
-                    listObjects+=[self._contour1,self._contour2]
-                    if 'AirMask' in self._Skull:
-                        listObjects+=[self._airmask1,self._airmask2]
-                for c in listObjects:
-                    try: #this is for old Matplotlib
-                        for coll in c.collections:
-                            coll.remove()
-                    except:
-                        c.remove()
-                del self._imContourf1
-                del self._imContourf2
-                if not self._MainApp.Config['bForceHomogenousMedium']:
-                    del self._contour1
-                    del self._contour2
-                    if 'AirMask' in self._Skull:
-                        del self._airmask1
-                        del self._airmask2 
-
-            self._imContourf1=self._static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            if not self._MainApp.Config['bForceHomogenousMedium']:
-                self._contour1 = self._static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
-                if 'AirMask' in self._Skull:
-                    AirMap=self._Skull['AirMask'][:,SelY,:].T
-                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                    self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
-
-            self._imContourf2=self._static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            if not self._MainApp.Config['bForceHomogenousMedium']:
-                self._contour2 = self._static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
-                if 'AirMask' in self._Skull:
-                    AirMap=self._Skull['AirMask'][SelX,:,:].T
-                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                    self._airmask2 = self._static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
-
-            self._figAcField.canvas.draw_idle()
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field = self._IWater
         else:
-            self._figAcField=Figure()
+            Field = self._ISkull
 
-            if not hasattr(self,'_layout'):
-                self._layout = QVBoxLayout(self.Widget.AcField_plot1)
+        # Remove the previous contour/contourf artists for this panel.
+        if panel.get('imContourf1') is not None:
+            listObjects = [panel['imContourf1'], panel['imContourf2']]
+            if not homog:
+                listObjects += [panel['contour1'], panel['contour2']]
+                if 'AirMask' in Skull:
+                    listObjects += [panel['airmask1'], panel['airmask2']]
+            for c in listObjects:
+                try:  # this is for old Matplotlib
+                    for coll in c.collections:
+                        coll.remove()
+                except:
+                    c.remove()
 
-            self.static_canvas = FigureCanvas(self._figAcField)
-            toolbar=style_nav_toolbar(NavigationToolbar2QT(self.static_canvas,self))
-            self._layout.addWidget(toolbar)
-            self._layout.addWidget(self.static_canvas)
-            # Each plot box is centered on its scrollbar (left col x=0.25, right
-            # col x=0.75). A dedicated colorbar axis keeps the plot itself
-            # centered (plt.colorbar(ax=...) would shrink/shift the plot).
-            fig=self.static_canvas.figure
-            static_ax1 = fig.add_axes([0.10, 0.12, 0.30, 0.80])
-            cax1       = fig.add_axes([0.43, 0.12, 0.015, 0.80])
-            static_ax2 = fig.add_axes([0.60, 0.12, 0.30, 0.80])
-            cax2       = fig.add_axes([0.93, 0.12, 0.015, 0.80])
-            self._static_ax1 = static_ax1
-            self._static_ax2 = static_ax2
+        panel['imContourf1'] = ax1.contourf(XX, ZZX, Field[:, SelY, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
+        if not homog:
+            panel['contour1'] = ax1.contour(XX, ZZX, Skull['MaterialMap'][:, SelY, :].T, [0, 1, 2], colors='k', linestyles=':')
+            if 'AirMask' in Skull:
+                AirMap = Skull['AirMask'][:, SelY, :].T
+                AirMap = np.ma.masked_where(AirMap == 0, AirMap)
+                panel['airmask1'] = ax1.contourf(XX, ZZX, AirMap, [0, 1], cmap=plt.cm.gray_r)
 
-            self._imContourf1=static_ax1.contourf(self._XX,self._ZZX,Field[:,SelY,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            h=plt.colorbar(self._imContourf1,cax=cax1)
+        panel['imContourf2'] = ax2.contourf(YY, ZZY, Field[SelX, :, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
+        if not homog:
+            panel['contour2'] = ax2.contour(YY, ZZY, Skull['MaterialMap'][SelX, :, :].T, [0, 1, 2], colors='k', linestyles=':')
+            if 'AirMask' in Skull:
+                AirMap = Skull['AirMask'][SelX, :, :].T
+                AirMap = np.ma.masked_where(AirMap == 0, AirMap)
+                panel['airmask2'] = ax2.contourf(YY, ZZY, AirMap, [0, 1], cmap=plt.cm.gray_r)
+
+        # Colourbars and the y-axis flip are set once, with the first contourf.
+        if not panel.get('cbDone'):
+            h = plt.colorbar(panel['imContourf1'], cax=panel['cax1'])
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            if not self._MainApp.Config['bForceHomogenousMedium']:
-                self._contour1 = static_ax1.contour(self._XX,self._ZZX,self._Skull['MaterialMap'][:,SelY,:].T,[0,1,2], colors ='k',linestyles = ':')
-                if 'AirMask' in self._Skull:
-                    AirMap=self._Skull['AirMask'][:,SelY,:].T
-                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                    self._airmask1 = static_ax1.contourf(self._XX,self._ZZX,AirMap,[0,1],cmap=plt.cm.gray_r)
-            static_ax1.set_aspect('equal')
-            static_ax1.set_xlabel('X mm')
-            static_ax1.set_ylabel('Z mm')
-            static_ax1.invert_yaxis()
-            self._marker1,=static_ax1.plot(0,self._DistanceToTarget,'+k',markersize=18)
-
-            self._imContourf2=static_ax2.contourf(self._YY,self._ZZY,Field[SelX,:,:].T,np.arange(2,22,2)/20,cmap=plt.cm.jet)
-            h=plt.colorbar(self._imContourf1,cax=cax2)
+            h = plt.colorbar(panel['imContourf1'], cax=panel['cax2'])
             h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
-            if not self._MainApp.Config['bForceHomogenousMedium']:
-                self._contour2 = static_ax2.contour(self._YY,self._ZZY,self._Skull['MaterialMap'][SelX,:,:].T,[0,1,2], colors ='k',linestyles = ':')
-                if 'AirMask' in self._Skull:
-                    AirMap=self._Skull['AirMask'][SelX,:,:].T
-                    AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                    self._airmask2 = static_ax2.contourf(self._YY,self._ZZY,AirMap,[0,1],cmap=plt.cm.gray_r)
-            static_ax2.set_aspect('equal')
-            static_ax2.set_xlabel('Y mm')
-            static_ax2.set_ylabel('Z mm')
-            static_ax2.invert_yaxis()
-            self._marker2,=static_ax2.plot(0,self._DistanceToTarget,'+k',markersize=18)
+            ax1.invert_yaxis()
+            ax2.invert_yaxis()
+            panel['cbDone'] = True
 
-        self._figAcField.set_facecolor(self._MainApp._BackgroundColorFigures)
-
-        mc=[0.0,0.0,0.0,1.0]
+        mc = [0.0, 0.0, 0.0, 1.0]
         if self.Widget.HideMarkscheckBox.isChecked():
-             mc[3] = 0.0
-        self._marker1.set_markerfacecolor(mc)
-        self._marker2.set_markerfacecolor(mc)
+            mc[3] = 0.0
+        panel['marker1'].set_markerfacecolor(mc)
+        panel['marker2'].set_markerfacecolor(mc)
+
+        panel['figure'].canvas.draw_idle()
         self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
-        self._bRecalculated = False
+
+    # ── Device hooks for the acoustic-result display ────────────────────────
+
+    def _AcResultFigure(self):
+        return Figure()
+
+    def _GetActiveFields(self, panel):
+        return panel['IWater'], panel['ISkull']
+
+    def _LoadAcResultData(self, panel):
+        '''Read the (single) skull/water H5 result and stash per-panel arrays.'''
+        Water = ReadFromH5py(self._WaterSolName)
+        Skull = ReadFromH5py(self._FullSolName)
+        print('_FullSolName', self._FullSolName)
+
+        if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
+            self._SDR = Skull['SDR']
+            self.Widget.SDRLabel.setText('%0.2f' % (Skull['SDR']))
+            panel['SDR'] = Skull['SDR']
+
+        extrasuffix = self.GetExtraSuffixAcFields()
+        self._MainApp._BrainsightInput = self._MainApp._prefix_path[self._TrajectoryNumber] + extrasuffix + 'FullElasticSolution_Sub_NORM.nii.gz'
+
+        self.ExportStep2Results(Skull)
+
+        LocTarget = Skull['TargetLocation']
+        print('LocTarget', LocTarget)
+
+        for d in [Water, Skull]:
+            keys = ['p_amp', 'MaterialMap']
+            if 'AirMask' in d:
+                keys.append('AirMask')
+            for t in keys:
+                d[t] = np.ascontiguousarray(np.flip(d[t], axis=2))
+
+        DistanceToTarget = self.Widget.DistanceSkinLabel.property('UserData')
+
+        Water['z_vec'] *= 1e3
+        Skull['z_vec'] *= 1e3
+        Skull['x_vec'] *= 1e3
+        Skull['y_vec'] *= 1e3
+        DensityMap = Skull['Material'][:, 0][Skull['MaterialMap']]
+        SoSMap = Skull['Material'][:, 1][Skull['MaterialMap']]
+
+        Skull['MaterialMap'][Skull['MaterialMap'] == 3] = 2
+        Skull['MaterialMap'][Skull['MaterialMap'] == 4] = 3
+
+        IWater = Water['p_amp'] ** 2 / 2 / Water['Material'][0, 0] / Water['Material'][0, 1]
+        ISkull = Skull['p_amp'] ** 2 / 2 / DensityMap / SoSMap
+
+        if not self._MainApp.Config['bForceHomogenousMedium']:
+            ISkull[Skull['MaterialMap'] < 3] = 0
+
+        ISkull /= ISkull.max()
+        IWater /= IWater.max()
+
+        Zvec = Skull['z_vec'].copy()
+        Zvec -= Zvec[LocTarget[2]]
+        Zvec += DistanceToTarget
+        XX, ZZX = np.meshgrid(Skull['x_vec'], Zvec)
+        YY, ZZY = np.meshgrid(Skull['y_vec'], Zvec)
+
+        panel.update({
+            'Skull': Skull, 'Water': Water,
+            'IWater': IWater, 'ISkull': ISkull,
+            'XX': XX, 'ZZX': ZZX, 'YY': YY, 'ZZY': ZZY,
+            'DistanceToTarget': DistanceToTarget, 'LocTarget': LocTarget,
+            'xvec': Skull['x_vec'] - Skull['x_vec'][LocTarget[0]],
+            'yvec': Skull['y_vec'] - Skull['y_vec'][LocTarget[1]],
+            'FullSolName': self._FullSolName, 'WaterSolName': self._WaterSolName,
+        })
 
     @Slot()
     def UpdateAcResults(self):
