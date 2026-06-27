@@ -137,89 +137,68 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.ZSteeringUpdate(0)
 
     @Slot()
-    def RunSimulation(self):
+    def _ResolveSimulationFilenames(self):
         #we create an object to do a dryrun to recover filenames
         dry=RunAcousticSim(self._MainApp,bDryRun=True)
         FILENAMES = dry.run()
-        
+
         self._FullSolName=FILENAMES['FilesSkull']
         self._WaterSolName=FILENAMES['FilesWater']
 
-        bCalcFields=False
-        bPrexistingFiles=True
+    def _ExistingSimulationFiles(self):
         for sskull,swater in zip(self._FullSolName,self._WaterSolName):
             if not(os.path.isfile(sskull) and os.path.isfile(swater)):
-                bPrexistingFiles=False
-                break
-            
-        if bPrexistingFiles:
-            #we can use the first entry, this is valid for all files in the list
-            Skull=ReadFromH5py(self._FullSolName[0])
-            XSteering=Skull['XSteering']
-            YSteering=Skull['YSteering']
-            ZSteering=Skull['ZSteering']
-            if 'RotationZ' in Skull:
-                RotationZ=Skull['RotationZ']
-            else:
-                RotationZ=0.0
+                return False
+        return True
 
-            ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "XSteering=%3.2f\n" %(XSteering*1e3)+
-                                    "YSteering=%3.2f\n" %(YSteering*1e3)+
-                                    "ZSteering=%3.2f\n" %(ZSteering*1e3)+
-                                    "ZRotation=%3.2f\n" %(RotationZ)+
-                                    "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
-                                    "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
-                                    "Do you want to recalculate?\nSelect No to reload",
-                QMessageBox.Yes | QMessageBox.No)
-
-            if ret == QMessageBox.Yes:
-                bCalcFields=True
-            else:
-                self.Widget.XSteeringSpinBox.setValue(XSteering*1e3)
-                self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
-                self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
-                self.Widget.ZRotationSpinBox.setValue(RotationZ)
-                try:
-                    self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
-                except:
-                    self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'].astype(int))
-                if 'DistanceConeToFocus' in Skull and hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
-                    self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
-                if 'zLengthBeyonFocalPoint' in Skull:
-                    self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
-                self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
-                self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
-                self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+    def _PromptReuseOrRecalc(self):
+        #we can use the first entry, this is valid for all files in the list
+        Skull=ReadFromH5py(self._FullSolName[0])
+        XSteering=Skull['XSteering']
+        YSteering=Skull['YSteering']
+        ZSteering=Skull['ZSteering']
+        if 'RotationZ' in Skull:
+            RotationZ=Skull['RotationZ']
         else:
-            bCalcFields = True
-        self._bRecalculated = True
-        if bCalcFields:
-            self._MainApp.Widget.tabWidget.setEnabled(False)
-            self.thread = QThread()
-            self.worker = RunAcousticSim(self._MainApp)
-            self.worker.moveToThread(self.thread)
-            self.thread.started.connect(self.worker.run)
-            self.worker.finished.connect(self.EndSimulation)
-            self.worker.finished.connect(self._MainApp.SendTelemetry)
-            self.worker.finished.connect(self.thread.quit)
-            self.worker.finished.connect(self.worker.deleteLater)
-            self.thread.finished.connect(self.thread.deleteLater)
+            RotationZ=0.0
 
-            self.worker.endError.connect(self.NotifyError)
-            self.worker.endError.connect(self._MainApp.SendTelemetry)
-            self.worker.endError.connect(self.thread.quit)
-            self.worker.endError.connect(self.worker.deleteLater)
+        ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
+                                "XSteering=%3.2f\n" %(XSteering*1e3)+
+                                "YSteering=%3.2f\n" %(YSteering*1e3)+
+                                "ZSteering=%3.2f\n" %(ZSteering*1e3)+
+                                "ZRotation=%3.2f\n" %(RotationZ)+
+                                "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
+                                "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
+                                "TxMechanicalAdjustmentZ=%3.2f\n" %(Skull['TxMechanicalAdjustmentZ']*1e3)+
+                                "Do you want to recalculate?\nSelect No to reload",
+            QMessageBox.Yes | QMessageBox.No)
 
-            self.worker.logTelemetry.connect(self._MainApp.LogTelemetry)
+        if ret == QMessageBox.Yes:
+            return True
+        self.Widget.XSteeringSpinBox.setValue(XSteering*1e3)
+        self.Widget.YSteeringSpinBox.setValue(YSteering*1e3)
+        self.Widget.ZSteeringSpinBox.setValue(ZSteering*1e3)
+        self.Widget.ZRotationSpinBox.setValue(RotationZ)
+        try:
+            self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'])
+        except:
+            self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'].astype(int))
+        if 'DistanceConeToFocus' in Skull and hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+            self.Widget.DistanceConeToFocusSpinBox.setValue(Skull['DistanceConeToFocus']*1e3)
+        if 'zLengthBeyonFocalPoint' in Skull:
+            self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
+        self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
+        self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
+        self.Widget.ZMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentZ']*1e3)
+        return False
 
-            self.thread.start()
-            self._MainApp.showClockDialog()
-        else:
-            self.UpdateAcResults()
+    def _CreateAcousticWorker(self):
+        return RunAcousticSim(self._MainApp)
 
-        
+    def _SimulationFinishedSlot(self):
+        return self.EndSimulation
+
+
     def GetExport(self):
         Export=super().GetExport()
         Export['Refocusing']=self.Widget.RefocusingcheckBox.isChecked()
@@ -304,9 +283,9 @@ class BabelBasePhaseArray(BabelBaseTx):
             if self._MainApp.Config['bInUseWithBrainsight']:
                 if Skull['bDoRefocusing']:
                     #we update the name to be loaded in BSight
-                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path[self._TrajectoryNumber]+'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
                 else:
-                    self._MainApp._BrainsightInput=self._MainApp._prefix_path+'FullElasticSolution_Sub_NORM.nii.gz'
+                    self._MainApp._BrainsightInput=self._MainApp._prefix_path[self._TrajectoryNumber]+'FullElasticSolution_Sub_NORM.nii.gz'
             self.ExportStep2Results(Skull)
 
             LocTarget=Skull['TargetLocation']
@@ -556,7 +535,7 @@ class RunAcousticSim(QObject):
         COMPUTING_BACKEND=self._mainApp.Config['ComputingBackend']
         basedir,ID=os.path.split(os.path.split(self._mainApp.Config['T1WIso'])[0])
         basedir+=os.sep
-        Target=[self._mainApp.Config['ID']+'_'+self._mainApp.Config['TxSystem']]
+        Target=[self._mainApp.Config['ID'][self._mainApp.AcSim._TrajectoryNumber]+'_'+self._mainApp.Config['TxSystem']]
 
         InputSim=self._mainApp._outnameMask
 

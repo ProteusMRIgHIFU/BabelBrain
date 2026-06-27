@@ -908,7 +908,7 @@ class BabelBrain(QWidget):
 
     
         #we prepare paths
-        self._prefix=[ p +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW) for p in self.Config['ID']]
+        self._prefix=[ p + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW) for p in self.Config['ID']]
         self._prefix_path=[self.Config['OutputFilesPath']+os.sep+p for p in self._prefix]
         self._outnameMask=[p+'BabelViscoInput.nii.gz' for p in self._prefix_path]
         self._T1W_resampled_fname=[p.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz' for p in self._outnameMask]
@@ -996,11 +996,13 @@ class BabelBrain(QWidget):
 
 
     #this will modify the coordinates of the trajectory
-    def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0):
+    def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0,Ntraj=0):
         newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
             
         if self.Config['TrajectoryType']=='brainsight':
             OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])
+            if len(OrigTraj.shape)==3:
+                OrigTraj=OrigTraj[:,:,Ntraj]
             OrigTraj[0,3]-=CorX
             OrigTraj[1,3]-=CorY
             OrigTraj[2,3]-=CorZ

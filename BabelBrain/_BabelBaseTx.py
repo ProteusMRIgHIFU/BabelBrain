@@ -3,7 +3,7 @@ Base Class for Tx GUI, not to be instantiated directly
 '''
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, QThread
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 
 import numpy as np
@@ -77,13 +77,13 @@ class BabelBaseTx(QWidget):
         FocIJK=np.ones((4,1))
         FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
 
-        FocXYZ=self._MainApp._MaskNib.affine@FocIJK
+        FocXYZ=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJK
         FocIJKAdjust=FocIJK.copy()
         #we adjust in steps
         FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[0]
         FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[1]
 
-        FocXYZAdjust=self._MainApp._MaskNib.affine@FocIJKAdjust
+        FocXYZAdjust=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
         AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
 
         print('AdjustmentInRAS recalc',AdjustmentInRAS)
@@ -92,7 +92,8 @@ class BabelBaseTx(QWidget):
 
         fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
                                         CorY=Results['AdjustmentInRAS'][1],
-                                        CorZ=Results['AdjustmentInRAS'][2])
+                                        CorZ=Results['AdjustmentInRAS'][2],
+                                        Ntraj=self._TrajectoryNumber)
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
                 f.write(self._MainApp._BrainsightInput)
@@ -123,6 +124,143 @@ class BabelBaseTx(QWidget):
             self._MainApp.testing_error = True
             self._MainApp.Widget.tabWidget.setEnabled(True)
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Acoustic simulation execution (Step 2)
+    #
+    # RunSimulation is a single template method shared by every transducer.
+    # The parts that genuinely differ between devices are isolated in the
+    # hooks below; subclasses override only what they need:
+    #
+    #   _ResolveSimulationFilenames()  – set self._FullSolName / self._WaterSolName
+    #                                    (and stash any device parameters needed
+    #                                    later by _CreateAcousticWorker).
+    #   _ExistingSimulationFiles()     – True if results already on disk
+    #                                    (default: scalar single-file check;
+    #                                    phased arrays override for file lists).
+    #   _PromptReuseOrRecalc()         – when files exist, ask the user and, on
+    #                                    reload, repopulate the device widgets;
+    #                                    return True to (re)compute.
+    #   _CreateAcousticWorker()        – build the device's RunAcousticSim worker
+    #                                    with its specific parameters.
+    #   _SimulationFinishedSlot()      – slot connected to worker.finished
+    #                                    (default: UpdateAcResults).
+    #   _ReloadExistingResults()       – called when results are reused as-is
+    #                                    (default: UpdateAcResults).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def RunSimulation(self):
+        # Run each trajectory in turn.  Because the actual computation happens
+        # on a background QThread, the trajectories cannot be launched in a plain
+        # for-loop (they would all start at once, racing over self.thread /
+        # self.worker and crashing).  Instead we run the first trajectory and
+        # chain the next one only once the current thread has fully finished
+        # (see _AdvanceTrajectorySim, fired on thread.finished).
+        self._TrajectoryNumber = 0
+        self._RunCurrentTrajectorySim()
+
+    def _RunCurrentTrajectorySim(self):
+        # Cleared here and only re-armed on a *successful* worker.finished, so an
+        # error (or the final trajectory) stops the chain.
+        self._bAdvanceTrajectory = False
+        # (1) Device-specific: resolve the skull/water solution filenames.
+        self._ResolveSimulationFilenames()
+        # (2) Decide whether to (re)compute or reuse existing results.
+        if self._ExistingSimulationFiles():
+            bCalcFields = self._PromptReuseOrRecalc()
+        else:
+            bCalcFields = True
+        self._bRecalculated = True
+        # (3) Launch the background simulation, or reload existing results.
+        if bCalcFields:
+            # Advancement is driven by thread.finished -> _AdvanceTrajectorySim.
+            self._LaunchAcousticSim(self._CreateAcousticWorker(),
+                                    self._SimulationFinishedSlot())
+        else:
+            # No worker thread is spawned for a reload, so advance directly.
+            self._ReloadExistingResults()
+            self._GotoNextTrajectory()
+
+    def _MarkTrajectoryAdvance(self, *args):
+        '''
+        Connected to worker.finished (success path only).  Arms the chain so the
+        next trajectory runs once the thread has fully stopped.  Accepts *args
+        because some devices emit finished as Signal(object).
+        '''
+        self._bAdvanceTrajectory = True
+
+    def _AdvanceTrajectorySim(self):
+        '''
+        Fired on thread.finished, i.e. once the worker thread's event loop has
+        fully exited.  Only chains to the next trajectory after a successful run;
+        an error leaves _bAdvanceTrajectory cleared and halts the batch.
+        '''
+        if not getattr(self, '_bAdvanceTrajectory', False):
+            return
+        self._GotoNextTrajectory()
+
+    def _GotoNextTrajectory(self):
+        self._bAdvanceTrajectory = False
+        if self._TrajectoryNumber < len(self._MainApp.Config['ID']) - 1:
+            self._TrajectoryNumber += 1
+            self._RunCurrentTrajectorySim()
+
+    def _LaunchAcousticSim(self, worker, on_finished):
+        '''
+        Common worker-thread plumbing shared by every transducer.  Moves the
+        device's RunAcousticSim worker onto a QThread and wires the standard
+        finished/error/telemetry signals before starting it.
+
+        The next trajectory (if any) is chained on thread.finished rather than
+        worker.finished: at the earlier point thread.quit() is still queued and
+        the thread is alive, so starting a new run there would race/crash.
+        '''
+        self._MainApp.Widget.tabWidget.setEnabled(False)
+        self.thread = QThread()
+        self.worker = worker
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(on_finished)
+        self.worker.finished.connect(self._MarkTrajectoryAdvance)
+        self.worker.finished.connect(self._MainApp.SendTelemetry)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self._AdvanceTrajectorySim)
+
+        self.worker.endError.connect(self.NotifyError)
+        self.worker.endError.connect(self._MainApp.SendTelemetry)
+        self.worker.endError.connect(self.thread.quit)
+        self.worker.endError.connect(self.worker.deleteLater)
+
+        self.worker.logTelemetry.connect(self._MainApp.LogTelemetry)
+
+        self.thread.start()
+        self._MainApp.showClockDialog()
+
+    # ── Default hook implementations (overridable per device) ───────────────
+
+    def _ResolveSimulationFilenames(self):
+        raise NotImplementedError(
+            "Subclasses must set self._FullSolName / self._WaterSolName")
+
+    def _ExistingSimulationFiles(self):
+        return os.path.isfile(self._FullSolName) and \
+               os.path.isfile(self._WaterSolName)
+
+    def _PromptReuseOrRecalc(self):
+        raise NotImplementedError(
+            "Subclasses must implement the reuse/recalculate prompt")
+
+    def _CreateAcousticWorker(self):
+        raise NotImplementedError(
+            "Subclasses must build their RunAcousticSim worker")
+
+    def _SimulationFinishedSlot(self):
+        return self.UpdateAcResults
+
+    def _ReloadExistingResults(self):
+        self.UpdateAcResults()
+
     def _showMatplotlibVisualization(self):
         if self._bRecalculated:
             if self.Widget.ShowWaterResultscheckBox.isEnabled()== False:
@@ -142,7 +280,7 @@ class BabelBaseTx(QWidget):
 
             extrasuffix=self.GetExtraSuffixAcFields()
 
-            self._MainApp._BrainsightInput=self._MainApp._prefix_path+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
+            self._MainApp._BrainsightInput=self._MainApp._prefix_path[self._TrajectoryNumber]+extrasuffix+'FullElasticSolution_Sub_NORM.nii.gz'
 
             self.ExportStep2Results(Skull)    
 
