@@ -69,7 +69,7 @@ class RingTx(BabelBaseTx):
         raise NotImplementedError("DefaultConfig must be implemented in the derived class")
     
     def NotifyGeneratedMask(self):
-        VoxelSize=self._MainApp._MaskNib.header.get_zooms()[0]
+        VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
         TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
         LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
         StartSkin=np.where(LineOfSight>0)[0].min()

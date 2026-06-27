@@ -54,7 +54,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSlider,
     QSizePolicy, QFileDialog, QPushButton, QFrame, QSplitter,
     QButtonGroup, QRadioButton, QCheckBox, QGroupBox,
-    QScrollArea, QComboBox, QToolButton, QLineEdit,
+    QScrollArea, QComboBox, QToolButton, QLineEdit, QTabWidget,
 )
 
 import vtk
@@ -2185,21 +2185,20 @@ def _tb_sep() -> QFrame:
     return sep
 
 
-class NiftiViewerWindow(QWidget):
+class NiftiViewerTab(QWidget):
     """
-    Self-contained NIfTI viewer widget.  Derives from QWidget so it can be
-    embedded directly in any parent layout of an existing application:
+    One self-contained NIfTI viewer panel: a toolbar plus a NiftiViewer.
 
-        viewer_widget = NiftiViewerWindow(parent=some_parent)
-        some_layout.addWidget(viewer_widget)
-
+    Each tab in NiftiViewerWindow holds one of these and is completely
+    independent of the others (its own volumes, display mode, crosshair state,
+    RAS navigator, screenshot/reset actions, …).  The contained NiftiViewer is
+    exposed as `self.viewer`; the owning NiftiViewerWindow collects these into a
+    list (one per trajectory).
     """
-
-    closed = Signal()  # custom signal emitted on close
 
     def __init__(self, parent=None, stand_alone=False):
         super().__init__(parent)
-        self.setStyleSheet(f"NiftiViewerWindow {{ background:{BG_DARK}; }}")
+        self.setStyleSheet(f"NiftiViewerTab {{ background:{BG_DARK}; }}")
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -2406,6 +2405,78 @@ class NiftiViewerWindow(QWidget):
         except Exception as exc:
             raise
 
+
+# ── Top-level tabbed window ──────────────────────────────────────────────────
+
+# Tab bar styling consistent with the dark viewer theme.
+_TABS_STYLE = f"""
+QTabWidget::pane {{ border:1px solid #333340; background:{BG_DARK}; }}
+QTabBar::tab {{
+    background:{BG_PANEL}; color:{TEXT_DIM};
+    border:1px solid #333340; border-bottom:none;
+    border-top-left-radius:4px; border-top-right-radius:4px;
+    padding:4px 12px; margin-right:2px; font-size:12px;
+}}
+QTabBar::tab:selected {{ background:{BG_LAYER}; color:{ACCENT}; }}
+QTabBar::tab:hover {{ color:{TEXT}; }}
+"""
+
+
+class NiftiViewerWindow(QWidget):
+    """
+    Top-level NIfTI viewer widget presenting one tab per trajectory.
+
+    Each tab is an independent NiftiViewerTab (toolbar + NiftiViewer).  The
+    per-tab NiftiViewer instances are gathered into the `viewer` list so callers
+    can address a given trajectory's viewer directly, e.g.::
+
+        win = NiftiViewerWindow(trajectories=['traj_A', 'traj_B'])
+        win.viewer[0].load_base(...)   # first trajectory
+        win.viewer[1].add_overlay(...) # second trajectory
+
+    Parameters
+    ----------
+    trajectories : list | int | None
+        Tab titles (typically the trajectory IDs).  An int N is treated as N
+        unnamed tabs.  None / empty defaults to a single tab.
+    """
+
+    closed = Signal()  # custom signal emitted on close
+
+    def __init__(self, parent=None, stand_alone=False, trajectories=None):
+        super().__init__(parent)
+        self.setStyleSheet(f"NiftiViewerWindow {{ background:{BG_DARK}; }}")
+
+        # Normalise the trajectories argument into a list of tab titles.
+        if trajectories is None:
+            titles = ["Trajectory 1"]
+        elif isinstance(trajectories, int):
+            titles = [f"Trajectory {i + 1}" for i in range(max(1, trajectories))]
+        else:
+            titles = [str(t) for t in trajectories] or ["Trajectory 1"]
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self.tabs = QTabWidget(self)
+        # Keep trajectory names fully visible and scroll (rather than elide)
+        # when many tabs don't fit.
+        self.tabs.tabBar().setElideMode(Qt.ElideNone)
+        self.tabs.tabBar().setExpanding(False)
+        self.tabs.setUsesScrollButtons(True)
+        self.tabs.setStyleSheet(_TABS_STYLE)
+        root.addWidget(self.tabs)
+
+        # One independent panel (and thus one NiftiViewer) per trajectory.
+        self.panels: list[NiftiViewerTab] = []
+        self.viewer: list[NiftiViewer] = []
+        for title in titles:
+            panel = NiftiViewerTab(self, stand_alone=stand_alone)
+            self.tabs.addTab(panel, title)
+            self.panels.append(panel)
+            self.viewer.append(panel.viewer)
+
     def closeEvent(self, event):
         self.closed.emit()
         super().closeEvent(event)  # let the default close logic run
@@ -2427,9 +2498,9 @@ def main():
     if args:
         try:
             focal_voxel = (np.array(nib.load(args[0]).get_fdata().shape)/2).astype(int)
-            win.viewer.load_base(args[0],focal_voxel,os.path.basename(args[0]))
+            win.viewer[0].load_base(args[0],focal_voxel,os.path.basename(args[0]))
             for path in args[1:]:
-                win.viewer.add_overlay(path,name=os.path.basename(path))
+                win.viewer[0].add_overlay(path,name=os.path.basename(path))
         except Exception as exc:
             raise
 

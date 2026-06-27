@@ -157,7 +157,7 @@ class BSonix(SingleTx):
         HEIGHT = self.Config['CaseHeight']/1e3 # m
         InitTrans=np.eye(4)
         LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask,axis=2)==5.0)).flatten()
-        SpatialStep=np.mean(self._MainApp._MaskNib.header.get_zooms())/1e3
+        SpatialStep=np.mean(self._MainApp._MaskNib[0].header.get_zooms())/1e3
         InitTrans[0,3]=LocSpot[0]
         InitTrans[1,3]=LocSpot[1]
         InitTrans[2,3]=LocSpot[2]+HEIGHT/2/SpatialStep+(self.Widget.DistanceSkinLabel.property('UserData')+self.Widget.SkinDistanceSpinBox.value())/1e3/SpatialStep
