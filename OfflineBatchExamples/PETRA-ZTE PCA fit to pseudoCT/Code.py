@@ -268,9 +268,9 @@ class Processing(object):
         self.LineSep=LineSep
         BasePath=self.BasePath
         ZTE=nibabel.load(jn(BasePath,'ZTE_BiasCorrec_pCT.nii.gz'))
-        ZTE_pCT=ZTE.get_fdata()
+        ZTE_pCT=ZTE.get_fdata(dtype=np.float32)
         CTn=nibabel.load(jn(BasePath,'CT_in_T1W.nii.gz'))
-        CT=CTn.get_fdata()
+        CT=CTn.get_fdata(dtype=np.float32)
         ZTE_pCT[:,:,:LineSep]=ZTE_pCT.min()
         CT[:,:,:LineSep]=CT.min()
         
@@ -321,15 +321,15 @@ class Processing(object):
         and bias corrected ZTE (obtained with RunMaskGeneration)
         '''
         CTnii =nibabel.load(jn(BasePath,'CT_in_T1W.nii.gz'))
-        CT=CTnii.get_fdata()
+        CT=CTnii.get_fdata(dtype=np.float32)
         ZTEnii=nibabel.load(jn(BasePath,'ZTE_InT1.nii.gz'))
-        ZTE=ZTEnii.get_fdata()
+        ZTE=ZTEnii.get_fdata(dtype=np.float32)
 
         '''
         We do the smae processing as in BabelBrain to normalize the ZTE/PETRA data
         '''
         charm= nibabel.load(self.simbnibs_path+os.sep+'final_tissues.nii.gz')
-        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+        charmdata=np.ascontiguousarray(charm.get_fdata(dtype=np.float32))[:,:,:,0]
         arrSkin=charmdata>0 #this mimics what the old headreco does for skin
         arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
         label_img=label(charmdata==0)

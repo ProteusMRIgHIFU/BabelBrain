@@ -233,7 +233,7 @@ def CTCorreg(InputT1,file_manager, ElastixOptimizer, ResampleFunc=None, Resample
             in_img = file_manager.load_file(T1fnameBiasCorrec)
 
             voxel_sizes = file_manager.load_file(InputCT).header.get_zooms()
-            cval = in_img.get_fdata().min()
+            cval = in_img.get_fdata(dtype=np.float32).min()
             if ResampleFunc is None:
                 fixed_image = processing.resample_to_output(in_img,voxel_sizes=voxel_sizes,cval=cval)
             else:
@@ -332,7 +332,7 @@ def BiasCorrecAndCoreg(InputT1,
             print('Error: mask and image do not have the same spacing under tolerance, second attempt to fix')
             imgnib=file_manager.sitk_to_nibabel(img)
             img_mask=file_manager.sitk_to_nibabel(img_mask)
-            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(),affine=imgnib.affine)
+            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(dtype=np.float32),affine=imgnib.affine)
             img_mask=file_manager.nibabel_to_sitk(img_mask)
             img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
 
@@ -361,7 +361,7 @@ def BiasCorrecAndCoreg(InputT1,
             print('Error: mask and image do not have the same spacing under tolerance, second attempt to fix')
             imgnib=file_manager.sitk_to_nibabel(img)
             img_mask=file_manager.sitk_to_nibabel(img_mask)
-            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(),affine=imgnib.affine)
+            img_mask=nibabel.Nifti1Image(img_mask.get_fdata(dtype=np.float32),affine=imgnib.affine)
             img_mask=file_manager.nibabel_to_sitk(img_mask)
             img_out=img*sitk.Cast(img_mask,sitk.sitkFloat32)
 
@@ -439,7 +439,7 @@ def GeneratePseudoCTHistogram(pCT,CTfname,DistanceFromTop=80.0):
     dim, direction, score=get_si_aligned_dimension(pCT.affine)
     zm=pCT.header.get_zooms()
     NumberVoxelsFromTop=int(DistanceFromTop/zm[dim])
-    data=pCT.get_fdata()
+    data=pCT.get_fdata(dtype=np.float32)
     if direction ==1: #we flip the data
         data=np.flip(data,axis=dim)
     sz=data.shape
@@ -519,7 +519,7 @@ def ConvertZTE_PETRA_pCT(InputT1,
         #while charm is much more powerful to segment skull regions, we need to calculate the meshes ourselves
         charminput = os.path.join(SimbsPath,'final_tissues.nii.gz')
         charm = file_manager.load_file(charminput)
-        charmdata=np.ascontiguousarray(charm.get_fdata())[:,:,:,0]
+        charmdata=np.ascontiguousarray(charm.get_fdata(dtype=np.float32))[:,:,:,0]
         arrSkin=charmdata>0 #this mimics what the old headreco does for skin
         arrMask=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for csf
         label_img=label(charmdata==0)
@@ -537,9 +537,9 @@ def ConvertZTE_PETRA_pCT(InputT1,
         volumeSkin = file_manager.load_file(SkinMask)
         volumeCavities = file_manager.load_file(CavitiesMask)
 
-        arrMask=volumeMask.get_fdata()
-        arrSkin=volumeSkin.get_fdata()
-        arrCavities=volumeCavities.get_fdata()
+        arrMask=volumeMask.get_fdata(dtype=np.float32)
+        arrSkin=volumeSkin.get_fdata(dtype=np.float32)
+        arrCavities=volumeCavities.get_fdata(dtype=np.float32)
     
     with tempfile.TemporaryDirectory() as tmpdirname:
         HeadMask=os.path.join(tmpdirname,'tissueregion.nii.gz')
@@ -550,8 +550,8 @@ def ConvertZTE_PETRA_pCT(InputT1,
         volumeZTE = file_manager.load_file(InputZTE)
         volumeHead = file_manager.load_file(HeadMask)
         
-        arrZTE=volumeZTE.get_fdata()
-        arrHead=volumeHead.get_fdata()
+        arrZTE=volumeZTE.get_fdata(dtype=np.float32)
+        arrHead=volumeHead.get_fdata(dtype=np.float32)
 
         if bIsPetra: # SimNIBS petra2Density
             print('Using PETRA specification to convert to pCT')
@@ -605,7 +605,7 @@ def ConvertZTE_PETRA_pCT(InputT1,
         props = sorted(props, key=itemgetter('pixelcount'), reverse=True)
         arr2=scipy.ndimage.binary_closing(label_img==props[0].label,structure=np.ones((11,11,11))).astype(np.uint8)
 
-        arrCT=np.zeros_like(arrGauss)
+        arrCT=np.zeros_like(arrGauss,dtype=np.float32)
         arrCT[arrSkin==0]=-1000 
         arrCT[arrSkin!=0]=42.0 #soft tissue
 

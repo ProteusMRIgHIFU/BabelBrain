@@ -761,7 +761,7 @@ def SaveNiftiEnforcedISO(nii_in, fn):
         try: #lets try with a clean affine
             print('Affine matrix was not exactly orthonormal, fixing affine matrix')
             aff_clean = make_affine_itk_friendly(nii_in.affine, report=False)
-            nii = nibabel.Nifti1Image(nii_in.get_fdata(), aff_clean, header=nii_in.header)
+            nii = nibabel.Nifti1Image(nii_in.get_fdata(dtype=np.float32), aff_clean, header=nii_in.header)
             nii.to_filename(fn_unc)
             pre=sitk.ReadImage(fn_unc)
             pre.SetSpacing([res,res,res])
@@ -794,8 +794,8 @@ def ResaveNormalized(rpath, mask):
 
     Results=nibabel.load(rpath)
 
-    ResultsData=Results.get_fdata()
-    MaskData=mask.get_fdata()
+    ResultsData=Results.get_fdata(dtype=np.float32)
+    MaskData=mask.get_fdata(dtype=np.float32)
     ii,jj,kk=np.mgrid[0:ResultsData.shape[0],0:ResultsData.shape[1],0:ResultsData.shape[2]]
 
     Indexes=np.c_[(ii.flatten().T,jj.flatten().T,kk.flatten().T,np.ones((kk.size,1)))].T
@@ -810,7 +810,7 @@ def ResaveNormalized(rpath, mask):
     SubMask=MaskData[IndexesMask[0,:],IndexesMask[1,:],IndexesMask[2,:]].reshape(ResultsData.shape)
     ResultsData[SubMask<4]=0
     ResultsData/=ResultsData.max()
-    NormalizedNifti=nibabel.Nifti1Image(ResultsData,Results.affine,header=Results.header)
+    NormalizedNifti=nibabel.Nifti1Image(ResultsData.astype(np.float32),Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
 
 def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
@@ -1158,7 +1158,7 @@ class BabelFTD_Simulations_BASE(object):
 
     def Step1_InitializeConditions(self): #in case it is desired to move up or down in the Z direction the focal spot
         self._SkullMask=nibabel.load(self._MASKFNAME)
-        SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(),axis=2)
+        SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(dtype=np.float32),axis=2)
 
         bBrainSegmentation = np.any(SkullMaskDataOrig>5)
         if bBrainSegmentation:
@@ -1173,10 +1173,10 @@ class BabelFTD_Simulations_BASE(object):
         if self._CTFNAME is not None and not self._bWaterOnly\
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
-            DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata(),axis=2).astype(np.uint32)
+            DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata().astype(np.uint32),axis=2)
             DensitCTMapOrig=DensityCTMap.copy()
             if self._AIRMASK:
-                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata(),axis=2).astype(np.uint32)
+                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata().astype(np.uint32),axis=2)
             AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
             print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
             print('USING MAPPING METHOD = ',self._MappingMethod)
@@ -1472,11 +1472,11 @@ class BabelFTD_Simulations_BASE(object):
         affine[0:3,0:3]=affine[0:3,0:3] @ (np.eye(3)*subsamplingFactor)
 
         if bMinimalSaving==False and not bUseRayleighForWater:
-            nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(RayleighWaterOverlay[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWaterWOverlay__'])
         
         if not bUseRayleighForWater: 
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'])
 
         [mx,my,mz]=np.where(MaskCalcRegions)
@@ -1487,37 +1487,37 @@ class BabelFTD_Simulations_BASE(object):
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
         if self._bDoRefocusing:
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus__'])
-            nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocusPhase__'])
-            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
             ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
 
                 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss],affine=affine)
+        nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss].astype(np.float32),affine=affine)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution__'])
 
-        nii=nibabel.Nifti1Image(FullSolutionPhase[::ss,::ss,::ss],affine=affine)
+        nii=nibabel.Nifti1Image(FullSolutionPhase[::ss,::ss,::ss].astype(np.float32),affine=affine)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionPhase__'])
         if bUseRayleighForWater:
-            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(RayleighWater[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
-            nii=nibabel.Nifti1Image(RayleighWaterPhase[::ss,::ss,::ss],affine=affine)
+            nii=nibabel.Nifti1Image(RayleighWaterPhase[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution__'])
 
-        nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+        nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
         ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
 
         if bUseRayleighForWater:
-            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
             SaveNiftiEnforcedISO(nii,FILENAMESWater['FullElasticSolution_Sub__'])
             ResaveNormalized(FILENAMESWater['FullElasticSolution_Sub'],self._SkullMask)
 
         if not bUseRayleighForWater: 
-            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]],affine=affineSub)
+            nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
             SaveNiftiEnforcedISO(nii,FILENAMES['RayleighFreeWater__'].replace('RayleighFreeWater','RayleighFreeWater_Sub'))
         
         if subsamplingFactor>1:
@@ -1556,7 +1556,7 @@ class BabelFTD_Simulations_BASE(object):
         ###
 
         FocIJK=np.ones((4,1))
-        DataMaskOrig=self._SkullMask.get_fdata()
+        DataMaskOrig=self._SkullMask.get_fdata(dtype=np.float32)
         DataMask=np.flip(DataMaskOrig,axis=2)
         FocIJK[:3,0]=np.array(np.where(DataMask==5)).flatten()
 
@@ -1841,7 +1841,7 @@ class SimulationConditionsBASE(object):
         self._ZSourceLocation=self._ZIntoSkinPixels+self._PMLThickness
         
         #we save the mask array and flipped
-        self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2)
+        self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(dtype=np.float32),axis=2)
         self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)

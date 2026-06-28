@@ -158,7 +158,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
         
-        LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
+        LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
 
         TxVert[2,:]=-TxVert[2,:]
         TxVert[0,:]+=LocSpot[0]

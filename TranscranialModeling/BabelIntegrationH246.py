@@ -193,7 +193,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     def GenerateSTLTx(self,prefix):
         n=1
         affine=self._SkullMask.affine
-        LocSpot=np.array(np.where(self._SkullMask.get_fdata()==5.0)).flatten()
+        LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
         for VertDisplay,FaceDisplay in zip(self._SIM_SETTINGS._TxRCOrig['RingVertDisplay'],
                                 self._SIM_SETTINGS._TxRCOrig['RingFaceDisplay']):
             #we also export the STL of the Tx for display in Brainsight or 3D slicer

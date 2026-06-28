@@ -51,7 +51,7 @@ class FileManager:
             if nifti_load_method == 'sitk':
                 return self.nibabel_to_sitk(value,sitk_dtype=sitk_dtype) # nibabel_to_sitk automatically makes a copy
             else:
-                data_copy = nibabel.Nifti1Image(value.get_fdata(), value.affine, value.header.copy())
+                data_copy = nibabel.Nifti1Image(value.get_fdata(dtype=np.float32), value.affine, value.header.copy())
                 return data_copy
         
         # Handle sitk NIfti images 
@@ -374,10 +374,10 @@ class FileManager:
         """
 
         # Make copy of original image
-        nib_image = nibabel.Nifti1Image(original_nib_image.get_fdata(), original_nib_image.affine, original_nib_image.header.copy())
+        nib_image = nibabel.Nifti1Image(original_nib_image.get_fdata(dtype=np.float32), original_nib_image.affine, original_nib_image.header.copy())
 
         # Get the image data array and affine matrix from the nibabel image
-        image_data = nib_image.get_fdata()
+        image_data = nib_image.get_fdata(dtype=np.float32)
         if len(image_data.shape) > 3:
             image_data = np.squeeze(image_data, axis=-1)
         affine = nib_image.affine

@@ -34,8 +34,8 @@ if __name__ == "__main__":
     Results=nibabel.load(RPath)
     Mask=nibabel.load(MaskPath)
 
-    ResultsData=Results.get_fdata()
-    MaskData=Mask.get_fdata()
+    ResultsData=Results.get_fdata(dtype=np.float32)
+    MaskData=Mask.get_fdata(dtype=np.float32)
     ii,jj,kk=np.mgrid[0:ResultsData.shape[0],0:ResultsData.shape[1],0:ResultsData.shape[2]]
 
     Indexes=np.c_[(ii.flatten().T,jj.flatten().T,kk.flatten().T,np.ones((kk.size,1)))].T

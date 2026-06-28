@@ -98,9 +98,9 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                     
                     for ss,sub in zip(['','Refocus'],[nSub,nRefocus]):
                         if len(sub)>0:
-                            AllpData=np.zeros((len(sub),sub[0].shape[0],sub[0].shape[1],sub[0].shape[2]))
+                            AllpData=np.zeros((len(sub),sub[0].shape[0],sub[0].shape[1],sub[0].shape[2]),dtype=np.float32)
                             for n,entry in enumerate(sub):
-                                AllpData[n,:,:,:]=entry.get_fdata()
+                                AllpData[n,:,:,:]=entry.get_fdata(dtype=np.float32)
                             AllpData=AllpData.max(axis=0)
                             combinedNifti=nibabel.Nifti1Image(AllpData,sub[0].affine,header=sub[0].header)
                             if 'Water_DataForSim.h5' in fnames[0] :

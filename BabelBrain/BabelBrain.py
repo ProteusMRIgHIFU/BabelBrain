@@ -1138,9 +1138,9 @@ class BabelBrain(QWidget):
     def _showMatplotlibVisualization(self,bDeleteOnly:bool):
         AirMask=None
         if self.Config['bUseCT']:
-            CTData=np.flip(self._NiftiCT[self._TrajectoryNumber].get_fdata(),axis=2)
+            CTData=np.flip(self._NiftiCT[self._TrajectoryNumber].get_fdata(dtype=np.float32),axis=2)
             if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path[self._TrajectoryNumber]+'AirRegions.nii.gz'):
-                AirMask=np.flip(self._NiftiAirMask[self._TrajectoryNumber].get_fdata(),axis=2)
+                AirMask=np.flip(self._NiftiAirMask[self._TrajectoryNumber].get_fdata(dtype=np.float32),axis=2)
         
         FinalMask=np.flip(self.FinalMaskRaw[self._TrajectoryNumber],axis=2)
         T1WData=np.flip(self._T1WDataRaw[self._TrajectoryNumber],axis=2)
@@ -1329,13 +1329,13 @@ class BabelBrain(QWidget):
             Data=nibabel.load(self._outnameMask[self._TrajectoryNumber])
         except:
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
-        self.FinalMaskRaw[self._TrajectoryNumber]=Data.get_fdata()
+        self.FinalMaskRaw[self._TrajectoryNumber]=Data.get_fdata(dtype=np.float32)
         self._FinalMask[self._TrajectoryNumber] = np.flip(self.FinalMaskRaw[self._TrajectoryNumber],axis=2)
 
         self._bSegmentedBrain = np.max(self.FinalMaskRaw[self._TrajectoryNumber])>5
 
         T1W=nibabel.load(self._T1W_resampled_fname[self._TrajectoryNumber])
-        self._T1WDataRaw[self._TrajectoryNumber]=T1W.get_fdata()
+        self._T1WDataRaw[self._TrajectoryNumber]=T1W.get_fdata(dtype=np.float32)
         
         self._MaskNib[self._TrajectoryNumber]=Data
         self._T1WNib[self._TrajectoryNumber]=T1W
@@ -1343,7 +1343,7 @@ class BabelBrain(QWidget):
         if self.Config['bUseCT']:
             self._NiftiCT[self._TrajectoryNumber]=nibabel.load(self._prefix_path[self._TrajectoryNumber]+'CT.nii.gz')
             AllBoneHU = np.load(self._prefix_path[self._TrajectoryNumber]+'CT-cal.npz')['UniqueHU']
-            CTData=AllBoneHU[self._NiftiCT[self._TrajectoryNumber].get_fdata().astype(int)]
+            CTData=AllBoneHU[self._NiftiCT[self._TrajectoryNumber].get_fdata().astype(int)].astype(np.float32)
             self._NiftiCT[self._TrajectoryNumber]=nibabel.Nifti1Image(CTData,affine=self._NiftiCT[self._TrajectoryNumber].affine,header=self._NiftiCT[self._TrajectoryNumber].header)               
             if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path[self._TrajectoryNumber]+'AirRegions.nii.gz'):
                 self._NiftiAirMask[self._TrajectoryNumber]=nibabel.load(self._prefix_path[self._TrajectoryNumber]+'AirRegions.nii.gz')
@@ -1383,7 +1383,7 @@ class BabelBrain(QWidget):
             t1w_nib = self._T1WNib[n]
 
             # Focal-point voxel (label == 5 in the mask)
-            mask_array = mask_nib.get_fdata()
+            mask_array = mask_nib.get_fdata(dtype=np.float32)
             focal_voxel = np.array(np.where(mask_array == 5)).flatten()
           
             viewer =self._vtk_visualization.viewer[n]

@@ -683,8 +683,8 @@ class Babel_Thermal(QWidget):
                 self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
 
-            NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2),affine=self._MainApp._NiftiSkull.affine)
-            NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2),affine=self._MainApp._NiftiSkull.affine)
+            NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull.affine)
+            NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull.affine)
             self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature)
 
     @Slot()
@@ -808,7 +808,7 @@ class Babel_Thermal(QWidget):
             BaselineTemperature=37.0
         Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
         Tmap=np.flip(Tmap,axis=2)
-        nii=nibabel.Nifti1Image(Tmap,affine=nidata.affine)
+        nii=nibabel.Nifti1Image(Tmap.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName)
 
         pressureField = DataThermal['p_map'] * np.sqrt(IsppaRatio)
@@ -821,16 +821,16 @@ class Babel_Thermal(QWidget):
         intensityField=np.flip(intensityField,axis=2)
 
         OutName2=OutName.replace('ThermalField','PressureField')
-        nii=nibabel.Nifti1Image(pressureField,affine=nidata.affine)
+        nii=nibabel.Nifti1Image(pressureField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName2)
 
         OutName3=OutName.replace('ThermalField','IntensityField')
-        nii=nibabel.Nifti1Image(intensityField,affine=nidata.affine)
+        nii=nibabel.Nifti1Image(intensityField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName3)
 
         MIField = pressureField/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         OutName4=OutName.replace('ThermalField','MI')
-        nii=nibabel.Nifti1Image(MIField,affine=nidata.affine)
+        nii=nibabel.Nifti1Image(MIField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName4)
             
 

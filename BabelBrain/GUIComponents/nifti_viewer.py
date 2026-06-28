@@ -2371,7 +2371,7 @@ class NiftiViewerTab(QWidget):
         if not path:
             return
         try:
-            focal_voxel = (np.array(nib.load(path).get_fdata().shape)/2).astype(int)
+            focal_voxel = (np.array(nib.load(path).shape)/2).astype(int)
             self.viewer.load_base(path,focal_voxel,os.path.basename(path))
             self._btn_overlay.setEnabled(True)
             self._btn_screenshot.setEnabled(True)
@@ -2497,7 +2497,7 @@ def main():
     args = sys.argv[1:]
     if args:
         try:
-            focal_voxel = (np.array(nib.load(args[0]).get_fdata().shape)/2).astype(int)
+            focal_voxel = (np.array(nib.load(args[0]).shape)/2).astype(int)
             win.viewer[0].load_base(args[0],focal_voxel,os.path.basename(args[0]))
             for path in args[1:]:
                 win.viewer[0].add_overlay(path,name=os.path.basename(path))
