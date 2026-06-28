@@ -1097,9 +1097,9 @@ class BabelBrain(QWidget):
 
         One tab is created per entry in self.Config['ID'], using the ID as the
         tab title. Each tab owns its own matplotlib figure/canvas; the artists
-        and per-trajectory state are stored in self._trajPanels[i]. The tab bar
-        is always shown so the single- and multi-trajectory layouts look
-        consistent.
+        and per-trajectory state are stored in self._trajPanels[i]. With a single
+        trajectory (the common case) the tab bar and pane frame are hidden so the
+        view matches the original single-panel look.
         '''
         IDs = list(self.Config['ID'])
         if not hasattr(self,'_planningTabs'):
@@ -1133,9 +1133,16 @@ class BabelBrain(QWidget):
                 self._trajPanels.append({'layout': lay, 'figure': None})
             self._trajPanelIDs = IDs
 
-        # Always show the tab bar so the single- and multi-trajectory layouts
-        # look consistent (a single trajectory simply gets one named tab).
-        self._planningTabs.tabBar().setVisible(True)
+        # Single trajectory (the common case): hide the tab bar and drop the pane
+        # frame so Step 1 looks like the original single-panel view.  Several
+        # trajectories: show the tab bar with only a top line under the tab row.
+        if len(IDs) == 1:
+            self._planningTabs.tabBar().setVisible(False)
+            self._planningTabs.setStyleSheet("QTabWidget::pane { border: 0px; }")
+        else:
+            self._planningTabs.tabBar().setVisible(True)
+            self._planningTabs.setStyleSheet(
+                "QTabWidget::pane { border: 0px; border-top: 1px solid palette(mid); }")
 
     def _showMatplotlibVisualization(self,bDeleteOnly:bool):
         AirMask=None
