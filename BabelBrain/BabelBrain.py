@@ -920,6 +920,8 @@ class BabelBrain(QWidget):
         self.FinalMaskRaw =[None]*len(self.Config['ID'])
         self._FinalMask =[None]*len(self.Config['ID'])
         self._T1WDataRaw =[None]*len(self.Config['ID'])
+        self._NiftiSkull =[None]*len(self.Config['ID'])
+        self._NiftiWater =[None]*len(self.Config['ID'])
 
         combinedID='+'.join(self.Config['ID'])
         self._trackingtimefile = self.Config['OutputFilesPath']+os.sep+combinedID+'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)+'ExecutionTimes.yml'
@@ -1408,41 +1410,44 @@ class BabelBrain(QWidget):
                 viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(4)
 
             if hasattr(self,'_NiftiSkull'):
-                self._UpdateVTKAcResults()
+                self._UpdateVTKAcResults(n)
             if hasattr(self,'_NiftiTemperature'):
                 self._UpdateVTKThermal()
 
-    def UpdateNiftiAcResults(self,NiftiSkull,NiftiWater):
-        self._NiftiSkull=NiftiSkull
-        self._NiftiWater=NiftiWater
-        self._UpdateVTKAcResults()
+    def UpdateNiftiAcResults(self,NiftiSkull,NiftiWater,NTraj):
+        self._NiftiSkull[NTraj]=NiftiSkull
+        self._NiftiWater[NTraj]=NiftiWater
+        self._UpdateVTKAcResults(NTraj)
 
     def UpdateNiftiTemperatureResults(self,NiftiIntensity,NiftiTemperature):
         self._NiftiIntensity=NiftiIntensity
         self._NiftiTemperature=NiftiTemperature
         self._UpdateVTKThermal()
     
-    def _UpdateVTKAcResults(self):
+    def _UpdateVTKAcResults(self,NTraj):
         if not hasattr(self,'_vtk_visualization'):
             return
+        if self._NiftiSkull[NTraj] is None:
+            return
         # We remove previous entries if already available
+        viewer =self._vtk_visualization.viewer[NTraj]
         for id in ['Skull','Water']:
-            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+            for n,row in enumerate(viewer._layer_panel._rows):
                 if row._id == id:
-                    self._vtk_visualization.viewer._on_remove_requested(n)
+                    viewer._on_remove_requested(n)
                     break
-        self._vtk_visualization.viewer.add_overlay(self._NiftiSkull,'Skull',id='Skull')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
-        self._vtk_visualization.viewer.add_overlay(self._NiftiWater,'Water',id='Water')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._eye_btn.setChecked(False)
+        viewer.add_overlay(self._NiftiSkull[NTraj],'Skull',id='Skull')
+        viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
+        viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
+        viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        viewer.add_overlay(self._NiftiWater[NTraj],'Water',id='Water')
+        viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
+        viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        viewer._layer_panel._rows[-1]._eye_btn.setChecked(False)
         #we select skull for default windowing
-        self._vtk_visualization.viewer._layer_panel._rows[-2]._wl_btn.click()
+        viewer._layer_panel._rows[-2]._wl_btn.click()
 
     def _UpdateVTKThermal(self):
         if not hasattr(self,'_vtk_visualization'):

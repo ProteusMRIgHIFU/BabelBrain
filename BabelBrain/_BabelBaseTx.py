@@ -585,7 +585,7 @@ class BabelBaseTx(QWidget):
         self._showMatplotlibVisualization()
         NiftiSkull=nibabel.load(self._FullSolName.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz'))
         NiftiWater=nibabel.load(self._FullSolName.replace('DataForSim.h5','Water_FullElasticSolution_Sub_NORM.nii.gz'))
-        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater)
+        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
         
     def GetExport(self):
         Export={}

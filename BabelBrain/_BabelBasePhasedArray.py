@@ -374,7 +374,7 @@ class BabelBasePhaseArray(BabelBaseTx):
             NiftiSkull=nibabel.load(self._FullSolName[0].split('_DataForSim.h5')[0]+'_FullElasticSolution_Sub_NORM.nii.gz')
             NiftiWater=nibabel.load(self._FullSolName[0].split('_DataForSim.h5')[0]+'_Water_FullElasticSolution_Sub_NORM.nii.gz')
 
-        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater)
+        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
 
         
     
