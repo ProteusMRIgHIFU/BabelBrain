@@ -775,7 +775,7 @@ def SaveNiftiEnforcedISO(nii_in, fn):
             os.remove(fn_unc)
 
 
-def ResaveNormalized(rpath, mask):
+def ResaveNormalized(rpath, mask,bApplyOnlyMask=False):
     '''
     Resave simulation results with normalization based on mask.
     
@@ -809,7 +809,8 @@ def ResaveNormalized(rpath, mask):
 
     SubMask=MaskData[IndexesMask[0,:],IndexesMask[1,:],IndexesMask[2,:]].reshape(ResultsData.shape)
     ResultsData[SubMask<4]=0
-    ResultsData/=ResultsData.max()
+    if not bApplyOnlyMask:
+        ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData.astype(np.float32),Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
 
@@ -1055,14 +1056,18 @@ def OutputFileNames(MASKFNAME,target,Frequency,PPW,extrasuffix,bWaterOnly):
     OUT_FNAMES['RayleighFreeWater__'] = CPREFIX+'RayleighFreeWater__.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus']=CPREFIX+'FullElasticSolutionRefocus.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus_Sub']=CPREFIX+'FullElasticSolutionRefocus_Sub.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocusPhase_Sub']=CPREFIX+'FullElasticSolutionRefocusPhase_Sub.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus__']=CPREFIX+'FullElasticSolutionRefocus__.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocusPhase__']=CPREFIX+'FullElasticSolutionRefocusPhase__.nii.gz'
     OUT_FNAMES['FullElasticSolutionRefocus_Sub__']=CPREFIX+'FullElasticSolutionRefocus_Sub__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionRefocusPhase_Sub__']=CPREFIX+'FullElasticSolutionRefocusPhase_Sub__.nii.gz'
     OUT_FNAMES['FullElasticSolution']=CPREFIX+'FullElasticSolution.nii.gz'
     OUT_FNAMES['FullElasticSolution_Sub']=CPREFIX+'FullElasticSolution_Sub.nii.gz'
+    OUT_FNAMES['FullElasticSolutionPhase_Sub']=CPREFIX+'FullElasticSolutionPhase_Sub.nii.gz'
     OUT_FNAMES['FullElasticSolution__']=CPREFIX+'FullElasticSolution__.nii.gz'
     OUT_FNAMES['FullElasticSolutionPhase__']=CPREFIX+'FullElasticSolutionPhase__.nii.gz'
     OUT_FNAMES['FullElasticSolution_Sub__']=CPREFIX+'FullElasticSolution_Sub__.nii.gz'
+    OUT_FNAMES['FullElasticSolutionPhase_Sub__']=CPREFIX+'FullElasticSolutionPhase_Sub__.nii.gz'
     OUT_FNAMES['DataForSim']=CPREFIX+'DataForSim.h5'
     return OUT_FNAMES
 
@@ -1494,6 +1499,9 @@ class BabelFTD_Simulations_BASE(object):
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
             ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
+            nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
+            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionResfocusPhase_Sub__'])
+            ResaveNormalized(FILENAMES['FullElasticSolutionResfocusPhase_Sub'],self._SkullMask,bApplyOnlyMask=True)
 
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss].astype(np.float32),affine=affine)
@@ -1510,6 +1518,10 @@ class BabelFTD_Simulations_BASE(object):
         nii=nibabel.Nifti1Image(FullSolutionPressure[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
         SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolution_Sub__'])
         ResaveNormalized(FILENAMES['FullElasticSolution_Sub'],self._SkullMask)
+        
+        nii=nibabel.Nifti1Image(FullSolutionPhase[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
+        SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionPhase_Sub__'])
+        ResaveNormalized(FILENAMES['FullElasticSolutionPhase_Sub'],self._SkullMask,bApplyOnlyMask=True)
 
         if bUseRayleighForWater:
             nii=nibabel.Nifti1Image(RayleighWater[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
