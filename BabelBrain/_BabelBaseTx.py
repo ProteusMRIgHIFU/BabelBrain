@@ -155,9 +155,19 @@ class BabelBaseTx(QWidget):
             self.Widget = self._Widgets[idx]
             self._txTabs.setCurrentIndex(idx)
 
+    def CalculateDistanceFromSkin(self):
+        VoxelSize=self._MainApp._MaskNib[self._TrajectoryNumber].header.get_zooms()[0]
+        TargetLocation =np.array(np.where(self._MainApp._FinalMask[self._TrajectoryNumber]==5.0)).flatten()
+        LineOfSight=self._MainApp._FinalMask[self._TrajectoryNumber][TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()
+        DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
+        self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
+        self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        return DistanceFromSkin
+
     def ExportStep2Results(self,Results):
         FocIJK=np.ones((4,1))
-        FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask==5)).flatten()
+        FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask[self._TrajectoryNumber]==5)).flatten()
 
         FocXYZ=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJK
         FocIJKAdjust=FocIJK.copy()

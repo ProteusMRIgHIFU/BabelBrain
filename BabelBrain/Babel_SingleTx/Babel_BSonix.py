@@ -136,7 +136,7 @@ class BSonix(SingleTx):
         RADIUS = self.Config['CaseDiameter']/2/1e3 # m dimension of "puck"
         HEIGHT = self.Config['CaseHeight']/1e3 # m
         InitTrans=np.eye(4)
-        LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask,axis=2)==5.0)).flatten()
+        LocSpot=np.array(np.where(np.flip(self._MainApp._FinalMask[self._TrajectoryNumber],axis=2)==5.0)).flatten()
         SpatialStep=np.mean(self._MainApp._MaskNib[0].header.get_zooms())/1e3
         InitTrans[0,3]=LocSpot[0]
         InitTrans[1,3]=LocSpot[1]

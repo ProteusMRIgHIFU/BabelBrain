@@ -917,6 +917,9 @@ class BabelBrain(QWidget):
         self._T1WNib  =[None]*len(self.Config['ID'])
         self._NiftiCT =[None]*len(self.Config['ID'])
         self._NiftiAirMask =[None]*len(self.Config['ID'])
+        self.FinalMaskRaw =[None]*len(self.Config['ID'])
+        self._FinalMask =[None]*len(self.Config['ID'])
+        self._T1WDataRaw =[None]*len(self.Config['ID'])
 
         combinedID='+'.join(self.Config['ID'])
         self._trackingtimefile = self.Config['OutputFilesPath']+os.sep+combinedID+'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)+'ExecutionTimes.yml'
@@ -1139,8 +1142,8 @@ class BabelBrain(QWidget):
             if self.Config['bExtractAirRegions'] and os.path.exists(self._prefix_path[self._TrajectoryNumber]+'AirRegions.nii.gz'):
                 AirMask=np.flip(self._NiftiAirMask[self._TrajectoryNumber].get_fdata(),axis=2)
         
-        FinalMask=np.flip(self.FinalMaskRaw,axis=2)
-        T1WData=np.flip(self._T1WDataRaw,axis=2)
+        FinalMask=np.flip(self.FinalMaskRaw[self._TrajectoryNumber],axis=2)
+        T1WData=np.flip(self._T1WDataRaw[self._TrajectoryNumber],axis=2)
         voxSize=self._T1WNib[self._TrajectoryNumber].header.get_zooms()
         x_vec=np.arange(self._T1WNib[self._TrajectoryNumber].shape[0])*voxSize[0]
         x_vec-=x_vec.mean()
@@ -1326,13 +1329,13 @@ class BabelBrain(QWidget):
             Data=nibabel.load(self._outnameMask[self._TrajectoryNumber])
         except:
             raise ValueError("BabelViscoInput file does not exist. This is most likely due to a crash related to high PPW, please explore using lower PPW")
-        self.FinalMaskRaw=Data.get_fdata()
-        self._FinalMask = np.flip(self.FinalMaskRaw,axis=2)
+        self.FinalMaskRaw[self._TrajectoryNumber]=Data.get_fdata()
+        self._FinalMask[self._TrajectoryNumber] = np.flip(self.FinalMaskRaw[self._TrajectoryNumber],axis=2)
 
-        self._bSegmentedBrain = np.max(self.FinalMaskRaw)>5
+        self._bSegmentedBrain = np.max(self.FinalMaskRaw[self._TrajectoryNumber])>5
 
         T1W=nibabel.load(self._T1W_resampled_fname[self._TrajectoryNumber])
-        self._T1WDataRaw=T1W.get_fdata()
+        self._T1WDataRaw[self._TrajectoryNumber]=T1W.get_fdata()
         
         self._MaskNib[self._TrajectoryNumber]=Data
         self._T1WNib[self._TrajectoryNumber]=T1W
@@ -1352,6 +1355,7 @@ class BabelBrain(QWidget):
         if hasattr(self,'_vtk_visualization'):
             self._UpdateVTKDomain()
         self.UpdateAcousticTab()
+        self.AcSim._txTabs.setCurrentIndex(0) #we default always to first tab
 
 
     @Slot()

@@ -865,7 +865,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             RatioCTVoxels=np.ceil(2.0/np.array(nCT.header.get_zooms())).astype(int) # 1 mm distance
 
-            ndataCT=np.ascontiguousarray(nCT.get_fdata()).astype(np.float32)
+            ndataCT=np.ascontiguousarray(nCT.get_fdata(dtype=np.float32))
             if CTType in [1,2,3]:
                 ndataCT[ndataCT>HUCapThreshold]=HUCapThreshold
             print('ndataCT range',ndataCT.min(),ndataCT.max())
@@ -1146,7 +1146,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 emptyNifti.to_filename(ename)
                 outname = os.path.join(tmpdirname,'out.nii.gz')
                 RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
-                upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)
+                upScaleMask=nibabel.load(outname).get_fdata(dtype=np.int8)
                 gc.collect()
         
         FinalMask2=FinalMask.copy()

@@ -92,14 +92,7 @@ class REMOPD(BabelBasePhaseArray):
 
     def NotifyGeneratedMask(self):
         self._SyncActiveTrajectoryFromMainApp()
-        VoxelSize=self._MainApp._MaskNib[0].header.get_zooms()[0]
-        TargetLocation =np.array(np.where(self._MainApp._FinalMask==5.0)).flatten()
-        LineOfSight=self._MainApp._FinalMask[TargetLocation[0],TargetLocation[1],:]
-        StartSkin=np.where(LineOfSight>0)[0].min()
-        DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
-        
-        self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
-        self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
 
 
