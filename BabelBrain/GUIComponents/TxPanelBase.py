@@ -113,7 +113,14 @@ def make_combo(name, items=None, width=110):
     return cb
 
 
-def make_button(name, text, bold=False, min_height=None):
+def make_button(name, text, bold=False, min_height=None, color=None):
+    """Create a styled QPushButton.
+
+    `color` sets the font color. Pass a single color (e.g. "red") to color the
+    enabled button only — the disabled state keeps the panel's default gray.
+    Pass a 2-tuple ``(enabled_color, disabled_color)`` to control both states,
+    e.g. ``color=("red", "#808080")``.
+    """
     btn = QPushButton(text)
     btn.setObjectName(name)
     if bold:
@@ -122,6 +129,17 @@ def make_button(name, text, bold=False, min_height=None):
         btn.setFont(f)
     if min_height:
         btn.setMinimumHeight(min_height)
+    if color:
+        if isinstance(color, (tuple, list)):
+            enabled_color, disabled_color = color
+            btn.setStyleSheet(
+                f"QPushButton:enabled {{ color: {enabled_color}; }}"
+                f"QPushButton:disabled {{ color: {disabled_color}; }}"
+            )
+        else:
+            # Scope to :enabled so a per-button color doesn't override the
+            # panel's disabled-state gray.
+            btn.setStyleSheet(f"QPushButton:enabled {{ color: {color}; }}")
     return btn
 
 
@@ -322,7 +340,6 @@ class TxPanelBase(QWidget):
         lay.addLayout(form_row(
             make_label("Distance target to FLHM\ncenter [X, Y, Z] (mm):"),
             self.DistanceTargetLabel))
-
         lay.addStretch(1)
 
     def _build_plot_host(self):
@@ -377,5 +394,14 @@ class TxPanelBase(QWidget):
             row.addWidget(self.SDRText)
             row.addWidget(self.SDRLabel)
 
-
-        return row
+        if len(self.parent()._MainApp.Config['ID'])>1:
+            nBox = QVBoxLayout()
+            nBox.addLayout(row)
+            nBox.addStretch(1)
+            self.CombineTrajectories = make_button(
+            "CombineTrajectories", "Combine Trajectoriess", min_height=20,color="red")
+            nBox.addWidget(self.CombineTrajectories)
+            self.CombineTrajectories.setEnabled(False)
+            return nBox
+        else:
+            return row

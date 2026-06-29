@@ -204,9 +204,12 @@ class BabelBaseTx(QWidget):
 
     def up_load_ui(self):
         #please note this one needs to be called after child class called its load_ui
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
-        
+        if hasattr(self.Widget,'CombineTrajectories'):
+            self.Widget.CombineTrajectories.clicked.connect(self.CombineTrajectories)
+
 
     @Slot()
     def NotifyError(self):
@@ -592,6 +595,8 @@ class BabelBaseTx(QWidget):
         NiftiSkull=nibabel.load(self._FullSolName.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz'))
         NiftiWater=nibabel.load(self._FullSolName.replace('DataForSim.h5','Water_FullElasticSolution_Sub_NORM.nii.gz'))
         self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
+        if hasattr(self.Widget,'CombineTrajectories'):
+            self.Widget.CombineTrajectories.setEnabled(self._MainApp.AllAcFieldsDone())
         
     def GetExport(self):
         Export={}
@@ -656,3 +661,7 @@ class BabelBaseTx(QWidget):
             curY=self.Widget.YMechanicSpinBox.value()
             self.Widget.XMechanicSpinBox.setValue(curX-X_correction)
             self.Widget.YMechanicSpinBox.setValue(curY-Y_correction)
+
+    @Slot()
+    def CombineTrajectories(self):
+        print('Placeholder for combination of trajectories:TODO')

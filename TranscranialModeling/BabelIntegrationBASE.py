@@ -1491,6 +1491,9 @@ class BabelFTD_Simulations_BASE(object):
         mx=np.unique(mx.flatten())
         my=np.unique(my.flatten())
         mz=np.unique(mz.flatten())
+        mx[-1]+=1
+        my[-1]+=1
+        mz[-1]+=1
         if self._bDoRefocusing:
             nii=nibabel.Nifti1Image(FullSolutionPressureRefocus[::ss,::ss,::ss].astype(np.float32),affine=affine)
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus__'])

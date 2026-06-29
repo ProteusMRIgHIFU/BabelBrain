@@ -1600,6 +1600,9 @@ class BabelBrain(QWidget):
                        data=self._TelmetryMsgs,
                        waittocomplete=waittocomplete)
         self._TelmetryMsgs=[] #we clean the list
+
+    def AllAcFieldsDone(self):
+        return all(x is not None for x in self._NiftiSkull)
         
 
 def get_color_at(widget, x,y):
