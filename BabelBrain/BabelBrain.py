@@ -909,7 +909,9 @@ class BabelBrain(QWidget):
     
         #we prepare paths
         self._prefix=[ p + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW) for p in self.Config['ID']]
+        self._merged_prefix = '+'.join(self.Config['ID']) + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
         self._prefix_path=[self.Config['OutputFilesPath']+os.sep+p for p in self._prefix]
+        self._merged_prefix_path = self.Config['OutputFilesPath']+os.sep+self._merged_prefix
         self._outnameMask=[p+'BabelViscoInput.nii.gz' for p in self._prefix_path]
         self._T1W_resampled_fname=[p.split('BabelViscoInput.nii.gz')[0]+'T1W_Resampled.nii.gz' for p in self._outnameMask]
         
@@ -1420,6 +1422,8 @@ class BabelBrain(QWidget):
                 self._UpdateVTKAcResults(n)
             if hasattr(self,'_NiftiTemperature'):
                 self._UpdateVTKThermal()
+        if hasattr(self,'_NiftiMergeAc'):
+            self._UpdateVTKMergedAcResults()   
 
     def UpdateNiftiAcResults(self,NiftiSkull,NiftiWater,NTraj):
         self._NiftiSkull[NTraj]=NiftiSkull
@@ -1483,6 +1487,26 @@ class BabelBrain(QWidget):
         self._vtk_visualization.viewer._layer_panel._rows[-1]._eye_btn.toggle()
 
         self._vtk_visualization.viewer._layer_panel._rows[-2]._wl_btn.click()
+
+    def UpdateNiftiMergedAcResults(self,NiftiMergeAc):
+        self._NiftiMergeAc=NiftiMergeAc
+        self._UpdateVTKMergedAcResults()
+
+    def _UpdateVTKMergedAcResults(self):
+        if not hasattr(self,'_vtk_visualization'):
+            return
+        # We remove previous entries if already available
+        for viewer in self._vtk_visualization.viewer:
+            for id in ['MergedAc']:
+                for n,row in enumerate(viewer._layer_panel._rows):
+                    if row._id == id:
+                        viewer._on_remove_requested(n)
+                        break
+            viewer.add_overlay(self._NiftiMergeAc,'MergedAc',id='MergedAc')
+            viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
+            viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+            viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.25')
+            viewer._layer_panel._rows[-1]._on_cutoff_changed()
 
     @Slot()
     def _closingVtkVisualization(self):

@@ -1,0 +1,50 @@
+# merge_config_example.yaml
+# --------------------------
+# Configuration file for merge_nifti_complex.py
+#
+# All file paths are resolved relative to this YAML file's directory,
+# so you can use bare filenames if everything lives in the same folder,
+# or relative/absolute paths otherwise.
+#
+# Run with:
+#   python merge_nifti_complex.py merge_config_example.yaml
+
+# ── Output orientation ─────────────────────────────────────────────────────
+# Canonical anatomical alignment of the output grid in RAS world space.
+# Options:
+#   axial     → i=R, j=A, k=S  (standard neurological axial)
+#   coronal   → i=R, j=S, k=A  (rows L/R, slices anterior/posterior)
+#   sagittal  → i=A, j=S, k=R  (rows front/back, slices left/right)
+orientation: coronal
+
+# ── Interpolation order ────────────────────────────────────────────────────
+# Controls scipy.ndimage.affine_transform interpolation when resampling
+# each pair into the common output grid.
+#   0 → nearest-neighbour  (fast, for label/mask volumes)
+#   1 → trilinear          (good balance of speed and quality)
+#   3 → tricubic           (smoothest, slower)
+interp: 1
+
+# ── Input pairs ───────────────────────────────────────────────────────────
+# Each entry is one complex field: amp * exp(i * phase).
+# amp and phase must share the same affine and 3-D shape.
+# Add or remove entries freely — at least 2 pairs are required.
+pairs:
+  - amp:   /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1_CTX_250_250kHz_9PPW_FullElasticSolution_Sub_NORM.nii.gz
+    phase: /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1_CTX_250_250kHz_9PPW_FullElasticSolutionPhase_Sub_NORM.nii.gz
+
+  - amp:   /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T2_CTX_250_250kHz_9PPW_FullElasticSolution_Sub_NORM.nii.gz
+    phase: /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T2_CTX_250_250kHz_9PPW_FullElasticSolutionPhase_Sub_NORM.nii.gz
+
+  # - amp:   inputs/amp3.nii.gz
+  #  phase: inputs/phase3.nii.gz
+
+  # Example using absolute paths (uncomment and edit as needed):
+  # - amp:   /data/subject01/amp_run4.nii.gz
+  #   phase: /data/subject01/phase_run4.nii.gz
+
+# ── Output files ──────────────────────────────────────────────────────────
+# Output directories are created automatically if they do not exist.
+output:
+  amp:   /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/AbsMerged.nii.gz   # |Z1 + Z2 + ... + ZN|
+  phase: /Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/PhaseMerged.nii.gz       # angle(Z1 + Z2 + ... + ZN)  [radians, -π..π]

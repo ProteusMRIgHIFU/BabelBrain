@@ -1,45 +1,51 @@
 """
 merge_nifti_complex.py
 ----------------------
-Combine two complex NIfTI datasets — each represented as an amplitude/phase
+Combine N complex NIfTI datasets — each represented as an amplitude/phase
 pair — into a single summed complex field, saving the result as separate
 amplitude and phase NIfTI files.
 
-Given:
-    Z1 = A * exp(i * B)     (file_A = amplitude, file_B = phase)
-    Z2 = C * exp(i * D)     (file_C = amplitude, file_D = phase)
+Given N pairs:
+    Zn = amp_n * exp(i * phase_n)
 
 Outputs:
-    |Z1 + Z2|               → amplitude output
-    angle(Z1 + Z2)          → phase output  (radians, in [-π, π])
+    |Z1 + Z2 + ... + ZN|       → amplitude output
+    angle(Z1 + Z2 + ... + ZN)  → phase output  (radians, in [-π, π])
 
-The output grid can be aligned to any of the three canonical anatomical
-planes in world (RAS) space, regardless of the input orientations:
-
-    --orientation axial      → voxel i=R, j=A, k=S  (standard RAS)
-    --orientation coronal    → voxel i=R, j=S, k=A  (rows=R, slices=A)
-    --orientation sagittal   → voxel i=A, j=S, k=R  (rows=A, slices=R)
-
-In every case the bounding box is the smallest integer-voxel grid (in that
-orientation) that encloses all data from both input pairs.
+All inputs and outputs are specified via a YAML config file.
 
 Requirements:
-    pip install nibabel numpy scipy
+    pip install nibabel numpy scipy pyyaml
 
 Usage:
-    python merge_nifti_complex.py \\
-        amp1.nii.gz phase1.nii.gz \\
-        amp2.nii.gz phase2.nii.gz \\
-        out_amp.nii.gz out_phase.nii.gz \\
-        [--orientation axial|coronal|sagittal] \\
-        [--interp 0|1|3]
+    python merge_nifti_complex.py config.yaml
+
+--- YAML format -----------------------------------------------------------------
+
+orientation: axial          # axial | coronal | sagittal  (default: axial)
+interp: 1                   # 0=nearest, 1=linear (default), 3=cubic
+
+pairs:
+  - amp:   path/to/amp1.nii.gz
+    phase: path/to/phase1.nii.gz
+  - amp:   path/to/amp2.nii.gz
+    phase: path/to/phase2.nii.gz
+  # ... as many pairs as needed
+
+output:
+  amp:   path/to/out_amplitude.nii.gz
+  phase: path/to/out_phase.nii.gz
+
+---------------------------------------------------------------------------------
 """
 
 import argparse
 import sys
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+import yaml
 from scipy.ndimage import affine_transform
 
 
@@ -59,22 +65,94 @@ from scipy.ndimage import affine_transform
 # ──────────────────────────────────────────────────────────────────────────────
 
 ORIENTATION_ROTATION = {
-    #                  i-col        j-col        k-col
-    "axial":    np.array([[ 1,  0,  0],   # i → R
-                           [ 0,  1,  0],   # j → A
-                           [ 0,  0,  1]],  # k → S
-                          dtype=float).T,  # columns = voxel-axis directions
+    "axial":    np.array([[ 1,  0,  0],
+                           [ 0,  1,  0],
+                           [ 0,  0,  1]], dtype=float).T,
 
-    "coronal":  np.array([[ 1,  0,  0],   # i → R
-                           [ 0,  0,  1],   # j → S
-                           [ 0,  1,  0]],  # k → A
-                          dtype=float).T,
+    "coronal":  np.array([[ 1,  0,  0],
+                           [ 0,  0,  1],
+                           [ 0,  1,  0]], dtype=float).T,
 
-    "sagittal": np.array([[ 0,  1,  0],   # i → A
-                           [ 0,  0,  1],   # j → S
-                           [ 1,  0,  0]],  # k → R
-                          dtype=float).T,
+    "sagittal": np.array([[ 0,  1,  0],
+                           [ 0,  0,  1],
+                           [ 1,  0,  0]], dtype=float).T,
 }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# YAML config loading
+# ──────────────────────────────────────────────────────────────────────────────
+
+def load_config(yaml_path):
+    """
+    Load and validate the YAML config file.
+    Returns a dict with keys: orientation, interp, pairs, output.
+    All file paths are resolved relative to the YAML file's directory.
+    """
+    yaml_path = Path(yaml_path).resolve()
+    base_dir  = yaml_path.parent
+
+    with open(yaml_path) as f:
+        cfg = yaml.safe_load(f)
+
+    # ── Defaults ──────────────────────────────────────────────────────────────
+    cfg.setdefault("orientation", "axial")
+    cfg.setdefault("interp", 1)
+
+    # ── Validate orientation ──────────────────────────────────────────────────
+    if cfg["orientation"] not in ORIENTATION_ROTATION:
+        print(f"ERROR: orientation must be one of "
+              f"{list(ORIENTATION_ROTATION)}, got '{cfg['orientation']}'",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # ── Validate interp ───────────────────────────────────────────────────────
+    if cfg["interp"] not in (0, 1, 3):
+        print(f"ERROR: interp must be 0, 1, or 3, got {cfg['interp']}",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # ── Validate pairs ────────────────────────────────────────────────────────
+    if "pairs" not in cfg or not isinstance(cfg["pairs"], list) or len(cfg["pairs"]) < 2:
+        print("ERROR: 'pairs' must be a list of at least 2 amp/phase entries.",
+              file=sys.stderr)
+        sys.exit(1)
+
+    resolved_pairs = []
+    for i, pair in enumerate(cfg["pairs"]):
+        for key in ("amp", "phase"):
+            if key not in pair:
+                print(f"ERROR: pair {i+1} is missing '{key}' key.", file=sys.stderr)
+                sys.exit(1)
+        resolved_pairs.append({
+            "amp":   _resolve(pair["amp"],   base_dir, f"pair {i+1} amp"),
+            "phase": _resolve(pair["phase"], base_dir, f"pair {i+1} phase"),
+        })
+    cfg["pairs"] = resolved_pairs
+
+    # ── Validate output ───────────────────────────────────────────────────────
+    if "output" not in cfg:
+        print("ERROR: 'output' section missing from config.", file=sys.stderr)
+        sys.exit(1)
+    for key in ("amp", "phase"):
+        if key not in cfg["output"]:
+            print(f"ERROR: 'output.{key}' missing from config.", file=sys.stderr)
+            sys.exit(1)
+        # Resolve output paths relative to YAML location too
+        cfg["output"][key] = base_dir / cfg["output"][key]
+
+    return cfg
+
+
+def _resolve(path_str, base_dir, label):
+    """Resolve a path relative to base_dir; abort if file not found."""
+    p = Path(path_str)
+    if not p.is_absolute():
+        p = base_dir / p
+    if not p.exists():
+        print(f"ERROR: {label} file not found: {p}", file=sys.stderr)
+        sys.exit(1)
+    return p
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -95,52 +173,35 @@ def volume_corners_world(img):
 
 def build_canonical_affine(ref_img, orientation="axial"):
     """
-    Build a pure canonical-orientation affine (rotation + isotropic voxel
-    size from ref_img, no translation yet).
-
-    The rotation matrix is one of the three standard anatomical planes.
-    Voxel size is taken as the mean of the reference image's zooms so the
-    output is isotropic (you can change this to per-axis zooms if desired).
+    Build a pure canonical-orientation affine (rotation + mean voxel size
+    from ref_img, no translation yet).
     """
-    zooms = np.array(ref_img.header.get_zooms()[:3], dtype=float)
-    # Use per-axis voxel sizes mapped to the new axis order
-    # For simplicity we keep the mean zoom so output is isotropic.
-    # To preserve anisotropy swap the zoom assignment below.
-    vox_size = float(np.mean(zooms))
-
-    R = ORIENTATION_ROTATION[orientation]        # 3×3 pure rotation
+    vox_size = float(np.mean(ref_img.header.get_zooms()[:3]))
+    R = ORIENTATION_ROTATION[orientation]
     affine = np.eye(4, dtype=float)
-    affine[:3, :3] = R * vox_size               # scale columns by voxel size
-    # Translation set later once min corner is known
+    affine[:3, :3] = R * vox_size
     return affine
 
 
-def compute_bounding_affine(imgs, orientation="axial", ref_img=None):
+def compute_bounding_affine(amp_imgs, orientation="axial"):
     """
     Return (out_affine, out_shape): the tightest bounding box in the chosen
-    canonical orientation that encloses all volumes in `imgs`.
+    canonical orientation that encloses all volumes in amp_imgs.
 
-    imgs     : list of nibabel images whose extents must be covered
-    ref_img  : image whose voxel size is used; defaults to imgs[0]
+    amp_imgs : list of nibabel images (one per pair) used for extent only.
+               The voxel size is taken from amp_imgs[0].
     """
-    if ref_img is None:
-        ref_img = imgs[0]
+    out_affine = build_canonical_affine(amp_imgs[0], orientation=orientation)
 
-    out_affine = build_canonical_affine(ref_img, orientation=orientation)
+    all_corners = np.vstack([volume_corners_world(img) for img in amp_imgs])
 
-    # Gather all corners in world space
-    all_corners = np.vstack([volume_corners_world(img) for img in imgs])
-
-    # Project into the (unshifted) output voxel space
     inv_rot = np.linalg.inv(out_affine[:3, :3])
-    corners_vox_tmp = (inv_rot @ all_corners.T).T   # N×3
+    corners_vox_tmp = (inv_rot @ all_corners.T).T
 
     min_vox = np.floor(corners_vox_tmp.min(axis=0)).astype(int)
     max_vox = np.ceil( corners_vox_tmp.max(axis=0)).astype(int)
 
-    out_shape = tuple((max_vox - min_vox + 1).tolist())
-
-    # Set translation: voxel (0,0,0) maps to the min-corner world point
+    out_shape  = tuple((max_vox - min_vox + 1).tolist())
     out_affine[:3, 3] = out_affine[:3, :3] @ min_vox
 
     return out_affine, out_shape
@@ -150,13 +211,12 @@ def resample_into_target(src_img, target_affine, target_shape,
                           order=1, cval=0.0):
     """
     Resample src_img into the space defined by target_affine / target_shape.
-    Uses backward mapping (output voxel → source voxel) via scipy.
+    Uses backward mapping via scipy.ndimage.affine_transform.
     Supports 3-D and 4-D volumes.
     """
-    src_inv_affine = np.linalg.inv(src_img.affine)
-    out2src = src_inv_affine @ target_affine
-    matrix = out2src[:3, :3]
-    offset = out2src[:3,  3]
+    out2src = np.linalg.inv(src_img.affine) @ target_affine
+    matrix  = out2src[:3, :3]
+    offset  = out2src[:3,  3]
 
     src_data = np.asarray(src_img.dataobj, dtype=np.float64)
 
@@ -180,27 +240,24 @@ def resample_into_target(src_img, target_affine, target_shape,
 
 def save_nifti(data, affine, ref_header, path):
     img = nib.Nifti1Image(data.astype(np.float32), affine)
-    # Infer voxel size from the affine column norms (may be isotropic now)
     zooms = np.linalg.norm(affine[:3, :3], axis=0)
     img.header.set_zooms(zooms)
     img.header.set_xyzt_units(
         xyz=ref_header.get_xyzt_units()[0],
         t=ref_header.get_xyzt_units()[1],
     )
-    nib.save(img, path)
+    nib.save(img, str(path))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Core merge logic
 # ──────────────────────────────────────────────────────────────────────────────
 
-def merge_complex(amp1_img, pha1_img,
-                  amp2_img, pha2_img,
-                  orientation="axial",
-                  interp_order=1):
+def merge_complex(pairs, orientation="axial", interp_order=1):
     """
-    Resample Z1 and Z2 into a canonical-orientation bounding grid and return:
-        (out_affine, abs(Z1+Z2), angle(Z1+Z2))
+    Resample all (amp, phase) pairs into a canonical-orientation bounding grid,
+    sum the complex fields, and return:
+        (out_affine, abs(Z_sum), angle(Z_sum))
 
     Complex resampling strategy
     ---------------------------
@@ -208,47 +265,119 @@ def merge_complex(amp1_img, pha1_img,
     We convert to Cartesian (real + imag) *before* resampling, interpolate
     the smooth components, then reconstruct the complex number afterwards.
     """
-    # ── 1. Compute bounding box in the chosen canonical orientation ───────────
-    print(f"Orientation: {orientation.upper()}")
+    n = len(pairs)
+
+    # ── 1. Compute bounding box over all amplitude images ────────────────────
+    amp_imgs = [p["amp_img"] for p in pairs]
+
+    print(f"Orientation  : {orientation.upper()}")
+    print(f"Pairs        : {n}")
     print("Computing bounding box …")
-    out_affine, out_shape = compute_bounding_affine(
-        [amp1_img, amp2_img],
-        orientation=orientation,
-        ref_img=amp1_img,
-    )
+    out_affine, out_shape = compute_bounding_affine(amp_imgs, orientation)
     print(f"  Output shape : {out_shape}")
     print(f"  Output affine:\n{out_affine}")
 
-    # ── 2. Convert each pair to real/imag, resample, reconstruct complex ──────
-    def resample_pair_as_complex(amp_img, pha_img, label):
-        print(f"Converting pair {label} to real/imag …")
+    # ── 2. Accumulate complex sum ─────────────────────────────────────────────
+    Z_sum = np.zeros(out_shape, dtype=complex)
+
+    for idx, pair in enumerate(pairs, start=1):
+        amp_img = pair["amp_img"]
+        pha_img = pair["pha_img"]
+
+        print(f"\n[{idx}/{n}] Converting to real/imag …")
         amp  = np.asarray(amp_img.dataobj, dtype=np.float64)
         pha  = np.asarray(pha_img.dataobj, dtype=np.float64)
         real = amp * np.cos(pha)
         imag = amp * np.sin(pha)
 
-        real_img = nib.Nifti1Image(real, amp_img.affine)
-        imag_img = nib.Nifti1Image(imag, amp_img.affine)
+        real_nii = nib.Nifti1Image(real, amp_img.affine)
+        imag_nii = nib.Nifti1Image(imag, amp_img.affine)
 
-        print(f"Resampling pair {label} real component …")
-        real_r = resample_into_target(real_img, out_affine, out_shape,
+        print(f"[{idx}/{n}] Resampling real component …")
+        real_r = resample_into_target(real_nii, out_affine, out_shape,
                                       order=interp_order)
-        print(f"Resampling pair {label} imag component …")
-        imag_r = resample_into_target(imag_img, out_affine, out_shape,
+        print(f"[{idx}/{n}] Resampling imag component …")
+        imag_r = resample_into_target(imag_nii, out_affine, out_shape,
                                       order=interp_order)
-        return real_r + 1j * imag_r
 
-    Z1 = resample_pair_as_complex(amp1_img, pha1_img, "1")
-    Z2 = resample_pair_as_complex(amp2_img, pha2_img, "2")
+        Z_sum += real_r + 1j * imag_r
 
-    # ── 3. Sum and extract amplitude / phase ──────────────────────────────────
-    print("Summing complex fields …")
-    Z_sum = Z1 + Z2
-
+    # ── 3. Extract amplitude / phase ──────────────────────────────────────────
+    print("\nExtracting amplitude and phase …")
     out_amp   = np.abs(Z_sum)
     out_phase = np.angle(Z_sum)   # radians in [-π, π]
 
     return out_affine, out_amp, out_phase
+
+
+def do_complex_merge(cfg):
+    orientation  = cfg["orientation"]
+    interp_order = cfg["interp"]
+    out_amp_path = cfg["output"]["amp"]
+    out_pha_path = cfg["output"].get("phase") #if we do not get phase, we do not save it
+
+    # ── Load all pairs ────────────────────────────────────────────────────────
+    loaded_pairs = []
+    ref_header   = None
+
+    for i, pair in enumerate(cfg["pairs"], start=1):
+        print(f"Loading pair {i}: amp={pair['amp'].name}  "
+              f"phase={pair['phase'].name}")
+
+        amp_img = nib.load(pair["amp"])
+        pha_img = nib.load(pair["phase"])
+
+        print(f"  amp   shape: {amp_img.shape}  "
+              f"zooms: {amp_img.header.get_zooms()[:3]}")
+        print(f"  phase shape: {pha_img.shape}  "
+              f"zooms: {pha_img.header.get_zooms()[:3]}")
+
+        # Validate pair consistency
+        if amp_img.shape[:3] != pha_img.shape[:3]:
+            print(f"ERROR: pair {i} amp/phase shapes differ: "
+                  f"{amp_img.shape} vs {pha_img.shape}", file=sys.stderr)
+            sys.exit(1)
+        if not np.allclose(amp_img.affine, pha_img.affine, atol=1e-5):
+            print(f"WARNING: pair {i} amp/phase affines differ — "
+                  "using amplitude affine as reference.", file=sys.stderr)
+
+        if ref_header is None:
+            ref_header = amp_img.header
+
+        # Cross-pair voxel size check
+        if i > 1:
+            z0 = np.array(loaded_pairs[0]["amp_img"].header.get_zooms()[:3])
+            zi = np.array(amp_img.header.get_zooms()[:3])
+            if not np.allclose(z0, zi, rtol=0.05):
+                print(f"WARNING: pair {i} voxel sizes {zi} differ > 5% "
+                      f"from pair 1 {z0}.", file=sys.stderr)
+
+        loaded_pairs.append({"amp_img": amp_img, "pha_img": pha_img})
+
+    # ── Merge ─────────────────────────────────────────────────────────────────
+    print()
+    out_affine, out_amp, out_phase = merge_complex(
+        loaded_pairs,
+        orientation=orientation,
+        interp_order=interp_order,
+    )
+
+    # ── Save outputs ──────────────────────────────────────────────────────────
+    out_amp_path.parent.mkdir(parents=True, exist_ok=True)
+    if out_pha_path:
+        out_pha_path.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nSaving amplitude  → {out_amp_path} …")
+    save_nifti(out_amp,   out_affine, ref_header, out_amp_path)
+
+    if out_pha_path:
+        print(f"Saving phase      → {out_pha_path} …")
+        save_nifti(out_phase, out_affine, ref_header, out_pha_path)
+
+    print("\nDone.")
+    print(f"  Output shape     : {out_amp.shape}")
+    print(f"  Amplitude range  : [{out_amp.min():.4g}, {out_amp.max():.4g}]")
+    print(f"  Phase range (rad): [{out_phase.min():.4g}, {out_phase.max():.4g}]")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -258,92 +387,38 @@ def merge_complex(amp1_img, pha1_img,
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "Combine two complex NIfTI datasets (each as amplitude+phase pair) "
-            "into |Z1+Z2| and angle(Z1+Z2) output files, with the result "
-            "aligned to a canonical anatomical orientation."
+            "Merge N complex NIfTI amplitude/phase pairs into |ΣZn| and "
+            "angle(ΣZn), aligned to a canonical anatomical orientation. "
+            "All inputs and outputs are specified in a YAML config file."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Orientation conventions (RAS world space):
-  axial     : i→R, j→A, k→S  — standard neurological axial
-  coronal   : i→R, j→S, k→A  — rows L/R, slices anterior/posterior
-  sagittal  : i→A, j→S, k→R  — rows front/back, slices left/right
+Example YAML (config.yaml):
+──────────────────────────────────────────────
+orientation: axial       # axial | coronal | sagittal
+interp: 1                # 0=nearest  1=linear  3=cubic
 
-Examples:
-  # Axial output (default)
-  python merge_nifti_complex.py A.nii B.nii C.nii D.nii amp_out.nii phase_out.nii
+pairs:
+  - amp:   inputs/amp1.nii.gz
+    phase: inputs/phase1.nii.gz
+  - amp:   inputs/amp2.nii.gz
+    phase: inputs/phase2.nii.gz
+  - amp:   inputs/amp3.nii.gz
+    phase: inputs/phase3.nii.gz
 
-  # Coronal output with cubic interpolation
-  python merge_nifti_complex.py A.nii B.nii C.nii D.nii amp_out.nii phase_out.nii \\
-      --orientation coronal --interp 3
+output:
+  amp:   results/out_amplitude.nii.gz
+  phase: results/out_phase.nii.gz
+──────────────────────────────────────────────
+Paths are resolved relative to the YAML file's directory.
         """
     )
-    parser.add_argument("amp1",      help="Amplitude of Z1  (file A)")
-    parser.add_argument("phase1",    help="Phase of Z1      (file B, radians)")
-    parser.add_argument("amp2",      help="Amplitude of Z2  (file C)")
-    parser.add_argument("phase2",    help="Phase of Z2      (file D, radians)")
-    parser.add_argument("out_amp",   help="Output amplitude  |Z1+Z2|")
-    parser.add_argument("out_phase", help="Output phase      angle(Z1+Z2)  [radians]")
-    parser.add_argument(
-        "--orientation", default="coronal",
-        choices=list(ORIENTATION_ROTATION),
-        help="Canonical orientation of the output grid (default: coronal)"
-    )
-    parser.add_argument(
-        "--interp", type=int, default=1, choices=[0, 1, 3],
-        help="Interpolation order: 0=nearest, 1=linear (default), 3=cubic"
-    )
+    parser.add_argument("config", help="Path to YAML configuration file")
     args = parser.parse_args()
 
-    def load(path, label):
-        print(f"Loading {label}: {path} …")
-        img = nib.load(path)
-        print(f"  shape: {img.shape}   zooms: {img.header.get_zooms()[:3]}")
-        return img
-
-    amp1_img = load(args.amp1,   "amp1  (A)")
-    pha1_img = load(args.phase1, "phase1(B)")
-    amp2_img = load(args.amp2,   "amp2  (C)")
-    pha2_img = load(args.phase2, "phase2(D)")
-
-    # Sanity: each amplitude/phase pair must share shape
-    for img_a, img_b, pair in [
-        (amp1_img, pha1_img, "A/B"),
-        (amp2_img, pha2_img, "C/D"),
-    ]:
-        if img_a.shape[:3] != img_b.shape[:3]:
-            print(f"ERROR: pair {pair} shapes differ: "
-                  f"{img_a.shape} vs {img_b.shape}", file=sys.stderr)
-            sys.exit(1)
-        if not np.allclose(img_a.affine, img_b.affine, atol=1e-5):
-            print(f"WARNING: pair {pair} affines differ — using amplitude "
-                  "affine as reference for that pair.", file=sys.stderr)
-
-    # Warn if voxel sizes differ across pairs
-    z1 = np.array(amp1_img.header.get_zooms()[:3])
-    z2 = np.array(amp2_img.header.get_zooms()[:3])
-    if not np.allclose(z1, z2, rtol=0.05):
-        print(f"WARNING: voxel sizes differ > 5 %: {z1} vs {z2}",
-              file=sys.stderr)
-
-    out_affine, out_amp, out_phase = merge_complex(
-        amp1_img, pha1_img,
-        amp2_img, pha2_img,
-        orientation=args.orientation,
-        interp_order=args.interp,
-    )
-
-    print(f"Saving amplitude  → {args.out_amp} …")
-    save_nifti(out_amp,   out_affine, amp1_img.header, args.out_amp)
-
-    print(f"Saving phase      → {args.out_phase} …")
-    save_nifti(out_phase, out_affine, amp1_img.header, args.out_phase)
-
-    print("Done.")
-    print(f"  Output shape     : {out_amp.shape}")
-    print(f"  Amplitude range  : [{out_amp.min():.4g}, {out_amp.max():.4g}]")
-    print(f"  Phase range (rad): [{out_phase.min():.4g}, {out_phase.max():.4g}]")
-
+    # ── Load config ───────────────────────────────────────────────────────────
+    cfg = load_config(args.config)
+    do_complex_merge(cfg)
 
 if __name__ == "__main__":
     main()

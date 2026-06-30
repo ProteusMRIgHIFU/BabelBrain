@@ -664,4 +664,31 @@ class BabelBaseTx(QWidget):
 
     @Slot()
     def CombineTrajectories(self):
-        print('Placeholder for combination of trajectories:TODO')
+        from MergeNifti.MergeNiftiComplexAligned import do_complex_merge
+        from pathlib import Path
+
+        AllInputs=[]
+        for p in self._MainApp._prefix_path:
+            entry={}
+            entry['Sub_Norm']=p+'FullElasticSolution_Sub_NORM.nii.gz'
+            entry['PhaseSub_Norm']=p+'FullElasticSolutionPhase_Sub_NORM.nii.gz'
+            entry['Sub']=p+'FullElasticSolution_Sub.nii.gz'
+            entry['PhaseSub']=p+'FullElasticSolutionPhase_Sub.nii.gz'
+            AllInputs.append(entry)
+
+        cfgBase={}
+        cfgBase['orientation']='coronal'
+        cfgBase['interp']=1
+        #first we do for visualization
+
+        cfg=cfgBase.copy()
+        cfg['pairs']=[]
+        for e in AllInputs:
+            cfg['pairs'].append({'amp':Path(e['Sub_Norm']),'phase':Path(e['PhaseSub_Norm'])})
+        cfg['output']={'amp':Path(self._MainApp._merged_prefix_path+'Merged_NORM.nii.gz')}
+
+        do_complex_merge(cfg)
+        MergedNifti=nibabel.load(cfg['output']['amp'])
+        self._MainApp.UpdateNiftiMergedAcResults(MergedNifti)
+
+
