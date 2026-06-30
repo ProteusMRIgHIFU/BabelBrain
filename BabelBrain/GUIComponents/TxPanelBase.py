@@ -219,6 +219,10 @@ class TxPanelBase(QWidget):
         # FLHM row pushed to the bottom) · expanding plot.
         left = self._build_left_panel()
         self._anchor_actions_to_bottom(left)
+        # Keep a handle on the controls column so callers can disable the whole
+        # left panel at once (e.g. the read-only "Merged" results tab, where no
+        # per-trajectory operations are allowed).
+        self._leftPanel = left
         grid.addWidget(left, 0, 0)
         grid.addWidget(self._build_plot_host(), 0, 1)
 

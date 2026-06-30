@@ -133,6 +133,14 @@ class BabelBaseTx(QWidget):
             return
         self.Widget = self._Widgets[idx]
         self._TrajectoryNumber = idx
+        # The read-only "Merged" tab (added after CombineTrajectories) renders a
+        # single combined field and must bypass the per-trajectory pipeline (its
+        # data has no per-steering columns and no per-trajectory mask).
+        if getattr(self, '_mergedTabIndex', None) == idx:
+            panel = self._acPanels[idx]
+            if panel is not None and panel.get('figure') is not None:
+                self._MergedActivatePanel(panel)
+            return
         # Re-point the controller's active-trajectory state so Mechanical-Adjust,
         # the distance readout and the nifti reload act on the visible tab.  The
         # form keeps its own plot and scrollbar positions, so nothing is redrawn
@@ -663,6 +671,150 @@ class BabelBaseTx(QWidget):
             self.Widget.XMechanicSpinBox.setValue(curX-X_correction)
             self.Widget.YMechanicSpinBox.setValue(curY-Y_correction)
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Combined-results display — a read-only "Merged" tab appended after
+    # CombineTrajectories.  It shows the single combined field stored in the
+    # merged Skull/Water HDF5 files.  Because the combined data is a single
+    # field (no per-steering columns) and has no per-trajectory mask, it does
+    # not go through the per-trajectory pipeline: it uses a dedicated loader and
+    # activation that always render via the base single-field path, regardless
+    # of whether the device is a single element or a phased array.
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _AddMergedResultsTab(self):
+        '''Append (or refresh) the read-only "Merged" results tab and show it.'''
+        if getattr(self, '_mergedTabIndex', None) is not None:
+            # Re-running CombineTrajectories regenerated the merged files; drop
+            # this tab's cached panel so it is rebuilt from the new data.
+            idx = self._mergedTabIndex
+            self._acPanels[idx] = None
+        else:
+            from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+            form = self._CreateForm()
+            # Replace the plain scrollbar host with the real scrollbar widget
+            # (devices do this in _WirePanel, which we skip for the merged tab).
+            form.IsppaScrollBars = WidgetScrollBars(parent=form.IsppaScrollBars, MainApp=self)
+            idx = self._txTabs.addTab(form, 'Merged')
+            self._Widgets.append(form)
+            self._acPanels.append(None)
+            self._mergedTabIndex = idx
+            # No per-trajectory operations are allowed on the combined result:
+            # disable the whole left controls column.
+            if getattr(form, '_leftPanel', None) is not None:
+                form._leftPanel.setEnabled(False)
+            # The Combine button (if present, in the bottom row outside the left
+            # panel) is meaningless here.
+            if hasattr(form, 'CombineTrajectories'):
+                form.CombineTrajectories.setEnabled(False)
+            # Visualization toggles stay live and re-render the merged view.
+            form.ShowWaterResultscheckBox.setEnabled(True)
+            form.HideMarkscheckBox.setEnabled(True)
+            form.ShowWaterResultscheckBox.stateChanged.connect(self._showMergedVisualization)
+            form.HideMarkscheckBox.stateChanged.connect(self._showMergedVisualization)
+
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        # Build/refresh the panel first so switching to the tab (which fires the
+        # tab-changed handler) finds a ready panel to re-activate.
+        self._showMergedVisualization()
+        self._txTabs.setCurrentIndex(idx)
+
+    def _showMergedVisualization(self, *args):
+        '''(Re)draw the combined acoustic field in the Merged tab.'''
+        idx = self._mergedTabIndex
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        panel = self._AcPanel(idx)
+        if panel.get('figure') is None:
+            self._LoadMergedResultData(panel)   # read the merged Skull/Water H5
+            self._BuildAcResultFigure(panel)    # fresh fig/canvas in this tab
+            self._MergedActivatePanel(panel)    # mirror data into self._* aliases
+            self.Widget.IsppaScrollBars.set_default_values(
+                panel['LocTarget'], panel['xvec'], panel['yvec'])
+            self._RenderAcResultPanel(panel)
+        else:
+            self._MergedActivatePanel(panel)
+            self._RenderAcResultPanel(panel)
+
+    def _MergedActivatePanel(self, panel):
+        '''
+        Mirror the merged panel's stored state into the self._* attributes that
+        _RenderAcResultPanel reads.  Mirrors _ActivatePanel but uses the single
+        combined field directly (no _GetActiveFields, which on phased arrays
+        expects per-steering columns absent from the combined data).
+        '''
+        self._Skull = panel['Skull']
+        self._XX, self._ZZX = panel['XX'], panel['ZZX']
+        self._YY, self._ZZY = panel['YY'], panel['ZZY']
+        self._DistanceToTarget = panel['DistanceToTarget']
+        self._figAcField = panel['figure']
+        self._static_ax1 = panel.get('static_ax1')
+        self._static_ax2 = panel.get('static_ax2')
+        self._marker1 = panel.get('marker1')
+        self._marker2 = panel.get('marker2')
+        self._IWater = panel['IWater']
+        self._ISkull = panel['ISkull']
+
+    def _LoadMergedResultData(self, panel):
+        '''Read the combined Skull/Water merged H5 files and stash panel arrays.'''
+        WaterSolName = self._MainApp._merged_prefix_path + 'Water_Merged_DataForSim.h5'
+        FullSolName = self._MainApp._merged_prefix_path + 'Merged_DataForSim.h5'
+        Water = ReadFromH5py(WaterSolName)
+        Skull = ReadFromH5py(FullSolName)
+
+        if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
+            self.Widget.SDRLabel.setText('%0.2f' % (Skull['SDR']))
+            panel['SDR'] = Skull['SDR']
+
+        LocTarget = Skull['TargetLocation']
+
+        for d in [Water, Skull]:
+            keys = ['p_amp', 'MaterialMap']
+            if 'AirMask' in d:
+                keys.append('AirMask')
+            for t in keys:
+                d[t] = np.ascontiguousarray(np.flip(d[t], axis=2))
+
+        # The combined data is centered on the domain; there is no skin-to-target
+        # offset to apply to the display.
+        DistanceToTarget = float(Skull.get('DistanceFromSkin', 0.0))
+
+        Water['z_vec'] *= 1e3
+        Skull['z_vec'] *= 1e3
+        Skull['x_vec'] *= 1e3
+        Skull['y_vec'] *= 1e3
+        DensityMap = Skull['Material'][:, 0][Skull['MaterialMap']]
+        SoSMap = Skull['Material'][:, 1][Skull['MaterialMap']]
+
+        Skull['MaterialMap'][Skull['MaterialMap'] == 3] = 2
+        Skull['MaterialMap'][Skull['MaterialMap'] == 4] = 3
+
+        IWater = Water['p_amp'] ** 2 / 2 / Water['Material'][0, 0] / Water['Material'][0, 1]
+        ISkull = Skull['p_amp'] ** 2 / 2 / DensityMap / SoSMap
+
+        if not self._MainApp.Config['bForceHomogenousMedium']:
+            ISkull[Skull['MaterialMap'] < 3] = 0
+
+        ISkull /= ISkull.max()
+        IWater /= IWater.max()
+
+        Zvec = Skull['z_vec'].copy()
+        Zvec -= Zvec[LocTarget[2]]
+        Zvec += DistanceToTarget
+        XX, ZZX = np.meshgrid(Skull['x_vec'], Zvec)
+        YY, ZZY = np.meshgrid(Skull['y_vec'], Zvec)
+
+        panel.update({
+            'Skull': Skull, 'Water': Water,
+            'IWater': IWater, 'ISkull': ISkull,
+            'XX': XX, 'ZZX': ZZX, 'YY': YY, 'ZZY': ZZY,
+            'DistanceToTarget': DistanceToTarget, 'LocTarget': LocTarget,
+            'xvec': Skull['x_vec'] - Skull['x_vec'][LocTarget[0]],
+            'yvec': Skull['y_vec'] - Skull['y_vec'][LocTarget[1]],
+            'FullSolName': FullSolName, 'WaterSolName': WaterSolName,
+            'merged': True,
+        })
+
     @Slot()
     def CombineTrajectories(self):
         from MergeNifti.MergeNiftiComplexAligned import do_complex_merge
@@ -780,8 +932,13 @@ class BabelBaseTx(QWidget):
         DataForSim['DistanceFromSkin']=0.0
         DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])
         SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
+        #This is temporary just have a "water" file for visualization testing
+        SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5') 
         print('*'*40)
         print('Combination of results completed')
         print('*'*40)
+
+        #show the combined Skull/Water results in a dedicated read-only tab
+        self._AddMergedResultsTab()
 
 
