@@ -699,9 +699,12 @@ class BabelBaseTx(QWidget):
             self._acPanels.append(None)
             self._mergedTabIndex = idx
             # No per-trajectory operations are allowed on the combined result:
-            # disable the whole left controls column.
+            # hide the controls for a cleaner read-only view, but keep the
+            # fixed-width left frame itself in place so the plot column keeps the
+            # same width as the other (per-trajectory) tabs.
             if getattr(form, '_leftPanel', None) is not None:
-                form._leftPanel.setEnabled(False)
+                for w in form._leftPanel.findChildren(QWidget):
+                    w.setVisible(False)
             # The Combine button (if present, in the bottom row outside the left
             # panel) is meaningless here.
             if hasattr(form, 'CombineTrajectories'):
