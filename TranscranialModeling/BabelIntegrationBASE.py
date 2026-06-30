@@ -880,10 +880,15 @@ def CalculateCTDerivedInfo(CTFNAME,
 
     Inputs
     ------
-    CTFNAME : str
-        Path to the indexed CT NIfTI file. Maps to `self._CTFNAME`. The
-        companion calibration file is derived from it
-        (`<prefix>CT-cal.npz`, key `UniqueHU`).
+    CTFNAME : str or (array, array)
+        Either a path to the indexed CT NIfTI file (maps to `self._CTFNAME`),
+        in which case the indexed map is loaded and flipped along axis 2 and the
+        unique HU values are read from the companion calibration file
+        (`<prefix>CT-cal.npz`, key `UniqueHU`); or a two-element list/tuple
+        `(IndexedCTMap, UniqueHU)` where `IndexedCTMap` is a 3D array assigned
+        directly to `DensityCTMap` (no loading/flipping) and `UniqueHU` is
+        assigned directly to `AllBoneHU`. The array form lets callers supply the
+        indexed map and HU table in memory.
     Frequency : float
         Acoustic frequency in Hz. Maps to `self._Frequency`.
     bBrainSegmentation : bool
@@ -902,8 +907,8 @@ def CalculateCTDerivedInfo(CTFNAME,
     bPETRA : bool
         If True (and not bDensity), use the SimNIBS PETRA-to-density formula for
         the 'Webb-Marsac' method. Maps to `self._bPETRA`.
-    AIRMASK : str or None
-        Optional path to an air-region NIfTI file. Maps to `self._AIRMASK`.
+    AIRMASK : str,np.ndarray or None
+        Optional path to an air-region NIfTI file or pre-loaded 3D array. Maps to `self._AIRMASK`.
 
     Returns
     -------
@@ -929,11 +934,20 @@ def CalculateCTDerivedInfo(CTFNAME,
         Per-index longitudinal attenuation for the bone region. Maps to `LAttIT`.
     '''
     AirRegions=None
-    DensityCTMap = np.flip(nibabel.load(CTFNAME).get_fdata().astype(np.uint32),axis=2)
-    DensitCTMapOrig=DensityCTMap.copy()
-    if AIRMASK:
-        AirRegions = np.flip(nibabel.load(AIRMASK).get_fdata().astype(np.uint32),axis=2)
-    AllBoneHU = np.load(CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
+    if isinstance(CTFNAME,(list,tuple)):
+        #in-memory inputs: (indexed CT map, unique HU table) provided directly
+        DensityCTMap = np.flip(CTFNAME[0].astype(np.uint32),axis=2)
+        DensitCTMapOrig=DensityCTMap.copy()
+        AllBoneHU = CTFNAME[1]
+    else:
+        DensityCTMap = np.flip(nibabel.load(CTFNAME).get_fdata().astype(np.uint32),axis=2)
+        DensitCTMapOrig=DensityCTMap.copy()
+        AllBoneHU = np.load(CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
+    if AIRMASK is not None:
+        if type(AIRMASK) is str:
+            AirRegions = np.flip(nibabel.load(AIRMASK).get_fdata().astype(np.uint32),axis=2)
+        else:
+            AirRegions = np.flip(AIRMASK.astype(np.uint32),axis=2)
     print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
     print('USING MAPPING METHOD = ',MappingMethod)
 
@@ -1441,7 +1455,7 @@ class BabelFTD_Simulations_BASE(object):
 
     def Step1_InitializeConditions(self): #in case it is desired to move up or down in the Z direction the focal spot
         self._SkullMask=nibabel.load(self._MASKFNAME)
-        SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(dtype=np.float32),axis=2)
+        SkullMaskDataOrig=np.flip(self._SkullMask.get_fdata(),axis=2).astype(np.uint32)
 
         bBrainSegmentation = np.any(SkullMaskDataOrig>5)
         if bBrainSegmentation:
@@ -2072,7 +2086,7 @@ class SimulationConditionsBASE(object):
         self._ZSourceLocation=self._ZIntoSkinPixels+self._PMLThickness
         
         #we save the mask array and flipped
-        self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(dtype=np.float32),axis=2)
+        self._SkullMaskDataOrig=np.flip(SkullMaskNii.get_fdata(),axis=2).astype(np.uint32)
         self._SkullMaskNii=SkullMaskNii
         voxelS=np.array(SkullMaskNii.header.get_zooms())*1e-3
         print('voxelS, SpatialStep',voxelS,SpatialStep)
@@ -2136,7 +2150,7 @@ class SimulationConditionsBASE(object):
             print('FirstVoxelTissueZ',FirstVoxelTissueZ )
 
 
-            self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5.0)).flatten()
+            self._FocalSpotLocationOrig=np.array(np.where(self._SkullMaskDataOrig==5)).flatten()
             self._FocalSpotLocation=self._FocalSpotLocationOrig.copy()
             self._FocalSpotLocation+=np.array([self._XLOffset,self._YLOffset,self._ZLOffset])
             self._FocalSpotLocation-=np.array([self._XShrink_L,self._YShrink_L,self._ZShrink_L])

@@ -909,7 +909,7 @@ class BabelBrain(QWidget):
     
         #we prepare paths
         self._prefix=[ p + '_' + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW) for p in self.Config['ID']]
-        self._merged_prefix = '+'.join(self.Config['ID']) + self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
+        self._merged_prefix = '+'.join(self.Config['ID']) +'_'+ self.Config['TxSystem'] +'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)
         self._prefix_path=[self.Config['OutputFilesPath']+os.sep+p for p in self._prefix]
         self._merged_prefix_path = self.Config['OutputFilesPath']+os.sep+self._merged_prefix
         self._outnameMask=[p+'BabelViscoInput.nii.gz' for p in self._prefix_path]

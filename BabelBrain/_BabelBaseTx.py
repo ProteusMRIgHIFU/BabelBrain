@@ -4,7 +4,7 @@ Base Class for Tx GUI, not to be instantiated directly
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox, QTabWidget
 from PySide6.QtCore import Slot, QThread, Qt
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 
 import numpy as np
 import os
@@ -596,7 +596,8 @@ class BabelBaseTx(QWidget):
         NiftiWater=nibabel.load(self._FullSolName.replace('DataForSim.h5','Water_FullElasticSolution_Sub_NORM.nii.gz'))
         self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
         if hasattr(self.Widget,'CombineTrajectories'):
-            self.Widget.CombineTrajectories.setEnabled(self._MainApp.AllAcFieldsDone())
+            for n in range(len(self._MainApp.Config['ID'])):
+                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllAcFieldsDone())
         
     def GetExport(self):
         Export={}
@@ -666,6 +667,8 @@ class BabelBaseTx(QWidget):
     def CombineTrajectories(self):
         from MergeNifti.MergeNiftiComplexAligned import do_complex_merge
         from pathlib import Path
+        from nibabel import processing
+        from TranscranialModeling.BabelIntegrationBASE import CalculateCTDerivedInfo, CreateMaterialMaps
 
         AllInputs=[]
         for p in self._MainApp._prefix_path:
@@ -690,5 +693,95 @@ class BabelBaseTx(QWidget):
         do_complex_merge(cfg)
         MergedNifti=nibabel.load(cfg['output']['amp'])
         self._MainApp.UpdateNiftiMergedAcResults(MergedNifti)
+        
+        #
+        MaskInput=nibabel.load(self._MainApp._prefix_path[0]+'BabelViscoInput.nii.gz')
+        MaskMerged=processing.resample_from_to(MaskInput,MergedNifti,order=0,cval=0)
+        #we orient data to match convention used later on
+        MaskData=np.transpose(MaskMerged.get_fdata().astype(np.uint32),[2,0,1])
+        SkullMaskDataOrig=np.flip(MaskData,axis=2)
+        AcData=np.flip(np.transpose(MergedNifti.get_fdata(dtype=np.float32),[2,0,1]),axis=2)
+        bBrainSegmentation = np.any(MaskData>5)
+        AcOptions=self._MainApp.CommomAcOptions()
+        DensityCTMap=None
+        AirRegions=None
+        if AcOptions['bUseCT']:
+            CtData=nibabel.load(self._MainApp._prefix_path[0]+'CT.nii.gz')
+            CtData=processing.resample_from_to(CtData,MergedNifti,order=0,cval=0)  
+            CtData=np.transpose(CtData.get_fdata(),[2,0,1])          
+            AllBoneHU = np.load(self._MainApp._prefix_path[0]+'CT-cal.npz')['UniqueHU']
+            
+            AIRMASK=None
+            if AcOptions['bExtractAirRegions']:
+                AIRMASK=nibabel.load(self._MainApp._prefix_path[0]+'AirRegions.nii.gz')
+                AIRMASK=processing.resample_from_to(AIRMASK,MergedNifti,order=0,cval=0)  
+                AIRMASK=np.transpose(AIRMASK.get_fdata(),[2,0,1])
+
+            DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT=CalculateCTDerivedInfo(
+                [CtData,AllBoneHU],
+                self._MainApp._Frequency,
+                bBrainSegmentation,
+                CTMapCombo=AcOptions['CTMapCombo'],
+                bDensity=AcOptions.get('bDensity',False),
+                bPETRA=AcOptions['bPETRA'],
+                AIRMASK=AIRMASK)
+            
+        BaseSimData=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')
+        N1,N2,N3=SkullMaskDataOrig.shape
+        MaterialMap,MaterialMapRef,MaterialMapNoCT,SubAirRegions=CreateMaterialMaps(
+            N1,N2,N3,
+            SkullMaskDataOrig,
+            0,0,0,0,0,0,
+            0,N1,0,N2,0,N3,
+            -1, #this will avoid removing any material
+            BaseSimData['Material'],
+            bWaterOnly=False,
+            bForceHomogenousMedium=False,
+            DensityCTMap=DensityCTMap,
+            AirRegions=AirRegions)
+        
+        DataForSim={}
+        DataForSim['p_amp']=AcData
+        if DensityCTMap is not None:
+            SMaterialMap=MaterialMapNoCT.copy()
+            DataForSim['MaterialMapCT']=MaterialMap.copy()
+        else:
+            SMaterialMap=MaterialMap.copy()
+        DataForSim['MaterialMap']=SMaterialMap
+        if SubAirRegions is not None:
+            DataForSim['AirMask']=SubAirRegions.astype(np.uint8)
+        for k in DataForSim:
+            DataForSim[k]=np.flip(DataForSim[k],axis=2)
+        #we pick center for target location, it will be only used to center visualization
+        TargetLocation =np.array((N1//2,N2//2,N3//2))
+        DataForSim['Material']=BaseSimData['Material']
+        zs=np.array(MergedNifti.header.get_zooms())/1e3 #in m 
+        DataForSim['x_vec']=np.arange(N1)*zs[0]
+        DataForSim['x_vec']-=np.mean(DataForSim['x_vec'])
+        DataForSim['y_vec']=np.arange(N2)*zs[1]
+        DataForSim['y_vec']-=np.mean(DataForSim['y_vec'])
+        DataForSim['z_vec']=np.arange(N3)*zs[2]
+        DataForSim['SpatialStep']=np.mean(zs)
+        DataForSim['TargetLocation']=TargetLocation
+        #DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
+        DataForSim['bDoRefocusing']=False
+        DataForSim['affine']=MergedNifti.affine
+        DataForSim['TxMechanicalAdjustmentX']=0.0
+        DataForSim['TxMechanicalAdjustmentY']=0.0
+        DataForSim['TxMechanicalAdjustmentZ']=0.0
+        DataForSim['ZIntoSkin']=0.0
+        DataForSim['ZIntoSkinPixels']=0
+        DataForSim['ZSteering']=0.0
+        if 'SDR' in BaseSimData:
+            SDRs=np.zeros(len(self._MainApp._prefix_path))
+            for n,p in  enumerate(self._MainApp._prefix_path):
+                SDRs[n]=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')['SDR']
+            DataForSim['SDR']=np.mean(SDRs)
+        DataForSim['DistanceFromSkin']=0.0
+        DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])
+        SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
+        print('*'*40)
+        print('Combination of results completed')
+        print('*'*40)
 
 
