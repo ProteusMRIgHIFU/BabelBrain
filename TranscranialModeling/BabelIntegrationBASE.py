@@ -858,6 +858,151 @@ def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
 bGPU_INITIALIZED = False
 ###
 
+def CalculateCTDerivedInfo(CTFNAME,
+                           Frequency,
+                           bBrainSegmentation,
+                           MappingMethod='Webb-Marsac',
+                           CTMapCombo=('GE','120','B','','0.5, 0.6'),
+                           bDensity=False,
+                           bPETRA=False,
+                           AIRMASK=None):
+    '''
+    Compute the CT/pseudo-CT derived acoustic information for the bone region.
+
+    This is a standalone extraction of the block inside
+    `RUN_SIM_BASE.GenerateSimulation` that, when a CT file is provided, loads
+    the indexed CT map and derives per-index density, longitudinal speed of
+    sound and longitudinal attenuation according to the selected mapping
+    method. It is provided as an independent function so the logic can be
+    reused/inspected; the caller is still responsible for the guard that
+    decides whether CT-derived info is needed at all
+    (`self._CTFNAME is not None and not bWaterOnly and ...`).
+
+    Inputs
+    ------
+    CTFNAME : str
+        Path to the indexed CT NIfTI file. Maps to `self._CTFNAME`. The
+        companion calibration file is derived from it
+        (`<prefix>CT-cal.npz`, key `UniqueHU`).
+    Frequency : float
+        Acoustic frequency in Hz. Maps to `self._Frequency`.
+    bBrainSegmentation : bool
+        Whether the skull mask contains segmented brain tissues (white/gray/CSF).
+        Controls the material-index offset added to `DensityCTMap`.
+    MappingMethod : str
+        HU/density -> acoustic property mapping method. Maps to
+        `self._MappingMethod`. One of 'Webb-Marsac', 'Aubry', 'Pichardo',
+        'McDannold', 'Marsac-Aubry', 'Pichardo-Marsac', 'McDannold-Marsac'.
+    CTMapCombo : list
+        Webb dataset parameters used by the 'Webb-Marsac' method. Maps to
+        `self._CTMapCombo`.
+    bDensity : bool
+        If True, the calibration file already holds densities (converted to HU
+        internally). Maps to `self._bDensity`.
+    bPETRA : bool
+        If True (and not bDensity), use the SimNIBS PETRA-to-density formula for
+        the 'Webb-Marsac' method. Maps to `self._bPETRA`.
+    AIRMASK : str or None
+        Optional path to an air-region NIfTI file. Maps to `self._AIRMASK`.
+
+    Returns
+    -------
+    DensityCTMap : np.ndarray (uint32)
+        Indexed CT map (flipped along axis 2) with the material-index offset
+        applied (+6 with brain segmentation, +3 otherwise). Maps to the local
+        `DensityCTMap` consumed by `CreateMaterialMaps`/`UpdateConditions`.
+    DensitCTMapOrig : np.ndarray (uint32)
+        Copy of the indexed CT map before the offset is applied (used later to
+        recover HU values for the SDR calculation). Maps to `DensitCTMapOrig`.
+    AirRegions : np.ndarray or None
+        Indexed air-region map (flipped along axis 2) if `AIRMASK` is provided,
+        else None. Maps to `AirRegions`.
+    AllBoneHU : np.ndarray
+        Unique HU values for the bone indices (after density->HU conversion when
+        `bDensity` is True). Maps to `AllBoneHU`.
+    DensityCTIT : np.ndarray
+        Per-index density values for the bone region. Maps to `DensityCTIT`.
+    LSoSIT : np.ndarray
+        Per-index longitudinal speed of sound for the bone region. Maps to
+        `LSoSIT`.
+    LAttIT : np.ndarray
+        Per-index longitudinal attenuation for the bone region. Maps to `LAttIT`.
+    '''
+    AirRegions=None
+    DensityCTMap = np.flip(nibabel.load(CTFNAME).get_fdata().astype(np.uint32),axis=2)
+    DensitCTMapOrig=DensityCTMap.copy()
+    if AIRMASK:
+        AirRegions = np.flip(nibabel.load(AIRMASK).get_fdata().astype(np.uint32),axis=2)
+    AllBoneHU = np.load(CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
+    print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
+    print('USING MAPPING METHOD = ',MappingMethod)
+
+    if bDensity:
+        print('Density map specified, converting Density to HU')
+        DensityCTIT= AllBoneHU.copy()
+        print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
+        AllBoneHU = DensityToHUBony(DensityCTIT)
+        print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
+
+
+    Porosity=HUtoPorosity(AllBoneHU)
+    if MappingMethod=='Webb-Marsac':
+        if bDensity == False:
+            if bPETRA: #we use Bjorn's formula to convert to Density
+                print('Using SimNIBS petra to density')
+                DensityCTIT=SimNIBS_PETRApct_Density(AllBoneHU)
+            else:
+                print('Using 120 Kvp CT settings')
+                DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+        print('Using CT combination', CTMapCombo)
+        LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=CTMapCombo)
+        LAttIT = HUtoAttenuationWebb(AllBoneHU,Frequency,params=CTMapCombo)
+    elif MappingMethod=='Aubry':
+        if bDensity == False:
+            DensityCTIT = PorositytoDensity(Porosity)
+        LSoSIT = PorositytoLSOS(Porosity)
+        LAttIT = PorositytoLAtt(Porosity,Frequency)
+    elif  MappingMethod=='Pichardo':
+        if bDensity == False:
+            DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+        LSoSIT=DensityToLSOSPichardo(DensityCTIT,Frequency)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency)
+    elif MappingMethod=='McDannold':
+        if bDensity == False:
+            DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
+        LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
+        LAttIT=DensityToLAttMcDannold(DensityCTIT,Frequency)
+    #these are more experimental
+    elif MappingMethod=='Marsac-Aubry':
+        #Marsac did not calculate attenuation... we use Aubry's old
+        if bDensity == False:
+            DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+        LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
+        LAttIT = PorositytoLAtt(AllBoneHU,Frequency)
+    elif MappingMethod=='Pichardo-Marsac':
+        #Marsac did not calculate attenuation... we use Aubry's old
+        if bDensity == False:
+            DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+        LSoSIT=DensityToLSOSPichardo(DensityCTIT,Frequency)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency)
+    elif MappingMethod=='McDannold-Marsac':
+        #Marsac did not calculate attenuation... we use Aubry's old
+        if bDensity == False:
+            DensityCTIT=HUtoDensityMarsac(AllBoneHU)
+        LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
+        LAttIT=DensityToLAttMcDannold(DensityCTIT,Frequency)
+    else:
+        raise ValueError('Unknown mapping method -' +MappingMethod )
+
+    if bBrainSegmentation:
+        DensityCTMap+=6  #The material index needs to add 3 to account water, skin, brain (non specific), white matter, gray matter and CSF
+    else:
+        DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
+    print("maximum CT index map value",DensityCTMap.max())
+    print(" CT Map unique values",np.unique(DensityCTMap).shape)
+
+    return DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT
+
 def CreateMaterialMaps(N1,N2,N3,
                        SkullMaskDataOrig,
                        XLOffset,XROffset,YLOffset,YROffset,ZLOffset,ZROffset,
@@ -1311,77 +1456,15 @@ class BabelFTD_Simulations_BASE(object):
         if self._CTFNAME is not None and not self._bWaterOnly\
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
-            DensityCTMap = np.flip(nibabel.load(self._CTFNAME).get_fdata().astype(np.uint32),axis=2)
-            DensitCTMapOrig=DensityCTMap.copy()
-            if self._AIRMASK:
-                AirRegions = np.flip(nibabel.load(self._AIRMASK).get_fdata().astype(np.uint32),axis=2)
-            AllBoneHU = np.load(self._CTFNAME.split('CT.nii.gz')[0]+'CT-cal.npz')['UniqueHU']
-            print('Range HU CT, Unique entries',AllBoneHU.min(),AllBoneHU.max(),len(AllBoneHU))
-            print('USING MAPPING METHOD = ',self._MappingMethod)
-            
-            if self._bDensity:
-                print('Density map specified, converting Density to HU')
-                DensityCTIT= AllBoneHU.copy()
-                print('min, max Density',DensityCTIT.min(),DensityCTIT.max())
-                AllBoneHU = DensityToHUBony(DensityCTIT)
-                print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
-
-            
-            Porosity=HUtoPorosity(AllBoneHU)
-            if self._MappingMethod=='Webb-Marsac':
-                if self._bDensity == False:
-                    if self._bPETRA: #we use Bjorn's formula to convert to Density
-                        print('Using SimNIBS petra to density')
-                        DensityCTIT=SimNIBS_PETRApct_Density(AllBoneHU)
-                    else:
-                        print('Using 120 Kvp CT settings')
-                        DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                print('Using CT combination', self._CTMapCombo)
-                LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=self._CTMapCombo)
-                LAttIT = HUtoAttenuationWebb(AllBoneHU,self._Frequency,params=self._CTMapCombo)
-            elif self._MappingMethod=='Aubry':
-                if self._bDensity == False:
-                    DensityCTIT = PorositytoDensity(Porosity)
-                LSoSIT = PorositytoLSOS(Porosity)
-                LAttIT = PorositytoLAtt(Porosity,self._Frequency)
-            elif  self._MappingMethod=='Pichardo':
-                if self._bDensity == False:
-                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
-                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
-            elif self._MappingMethod=='McDannold':
-                if self._bDensity == False:
-                    DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
-                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
-                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
-            #these are more experimental
-            elif self._MappingMethod=='Marsac-Aubry':
-                #Marsac did not calculate attenuation... we use Aubry's old
-                if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
-                LAttIT = PorositytoLAtt(AllBoneHU,self._Frequency)
-            elif self._MappingMethod=='Pichardo-Marsac':
-                #Marsac did not calculate attenuation... we use Aubry's old
-                if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensityToLSOSPichardo(DensityCTIT,self._Frequency)
-                LAttIT=DensityToLAttPichardo(DensityCTIT,self._Frequency)
-            elif self._MappingMethod=='McDannold-Marsac':
-                #Marsac did not calculate attenuation... we use Aubry's old
-                if self._bDensity == False:
-                    DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-                LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
-                LAttIT=DensityToLAttMcDannold(DensityCTIT,self._Frequency)
-            else:
-                raise ValueError('Unknown mapping method -' +self._MappingMethod )
-            
-            if bBrainSegmentation:
-                DensityCTMap+=6  #The material index needs to add 3 to account water, skin, brain (non specific), white matter, gray matter and CSF
-            else:
-                DensityCTMap+=3 # The material index needs to add 3 to account water, skin and brain
-            print("maximum CT index map value",DensityCTMap.max())
-            print(" CT Map unique values",np.unique(DensityCTMap).shape)
+            DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT=CalculateCTDerivedInfo(
+                self._CTFNAME,
+                self._Frequency,
+                bBrainSegmentation,
+                MappingMethod=self._MappingMethod,
+                CTMapCombo=self._CTMapCombo,
+                bDensity=self._bDensity,
+                bPETRA=self._bPETRA,
+                AIRMASK=self._AIRMASK)
 
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
