@@ -219,10 +219,6 @@ class TxPanelBase(QWidget):
         # FLHM row pushed to the bottom) · expanding plot.
         left = self._build_left_panel()
         self._anchor_actions_to_bottom(left)
-        # Keep a handle on the controls column so callers can disable the whole
-        # left panel at once (e.g. the read-only "Merged" results tab, where no
-        # per-trajectory operations are allowed).
-        self._leftPanel = left
         grid.addWidget(left, 0, 0)
         grid.addWidget(self._build_plot_host(), 0, 1)
 
@@ -409,3 +405,75 @@ class TxPanelBase(QWidget):
             return nBox
         else:
             return row
+
+
+# ── Read-only combined-result panel ─────────────────────────────────────────
+
+class MergedResultsForm(QWidget):
+    """Read-only Step-2 panel for the combined ("Merged") trajectory result.
+
+    Unlike TxPanelBase there is no left controls column: the plot spans the full
+    width of the tab.  Below it sit the scrollbar strip and a compact bottom row
+    with the Hide-marks / Show-water-only checkboxes (plus the SDR label when the
+    input is CT-based).  No Calculate / Mechanical-adjust controls and no
+    Combine-Trajectories button — combining again from this view is redundant.
+
+    Exposes the same attribute names the result-display pipeline expects:
+        * ``self.AcField_plot1``          — plot host (full width, expanding)
+        * ``self.IsppaScrollBars``        — scrollbar strip below the plot
+        * ``self.HideMarkscheckBox``      — bottom row, left
+        * ``self.ShowWaterResultscheckBox`` — bottom row
+        * ``self.SDRLabel`` / ``self.SDRText`` — when ``Config['CTType']>0``
+    """
+
+    def __init__(self, mainApp, parent=None):
+        super().__init__(parent)
+        self._MainApp = mainApp
+        self.setObjectName("Widget")
+        self.setStyleSheet(_panel_qss(self))
+        self._build()
+        apply_native_spinbox_style(self)
+
+    def _build(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(6, 6, 6, 6)
+        root.setSpacing(4)
+
+        # Plot spans the whole width.
+        self.AcField_plot1 = QWidget()
+        self.AcField_plot1.setObjectName("AcField_plot1")
+        self.AcField_plot1.setMinimumSize(500, 280)
+        self.AcField_plot1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        root.addWidget(self.AcField_plot1, stretch=1)
+
+        # Scrollbar strip directly under the plot.
+        self.IsppaScrollBars = QWidget()
+        self.IsppaScrollBars.setObjectName("IsppaScrollBars")
+        self.IsppaScrollBars.setMinimumSize(400, 61)
+        self.IsppaScrollBars.setMaximumHeight(80)
+        self.IsppaScrollBars.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        root.addWidget(self.IsppaScrollBars)
+
+        # Bottom row: Hide-marks (left) · Show-water-only · [SDR label].
+        self.HideMarkscheckBox = QCheckBox("Hide marks")
+        self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
+        self.HideMarkscheckBox.setEnabled(False)
+
+        self.ShowWaterResultscheckBox = QCheckBox("Show water only")
+        self.ShowWaterResultscheckBox.setObjectName("ShowWaterResultscheckBox")
+        self.ShowWaterResultscheckBox.setEnabled(False)
+
+        row = QHBoxLayout()
+        row.addWidget(self.HideMarkscheckBox)
+        row.addStretch(1)
+        row.addWidget(self.ShowWaterResultscheckBox)
+
+        if self._MainApp.Config['CTType'] > 0:
+            self.SDRText = make_label("SDR:", name="SDRText")
+            self.SDRLabel = make_label("-", name="SDRLabel", bold=True, color=LABEL_BLUE)
+            self.SDRLabel.setMinimumWidth(40)
+            row.addStretch(1)
+            row.addWidget(self.SDRText)
+            row.addWidget(self.SDRLabel)
+
+        root.addLayout(row)

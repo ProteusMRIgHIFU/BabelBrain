@@ -690,25 +690,18 @@ class BabelBaseTx(QWidget):
             self._acPanels[idx] = None
         else:
             from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
-            form = self._CreateForm()
-            # Replace the plain scrollbar host with the real scrollbar widget
-            # (devices do this in _WirePanel, which we skip for the merged tab).
+            from GUIComponents.TxPanelBase import MergedResultsForm
+            # Dedicated read-only panel: full-width plot, scrollbar strip below
+            # it and only the Hide-marks / Show-water-only toggles (+ SDR label).
+            # No left controls column and no Combine button (redundant here).
+            form = MergedResultsForm(self._MainApp)
+            # Install the real scrollbar widget over the plain host (devices do
+            # this in _WirePanel, which the merged tab does not use).
             form.IsppaScrollBars = WidgetScrollBars(parent=form.IsppaScrollBars, MainApp=self)
             idx = self._txTabs.addTab(form, 'Merged')
             self._Widgets.append(form)
             self._acPanels.append(None)
             self._mergedTabIndex = idx
-            # No per-trajectory operations are allowed on the combined result:
-            # hide the controls for a cleaner read-only view, but keep the
-            # fixed-width left frame itself in place so the plot column keeps the
-            # same width as the other (per-trajectory) tabs.
-            if getattr(form, '_leftPanel', None) is not None:
-                for w in form._leftPanel.findChildren(QWidget):
-                    w.setVisible(False)
-            # The Combine button (if present, in the bottom row outside the left
-            # panel) is meaningless here.
-            if hasattr(form, 'CombineTrajectories'):
-                form.CombineTrajectories.setEnabled(False)
             # Visualization toggles stay live and re-render the merged view.
             form.ShowWaterResultscheckBox.setEnabled(True)
             form.HideMarkscheckBox.setEnabled(True)
