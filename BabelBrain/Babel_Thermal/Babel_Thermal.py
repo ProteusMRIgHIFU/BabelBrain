@@ -8,7 +8,8 @@ from collections import UserDict
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,QTextEdit,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,QFrame,
-                QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem)
+                QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem,
+                QTabWidget)
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
@@ -39,6 +40,11 @@ import platform
 import nibabel
 
 _IS_MAC = platform.system() == 'Darwin'
+
+# Sentinel marking a per-trajectory attribute that is absent on the controller
+# (so _LoadThermalPanelState removes it rather than setting a stale value; this
+# preserves the hasattr(...) guards used throughout _showMatplotlibVisualization).
+_MISSING = object()
 
 def resource_path():  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -88,55 +94,125 @@ class ThermalProfileConfig(UserDict):
                     timing_config[key] = default_value
 
 class Babel_Thermal(QWidget):
+    # \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Step-3 layout mirrors Step 2 (_BabelBaseTx): one tab per trajectory, each
+    # an independent ThermalForm with its own controls, plot and results table.
+    # self.Widget always points at the active tab's form and self._TrajectoryNumber
+    # at its index; both are re-synced on tab change.  Per-trajectory computation
+    # state (thermal H5 results, matplotlib figure/artists, mesh grids, \u2026) lives
+    # in self._thPanels[i]; it is stashed/restored into the self._* aliases that
+    # _showMatplotlibVisualization reads, so switching tabs keeps each trajectory's
+    # results and plot intact (exactly like the Step-2 _acPanels mechanism).
+    #
+    # A Step-3 tab starts disabled and is enabled by EnableTrajectoryTab once the
+    # matching Step-2 acoustic simulation finishes (see _BabelBaseTx.UpdateAcResults).
+    # \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    # Controller attributes that carry per-trajectory state between calls; these
+    # are swapped in/out of self on every tab change (see _Save/_LoadThermalPanelState).
+    _PANEL_ATTRS = ('_ThermalResults', '_NiftiThermalNames', '_xf', '_zf',
+                    '_XX', '_ZZ', '_LastTMap', '_bRecalculated', '_prevDisplay',
+                    '_layout', '_figIntThermalFields', 'static_canvas',
+                    '_static_ax1', '_static_ax2', '_IntensityIm', '_ThermalIm',
+                    '_contour1', '_contour2', '_airmask1', '_airmask2',
+                    '_ListMarkers', '_TempPlot')
+
     def __init__(self,parent=None,MainApp=None):
         super(Babel_Thermal, self).__init__(parent)
         self._MainApp=MainApp
-        self._ThermalResults=[]
         self._bMultiPoint = False
         self.bDisableUpdate=False
         self.static_canvas=None
         self.load_ui()
         self.DefaultConfig()
-        self._LastTMap=-1
 
     def load_ui(self):
-        from Babel_Thermal.ThermalForm import ThermalForm
-        self.Widget = ThermalForm(self)
+        self._setupTrajectoryTabs()
+
+    def _NewThermalPanel(self):
+        '''Fresh per-trajectory state (empty results, no computed figure yet).'''
+        return {'_ThermalResults': [], '_LastTMap': -1, 'static_canvas': None}
+
+    def _setupTrajectoryTabs(self):
+        IDs = list(self._MainApp.Config['ID'])
+        self._txTabs = QTabWidget(self)
+        self._txTabs.tabBar().setElideMode(Qt.ElideNone)
+        self._txTabs.tabBar().setExpanding(False)
+        self._txTabs.setUsesScrollButtons(True)
+        # Single trajectory (the common case): hide the tab bar / pane frame so
+        # Step 3 looks like the original single-panel view.  Several trajectories:
+        # keep the bar and only a top line under the tab row.
+        if len(IDs) == 1:
+            self._txTabs.tabBar().setVisible(False)
+            self._txTabs.setStyleSheet("QTabWidget::pane { border: 0px; }")
+        else:
+            self._txTabs.setStyleSheet(
+                "QTabWidget::pane { border: 0px; border-top: 1px solid palette(mid); }")
 
         _l = QVBoxLayout(self)
         _l.setContentsMargins(0, 0, 0, 0)
-        _l.addWidget(self.Widget)
+        _l.addWidget(self._txTabs)
 
-        self.Widget.SelectProfile.clicked.connect(self.SelectProfile)
-        self.Widget.SelectProfile.setStyleSheet("color: #2db52d")   # bright green, readable on light & dark
-        self.Widget.CalculateThermal.clicked.connect(self.RunSimulation)
-        self.Widget.CalculateThermal.setStyleSheet("color: #e03030")  # bright red, readable on light & dark
-        self.Widget.ExportSummary.clicked.connect(self.ExportSummary)
-        self.Widget.ExportMaps.clicked.connect(self.ExportMaps)
+        self._Widgets = []
+        self._thPanels = []
+        for i, tid in enumerate(IDs):
+            form = self._CreateForm()
+            self._txTabs.addTab(form, str(tid))
+            self._Widgets.append(form)
+            self._thPanels.append(self._NewThermalPanel())
+            # Point at this form while wiring so the connections bind to *its*
+            # widgets (button -> self.RunSimulation, etc.).
+            self.Widget = form
+            self._TrajectoryNumber = i
+            self._WirePanel()
+            # Each Step-3 tab stays disabled until its Step-2 sim completes
+            # (EnableTrajectoryTab is called from _BabelBaseTx.UpdateAcResults).
+            self._txTabs.setTabEnabled(i, False)
 
-        self.Widget.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
-        self.Widget.IsppaSpinBox.valueChanged.connect(self._showMatplotlibVisualization)
-        self.Widget.IsppaWaterSpinBox.valueChanged.connect(self.UpdateIsppaWater)
-        self.Widget.IsppaScrollBar.valueChanged.connect(self._showMatplotlibVisualization)
-        self.Widget.HideMarkscheckBox.stateChanged.connect(self.HideMarkChange)
-        self.Widget.IsppaScrollBar.setEnabled(False)
-        self.Widget.SelCombinationDropDown.setEnabled(False)
-        self.Widget.IsppaSpinBox.setEnabled(False)
-        self.Widget.IsppaWaterSpinBox.setEnabled(False)
+        # Activate the first tab; only now listen for user tab switches so the
+        # addTab loop above doesn't fire the handler prematurely.
+        self.Widget = self._Widgets[0]
+        self._TrajectoryNumber = 0
+        self._LoadThermalPanelState(0)
+        self._txTabs.setCurrentIndex(0)
+        self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
 
-        self.Widget.LocMTB.clicked.connect(self.LocateMTB)
-        self.Widget.LocMTB.setEnabled(False)
-        self.Widget.LocMTC.clicked.connect(self.LocateMTC)
-        self.Widget.LocMTC.setEnabled(False)
-        self.Widget.LocMTS.clicked.connect(self.LocateMTS)
-        self.Widget.LocMTS.setEnabled(False)
-        
-        self.Widget.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
-        self.Widget.DisplayDropDown.setEnabled(False)
+    def _CreateForm(self):
+        from Babel_Thermal.ThermalForm import ThermalForm
+        return ThermalForm(self)
 
-        # for l in [self.Widget.label_13,self.Widget.label_14,self.Widget.label_15,self.Widget.label_22]:
-        #     l.setText(l.text()+' ('+"\u2103"+'):')
+    def _WirePanel(self):
+        w = self.Widget
+        w.SelectProfile.clicked.connect(self.SelectProfile)
+        w.SelectProfile.setStyleSheet("color: #2db52d")   # bright green, readable on light & dark
+        w.CalculateThermal.clicked.connect(self.RunSimulation)
+        w.CalculateThermal.setStyleSheet("color: #e03030")  # bright red, readable on light & dark
+        w.ExportSummary.clicked.connect(self.ExportSummary)
+        w.ExportMaps.clicked.connect(self.ExportMaps)
 
+        w.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
+        w.IsppaSpinBox.valueChanged.connect(self._showMatplotlibVisualization)
+        w.IsppaWaterSpinBox.valueChanged.connect(self.UpdateIsppaWater)
+        w.IsppaScrollBar.valueChanged.connect(self._showMatplotlibVisualization)
+        w.HideMarkscheckBox.stateChanged.connect(self.HideMarkChange)
+        w.IsppaScrollBar.setEnabled(False)
+        w.SelCombinationDropDown.setEnabled(False)
+        w.IsppaSpinBox.setEnabled(False)
+        w.IsppaWaterSpinBox.setEnabled(False)
+
+        w.LocMTB.clicked.connect(self.LocateMTB)
+        w.LocMTB.setEnabled(False)
+        w.LocMTC.clicked.connect(self.LocateMTC)
+        w.LocMTC.setEnabled(False)
+        w.LocMTS.clicked.connect(self.LocateMTS)
+        w.LocMTS.setEnabled(False)
+
+        w.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
+        w.DisplayDropDown.setEnabled(False)
+
+        self._SetupResultsTable(w)
+
+    def _SetupResultsTable(self, w):
         Ids=['Isppa at target (W/cm2):',
              'Req. Isppa water (W/cm2):',
              'Ispta (W/cm2):',
@@ -148,12 +224,12 @@ class Babel_Thermal(QWidget):
              'Max. temp. skull ('+"\u2103"+') - CEM43:',
              'Mechanical index:',
              'Distance from MTB to MTT (mm):']
-        bg_color = self.Widget.tableWidget.parent().palette().color(self.Widget.backgroundRole())
-        text_color = self.Widget.tableWidget.parent().palette().color(self.Widget.foregroundRole())
-        table_palette = self.Widget.tableWidget.palette()
+        bg_color = w.tableWidget.parent().palette().color(w.backgroundRole())
+        text_color = w.tableWidget.parent().palette().color(w.foregroundRole())
+        table_palette = w.tableWidget.palette()
         table_palette.setColor(QPalette.Base, bg_color)
         table_palette.setColor(QPalette.Text, text_color)
-        self.Widget.tableWidget.setPalette(table_palette)
+        w.tableWidget.setPalette(table_palette)
         # NOTE: a former Windows-only setSizePolicy(Fixed, Fixed) was removed
         # here. The programmatic ThermalForm adds the table with stretch=1 and an
         # Expanding policy so it fills the left column; pinning it Fixed capped
@@ -171,18 +247,119 @@ class Babel_Thermal(QWidget):
                 font.setPointSize(12)
                 item.setFont(font)
 
-            self.Widget.tableWidget.setItem(n,0,item)
+            w.tableWidget.setItem(n,0,item)
         if 'Windows' in platform.system():
-            self.Widget.tableWidget.setColumnWidth(0,180)
-            self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-180)
+            w.tableWidget.setColumnWidth(0,180)
+            w.tableWidget.setColumnWidth(1,w.tableWidget.width()-180)
         else:
-            self.Widget.tableWidget.setColumnWidth(0,220)
-            self.Widget.tableWidget.setColumnWidth(1,self.Widget.tableWidget.width()-220)
+            w.tableWidget.setColumnWidth(0,220)
+            w.tableWidget.setColumnWidth(1,w.tableWidget.width()-220)
         if 'Windows' in platform.system():
-            self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(5)
+            w.tableWidget.verticalHeader().setDefaultSectionSize(5)
         else:
-            self.Widget.tableWidget.verticalHeader().setDefaultSectionSize(25)
-        self.Widget.tableWidget.setFrameShape(QFrame.NoFrame)
+            w.tableWidget.verticalHeader().setDefaultSectionSize(25)
+        w.tableWidget.setFrameShape(QFrame.NoFrame)
+
+    # \u2500\u2500 Per-trajectory state stash / restore \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    def _SaveThermalPanelState(self, idx):
+        '''Copy the active self._* per-trajectory state into panel *idx*.'''
+        if not hasattr(self, '_thPanels') or not (0 <= idx < len(self._thPanels)):
+            return
+        panel = self._thPanels[idx]
+        for a in self._PANEL_ATTRS:
+            panel[a] = getattr(self, a, _MISSING)
+
+    def _LoadThermalPanelState(self, idx):
+        '''Restore panel *idx*'s per-trajectory state into the self._* aliases.'''
+        panel = self._thPanels[idx]
+        for a in self._PANEL_ATTRS:
+            val = panel.get(a, _MISSING)
+            if val is _MISSING:
+                if hasattr(self, a):
+                    delattr(self, a)
+            else:
+                setattr(self, a, val)
+
+    @Slot(int)
+    def _OnTrajectoryTabChanged(self, idx):
+        if not hasattr(self, '_Widgets') or idx < 0 or idx >= len(self._Widgets):
+            return
+        self._SaveThermalPanelState(self._TrajectoryNumber)
+        self._TrajectoryNumber = idx
+        self.Widget = self._Widgets[idx]
+        self._LoadThermalPanelState(idx)
+
+    # \u2500\u2500 Read Step-2 acoustic results by trajectory index \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Step 3 must NEVER change Step 2's active trajectory: doing so clobbered
+    # which trajectory the next Step-2 run computed and which Step-3 tab got
+    # enabled (a Step-3 visit in between broke the next Step-2 run).  Each Step-3
+    # tab instead reads the acoustic result for *its own* trajectory straight from
+    # AcSim's per-trajectory panels/forms, keyed by self._TrajectoryNumber, and
+    # leaves AcSim's active tab untouched.
+
+    def _AcSimPanel(self, t=None):
+        if t is None:
+            t = self._TrajectoryNumber
+        return self._MainApp.AcSim._acPanels[t]
+
+    def _AcSimFullSolName(self, t=None):
+        '''The acoustic DataForSim result for trajectory *t* (list for phased arrays).'''
+        return self._AcSimPanel(t)['FullSolName']
+
+    def _AcSimSkull(self, t=None):
+        '''The Step-2 skull/material data for trajectory *t* (mask overlay).'''
+        return self._AcSimPanel(t)['Skull']
+
+    def _AcSimForm(self, t=None):
+        '''The Step-2 device form for trajectory *t* (e.g. RefocusingcheckBox).'''
+        if t is None:
+            t = self._TrajectoryNumber
+        return self._MainApp.AcSim._Widgets[t]
+
+    def _CaptureFromAcSim(self, fn, t=None):
+        '''
+        Call an AcSim device method (GetExport / GetExtraDataForThermal) as if
+        trajectory *t* were active, then restore AcSim exactly as it was.  The
+        swap is synchronous (no tab move, no event-loop turn), so AcSim's active
+        trajectory is unchanged on return and Step 2 is never disturbed.  Only the
+        per-trajectory aliases those methods read are swapped (form, SDR, cone
+        distance); the values come from trajectory *t*'s stored acoustic panel.
+        '''
+        if t is None:
+            t = self._TrajectoryNumber
+        AcSim = self._MainApp.AcSim
+        panel = self._AcSimPanel(t)
+        aliases = {'_SDR': 'SDR', '_LastDistanceConeToFocus': 'LastDistanceConeToFocus'}
+        _NA = object()
+        saved = {a: getattr(AcSim, a, _NA)
+                 for a in ('_TrajectoryNumber', 'Widget', *aliases)}
+        try:
+            AcSim._TrajectoryNumber = t
+            AcSim.Widget = AcSim._Widgets[t]
+            for attr, key in aliases.items():
+                if panel is not None and key in panel:
+                    setattr(AcSim, attr, panel[key])
+            return fn()
+        finally:
+            for a, v in saved.items():
+                if v is _NA:
+                    if hasattr(AcSim, a):
+                        delattr(AcSim, a)
+                else:
+                    setattr(AcSim, a, v)
+
+    def EnableTrajectoryTab(self, idx):
+        '''
+        Enable the Step-3 tab for trajectory *idx*.  Called from Step 2 once the
+        matching acoustic simulation completes, so each trajectory's thermal tab
+        becomes available only after its acoustic field exists.  Step 3 always
+        lands on the first tab, so the user starts there when opening the step.
+        '''
+        if not hasattr(self, '_txTabs') or not (0 <= idx < self._txTabs.count()):
+            return
+        self._txTabs.setTabEnabled(idx, True)
+        self._txTabs.setCurrentIndex(0)
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
@@ -191,12 +368,17 @@ class Babel_Thermal(QWidget):
         print(config)
         self.Config=config
         self.bDisableUpdate=True
+        for form in self._Widgets:
+            self._PopulateCombination(form)
+        self.bDisableUpdate=False
 
-        while self.Widget.SelCombinationDropDown.count()>0:
-            self.Widget.SelCombinationDropDown.removeItem(0)
+    def _PopulateCombination(self, form):
+        dd = form.SelCombinationDropDown
+        while dd.count()>0:
+            dd.removeItem(0)
 
         if self.Config['bConcatenateSimulations']:
-            self.Widget.SelCombinationDropDown.addItem('CONCATENATED PROTOCOL')
+            dd.addItem('CONCATENATED PROTOCOL')
         else:
             for c in self.Config['AllDC_PRF_Duration']:
                 if c['Duration']<1.0:
@@ -210,8 +392,7 @@ class Babel_Thermal(QWidget):
                 stritem = sOn + ' ' + sOff + ' %3.1f%% %3.1fHz' %(c['DC']*100,c['PRF'])
                 if c['Repetitions'] >1:
                     stritem += ' %iReps' %(c['Repetitions'])
-                self.Widget.SelCombinationDropDown.addItem(stritem)
-        self.bDisableUpdate=False
+                dd.addItem(stritem)
 
     def EnableMultiPoint(self):
         self._bMultiPoint=True
@@ -230,8 +411,10 @@ class Babel_Thermal(QWidget):
     @Slot()
     def RunSimulation(self):
         bCalcFields=False
-        
-        BaseField=self._MainApp.AcSim._FullSolName
+
+        # Acoustic result for THIS thermal tab's trajectory (read by index; the
+        # thermal worker uses the same index, so Step 2 is never re-pointed).
+        BaseField=self._AcSimFullSolName()
         
         if type(BaseField) is list:
             BaseField=BaseField[0]
@@ -260,8 +443,17 @@ class Babel_Thermal(QWidget):
         self._bRecalculated=True
         self._ThermalResults=[]
         if bCalcFields:
+            # Capture everything the worker needs from Step 2 for THIS trajectory
+            # up front (case file, refocus selection, device extra-data), so the
+            # off-thread worker never reads AcSim's live/active state.
+            t = self._TrajectoryNumber
+            case = self._AcSimFullSolName(t)
+            bRefocus = (hasattr(self._AcSimForm(t), 'RefocusingcheckBox') and
+                        self._AcSimForm(t).RefocusingcheckBox.isChecked())
+            ExtraData = self._CaptureFromAcSim(
+                self._MainApp.AcSim.GetExtraDataForThermal, t)
             self.thread = QThread()
-            self.worker = RunThermalSim(self._MainApp)
+            self.worker = RunThermalSim(self._MainApp, case, bRefocus, ExtraData)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateThermalResults)
@@ -337,10 +529,10 @@ class Babel_Thermal(QWidget):
             if self.Widget.HideMarkscheckBox.isEnabled()== True:
                 self.Widget.HideMarkscheckBox.setEnabled(False)
             
-        BaseField=self._MainApp.AcSim._FullSolName
+        BaseField=self._AcSimFullSolName()
         if type(BaseField) is list:
             BaseField=BaseField[0]
-            
+
         if len(self._ThermalResults)==0:
             self._MainApp.hideClockDialog()
             self._NiftiThermalNames=[]
@@ -457,7 +649,7 @@ class Babel_Thermal(QWidget):
 
         SelBrain=np.isin(DataThermal['MaterialMap'],BrainID)
 
-        AcSimMask=self._MainApp.AcSim._Skull['MaterialMap']
+        AcSimMask=self._AcSimSkull()['MaterialMap']
 
         IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
         
@@ -683,9 +875,9 @@ class Babel_Thermal(QWidget):
                 self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
 
-            NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull.affine)
-            NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull.affine)
-            self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature)
+            NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+            NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+            self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
 
     @Slot()
     def UpdateThermalResults(self):
@@ -717,10 +909,10 @@ class Babel_Thermal(QWidget):
         
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         DataToExport={}
-        #we recover specifics of main app and acoustic simulation
-        for obj in [self._MainApp,self._MainApp.AcSim]:
-            Export=obj.GetExport()
-            DataToExport= DataToExport | Export
+        #we recover specifics of main app and acoustic simulation (the acoustic
+        #export is read for THIS tab's trajectory without disturbing Step 2)
+        DataToExport = DataToExport | self._MainApp.GetExport()
+        DataToExport = DataToExport | self._CaptureFromAcSim(self._MainApp.AcSim.GetExport)
         DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
         pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
@@ -797,7 +989,7 @@ class Babel_Thermal(QWidget):
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
         if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','CTX_250_2ch',
                                                     'H246','R15287','R15473','DPXPC_300']:
-            if self._MainApp.AcSim.Widget.RefocusingcheckBox.isChecked():
+            if self._AcSimForm().RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
         BasePath+=suffix
         nidata = nibabel.load(BasePath)
@@ -877,13 +1069,19 @@ class RunThermalSim(QObject):
     endError = Signal()
     logTelemetry = Signal(str)
 
-    def __init__(self,mainApp):
+    def __init__(self,mainApp,case,bRefocus,ExtraData):
          super(RunThermalSim, self).__init__()
          self._mainApp=mainApp
+         # Captured on the main thread for the active thermal trajectory, so the
+         # worker never reads AcSim's live/active state (which Step 3 must not
+         # disturb): the acoustic case file, refocus selection and device extras.
+         self._case=case
+         self._bRefocus=bRefocus
+         self._ExtraData=ExtraData
 
     def run(self):
 
-        case=self._mainApp.AcSim._FullSolName
+        case=self._case
         print('Calculating thermal maps for configurations\n',self._mainApp.ThermalSim.Config['AllDC_PRF_Duration'])
         T0=time.time()
         kargs={}
@@ -903,16 +1101,15 @@ class RunThermalSim(QObject):
                                  'Single','H246','BSonix','R15287','R15473']:
             kargs['sel_p']='p_amp'
         else:
-            bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
-            if bRefocus:
+            if self._bRefocus:
                 kargs['sel_p']='p_amp_refocus'
             else:
                 kargs['sel_p']='p_amp'
 
         # Start mask generation as separate process.
         queue=Queue()
-        ExtraData=self._mainApp.AcSim.GetExtraDataForThermal()
-        fieldWorkerProcess = Process(target=CalculateThermalProcess, 
+        ExtraData=self._ExtraData
+        fieldWorkerProcess = Process(target=CalculateThermalProcess,
                                     args=(queue,case,self._mainApp.ThermalSim.Config['AllDC_PRF_Duration'],ExtraData),
                                     kwargs=kargs)
         fieldWorkerProcess.start()      

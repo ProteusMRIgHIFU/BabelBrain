@@ -924,6 +924,8 @@ class BabelBrain(QWidget):
         self._T1WDataRaw =[None]*len(self.Config['ID'])
         self._NiftiSkull =[None]*len(self.Config['ID'])
         self._NiftiWater =[None]*len(self.Config['ID'])
+        self._NiftiIntensity =[None]*len(self.Config['ID'])
+        self._NiftiTemperature =[None]*len(self.Config['ID'])
 
         combinedID='+'.join(self.Config['ID'])
         self._trackingtimefile = self.Config['OutputFilesPath']+os.sep+combinedID+'_%ikHz_%iPPW_' %(int(Frequency/1e3),BasePPW)+'ExecutionTimes.yml'
@@ -1420,20 +1422,21 @@ class BabelBrain(QWidget):
 
             if hasattr(self,'_NiftiSkull'):
                 self._UpdateVTKAcResults(n)
-            if hasattr(self,'_NiftiTemperature'):
-                self._UpdateVTKThermal()
         if hasattr(self,'_NiftiMergeAc'):
-            self._UpdateVTKMergedAcResults()   
+            self._UpdateVTKMergedAcResults()
+        for n in lTraj:
+            if hasattr(self,'_NiftiTemperature'):
+                self._UpdateVTKThermal(n)   
 
     def UpdateNiftiAcResults(self,NiftiSkull,NiftiWater,NTraj):
         self._NiftiSkull[NTraj]=NiftiSkull
         self._NiftiWater[NTraj]=NiftiWater
         self._UpdateVTKAcResults(NTraj)
 
-    def UpdateNiftiTemperatureResults(self,NiftiIntensity,NiftiTemperature):
-        self._NiftiIntensity=NiftiIntensity
-        self._NiftiTemperature=NiftiTemperature
-        self._UpdateVTKThermal()
+    def UpdateNiftiTemperatureResults(self,NiftiIntensity,NiftiTemperature,NTraj):
+        self._NiftiIntensity[NTraj]=NiftiIntensity
+        self._NiftiTemperature[NTraj]=NiftiTemperature
+        self._UpdateVTKThermal(NTraj)
     
     def _UpdateVTKAcResults(self,NTraj):
         if not hasattr(self,'_vtk_visualization'):
@@ -1460,33 +1463,36 @@ class BabelBrain(QWidget):
         #we select skull for default windowing
         viewer._layer_panel._rows[-2]._wl_btn.click()
 
-    def _UpdateVTKThermal(self):
+    def _UpdateVTKThermal(self,NTraj):
         if not hasattr(self,'_vtk_visualization'):
             return
+        if self._NiftiIntensity[NTraj] is None:
+            return
         # We remove previous entries if already available
+        viewer =self._vtk_visualization.viewer[NTraj]
         for id in ['Intensity','Temperature']:
-            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+            for n,row in enumerate(viewer._layer_panel._rows):
                 if row._id == id:
-                    self._vtk_visualization.viewer._on_remove_requested(n)
+                    viewer._on_remove_requested(n)
                     break
         # We hide  pressure fields
-        for id in ['Water','Skull']:
-            for n,row in enumerate(self._vtk_visualization.viewer._layer_panel._rows):
+        for id in ['Water','Skull','MergedAc']:
+            for n,row in enumerate(viewer._layer_panel._rows):
                 if row._id == id:
                     row._eye_btn.setChecked(False)
                     break
-        self._vtk_visualization.viewer.add_overlay(self._NiftiIntensity,'Intensity',id='Intensity')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.1')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
-        self._vtk_visualization.viewer.add_overlay(self._NiftiTemperature,'Temperature',id='Temperature')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._cutoff_edit.setText('37.05')
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._on_cutoff_changed()
-        self._vtk_visualization.viewer._layer_panel._rows[-1]._eye_btn.toggle()
+        viewer.add_overlay(self._NiftiIntensity[NTraj],'Intensity',id='Intensity')
+        viewer._layer_panel._rows[-1]._opacity_slider.setValue(100)
+        viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        viewer._layer_panel._rows[-1]._cutoff_edit.setText('0.1')
+        viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        viewer.add_overlay(self._NiftiTemperature[NTraj],'Temperature',id='Temperature')
+        viewer._layer_panel._rows[-1]._cmap_combo.setCurrentIndex(5)
+        viewer._layer_panel._rows[-1]._cutoff_edit.setText('37.05')
+        viewer._layer_panel._rows[-1]._on_cutoff_changed()
+        viewer._layer_panel._rows[-1]._eye_btn.toggle()
 
-        self._vtk_visualization.viewer._layer_panel._rows[-2]._wl_btn.click()
+        viewer._layer_panel._rows[-2]._wl_btn.click()
 
     def UpdateNiftiMergedAcResults(self,NiftiMergeAc):
         self._NiftiMergeAc=NiftiMergeAc

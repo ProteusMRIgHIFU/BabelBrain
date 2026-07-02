@@ -599,6 +599,9 @@ class BabelBaseTx(QWidget):
         self.Widget.CalculateMechAdj.setEnabled(True)
         if self._bRecalculated:
             self._MainApp.ThermalSim.setEnabled(True)
+            # Enable the Step-3 tab for this trajectory now that its acoustic
+            # field exists (each thermal tab unlocks with its own Step-2 sim).
+            self._MainApp.ThermalSim.EnableTrajectoryTab(self._TrajectoryNumber)
             self._MainApp.hideClockDialog()
 
         self._showMatplotlibVisualization()
