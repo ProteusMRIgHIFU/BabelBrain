@@ -165,9 +165,14 @@ class Babel_Thermal(QWidget):
             self.Widget = form
             self._TrajectoryNumber = i
             self._WirePanel()
-            # Each Step-3 tab stays disabled until its Step-2 sim completes
-            # (EnableTrajectoryTab is called from _BabelBaseTx.UpdateAcResults).
-            self._txTabs.setTabEnabled(i, False)
+            # Each Step-3 tab stays HIDDEN until its Step-2 sim completes, so a
+            # trajectory's thermal tab only appears once its acoustic field exists
+            # (revealed by EnableTrajectoryTab / RefreshTrajectoryTabs).  We hide
+            # (setTabVisible) rather than disable (setTabEnabled): the main-window
+            # QSS collapses *disabled* tabs to zero size and QTabBar does not
+            # relayout on re-enable, which left a just-enabled tab zero-width and
+            # gave the tab bar a stale height.
+            self._txTabs.setTabVisible(i, False)
 
         # Activate the first tab; only now listen for user tab switches so the
         # addTab loop above doesn't fire the handler prematurely.
@@ -349,16 +354,48 @@ class Babel_Thermal(QWidget):
                 else:
                     setattr(AcSim, a, v)
 
+    def _AcFieldDone(self, i):
+        '''True once trajectory *i*'s Step-2 acoustic field has been computed.'''
+        AcSim = self._MainApp.AcSim
+        if not hasattr(AcSim, '_acPanels') or not (0 <= i < len(AcSim._acPanels)):
+            return False
+        panel = AcSim._acPanels[i]
+        return panel is not None and panel.get('figure') is not None
+
+    def RefreshTrajectoryTabs(self):
+        '''
+        Reveal every Step-3 tab whose Step-2 acoustic field exists.  Driven from
+        ground truth (AcSim's per-trajectory result panels) rather than from a
+        single completion notification, so the set of visible thermal tabs is
+        always correct no matter the order Step-2 trajectories were run in or when
+        the user switches to the thermal step.
+        '''
+        if not hasattr(self, '_txTabs'):
+            return
+        for i in range(self._txTabs.count()):
+            if self._AcFieldDone(i) and not self._txTabs.isTabVisible(i):
+                self._txTabs.setTabVisible(i, True)
+
+    def showEvent(self, event):
+        # Whenever Step 3 becomes visible, make sure every trajectory whose
+        # acoustic field is ready has its tab shown (self-corrects regardless
+        # of what happened while the user was on other steps).
+        super().showEvent(event)
+        self.RefreshTrajectoryTabs()
+
     def EnableTrajectoryTab(self, idx):
         '''
-        Enable the Step-3 tab for trajectory *idx*.  Called from Step 2 once the
+        Reveal the Step-3 tab for trajectory *idx*.  Called from Step 2 once the
         matching acoustic simulation completes, so each trajectory's thermal tab
-        becomes available only after its acoustic field exists.  Step 3 always
-        lands on the first tab, so the user starts there when opening the step.
+        only appears after its acoustic field exists.  Step 3 always lands on the
+        first tab, so the user starts there when opening the step.
         '''
         if not hasattr(self, '_txTabs') or not (0 <= idx < self._txTabs.count()):
             return
-        self._txTabs.setTabEnabled(idx, True)
+        self._txTabs.setTabVisible(idx, True)
+        # Also pick up any other trajectories already computed (belt-and-braces
+        # with showEvent), then land on the first tab.
+        self.RefreshTrajectoryTabs()
         self._txTabs.setCurrentIndex(0)
 
     def DefaultConfig(self):
