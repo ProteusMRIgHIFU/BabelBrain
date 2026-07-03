@@ -842,7 +842,7 @@ def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
             mid_idx = len(skull_indices) // 2
             l_half = float(len(skull_indices))*center_region
             beg_indx=np.max([0,int(np.round(mid_idx-l_half/2))])
-            end_idx=np.min([len(skull_indices),1+int(np.round(mid_idx+l_half/2))])
+            end_idx=np.min([len(skull_indices)-1,1+int(np.round(mid_idx+l_half/2))])
 
             hu_center = ray_hu[skull_indices[beg_indx]:skull_indices[end_idx]].min()
             
