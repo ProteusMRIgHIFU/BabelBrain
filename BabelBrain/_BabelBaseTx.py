@@ -884,6 +884,8 @@ class RunCombineTrajectories(QObject):
                 entry['PhaseSub_Norm']=p+'FullElasticSolutionPhase_Sub_NORM.nii.gz'
                 entry['Sub']=p+'FullElasticSolution_Sub.nii.gz'
                 entry['PhaseSub']=p+'FullElasticSolutionPhase_Sub.nii.gz'
+                entry['skullh5']=p+'DataForSim.h5'
+                entry['waterh5']=p+'Water_DataForSim.h5'
                 AllInputs.append(entry)
 
             cfgBase={}
@@ -899,6 +901,41 @@ class RunCombineTrajectories(QObject):
 
             do_complex_merge(cfg)
             MergedNifti=nibabel.load(cfg['output']['amp'])
+            
+            transformed=[]
+            transformed_refocus=[]
+            transformed_water=[]
+            s=MergedNifti.shape
+            combined_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
+            combined_water_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
+            combined_p_complex_refocus=np.zeros((s[2],s[0],s[1]),np.complex64)
+
+            print('converting now hdf5 results ')
+            for entry in AllInputs:
+                inputNifti=nibabel.load(entry['Sub_Norm'])
+                for ntype,subt in enumerate([entry['skullh5'],entry['waterh5']]):
+                    data=ReadFromH5py(subt)
+                    for td in [['p_amp','p_complex'],['p_amp_refocus','p_complex_refocus']]:
+                        if td[0] in data:
+                            pc=data[td[0]]
+                            ang=np.angle(data[td[1]])
+                            dNiftiReal=nibabel.Nifti1Image(pc*np.cos(ang),inputNifti.affine,inputNifti.header)
+                            dNiftiImag=nibabel.Nifti1Image(pc*np.sin(ang),inputNifti.affine,inputNifti.header)
+                            dNiftiReal=processing.resample_from_to(dNiftiReal,MergedNifti,order=1,cval=0)
+                            dNiftiImag=processing.resample_from_to(dNiftiImag,MergedNifti,order=1,cval=0)
+                            pcomplex=dNiftiReal.get_fdata()+1j*dNiftiImag.get_fdata()
+                            pcomplex=np.transpose(pcomplex.astype(np.complex64),[2,0,1])
+                            if ntype==0:
+                                if td[0]=='p_amp':
+                                    combined_p_complex+=pcomplex
+                                    transformed.append(pcomplex)
+                                else:
+                                    print('add refocus')
+                                    combined_p_complex_refocus+=pcomplex
+                                    transformed_refocus.append(pcomplex)
+                            elif ntype==1 and td[0]=='p_amp':
+                                combined_water_p_complex+=pcomplex
+                                transformed_water.append(pcomplex)
 
             #
             MaskInput=nibabel.load(self._MainApp._prefix_path[0]+'BabelViscoInput.nii.gz')
@@ -906,11 +943,12 @@ class RunCombineTrajectories(QObject):
             #we orient data to match convention used later on
             MaskData=np.transpose(MaskMerged.get_fdata().astype(np.uint32),[2,0,1])
             SkullMaskDataOrig=np.flip(MaskData,axis=2)
-            AcData=np.flip(np.transpose(MergedNifti.get_fdata(dtype=np.float32),[2,0,1]),axis=2)
+            
             bBrainSegmentation = np.any(MaskData>5)
             AcOptions=self._MainApp.CommomAcOptions()
             DensityCTMap=None
             AirRegions=None
+            print('prepating material properties')
             if AcOptions['bUseCT']:
                 CtData=nibabel.load(self._MainApp._prefix_path[0]+'CT.nii.gz')
                 CtData=processing.resample_from_to(CtData,MergedNifti,order=0,cval=0)
@@ -946,8 +984,8 @@ class RunCombineTrajectories(QObject):
                 DensityCTMap=DensityCTMap,
                 AirRegions=AirRegions)
 
+            print('Saving combined HDF5 files')
             DataForSim={}
-            DataForSim['p_amp']=AcData
             if DensityCTMap is not None:
                 SMaterialMap=MaterialMapNoCT.copy()
                 DataForSim['MaterialMapCT']=MaterialMap.copy()
@@ -985,8 +1023,25 @@ class RunCombineTrajectories(QObject):
                 DataForSim['SDR']=np.mean(SDRs)
             DataForSim['DistanceFromSkin']=0.0
             DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])
+            DataForSim['p_amp']=np.abs(combined_p_complex)
+            DataForSim['p_complex']=combined_p_complex
+            #we add now specific entries for later combining them 
+            DataForSim['Transformed']=transformed
+            if len(transformed_refocus)>0:
+                DataForSim['Transformed_Refocus']=transformed_refocus
+                DataForSim['p_amp_refocus']=np.abs(combined_p_complex_refocus)
+                DataForSim['p_complex_refocus']=combined_p_complex_refocus
+
+                
             SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
-            #This is temporary just have a "water" file for visualization testing
+            #Now water results
+            if len(transformed_refocus)>0:
+                for k in ['Transformed_Refocus','p_amp_refocus','p_complex_refocus']:
+                    DataForSim.pop(k)
+            DataForSim['p_amp']=np.abs(combined_water_p_complex)
+            DataForSim['p_complex']=combined_water_p_complex
+            DataForSim['Transformed']=transformed_water
+            DataForSim['MaterialMap'][:,:,:]=0
             SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5')
 
             TotalTime=time.time()-T0
