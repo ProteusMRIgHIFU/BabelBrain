@@ -192,6 +192,8 @@ class Babel_Thermal(QWidget):
         w.CalculateThermal.setStyleSheet("color: #e03030")  # bright red, readable on light & dark
         w.ExportSummary.clicked.connect(self.ExportSummary)
         w.ExportMaps.clicked.connect(self.ExportMaps)
+        if hasattr(w,'CombineTrajectories'):
+            w.CombineTrajectories.clicked.connect(self.CombineTrajectories)
 
         w.SelCombinationDropDown.currentIndexChanged.connect(self.UpdateSelCombination)
         w.IsppaSpinBox.valueChanged.connect(self._showMatplotlibVisualization)
@@ -440,8 +442,15 @@ class Babel_Thermal(QWidget):
                 self.Widget.SelectProfile.setProperty('UserData',fThermalProfile)  
                 self.DefaultConfig()  
                 self.RunSimulation()
-                
 
+
+    @Slot()
+    def CombineTrajectories(self):
+        print('this',self._TrajectoryNumber)
+        for n in range(len(self._MainApp.Config['ID'])):
+            SelIsppa=self._Widget[s].IsppaSpinBox.value()
+            ExtraPressureRatio=np.sqrt(SelIsppa/self.Config['BaseIsppa'])
+            print(n,ExtraPressureRatio)
     @Slot()
     def RunSimulation(self):
         bCalcFields=False
