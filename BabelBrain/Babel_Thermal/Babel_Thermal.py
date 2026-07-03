@@ -497,25 +497,25 @@ class Babel_Thermal(QWidget):
             MTTCEM=DoseUpdate[0]
         else:
             MTTCEM=DoseUpdate[3] if len(DoseUpdate)==4 else DoseUpdate[1]
-        self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if MTT >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(5,1,NewItem('%3.1f - %4.1G' % (MTT,MTTCEM),[MTT,MTTCEM],"red" if (MTT >= 39 or MTTCEM >=2.0) else "blue"))
 
         MTB=DataThermal['TI']*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:
             MTBCEM=DoseUpdate[0]
         else:
             MTBCEM=DoseUpdate[1]
-        self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if MTB >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(6,1,NewItem('%3.1f - %4.1G' % (MTB,MTBCEM),[MTB,MTBCEM],"red" if (MTB >= 39 or MTBCEM >=2.0) else "blue"))
         
         MTS=DataThermal['TIS']*IsppaRatio+BaselineTemperature
         MTSCEM=DoseUpdate[0]
-        self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(7,1,NewItem('%3.1f - %4.1G' % (MTS,MTSCEM),[MTS,MTSCEM],"red" if MTS >= 39  else "blue"))
 
         MTC=DataThermal['TIC']*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:
             MTCCEM=DoseUpdate[0]
         else:
             MTCCEM=DoseUpdate[2]
-        self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39 else "blue"))
+        self.Widget.tableWidget.setItem(8,1,NewItem('%3.1f - %4.1G' % (MTC,MTCCEM),[MTC,MTCCEM],"red" if MTC >= 39  else "blue"))
 
         MI=np.sqrt(SelIsppa*1e4*ImpedanceLocMax*2)/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         self.Widget.tableWidget.setItem(9,1,NewItem('%3.1f ' % (MI),MI,"red" if MI > 1.9 else "blue"))
