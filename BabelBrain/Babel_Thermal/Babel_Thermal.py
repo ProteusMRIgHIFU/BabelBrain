@@ -94,7 +94,6 @@ class ThermalProfileConfig(UserDict):
                     timing_config[key] = default_value
 
 class Babel_Thermal(QWidget):
-    # \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     # Step-3 layout mirrors Step 2 (_BabelBaseTx): one tab per trajectory, each
     # an independent ThermalForm with its own controls, plot and results table.
     # self.Widget always points at the active tab's form and self._TrajectoryNumber
@@ -106,8 +105,7 @@ class Babel_Thermal(QWidget):
     #
     # A Step-3 tab starts disabled and is enabled by EnableTrajectoryTab once the
     # matching Step-2 acoustic simulation finishes (see _BabelBaseTx.UpdateAcResults).
-    # \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
+    #
     # Controller attributes that carry per-trajectory state between calls; these
     # are swapped in/out of self on every tab change (see _Save/_LoadThermalPanelState).
     _PANEL_ATTRS = ('_ThermalResults', '_NiftiThermalNames', '_xf', '_zf',
@@ -265,8 +263,7 @@ class Babel_Thermal(QWidget):
             w.tableWidget.verticalHeader().setDefaultSectionSize(25)
         w.tableWidget.setFrameShape(QFrame.NoFrame)
 
-    # \u2500\u2500 Per-trajectory state stash / restore \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
+    
     def _SaveThermalPanelState(self, idx):
         '''Copy the active self._* per-trajectory state into panel *idx*.'''
         if not hasattr(self, '_thPanels') or not (0 <= idx < len(self._thPanels)):
@@ -295,7 +292,7 @@ class Babel_Thermal(QWidget):
         self.Widget = self._Widgets[idx]
         self._LoadThermalPanelState(idx)
 
-    # \u2500\u2500 Read Step-2 acoustic results by trajectory index \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Read Step-2 acoustic results by trajectory index 
     # Step 3 must NEVER change Step 2's active trajectory: doing so clobbered
     # which trajectory the next Step-2 run computed and which Step-3 tab got
     # enabled (a Step-3 visit in between broke the next Step-2 run).  Each Step-3
@@ -467,15 +464,16 @@ class Babel_Thermal(QWidget):
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
-        if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
-            ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
-                                "Do you want to recalculate?\nSelect No to reload",
-            QMessageBox.Yes | QMessageBox.No)
+        if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION',0)==0:
+            if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
+                ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
+                                    "Do you want to recalculate?\nSelect No to reload",
+                QMessageBox.Yes | QMessageBox.No)
 
-            if ret == QMessageBox.Yes:
-                bCalcFields=True
-        else:
-            bCalcFields = True
+                if ret == QMessageBox.Yes:
+                    bCalcFields=True
+            else:
+                bCalcFields = True
         
         self._bRecalculated=True
         self._ThermalResults=[]
@@ -919,6 +917,12 @@ class Babel_Thermal(QWidget):
     @Slot()
     def UpdateThermalResults(self):
         self._showMatplotlibVisualization()
+        self.UpdateCombineResultsButton()
+    
+    def UpdateCombineResultsButton(self):
+        if hasattr(self.Widget,'CombineTrajectories'):
+            for n in range(len(self._MainApp.Config['ID'])):
+                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllThermalFieldsDone() and len(self._MainApp.AcSim._Widgets)>len(self._MainApp.Config['ID']))
 
     @Slot()
     def LocateMTB(self):

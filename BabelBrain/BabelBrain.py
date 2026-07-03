@@ -956,10 +956,11 @@ class BabelBrain(QWidget):
             # Parent to self.Widget (the styled MainForm) so the dialog inherits
             # the compact _FORM_QSS; self is the top-level app and carries no
             # stylesheet of its own.
-            ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION',0)==0:
+                ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
-            if ret == QMessageBox.Yes:
-                bCalcMask=True
+                if ret == QMessageBox.Yes:
+                    bCalcMask=True
         else:
             bCalcMask = True
 
@@ -1633,6 +1634,9 @@ class BabelBrain(QWidget):
 
     def AllAcFieldsDone(self):
         return all(x is not None for x in self._NiftiSkull)
+    
+    def AllThermalFieldsDone(self):
+        return all(x is not None for x in self._NiftiTemperature)
         
 
 def get_color_at(widget, x,y):

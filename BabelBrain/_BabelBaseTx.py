@@ -835,6 +835,7 @@ class BabelBaseTx(QWidget):
         self._MainApp.UpdateNiftiMergedAcResults(MergedNifti)
         #show the combined Skull/Water results in a dedicated read-only tab
         self._AddMergedResultsTab()
+        self._MainApp.ThermalSim.UpdateCombineResultsButton()
 
 
 class RunCombineTrajectories(QObject):
