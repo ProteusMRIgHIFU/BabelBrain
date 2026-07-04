@@ -314,6 +314,26 @@ class Babel_Thermal(QWidget):
     def _AcSimFullMergedSolName(self):
         return self._MainApp.AcSim._MergedResultsFullSolName
 
+    def _IsMergedTab(self, idx=None):
+        '''True when *idx* (default: the active tab) is the combined "Merged" tab.'''
+        if idx is None:
+            idx = self._TrajectoryNumber
+        return getattr(self, '_mergedTabIndex', None) == idx
+
+    def _AcSimMergedSkullMap(self):
+        '''
+        The combined skull/material map for the mask overlay on the Merged tab,
+        read from Step 2's merged acoustic panel (built when Step 2 combined the
+        trajectories, which is a precondition for combining thermal results).
+        '''
+        AcSim = self._MainApp.AcSim
+        idx = getattr(AcSim, '_mergedTabIndex', None)
+        if idx is not None and 0 <= idx < len(AcSim._acPanels):
+            panel = AcSim._acPanels[idx]
+            if panel is not None and 'Skull' in panel:
+                return panel['Skull']['MaterialMap']
+        return None
+
     def _AcSimSkull(self, t=None):
         '''The Step-2 skull/material data for trajectory *t* (mask overlay).'''
         return self._AcSimPanel(t)['Skull']
@@ -375,6 +395,11 @@ class Babel_Thermal(QWidget):
         if not hasattr(self, '_txTabs'):
             return
         for i in range(self._txTabs.count()):
+            # The Merged tab is not a trajectory: its visibility is driven by
+            # combining thermal results (_AddMergedResultsTab), not by an acoustic
+            # field, so leave it out of the per-trajectory reveal.
+            if self._IsMergedTab(i):
+                continue
             if self._AcFieldDone(i) and not self._txTabs.isTabVisible(i):
                 self._txTabs.setTabVisible(i, True)
 
@@ -591,7 +616,7 @@ class Babel_Thermal(QWidget):
             if self.Widget.HideMarkscheckBox.isEnabled()== True:
                 self.Widget.HideMarkscheckBox.setEnabled(False)
         
-        if not self._bRunningMerged:
+        if not self._IsMergedTab():
             BaseField=self._AcSimFullSolName()
         else:
             BaseField=self._AcSimFullMergedSolName()
@@ -715,7 +740,10 @@ class Babel_Thermal(QWidget):
 
         SelBrain=np.isin(DataThermal['MaterialMap'],BrainID)
 
-        AcSimMask=self._AcSimSkull()['MaterialMap']
+        if self._IsMergedTab():
+            AcSimMask=self._AcSimMergedSkullMap()
+        else:
+            AcSimMask=self._AcSimSkull()['MaterialMap']
 
         IsppaTarget = DataThermal['p_map'][Loc[0],Loc[1],Loc[2]]**2/2/ImpedanceTarget/1e4*IsppaRatio
         
@@ -941,15 +969,67 @@ class Babel_Thermal(QWidget):
                 self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
 
-            NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
-            NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
-            self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
+            # Per-trajectory NIfTI/VTK overlays are keyed by trajectory index; the
+            # Merged tab has no such slot (there is no merged thermal viewer), so
+            # skip the 3D update for it — the 2D matplotlib view above is enough.
+            if not self._IsMergedTab():
+                NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+                NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+                self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
 
     @Slot()
     def UpdateThermalResults(self):
-        self._showMatplotlibVisualization()
+        # A merged run renders into the dedicated "Merged" tab; a normal run
+        # renders into the active trajectory tab.
+        if getattr(self, '_bRunningMerged', False):
+            self._bRunningMerged = False
+            self._AddMergedResultsTab()
+        else:
+            self._showMatplotlibVisualization()
         self.UpdateCombineResultsButton()
-    
+
+    def _AddMergedResultsTab(self):
+        '''
+        Show the combined thermal results in a dedicated "Merged" tab, mirroring
+        _BabelBaseTx._AddMergedResultsTab.  Unlike Step 2's read-only merged form,
+        Step 3 keeps the full ThermalForm (left panel + results table); only the
+        compute actions (Calculate / Update-profile / Combine) are disabled, since
+        this tab just displays the already-combined thermal maps.  Re-running the
+        combination re-renders the existing tab from the freshly written files.
+        '''
+        if getattr(self, '_mergedTabIndex', None) is None:
+            form = self._CreateForm()
+            idx = self._txTabs.addTab(form, 'Merged')
+            self._Widgets.append(form)
+            self._thPanels.append(self._NewThermalPanel())
+            self._mergedTabIndex = idx
+            # Wire the merged form (bind signals/table to *its* widgets), then make
+            # it read-only for the compute actions.
+            prevW, prevT = self.Widget, self._TrajectoryNumber
+            self.Widget = form
+            self._TrajectoryNumber = idx
+            self._WirePanel()
+            self._PopulateCombination(form)
+            self.Widget, self._TrajectoryNumber = prevW, prevT
+            form.CalculateThermal.setEnabled(False)
+            form.SelectProfile.setEnabled(False)
+            if hasattr(form, 'CombineTrajectories'):
+                form.CombineTrajectories.setEnabled(False)
+            self._txTabs.setTabVisible(idx, True)
+        idx = self._mergedTabIndex
+
+        # Point the controller at the merged tab and (re)render the combined
+        # result.  We do NOT stash the current (post-run, emptied) self state into
+        # the trajectory panel — CombineTrajectories already saved that tab before
+        # launching the run — so the source trajectory tab keeps its own results.
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        self._LoadThermalPanelState(idx)
+        self._bRecalculated = True
+        self._ThermalResults = []
+        self._showMatplotlibVisualization()
+        self._txTabs.setCurrentIndex(idx)
+
     def UpdateCombineResultsButton(self):
         if hasattr(self.Widget,'CombineTrajectories'):
             for n in range(len(self._MainApp.Config['ID'])):
@@ -982,9 +1062,11 @@ class Babel_Thermal(QWidget):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         DataToExport={}
         #we recover specifics of main app and acoustic simulation (the acoustic
-        #export is read for THIS tab's trajectory without disturbing Step 2)
+        #export is read for THIS tab's trajectory without disturbing Step 2). The
+        #Merged tab has no per-trajectory acoustic form, so skip its acoustic export.
         DataToExport = DataToExport | self._MainApp.GetExport()
-        DataToExport = DataToExport | self._CaptureFromAcSim(self._MainApp.AcSim.GetExport)
+        if not self._IsMergedTab():
+            DataToExport = DataToExport | self._CaptureFromAcSim(self._MainApp.AcSim.GetExport)
         DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
         pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
@@ -1061,10 +1143,15 @@ class Babel_Thermal(QWidget):
         suffix='_FullElasticSolution_Sub_NORM.nii.gz'
         if self._MainApp.Config['TxSystem'] not in ['CTX_500','CTX_250','DPX_500','Single','H246','BSonix','CTX_250_2ch',
                                                     'H246','R15287','R15473','DPXPC_300']:
-            if self._AcSimForm().RefocusingcheckBox.isChecked():
+            if hasattr(self._AcSimForm(),'RefocusingcheckBox') and self._AcSimForm().RefocusingcheckBox.isChecked():
                 suffix='_FullElasticSolutionRefocus_Sub_NORM.nii.gz'
-        BasePath+=suffix
-        nidata = nibabel.load(BasePath)
+        if self._IsMergedTab():
+            # The combined maps live on the merged grid; take the affine from the
+            # merged acoustic NORM instead of a per-trajectory solution file.
+            nidata = nibabel.load(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz')
+        else:
+            BasePath+=suffix
+            nidata = nibabel.load(BasePath)
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
         if 'BaselineTemperature' in DataThermal:
             BaselineTemperature=DataThermal['BaselineTemperature']
