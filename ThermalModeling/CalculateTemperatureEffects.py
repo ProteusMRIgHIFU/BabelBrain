@@ -600,7 +600,9 @@ def CalculateTemperatureEffects(InputPData,
                                 BenchmarkTestFile='',
                                 bApplyMedianPressure=False,
                                 TxSystem='',
-                                prevSimulationResultsFile=''
+                                prevSimulationResultsFile='',
+                                bMergedSimulation=False,
+                                MergedPressureRatio=[]
                                 ):
 
     '''
@@ -654,6 +656,10 @@ def CalculateTemperatureEffects(InputPData,
         Path to benchmark test file.
     prevSimulationResultsFile: str, optional
         Path to previous thermal simulation. If specified, it is assumed we want to concatenate simulations.
+    bMergedSimulation=bool, optional.
+        Indicates we are running a merged simulation, file will have extra fields to combine results (default is False).
+    MergedPressureRatio=list, optional.
+        User-defined list of float (as many as trajectories) used to calculate adjusted pressure fields
     Returns
     -------
     str
@@ -679,16 +685,28 @@ def CalculateTemperatureEffects(InputPData,
     dt=0.01
     
     AirMask = None
+    if sel_p=='p_amp':
+        combined_p ='Transformed'
+    else:
+        combined_p ='Transformed_Refocus'
 
     if type(InputPData) is str:   
         Input=ReadFromH5py(InputPData)
-        WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
-        print('Load water',WaterInputPData)
-        InputWater=ReadFromH5py(WaterInputPData)
-        
-        pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
-        pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
-
+        if not bMergedSimulation:
+            pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
+            WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
+            print('Load water',WaterInputPData)
+            InputWater=ReadFromH5py(WaterInputPData)    
+            pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
+        else:
+            print('merging complex fields')
+            if len(MergedPressureRatio)!=len(Input[combined_p]):
+                raise ValueError(f"length of MergedPressureRatio ({len(MergedPressureRatio)}) does not match {combined_p} ({len(Input[combined_p])})")
+            for n in range(len(MergedPressureRatio)):
+                Input[combined_p][n]*=MergedPressureRatio[n]
+            pAmp=np.abs(np.sum(np.stack(Input[combined_p]), axis=0))
+            pAmp=np.ascontiguousarray(np.flip(pAmp,axis=2))
+      
         if 'AirMask' in Input:
             AirMask=np.ascontiguousarray(np.flip(Input['AirMask'],axis=2))
         
@@ -700,13 +718,25 @@ def CalculateTemperatureEffects(InputPData,
         
         AllInputs=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
                             Input[sel_p].shape[2]),Input[sel_p].dtype)
-        AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
+        if not bMergedSimulation:
+            AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
                             Input[sel_p].shape[2]),Input[sel_p].dtype)
         for n in range(len(InputPData)):
             ALL_ACFIELDSKULL.append(ReadFromH5py(InputPData[n]))
-            AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
-            fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
-            AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+            if not bMergedSimulation:
+                AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
+                fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
+                AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+            else:
+                print('merging complex fields')
+                if len(MergedPressureRatio)!=len(ALL_ACFIELDSKULL[-1][combined_p]):
+                    raise ValueError(f"length of MergedPressureRatio ({len(MergedPressureRatio)}) does not match {combined_p} ({len(ALL_ACFIELDSKULL[-1][combined_p])})")
+                for n in range(len(MergedPressureRatio)):
+                    ALL_ACFIELDSKULL[-1][combined_p][n]*=MergedPressureRatio[n]
+                pAmp=np.abs(np.sum(np.stack(ALL_ACFIELDSKULL[-1][combined_p]), axis=0))
+                pAmp=np.ascontiguousarray(np.flip(pAmp,axis=2))
+                AllInputs[n,:,:,:]=pAmp
+
         
         if DurationUS>len(InputPData)*2 and bGlobalDCMultipoint: 
         #ad-hoc rule, if sonication last at least 2x seconds the number of focal spots, we  approximate the heating as each point would take 1 second (with DC indicating how much percentage will  be on), this is valid for long sonications
@@ -917,33 +947,42 @@ def CalculateTemperatureEffects(InputPData,
                 pAmpSk=median_filter(pAmpSk,3)
                 AllInputsWater[n,:,:,:][SelSkull]=pAmpSk[SelSkull]
 
-    if type(InputPData) is str:   
-        PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
-                                                MaterialList,pAmpWater,Isppa,
-                                                xf,yf,zf,SelBrain,
-                                                bForceHomogenousMedium,
-                                                bSegmentedBrain,
-                                                TxSystem,
-                                                IdRegionBenchmark,
-                                                FixedAcousticPower=FixedAcousticPower)
+    if not bMergedSimulation:
+        if type(InputPData) is str:   
+            PressureRatio,RatioLosses=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                    MaterialList,pAmpWater,Isppa,
+                                                    xf,yf,zf,SelBrain,
+                                                    bForceHomogenousMedium,
+                                                    bSegmentedBrain,
+                                                    TxSystem,
+                                                    IdRegionBenchmark,
+                                                    FixedAcousticPower=FixedAcousticPower)
+        else:
+            PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
+            RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
+            for n in range(len(InputPData)):
+                pAmp=AllInputs[n,:,:,:]
+                pAmpWater=AllInputsWater[n,:,:,:]
+                print('*'*40)
+                print('Calculating losses for spot ',n)
+                PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
+                                                            MaterialList,pAmpWater,Isppa,
+                                                            xf,yf,zf,SelBrain,
+                                                            bForceHomogenousMedium,
+                                                            bSegmentedBrain,
+                                                            TxSystem,
+                                                            IdRegionBenchmark,
+                                                            FixedAcousticPower=FixedAcousticPower)
+                print('*'*40)
+            print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
     else:
-        PressureRatio=np.zeros(len(InputPData),dtype=AllInputs.dtype)
-        RatioLosses=np.zeros(len(InputPData),dtype=AllInputs.dtype)
-        for n in range(len(InputPData)):
-            pAmp=AllInputs[n,:,:,:]
-            pAmpWater=AllInputsWater[n,:,:,:]
-            print('*'*40)
-            print('Calculating losses for spot ',n)
-            PressureRatio[n],RatioLosses[n]=AnalyzeLosses(pAmp,MaterialMap,LocIJK,Input,
-                                                          MaterialList,pAmpWater,Isppa,
-                                                          xf,yf,zf,SelBrain,
-                                                          bForceHomogenousMedium,
-                                                          bSegmentedBrain,
-                                                          TxSystem,
-                                                          IdRegionBenchmark,
-                                                          FixedAcousticPower=FixedAcousticPower)
-            print('*'*40)
-        print('Average (std) of pressure ratio and losses = %f(%f) , %f(%f)' % (np.mean(PressureRatio),np.std(PressureRatio),np.mean(RatioLosses),np.std(RatioLosses)))
+        print('adjusting pressue maps')
+        if type(InputPData) is str: 
+            PressureRatio=1.0
+            RatioLosses=1.0
+        else:
+            PressureRatio=np.ones(len(InputPData),dtype=AllInputs.dtype)
+            RatioLosses=np.ones(len(InputPData),dtype=AllInputs.dtype)
             
     if len(prevSimulationResultsFile)>0:
         print('Reading from previous file to concatenate',prevSimulationResultsFile)
@@ -1236,3 +1275,39 @@ def CalculateTemperatureEffects(InputPData,
     
     return outfname
         
+
+if __name__ == "__main__":
+
+    queueMsg=Queue()
+    CalculateTemperatureEffects(InputPData,
+                                'M3',
+                                queueMsg,
+                                DutyCycle=0.3,
+                                Isppa=5,
+                                sel_p='p_amp',
+                                PRF=1500,
+                                DurationUS=40,
+                                DurationOff=40,
+                                Repetitions=1,
+                                bForceRecalc=False,
+                                BaselineTemperature=37,
+                                bGlobalDCMultipoint=False,
+                                Frequency=2.5e5,
+                                NumberGroupedSonications=1,
+                                PauseBetweenGroupedSonications=0.0,
+                                Backend='Metal',
+                                LimitBHTEIterationsPerProcess=100,
+                                bForceHomogenousMedium=False,
+                                bForceNoAbsorptionSkullScalp=False,
+                                HomogenousMediumValues={'ThermalConductivity':0.5,  
+                                    'SpecificHeat':3583.0,
+                                    'Perfusion':55.0,
+                                    'Absorption':0.85, #m/s
+                                    'InitTemperature':37.0}, #Np/m
+                                BenchmarkTestFile='',
+                                bApplyMedianPressure=False,
+                                TxSystem='',
+                                prevSimulationResultsFile='',
+                                bMergedSimulation=True,
+                                MergedPressureRatio=[]
+                                )

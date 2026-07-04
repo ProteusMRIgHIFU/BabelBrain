@@ -760,6 +760,7 @@ class BabelBaseTx(QWidget):
         '''Read the combined Skull/Water merged H5 files and stash panel arrays.'''
         WaterSolName = self._MainApp._merged_prefix_path + 'Water_Merged_DataForSim.h5'
         FullSolName = self._MainApp._merged_prefix_path + 'Merged_DataForSim.h5'
+        self._MergedResultsFullSolName = FullSolName
         Water = ReadFromH5py(WaterSolName)
         Skull = ReadFromH5py(FullSolName)
 
@@ -822,8 +823,19 @@ class BabelBaseTx(QWidget):
         # frequency); the GUI updates happen in _CombineTrajectoriesFinished on
         # the main thread.  Reuses the shared acoustic-sim thread plumbing
         # (hourglass dialog, telemetry, error handling).
-        self._LaunchAcousticSim(RunCombineTrajectories(self._MainApp),
+        bCalcMerge=False
+        if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
+            if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
+                ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+
+                if ret == QMessageBox.Yes:
+                    bCalcMerge=True
+
+        if bCalcMerge:
+            self._LaunchAcousticSim(RunCombineTrajectories(self._MainApp),
                                 self._CombineTrajectoriesFinished)
+        else:
+            self._CombineTrajectoriesFinished()
 
     @Slot()
     def _CombineTrajectoriesFinished(self):

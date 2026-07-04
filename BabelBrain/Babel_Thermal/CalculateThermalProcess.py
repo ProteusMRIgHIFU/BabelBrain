@@ -81,6 +81,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
             kargsSub['BaselineTemperature']=kargs['BaselineTemperature']
             kargsSub['LimitBHTEIterationsPerProcess']=kargs['LimitBHTEIterationsPerProcess']
             kargsSub['TxSystem']=kargs['TxSystem']
+            kargsSub['bMergedSimulation']=kargs['bMergedSimulation']
+            kargsSub['MergedPressureRatio']=kargs['MergedPressureRatio']
             if not bFirstCombination and kargs['bConcatenateSimulations']: #we concatenate sim results
                 kargsSub['prevSimulationResultsFile']=prevSimulationResultsFile
 

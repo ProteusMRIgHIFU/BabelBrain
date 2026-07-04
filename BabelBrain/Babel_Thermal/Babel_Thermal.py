@@ -310,6 +310,9 @@ class Babel_Thermal(QWidget):
     def _AcSimFullSolName(self, t=None):
         '''The acoustic DataForSim result for trajectory *t* (list for phased arrays).'''
         return self._AcSimPanel(t)['FullSolName']
+    
+    def _AcSimFullMergedSolName(self):
+        return self._MainApp.AcSim._MergedResultsFullSolName
 
     def _AcSimSkull(self, t=None):
         '''The Step-2 skull/material data for trajectory *t* (mask overlay).'''
@@ -447,17 +450,26 @@ class Babel_Thermal(QWidget):
     @Slot()
     def CombineTrajectories(self):
         print('this',self._TrajectoryNumber)
+        MergedPressureRatio=[]
+        self._SaveThermalPanelState(self._TrajectoryNumber)
         for n in range(len(self._MainApp.Config['ID'])):
-            SelIsppa=self._Widget[s].IsppaSpinBox.value()
-            ExtraPressureRatio=np.sqrt(SelIsppa/self.Config['BaseIsppa'])
-            print(n,ExtraPressureRatio)
+            SelIsppa=self._Widgets[n].IsppaSpinBox.value()
+            print(self._thPanels[n]['_ThermalResults'][0]['PressureRatio'])
+            MergedPressureRatio.append(self._thPanels[n]['_ThermalResults'][0]['PressureRatio']*np.sqrt(SelIsppa/self.Config['BaseIsppa']))
+        self.RunSimulation(True,MergedPressureRatio)
+            
     @Slot()
-    def RunSimulation(self):
+    def RunSimulation(self,bMergedSimulation=False,MergedPressureRatio=[]):
         bCalcFields=False
 
         # Acoustic result for THIS thermal tab's trajectory (read by index; the
         # thermal worker uses the same index, so Step 2 is never re-pointed).
-        BaseField=self._AcSimFullSolName()
+        if not bMergedSimulation:
+            BaseField=self._AcSimFullSolName()
+        else:
+            BaseField=self._AcSimFullMergedSolName()
+
+        self._bRunningMerged=bMergedSimulation
         
         if type(BaseField) is list:
             BaseField=BaseField[0]
@@ -473,16 +485,16 @@ class Babel_Thermal(QWidget):
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
-        if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION',0)==0:
-            if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
-                ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
-                                    "Do you want to recalculate?\nSelect No to reload",
-                QMessageBox.Yes | QMessageBox.No)
+        # if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
+        if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
+            ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
+                                "Do you want to recalculate?\nSelect No to reload",
+            QMessageBox.Yes | QMessageBox.No)
 
-                if ret == QMessageBox.Yes:
-                    bCalcFields=True
-            else:
-                bCalcFields = True
+            if ret == QMessageBox.Yes:
+                bCalcFields=True
+        else:
+            bCalcFields = True
         
         self._bRecalculated=True
         self._ThermalResults=[]
@@ -491,13 +503,19 @@ class Babel_Thermal(QWidget):
             # up front (case file, refocus selection, device extra-data), so the
             # off-thread worker never reads AcSim's live/active state.
             t = self._TrajectoryNumber
-            case = self._AcSimFullSolName(t)
+
+            if not bMergedSimulation:
+                case = self._AcSimFullSolName(t)
+            else:
+                case=self._AcSimFullMergedSolName()
+
+
             bRefocus = (hasattr(self._AcSimForm(t), 'RefocusingcheckBox') and
                         self._AcSimForm(t).RefocusingcheckBox.isChecked())
             ExtraData = self._CaptureFromAcSim(
                 self._MainApp.AcSim.GetExtraDataForThermal, t)
             self.thread = QThread()
-            self.worker = RunThermalSim(self._MainApp, case, bRefocus, ExtraData)
+            self.worker = RunThermalSim(self._MainApp, case, bRefocus, ExtraData,bMergedSimulation,MergedPressureRatio)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateThermalResults)
@@ -572,8 +590,12 @@ class Babel_Thermal(QWidget):
             self.Widget.IsppaScrollBar.setEnabled(False)
             if self.Widget.HideMarkscheckBox.isEnabled()== True:
                 self.Widget.HideMarkscheckBox.setEnabled(False)
-            
-        BaseField=self._AcSimFullSolName()
+        
+        if not self._bRunningMerged:
+            BaseField=self._AcSimFullSolName()
+        else:
+            BaseField=self._AcSimFullMergedSolName()
+
         if type(BaseField) is list:
             BaseField=BaseField[0]
 
@@ -1119,7 +1141,7 @@ class RunThermalSim(QObject):
     endError = Signal()
     logTelemetry = Signal(str)
 
-    def __init__(self,mainApp,case,bRefocus,ExtraData):
+    def __init__(self,mainApp,case,bRefocus,ExtraData,bMergedSimulation=False,MergedPressureRatio=[]):
          super(RunThermalSim, self).__init__()
          self._mainApp=mainApp
          # Captured on the main thread for the active thermal trajectory, so the
@@ -1128,6 +1150,8 @@ class RunThermalSim(QObject):
          self._case=case
          self._bRefocus=bRefocus
          self._ExtraData=ExtraData
+         self._bMergedSimulation=bMergedSimulation
+         self._MergedPressureRatio=MergedPressureRatio
 
     def run(self):
 
@@ -1145,6 +1169,8 @@ class RunThermalSim(QObject):
         kargs['HomogenousMediumValues']=self._mainApp.Config['HomogenousMediumValues']
         kargs['bForceNoAbsorptionSkullScalp']=self._mainApp.Config['bForceNoAbsorptionSkullScalp']
         kargs['bConcatenateSimulations']=self._mainApp.ThermalSim.Config['bConcatenateSimulations']
+        kargs['bMergedSimulation']=self._bMergedSimulation
+        kargs['MergedPressureRatio']=self._MergedPressureRatio
 
         kargs['TxSystem']=self._mainApp.Config['TxSystem']
         if kargs['TxSystem'] in ['CTX_500','CTX_250','DPX_500','DPXPC_300','CTX_250_2ch',
