@@ -6,12 +6,19 @@ hands the *live* window back to you for manual interaction. No pytest.
 
 Run from the repo root:
 
-    python BabelBrain/dev_driver.py
+    python BabelBrain/dev_driver.py                 # runs built-in script() below
+    python BabelBrain/dev_driver.py my_run.py       # runs an external snippet
 
-Edit `script()` below to change the chain. That's the only part you touch.
+An external snippet is plain Python containing ONLY the body you'd put in
+script() — no def, no indentation. These names are pre-bound in its scope:
+    bb, wait_until, wait, auto_answer_dialogs, QMessageBox
+so you can edit/throw away snippets without touching (or committing) this
+driver. Errors in a snippet print a traceback but leave the window live.
 """
+import argparse
 import os
 import sys
+import traceback
 
 # sys.path[0] is this file's dir (BabelBrain/) so the app's internal imports
 # (SelFiles.SelFiles, etc.) resolve exactly as they do for BabelBrain.py.
@@ -73,41 +80,27 @@ def script(bb):
     wait_until(bb.Widget.tabWidget.isEnabled)   # re-enabled when the worker finishes
     wait(1000)                                   # let plots draw
 
-    # --- Step 2: Acoustic field on every trajectory tab ---
-    bb.Widget.tabWidget.setCurrentIndex(1)
-    n_tabs = bb.AcSim._txTabs.count()
-    for i in range(n_tabs):
-        print(f"[dev] Step 2: CalculateAcField (tab {i}/{n_tabs - 1})")
-        bb.AcSim._txTabs.setCurrentIndex(i)   # repoints bb.AcSim.Widget to this tab
-        bb.AcSim.Widget.CalculateAcField.click()
-        wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
-        wait(500)
-
-    # --- CombineTrajectories (only present/enabled once all fields are done) ---
-    if hasattr(bb.AcSim.Widget, 'CombineTrajectories') \
-            and bb.AcSim.Widget.CombineTrajectories.isEnabled():
-        print("[dev] Step 2: CombineTrajectories")
-        bb.AcSim.Widget.CombineTrajectories.click()
-        wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
-        wait(500)
-    
-    bb.Widget.tabWidget.setCurrentIndex(2)
-    for i in range(n_tabs):
-        print(f"[dev] Step 3: CalculateThermal (tab {i}/{n_tabs - 1})")
-        bb.ThermalSim._txTabs.setCurrentIndex(i)   # repoints bb.ThermalSim.Widget to this tab
-        bb.ThermalSim.Widget.CalculateThermal.click()
-        wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
-        wait(500)
-
-    if hasattr(bb.ThermalSim.Widget, 'CombineTrajectories') \
-            and bb.ThermalSim.Widget.CombineTrajectories.isEnabled():
-        print("[dev] Step 3: CombineTrajectories")
-        bb.ThermalSim.Widget.CombineTrajectories.click()
-        wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
-        wait(500)
-
-
     print("[dev] Script done. Window is yours — interact away.")
+
+
+def run_script_file(bb, path):
+    """Exec an external snippet with the helper names pre-bound. Compiling with
+    the real path means tracebacks point at the snippet's own line numbers."""
+    with open(path) as f:
+        code = f.read()
+    ns = {
+        'bb': bb,
+        'wait_until': wait_until,
+        'wait': wait,
+        'auto_answer_dialogs': auto_answer_dialogs,
+        'QMessageBox': QMessageBox,
+    }
+    try:
+        exec(compile(code, path, 'exec'), ns)
+        print("[dev] Snippet done. Window is yours — interact away.")
+    except Exception:
+        traceback.print_exc()
+        print(f"[dev] Snippet '{path}' errored — window left live for debugging.")
 
 
 # --------------------------------------------------------------------------
@@ -136,6 +129,11 @@ def _prefill_selfiles(selwidget):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="BabelBrain dev driver")
+    parser.add_argument('script_file', nargs='?', default=None,
+                        help="Optional Python snippet to run instead of built-in script()")
+    args = parser.parse_args()
+
     if os.getenv('FSLDIR') is None:
         os.environ['FSLDIR'] = '/usr/local/fsl'
         os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
@@ -156,9 +154,13 @@ def main():
 
     auto_answer_dialogs(question=QMessageBox.No)  # "Mask exists? -> reload"
 
-    # Kick off the script once the loop is running; the loop keeps running
+    # Kick off the chain once the loop is running; the loop keeps running
     # afterwards so the window stays interactive.
-    QTimer.singleShot(500, lambda: script(widget))
+    if args.script_file:
+        runner = lambda: run_script_file(widget, args.script_file)
+    else:
+        runner = lambda: script(widget)
+    QTimer.singleShot(500, runner)
     app.exec()
 
 

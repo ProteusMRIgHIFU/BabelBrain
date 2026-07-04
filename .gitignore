@@ -141,3 +141,7 @@ Tests/
 assets/style.css
 PyTest_Reports
 runPytestWin.bat
+
+# dev_driver.py scratch snippets — kept out of version control
+dev_scripts/
+*.devscript
