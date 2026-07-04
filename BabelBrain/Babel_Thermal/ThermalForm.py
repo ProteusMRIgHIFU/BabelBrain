@@ -241,6 +241,11 @@ class ThermalForm(QWidget):
         self.DisplayDropDown = make_combo(
             "DisplayDropDown", items=["Maps", "Profiles"])
 
+        # Orthogonal plane to display (drives which axis IsppaScrollBar scrolls).
+        self.label_view = make_label("View", name="label_view")
+        self.SelViewDropDown = make_combo(
+            "SelViewDropDown", items=["XZ", "YZ", "XY"])
+
         self.IsppaScrollBar = QScrollBar(Qt.Horizontal)
         self.IsppaScrollBar.setObjectName("IsppaScrollBar")
         self.IsppaScrollBar.setEnabled(False)
@@ -279,6 +284,8 @@ class ThermalForm(QWidget):
         left1_l.addStretch(3)
         row1.addWidget(left1)
 
+        row1.addWidget(self.label_view)
+        row1.addWidget(self.SelViewDropDown)
         row1.addWidget(self.IsppaScrollBar, stretch=1)
         row1.addWidget(self.SliceLabel)
         row1.addWidget(self.HideMarkscheckBox)

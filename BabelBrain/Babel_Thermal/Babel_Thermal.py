@@ -108,9 +108,9 @@ class Babel_Thermal(QWidget):
     #
     # Controller attributes that carry per-trajectory state between calls; these
     # are swapped in/out of self on every tab change (see _Save/_LoadThermalPanelState).
-    _PANEL_ATTRS = ('_ThermalResults', '_NiftiThermalNames', '_xf', '_zf',
+    _PANEL_ATTRS = ('_ThermalResults', '_NiftiThermalNames', '_xf', '_yf', '_zf',
                     '_XX', '_ZZ', '_LastTMap', '_bRecalculated', '_prevDisplay',
-                    '_layout', '_figIntThermalFields', 'static_canvas',
+                    '_prevView', '_layout', '_figIntThermalFields', 'static_canvas',
                     '_static_ax1', '_static_ax2', '_IntensityIm', '_ThermalIm',
                     '_contour1', '_contour2', '_airmask1', '_airmask2',
                     '_ListMarkers', '_TempPlot')
@@ -215,6 +215,9 @@ class Babel_Thermal(QWidget):
 
         w.DisplayDropDown.currentIndexChanged.connect(self.UpdateDisplay)
         w.DisplayDropDown.setEnabled(False)
+
+        w.SelViewDropDown.currentIndexChanged.connect(self.UpdateView)
+        w.SelViewDropDown.setEnabled(False)
 
         self._SetupResultsTable(w)
 
@@ -588,6 +591,41 @@ class Babel_Thermal(QWidget):
         self._showMatplotlibVisualization()
 
     @Slot()
+    def UpdateView(self,val):
+        self._showMatplotlibVisualization()
+
+    def _GetViewParams(self):
+        '''
+        Map the "Select view" choice to the fixed (scroll) axis, the two displayed
+        axes and their coordinate vectors.  XZ (default) fixes Y and shows X-Z; YZ
+        fixes X and shows Y-Z; XY fixes Z and shows X-Y.  hvec/vvec are the
+        horizontal/vertical plot coordinates (x/y raw, z relative to the skin).
+        '''
+        view = self.Widget.SelViewDropDown.currentText()
+        if view == 'YZ':
+            return dict(view=view, axis=0, haxis=1, vaxis=2,
+                        hvec=self._yf, vvec=self._zf,
+                        hlabel='Y (mm)', vlabel='Distance from skin (mm)',
+                        poslabel='X pos')
+        if view == 'XY':
+            return dict(view=view, axis=2, haxis=0, vaxis=1,
+                        hvec=self._xf, vvec=self._yf,
+                        hlabel='X (mm)', vlabel='Y (mm)',
+                        poslabel='Z pos')
+        return dict(view='XZ', axis=1, haxis=0, vaxis=2,
+                    hvec=self._xf, vvec=self._zf,
+                    hlabel='X (mm)', vlabel='Distance from skin (mm)',
+                    poslabel='Y pos')
+
+    def _SlicePlane(self, Field, Sel, axis):
+        '''Take the 2D slice at index *Sel* along the fixed *axis* (shape [h,v]).'''
+        if axis == 0:
+            return Field[Sel, :, :]
+        if axis == 2:
+            return Field[:, :, Sel]
+        return Field[:, Sel, :]
+
+    @Slot()
     def UpdateIsppaWater(self,val):
         self._showMatplotlibVisualization(bIsppaBrainToWater=False)
 
@@ -607,6 +645,7 @@ class Babel_Thermal(QWidget):
             self.Widget.LocMTC.setEnabled(True)
             self.Widget.LocMTB.setEnabled(True)
             self.Widget.IsppaScrollBar.setEnabled(True)
+            self.Widget.SelViewDropDown.setEnabled(True)
             if self.Widget.HideMarkscheckBox.isEnabled()== False:
                 self.Widget.HideMarkscheckBox.setEnabled(True)
         else:
@@ -614,6 +653,7 @@ class Babel_Thermal(QWidget):
             self.Widget.LocMTC.setEnabled(False)
             self.Widget.LocMTB.setEnabled(False)
             self.Widget.IsppaScrollBar.setEnabled(False)
+            self.Widget.SelViewDropDown.setEnabled(False)
             if self.Widget.HideMarkscheckBox.isEnabled()== True:
                 self.Widget.HideMarkscheckBox.setEnabled(False)
         
@@ -643,6 +683,7 @@ class Babel_Thermal(QWidget):
             else:
                 DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
             self._xf=DataThermal['x_vec']
+            self._yf=DataThermal['y_vec']
             self._zf=DataThermal['z_vec']
             SkinZ=np.array(np.where(DataThermal['MaterialMap']==1)).T.min(axis=0)[1]
             self._zf-=self._zf[SkinZ]
@@ -657,11 +698,23 @@ class Babel_Thermal(QWidget):
         
         Loc=DataThermal['TargetLocation']
 
-        if self._LastTMap==-1:
-            self.Widget.IsppaScrollBar.setMaximum(DataThermal['MaterialMap'].shape[1]-1)
-            self.Widget.IsppaScrollBar.setValue(Loc[1])
+        # Selected orthogonal view: which axis the slice scrollbar scrolls, and the
+        # two displayed axes + coordinate vectors.
+        vp = self._GetViewParams()
+        axis = vp['axis']
+        if not hasattr(self, '_prevView'):
+            self._prevView = vp['view']
+        bViewChanged = (self._prevView != vp['view'])
+
+        # (Re)scale the slice scrollbar to the fixed axis on first display or when
+        # the view changes; centre it on the target's index along that axis.
+        if self._LastTMap==-1 or bViewChanged:
+            self.bDisableUpdate=True
+            self.Widget.IsppaScrollBar.setMaximum(DataThermal['MaterialMap'].shape[axis]-1)
+            self.Widget.IsppaScrollBar.setValue(int(Loc[axis]))
+            self.bDisableUpdate=False
             self.Widget.IsppaScrollBar.setEnabled(True)
-            
+
         if self.Config['bConcatenateSimulations']:
             self._LastTMap=len(self._ThermalResults)-1
         else:
@@ -810,11 +863,9 @@ class Babel_Thermal(QWidget):
         Distance_MTB_MTT = np.linalg.norm(DataThermal['mBrain']-Loc)*(xf[1]-xf[0])
         self.Widget.tableWidget.setItem(10,1,NewItem('%3.1f ' % (Distance_MTB_MTT),Distance_MTB_MTT))
 
-        if self._bRecalculated:
-            XX,ZZ=np.meshgrid(xf,zf)
-            self._XX=XX
-            self._ZZ=ZZ
-            
+        if self._bRecalculated or bViewChanged:
+            self._XX,self._ZZ=np.meshgrid(vp['hvec'],vp['vvec'])
+
         if bUpdatePlot:
             Intensity=DataThermal['p_map']**2/2/DensityMap/SoSMap/1e4*IsppaRatio
             Temperature=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
@@ -826,13 +877,13 @@ class Babel_Thermal(QWidget):
            
             if not hasattr(self,'_prevDisplay'):
                 self._prevDisplay = -1 #we set the initial plotting
-            IntensityMap=Intensity[:,SelY,:].T.copy()
-            Tmap=Temperature[:,SelY,:]
+            IntensityMap=self._SlicePlane(Intensity,SelY,axis).T.copy()
+            Tmap=self._SlicePlane(Temperature,SelY,axis)
 
 
             crlims=[0,1,2]
 
-            if (self._bRecalculated or self._prevDisplay != WhatDisplay or self.Config['bConcatenateSimulations']) and hasattr(self,'_figIntThermalFields'):
+            if (self._bRecalculated or self._prevDisplay != WhatDisplay or bViewChanged or self.Config['bConcatenateSimulations']) and hasattr(self,'_figIntThermalFields'):
                 children = []
                 for i in range(self._layout.count()):
                     child = self._layout.itemAt(i).widget()
@@ -867,11 +918,11 @@ class Babel_Thermal(QWidget):
                                 del self._airmask1
                                 del self._airmask2
                             
-                            self._contour1=self._static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
-                            self._contour2=self._static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                            self._contour1=self._static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
+                            self._contour2=self._static_ax2.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
 
                             if 'AirMask' in DataThermal:
-                                AirMap=DataThermal['AirMask'][:,SelY,:].T
+                                AirMap=self._SlicePlane(DataThermal['AirMask'],SelY,axis).T
                                 AirMap=np.ma.masked_where(AirMap==0 , AirMap)
                                 self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
                                 self._airmask2 = self._static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
@@ -911,25 +962,29 @@ class Babel_Thermal(QWidget):
                     self._static_ax1=static_ax1
                     self._static_ax2=static_ax2
 
-                    self._IntensityIm=static_ax1.imshow(IntensityMap,extent=[xf.min(),xf.max(),zf.max(),zf.min()],
+                    _extent=[vp['hvec'].min(),vp['hvec'].max(),vp['vvec'].max(),vp['vvec'].min()]
+                    self._IntensityIm=static_ax1.imshow(IntensityMap,extent=_extent,
                             cmap=plt.cm.jet)
                     static_ax1.set_title('Isppa (W/cm$^2$)')
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
-                        self._contour1=static_ax1.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims,colors ='y',linestyles = ':')
+                        self._contour1=static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims,colors ='y',linestyles = ':')
 
-                    static_ax1.set_ylabel('Distance from skin (mm)')
+                    static_ax1.set_xlabel(vp['hlabel'])
+                    static_ax1.set_ylabel(vp['vlabel'])
 
                     self._ThermalIm=static_ax2.imshow(Tmap.T,
-                            extent=[xf.min(),xf.max(),zf.max(),zf.min()],cmap=plt.cm.jet,vmin=BaselineTemperature)
+                            extent=_extent,cmap=plt.cm.jet,vmin=BaselineTemperature)
                     static_ax2.set_title('Temperature ($^{\circ}$C)')
+                    static_ax2.set_xlabel(vp['hlabel'])
+                    static_ax2.set_ylabel(vp['vlabel'])
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
-                        self._contour2=static_ax2.contour(self._XX,self._ZZ,AcSimMask[:,SelY,:].T,crlims, colors ='y',linestyles = ':')
+                        self._contour2=static_ax2.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
 
                     if 'AirMask' in DataThermal:
-                        AirMap=DataThermal['AirMask'][:,SelY,:].T
+                        AirMap=self._SlicePlane(DataThermal['AirMask'],SelY,axis).T
                         AirMap=np.ma.masked_where(AirMap==0 , AirMap)
                         self._airmask1 = static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
                         self._airmask2 = static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
@@ -955,20 +1010,24 @@ class Babel_Thermal(QWidget):
 
             self._bRecalculated=False
             if WhatDisplay==0:
-                yf=DataThermal['y_vec']
-                yf-=yf[Loc[1]]
+                hvec, vvec = vp['hvec'], vp['vvec']
+                haxis, vaxis = vp['haxis'], vp['vaxis']
+                # Fixed-axis position readout, relative to the target.
+                posvec=DataThermal[['x_vec','y_vec','z_vec'][axis]].copy()
+                posvec=posvec-posvec[int(Loc[axis])]
                 if not self.Widget.HideMarkscheckBox.isChecked():
-                    self._ListMarkers.append(self._static_ax1.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18)[0])
-                    self._ListMarkers.append(self._static_ax2.plot(xf[Loc[0]],zf[Loc[2]],'k+',markersize=18,)[0])
+                    self._ListMarkers.append(self._static_ax1.plot(hvec[Loc[haxis]],vvec[Loc[vaxis]],'k+',markersize=18)[0])
+                    self._ListMarkers.append(self._static_ax2.plot(hvec[Loc[haxis]],vvec[Loc[vaxis]],'k+',markersize=18,)[0])
                     for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
-                        if SelY == DataThermal[k][1]:
-                            self._ListMarkers.append(self._static_ax2.plot(xf[DataThermal[k][0]],
-                                            zf[DataThermal[k][2]],'wx',markersize=12)[0])
-                            self._ListMarkers.append(self._static_ax2.text(xf[DataThermal[k][0]]-5,
-                                            zf[DataThermal[k][2]]+5,kl,color='w',fontsize=10))
-                            
-                self.Widget.SliceLabel.setText("Y pos = %3.2f mm" %(yf[self.Widget.IsppaScrollBar.value()]))
+                        if SelY == DataThermal[k][axis]:
+                            self._ListMarkers.append(self._static_ax2.plot(hvec[DataThermal[k][haxis]],
+                                            vvec[DataThermal[k][vaxis]],'wx',markersize=12)[0])
+                            self._ListMarkers.append(self._static_ax2.text(hvec[DataThermal[k][haxis]]-5,
+                                            vvec[DataThermal[k][vaxis]]+5,kl,color='w',fontsize=10))
+
+                self.Widget.SliceLabel.setText("%s = %3.2f mm" %(vp['poslabel'],posvec[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
+            self._prevView=vp['view']
 
             # Per-trajectory NIfTI/VTK overlays are keyed by trajectory index; the
             # Merged tab has no such slot (there is no merged thermal viewer), so
