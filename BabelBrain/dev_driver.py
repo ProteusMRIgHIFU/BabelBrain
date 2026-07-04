@@ -11,7 +11,7 @@ Run from the repo root:
 
 An external snippet is plain Python containing ONLY the body you'd put in
 script() — no def, no indentation. These names are pre-bound in its scope:
-    bb, wait_until, wait, auto_answer_dialogs, QMessageBox
+    bb, wait_until, wait, auto_answer_dialogs, restore_dialogs, QMessageBox
 so you can edit/throw away snippets without touching (or committing) this
 driver. Errors in a snippet print a traceback but leave the window live.
 """
@@ -55,16 +55,30 @@ def wait(ms):
     QTest.qWait(ms)
 
 
+# Pristine QMessageBox statics, captured before any patching so we can put the
+# real (user-prompting) behaviour back once the automated chain is done.
+_ORIG_DIALOGS = {name: getattr(QMessageBox, name)
+                 for name in ('question', 'warning', 'critical', 'information')}
+
+
 def auto_answer_dialogs(question=QMessageBox.No,
                         warning=QMessageBox.Ok,
                         critical=QMessageBox.Ok):
     """Make blocking QMessageBox.* static calls return canned answers so the
     script never stalls on a modal. Flip `question` to QMessageBox.Yes to
-    force recalculation instead of reload. Call again mid-script to change."""
+    force recalculation instead of reload. Call again mid-script to change.
+    Undone by restore_dialogs() after the chain finishes."""
     QMessageBox.question = staticmethod(lambda *a, **k: question)
     QMessageBox.warning = staticmethod(lambda *a, **k: warning)
     QMessageBox.critical = staticmethod(lambda *a, **k: critical)
     QMessageBox.information = staticmethod(lambda *a, **k: QMessageBox.Ok)
+
+
+def restore_dialogs():
+    """Put the real QMessageBox.* behaviour back so modals prompt the user
+    again. Call inside a snippet if you want dialogs live before it ends."""
+    for name, orig in _ORIG_DIALOGS.items():
+        setattr(QMessageBox, name, staticmethod(orig))
 
 
 # --------------------------------------------------------------------------
@@ -93,6 +107,7 @@ def run_script_file(bb, path):
         'wait_until': wait_until,
         'wait': wait,
         'auto_answer_dialogs': auto_answer_dialogs,
+        'restore_dialogs': restore_dialogs,
         'QMessageBox': QMessageBox,
     }
     try:
@@ -155,11 +170,18 @@ def main():
     auto_answer_dialogs(question=QMessageBox.No)  # "Mask exists? -> reload"
 
     # Kick off the chain once the loop is running; the loop keeps running
-    # afterwards so the window stays interactive.
-    if args.script_file:
-        runner = lambda: run_script_file(widget, args.script_file)
-    else:
-        runner = lambda: script(widget)
+    # afterwards so the window stays interactive. Always restore real dialog
+    # behaviour when the chain ends so handed-back modals prompt you normally.
+    def runner():
+        try:
+            if args.script_file:
+                run_script_file(widget, args.script_file)
+            else:
+                script(widget)
+        finally:
+            restore_dialogs()
+            print("[dev] Dialogs restored — modals will prompt you normally now.")
+
     QTimer.singleShot(500, runner)
     app.exec()
 

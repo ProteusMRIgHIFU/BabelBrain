@@ -824,12 +824,12 @@ class BabelBaseTx(QWidget):
         # the main thread.  Reuses the shared acoustic-sim thread plumbing
         # (hourglass dialog, telemetry, error handling).
         bCalcMerge=False
-        if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
-            if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
-                ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+        # if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
+        if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
+            ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
-                if ret == QMessageBox.Yes:
-                    bCalcMerge=True
+            if ret == QMessageBox.Yes:
+                bCalcMerge=True
 
         if bCalcMerge:
             self._LaunchAcousticSim(RunCombineTrajectories(self._MainApp),

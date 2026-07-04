@@ -123,17 +123,17 @@ class RingTx(BabelBaseTx):
             TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
 
         DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
-        if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
-            ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
-                                    "ZSteering=%3.2f\n" %(TPO*1e3)+
-                                    "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
-                                    "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
-                                    "DistanceSkin=%3.2f\n" %(DistanceSkin)+
-                                    "Do you want to recalculate?\nSelect No to reload",
-                QMessageBox.Yes | QMessageBox.No)
+        # if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
+        ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
+                                "ZSteering=%3.2f\n" %(TPO*1e3)+
+                                "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
+                                "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
+                                "DistanceSkin=%3.2f\n" %(DistanceSkin)+
+                                "Do you want to recalculate?\nSelect No to reload",
+            QMessageBox.Yes | QMessageBox.No)
 
-            if ret == QMessageBox.Yes:
-                return True
+        if ret == QMessageBox.Yes:
+            return True
         self.Widget.TPODistanceSpinBox.setValue(TPO*1e3)
         self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
         self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
