@@ -180,16 +180,17 @@ class Babel_Thermal(QWidget):
         self._txTabs.setCurrentIndex(0)
         self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
 
-    def _CreateForm(self):
+    def _CreateForm(self,bMergedResults=False):
         from Babel_Thermal.ThermalForm import ThermalForm
-        return ThermalForm(self)
+        return ThermalForm(self,bMergedResults=bMergedResults)
 
-    def _WirePanel(self):
+    def _WirePanel(self,bMergedResults=False):
         w = self.Widget
-        w.SelectProfile.clicked.connect(self.SelectProfile)
-        w.SelectProfile.setStyleSheet("color: #2db52d")   # bright green, readable on light & dark
-        w.CalculateThermal.clicked.connect(self.RunSimulation)
-        w.CalculateThermal.setStyleSheet("color: #e03030")  # bright red, readable on light & dark
+        if not bMergedResults:
+            w.SelectProfile.clicked.connect(self.SelectProfile)
+            w.SelectProfile.setStyleSheet("color: #2db52d")   # bright green, readable on light & dark
+            w.CalculateThermal.clicked.connect(self.RunSimulation)
+            w.CalculateThermal.setStyleSheet("color: #e03030")  # bright red, readable on light & dark
         w.ExportSummary.clicked.connect(self.ExportSummary)
         w.ExportMaps.clicked.connect(self.ExportMaps)
         if hasattr(w,'CombineTrajectories'):
@@ -998,7 +999,7 @@ class Babel_Thermal(QWidget):
         combination re-renders the existing tab from the freshly written files.
         '''
         if getattr(self, '_mergedTabIndex', None) is None:
-            form = self._CreateForm()
+            form = self._CreateForm(bMergedResults=True)
             idx = self._txTabs.addTab(form, 'Merged')
             self._Widgets.append(form)
             self._thPanels.append(self._NewThermalPanel())
@@ -1008,11 +1009,9 @@ class Babel_Thermal(QWidget):
             prevW, prevT = self.Widget, self._TrajectoryNumber
             self.Widget = form
             self._TrajectoryNumber = idx
-            self._WirePanel()
+            self._WirePanel(bMergedResults=True)
             self._PopulateCombination(form)
             self.Widget, self._TrajectoryNumber = prevW, prevT
-            form.CalculateThermal.setEnabled(False)
-            form.SelectProfile.setEnabled(False)
             if hasattr(form, 'CombineTrajectories'):
                 form.CombineTrajectories.setEnabled(False)
             self._txTabs.setTabVisible(idx, True)

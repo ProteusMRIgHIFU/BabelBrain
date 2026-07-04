@@ -99,10 +99,11 @@ class ThermalForm(QWidget):
 
     LEFT_PANEL_WIDTH = 380
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None,bMergedResults=False):
         super().__init__(parent)
         self.setObjectName("Babel_Thermal")
         self.setStyleSheet(_thermal_qss(self))
+        self._bMergedResults=bMergedResults
         self._build()
         apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
 
@@ -133,20 +134,24 @@ class ThermalForm(QWidget):
         lay.setSpacing(2)
 
         # Top action buttons (Calculate Thermal / Update Profile)
-        actions = QHBoxLayout()
-        actions.setSpacing(6)
-        self.CalculateThermal = make_button(
-            "CalculateThermal", "Calculate Thermal Fields",
-            bold=True, min_height=40)
-        self.CalculateThermal.setStyleSheet("color: #e03030;")
-        actions.addWidget(self.CalculateThermal, stretch=1)
+        if not self._bMergedResults:
+            actions = QHBoxLayout()
+            actions.setSpacing(6)
+            self.CalculateThermal = make_button(
+                "CalculateThermal", "Calculate Thermal Fields",
+                bold=True, min_height=40)
+            self.CalculateThermal.setStyleSheet("color: #e03030;")
+            actions.addWidget(self.CalculateThermal, stretch=1)
 
-        self.SelectProfile = make_button(
-            "SelectProfile", "Update Profile and Calculate",
-            bold=True, min_height=40)
-        self.SelectProfile.setStyleSheet("color: #2db52d;")
-        actions.addWidget(self.SelectProfile, stretch=1)
-        lay.addLayout(actions)
+            self.SelectProfile = make_button(
+                "SelectProfile", "Update Profile and Calculate",
+                bold=True, min_height=40)
+            self.SelectProfile.setStyleSheet("color: #2db52d;")
+            actions.addWidget(self.SelectProfile, stretch=1)
+            lay.addLayout(actions)
+
+        
+
 
         # Combination timing + duration/DC/PRF triplet
         comb_row = QHBoxLayout()
