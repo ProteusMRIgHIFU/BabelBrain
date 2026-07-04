@@ -297,6 +297,17 @@ class Babel_Thermal(QWidget):
         self._TrajectoryNumber = idx
         self.Widget = self._Widgets[idx]
         self._LoadThermalPanelState(idx)
+        # Redraw the newly shown tab from its own state. Swapping the panel
+        # aliases alone leaves whatever was last drawn (e.g. the Merged tab's
+        # plot) on screen — mirroring Step 2's _ActivatePanel, which re-renders
+        # on tab change. Force the rebuild path so the tab's own plot host is
+        # repopulated; only for tabs that already carry computed results, so an
+        # as-yet-uncomputed tab stays blank until CalculateThermal runs.
+        if getattr(self, '_figIntThermalFields', None) is not None \
+                and len(getattr(self, '_ThermalResults', [])) > 0 \
+                and not self.bDisableUpdate:
+            self._bRecalculated = True
+            self._showMatplotlibVisualization()
 
     # Read Step-2 acoustic results by trajectory index 
     # Step 3 must NEVER change Step 2's active trajectory: doing so clobbered
