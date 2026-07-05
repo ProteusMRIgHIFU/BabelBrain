@@ -1103,18 +1103,21 @@ class Babel_Thermal(QWidget):
             for n in range(len(self._MainApp.Config['ID'])):
                 self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllThermalFieldsDone() and len(self._MainApp.AcSim._Widgets)>len(self._MainApp.Config['ID']))
 
+    def _AxisSel(self):
+        view = self.Widget.SelViewDropDown.currentIndex()
+        return  {0:1,1:0,2:2}[view]
     @Slot()
     def LocateMTB(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-        self.Widget.IsppaScrollBar.setValue(DataThermal['mBrain'][1])
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mBrain'][self._AxisSel()])
     @Slot()
     def LocateMTC(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkull'][1])
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkull'][self._AxisSel()])
     @Slot()
     def LocateMTS(self):
         DataThermal=self._ThermalResults[self.Widget.SelCombinationDropDown.currentIndex()]
-        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkin'][1])
+        self.Widget.IsppaScrollBar.setValue(DataThermal['mSkin'][self._AxisSel()])
 
     @Slot()
     def ExportSummary(self):
