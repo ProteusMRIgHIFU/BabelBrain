@@ -843,9 +843,15 @@ class Babel_Thermal(QWidget):
             IsptaTargets=[]
             for t in DataThermal['TransformedLocations']:
                 IsppaTargets.append(DataThermal['p_map'][tuple(t)]**2/2/(DensityMap[tuple(t)]*SoSMap[tuple(t)])/1e4)
-                IsptaTargets.append(IsppaTargets[-1]*DutyCycle)
+                if self.Config['bConcatenateSimulations']:
+                    dcIpsta=[]
+                    for d in DutyCycle:
+                        dcIpsta.append(IsppaTargets[-1]*d)
+                    IsptaTargets.append(dcIpsta)
+                else:
+                    IsptaTargets.append(IsppaTargets[-1]*DutyCycle)
             IsppaTargets=np.array(IsppaTargets).flatten()
-            IsptaTargets=np.array(IsptaTargets).flatten()
+            IsptaTargets=np.array(IsptaTargets)
             s=', '.join(format(x, "2.1f") for x in IsppaTargets)
             self.Widget.tableWidget.setItem(0,1,NewItem(s,IsppaTargets))
         else:
@@ -865,9 +871,21 @@ class Babel_Thermal(QWidget):
         self.bDisableUpdate=False
 
         if bShowingMerged:
-            self.Widget.tableWidget.setItem(2,1,NewItem('%4.2f' % (IsppaMax*DutyCycle),IsppaMax*DutyCycle))
-            s=', '.join(format(x, "2.1f") for x in IsptaTargets)
-            self.Widget.tableWidget.setItem(3,1,NewItem(s,IsptaTargets))
+            if self.Config['bConcatenateSimulations']:
+                s=', '.join(format(x*IsppaMax, "2.1f") for x in DutyCycle)
+            else:
+                self.Widget.tableWidget.setItem(2,1,NewItem('%4.2f' % (IsppaMax*DutyCycle),IsppaMax*DutyCycle))
+            s=''
+            if self.Config['bConcatenateSimulations']:
+                for ipDC in IsptaTargets:
+                    if len(s)>0:
+                        s+='\n'
+                    s+=', '.join(format(x, "2.1f") for x in ipDC)
+                self.Widget.tableWidget.setItem(3,1,NewItem(s,IsptaTargets))
+                self.Widget.tableWidget.resizeRowToContents(3)
+            else:
+                s=', '.join(format(x, "2.1f") for x in IsptaTargets)
+                self.Widget.tableWidget.setItem(3,1,NewItem(s,IsptaTargets))
         else:    
             if self.Config['bConcatenateSimulations']:
                 st=', '.join(format(x*SelIsppa, "2.1f") for x in DutyCycle)
