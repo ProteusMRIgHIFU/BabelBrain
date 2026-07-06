@@ -123,7 +123,6 @@ class RingTx(BabelBaseTx):
             TPO=Skull['ZSteering']+self.Config['NaturalOutPlaneDistance']
 
         DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
-        # if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
         ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                 "ZSteering=%3.2f\n" %(TPO*1e3)+
                                 "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+

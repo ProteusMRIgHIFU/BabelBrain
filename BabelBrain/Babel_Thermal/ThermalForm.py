@@ -150,9 +150,6 @@ class ThermalForm(QWidget):
             actions.addWidget(self.SelectProfile, stretch=1)
             lay.addLayout(actions)
 
-        
-
-
         # Combination timing + duration/DC/PRF triplet
         comb_row = QHBoxLayout()
         comb_row.setSpacing(8)
@@ -166,6 +163,7 @@ class ThermalForm(QWidget):
         triplet_lbl = QLabel("[Duration, DC, PRF]")
         triplet_lbl.setAlignment(Qt.AlignRight)
         lay.addWidget(triplet_lbl)
+
 
         # Isppa
         isppa_row = QHBoxLayout()
@@ -187,9 +185,18 @@ class ThermalForm(QWidget):
         isppaw_row.addWidget(self.IsppaWaterSpinBox)
         lay.addLayout(isppaw_row)
 
+        if self._bMergedResults:
+            for l in [isppa_row,isppaw_row]:
+                widgets = [l.itemAt(i).widget() for i in range(l.count()) if l.itemAt(i).widget() is not None]
+                for w in widgets:
+                    w.setVisible(False)
+
         # Babel_Thermal.py relies on (it calls `setItem(0..10, 0/1, …)`
         # without first growing the table).
-        self.tableWidget = QTableWidget(11, 2)
+        if self._bMergedResults:
+            self.tableWidget = QTableWidget(10, 2)
+        else:
+            self.tableWidget = QTableWidget(11, 2)
         self.tableWidget.setObjectName("tableWidget")
         self.tableWidget.setShowGrid(False)
         _hdr = self.tableWidget.horizontalHeader()
@@ -202,6 +209,7 @@ class ThermalForm(QWidget):
         self.tableWidget.setMinimumHeight(150)
         self.tableWidget.setSizePolicy(QSizePolicy.Expanding,
                                        QSizePolicy.Expanding)
+        self.tableWidget.setWordWrap(True)
         lay.addWidget(self.tableWidget, stretch=1)
 
         return frame
@@ -264,6 +272,9 @@ class ThermalForm(QWidget):
         self.LocMTB = make_button("LocMTB", "Max. Temp. Brain")
         self.LocMTS = make_button("LocMTS", "Max. Temp. Skin")
         self.LocMTC = make_button("LocMTC", "Max. Temp. Skull")
+        self.LocTargets =  make_button("LocTargets", "Target")
+        if self._bMergedResults:
+            self.SelTarget = make_combo("SelTarget",items=self.parent()._MainApp.Config['ID'],width=60)
 
         # Both bottom rows share the top row's column split: a fixed-width left
         # zone sits under the control column, the rest aligns under the plot.
@@ -310,9 +321,13 @@ class ThermalForm(QWidget):
         row2.addWidget(left2)
 
         row2.addStretch(1)
+        row2.addWidget(make_label('Go to:'))
         row2.addWidget(self.LocMTB)
         row2.addWidget(self.LocMTS)
         row2.addWidget(self.LocMTC)
+        row2.addWidget(self.LocTargets)
+        if self._bMergedResults:
+            row2.addWidget(self.SelTarget)
         row2.addStretch(1)
         outer.addLayout(row2)
 

@@ -824,7 +824,6 @@ class BabelBaseTx(QWidget):
         # the main thread.  Reuses the shared acoustic-sim thread plumbing
         # (hourglass dialog, telemetry, error handling).
         bCalcMerge=False
-        # if os.environ.get('BABELBRAIN_DEBUG_SKIP_CONFIRMATION','0')=='0':
         if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
             ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
@@ -918,6 +917,7 @@ class RunCombineTrajectories(QObject):
             transformed=[]
             transformed_refocus=[]
             transformed_water=[]
+            target_locations=[]
             s=MergedNifti.shape
             combined_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
             combined_water_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
@@ -928,6 +928,19 @@ class RunCombineTrajectories(QObject):
                 inputNifti=nibabel.load(entry['Sub_Norm'])
                 for ntype,subt in enumerate([entry['skullh5'],entry['waterh5']]):
                     data=ReadFromH5py(subt)
+                    if ntype==0:
+                        TargetMap=np.zeros_like(data['MaterialMap'],dtype=float)
+                        TargetMap[tuple(data['TargetLocation'])]=1
+                        TargetMap=np.flip(TargetMap,axis=2)
+                        NitfiMap=nibabel.Nifti1Image(TargetMap,inputNifti.affine,inputNifti.header)
+                        NitfiMap=processing.resample_from_to(NitfiMap,MergedNifti,order=1,cval=0)
+                        TargetMap=NitfiMap.get_fdata()
+                        TargetMap=np.transpose(TargetMap,[2,0,1])
+                        TargetMap=np.flip(TargetMap,axis=2)
+                        WLoc=np.where(TargetMap==TargetMap.max())
+                        print(os.path.split(subt)[1],'WLoc',WLoc)
+                        target_locations.append(np.array([WLoc[0][0],WLoc[1][0],WLoc[2][0]],dtype=int).flatten())
+
                     for td in [['p_amp','p_complex'],['p_amp_refocus','p_complex_refocus']]:
                         if td[0] in data:
                             pc=data[td[0]]
@@ -1040,6 +1053,7 @@ class RunCombineTrajectories(QObject):
             DataForSim['p_complex']=combined_p_complex
             #we add now specific entries for later combining them 
             DataForSim['Transformed']=transformed
+            DataForSim['TransformedTargetLocations']=target_locations
             if len(transformed_refocus)>0:
                 DataForSim['Transformed_Refocus']=transformed_refocus
                 DataForSim['p_amp_refocus']=np.abs(combined_p_complex_refocus)

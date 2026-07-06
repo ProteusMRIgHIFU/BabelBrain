@@ -690,6 +690,8 @@ def CalculateTemperatureEffects(InputPData,
     else:
         combined_p ='Transformed_Refocus'
 
+    TransformedLocations=[]
+
     if type(InputPData) is str:   
         Input=ReadFromH5py(InputPData)
         if not bMergedSimulation:
@@ -704,8 +706,10 @@ def CalculateTemperatureEffects(InputPData,
                 raise ValueError(f"length of MergedPressureRatio ({len(MergedPressureRatio)}) does not match {combined_p} ({len(Input[combined_p])})")
             for n in range(len(MergedPressureRatio)):
                 Input[combined_p][n]*=MergedPressureRatio[n]
+                TransformedLocations.append(Input['TransformedTargetLocations'][n])
             pAmp=np.abs(np.sum(np.stack(Input[combined_p]), axis=0))
             pAmp=np.ascontiguousarray(np.flip(pAmp,axis=2))
+            
       
         if 'AirMask' in Input:
             AirMask=np.ascontiguousarray(np.flip(Input['AirMask'],axis=2))
@@ -1058,8 +1062,13 @@ def CalculateTemperatureEffects(InputPData,
         MonitoringPointsMap[mxSkin,mySkin,mzSkin]=1
         MonitoringPointsMap[mxBrain,myBrain,mzBrain]=2
         MonitoringPointsMap[mxSkull,mySkull,mzSkull]=3
+        mMax=4
         if not(cx==mxBrain and cy==myBrain and cz==mzBrain):
             MonitoringPointsMap[cx,cy,cz]=4
+            mMax=5
+        for n,t in enumerate(TransformedLocations):
+            MonitoringPointsMap[tuple(TransformedLocations[n])]=mMax+n
+        
     print('Total # of grouped sonications :',NumberGroupedSonications)
     print('Total # of repetitions in a single group:',Repetitions)
     TOTAL_Iterations = NumberGroupedSonications * Repetitions
@@ -1269,6 +1278,9 @@ def CalculateTemperatureEffects(InputPData,
     SaveDict['Repetitions']=Repetitions
     SaveDict['NumberGroupedSonications']=NumberGroupedSonications
     SaveDict['PauseBetweenGroupedSonications']=PauseBetweenGroupedSonications
+    if bMergedSimulation:
+        SaveDict['TransformedLocations']=TransformedLocations
+        SaveDict['MergedPressureRatio']=MergedPressureRatio
     
     SaveToH5py(SaveDict,outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)
