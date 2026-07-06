@@ -1471,8 +1471,8 @@ class LayerPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumWidth(240)
-        self.setMaximumWidth(240)
+        self.setMinimumWidth(300)
+        # self.setMaximumWidth(300)
         self.setStyleSheet(f"background:{BG_PANEL};")
 
         outer = QVBoxLayout(self)

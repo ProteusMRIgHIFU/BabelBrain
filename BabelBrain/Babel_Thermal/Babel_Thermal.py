@@ -844,6 +844,8 @@ class Babel_Thermal(QWidget):
             for t in DataThermal['TransformedLocations']:
                 IsppaTargets.append(DataThermal['p_map'][tuple(t)]**2/2/(DensityMap[tuple(t)]*SoSMap[tuple(t)])/1e4)
                 IsptaTargets.append(IsppaTargets[-1]*DutyCycle)
+            IsppaTargets=np.array(IsppaTargets).flatten()
+            IsptaTargets=np.array(IsptaTargets).flatten()
             s=', '.join(format(x, "2.1f") for x in IsppaTargets)
             self.Widget.tableWidget.setItem(0,1,NewItem(s,IsppaTargets))
         else:
@@ -887,6 +889,7 @@ class Babel_Thermal(QWidget):
                 if len(s)>=0:
                     s+='\n'
                 s+=np.array2string(AdjustmentInRAS[-1],formatter={'float_kind':lambda x: "%3.2f" % x})
+            AdjustmentInRAS=np.array(AdjustmentInRAS)
             self.Widget.tableWidget.setItem(4,1,NewItem(s,AdjustmentInRAS))
             self.Widget.tableWidget.resizeRowToContents(4)
 
@@ -907,6 +910,8 @@ class Babel_Thermal(QWidget):
                     MTTs.append((DataThermal['TempEndFUS'][tuple(DataThermal['TransformedLocations'][k])]-BaselineTemperature)*IsppaRatio+BaselineTemperature)
                     MTTCEMs.append(DoseUpdate[n])
                     k+=1
+                MTTs=np.array(MTTs)
+                MTTCEMs=np.array(MTTCEMs)
         if bShowingMerged:
             s=''
             for t,c in zip(MTTs,MTTCEMs):
@@ -1139,6 +1144,12 @@ class Babel_Thermal(QWidget):
                 NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
                 NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
                 self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
+            else:
+                NiftiIntensity=nibabel.Nifti1Image(np.transpose(np.flip(Intensity,axis=2).astype(np.float32),(1,2,0)),
+                                                   affine=self._MainApp._NiftiMergeAc.affine)
+                NiftiTemperature=nibabel.Nifti1Image(np.transpose(np.flip(Temperature,axis=2).astype(np.float32),(1,2,0)),
+                                                   affine=self._MainApp._NiftiMergeAc.affine)
+                self._MainApp.UpdateNiftiMergedThermalResults(NiftiIntensity,NiftiTemperature)
 
     @Slot()
     def UpdateThermalResults(self):
@@ -1240,6 +1251,8 @@ class Babel_Thermal(QWidget):
         DataToExport = DataToExport | self._MainApp.GetExport()
         if not self._IsMergedTab():
             DataToExport = DataToExport | self._CaptureFromAcSim(self._MainApp.AcSim.GetExport)
+        else:
+            DataToExport = DataToExport | {'SDR':self._MainApp.AcSim._acPanels[self._TrajectoryNumber]['SDR']}
         DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
         pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
@@ -1253,24 +1266,35 @@ class Babel_Thermal(QWidget):
                 f.write('TimingExposure,'+self.Widget.SelCombinationDropDown.currentText()+'\n')
                 f.write('*'*80+'\n')
 
-            DataToExport={}
-            DataToExport['Distance from MTB to MTT:']=self.Widget.tableWidget.item(10,1).data(QtCore.Qt.UserRole)
-            pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV,mode='a', header=False)
+            if not self._IsMergedTab():
+                DataToExport={}
+                DataToExport['Distance from MTB to MTT:']=self.Widget.tableWidget.item(10,1).data(QtCore.Qt.UserRole)
+                pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV,mode='a', header=False)
                 
             DataToExport={}
-            DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
+            if self._IsMergedTab():
+                DataToExport['Isppa']=['Merged']
+            else:
+                DataToExport['Isppa']=np.arange(0.5,self.Widget.IsppaSpinBox.maximum()+0.5,0.5)
             for v in DataToExport['Isppa']:
-                self._showMatplotlibVisualization(bUpdatePlot=False,OverWriteIsppa=v)
-                collection = ['Isppa target']
-                source = [0,1]
-                if self._bMultiPoint:
-                    collection+=['Isppa water (avg)','Isppa water (std)']
-                    source+=[1]
+                if not self._IsMergedTab():
+                    self._showMatplotlibVisualization(bUpdatePlot=False,OverWriteIsppa=v)
+                if self._IsMergedTab():
+                    collection = ['Isppa targets']
                 else:
-                    collection+=['Isppa water']
+                    collection = ['Isppa target']
+                source = [0,1]
+                if self._IsMergedTab():
+                    collection+=['Isppa Max']
+                else:
+                    if self._bMultiPoint:
+                        collection+=['Isppa water (avg)','Isppa water (std)']
+                        source+=[1]
+                    else:
+                        collection+=['Isppa water']
                 collection+=['Mechanical index',
                             'Ispta',
-                            'Ispta target',
+                            'Ispta targets' if self._IsMergedTab() else 'Ispta target',
                             'Max. temp. target',
                             'Max. temp. brain',
                             'Max. temp. skin',
@@ -1344,6 +1368,10 @@ class Babel_Thermal(QWidget):
         pressureField=np.flip(pressureField,axis=2)
         intensityField=np.flip(intensityField,axis=2)
 
+        if self._IsMergedTab():
+            pressureField=np.transpose(pressureField,(1,2,0))
+            intensityField=np.transpose(intensityField,(1,2,0))
+
         OutName2=OutName.replace('ThermalField','PressureField')
         nii=nibabel.Nifti1Image(pressureField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName2)
@@ -1357,7 +1385,6 @@ class Babel_Thermal(QWidget):
         nii=nibabel.Nifti1Image(MIField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName4)
             
-
         #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:

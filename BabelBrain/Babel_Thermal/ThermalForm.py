@@ -309,7 +309,7 @@ class ThermalForm(QWidget):
 
         left2 = QWidget()
         left2.setFixedWidth(self.LEFT_PANEL_WIDTH)
-        if len(self.parent()._MainApp.Config['ID'])>1:
+        if len(self.parent()._MainApp.Config['ID'])>1 and not  self._bMergedResults:
             nBox = QHBoxLayout()
             nBox.setSpacing(0)
             nBox.setContentsMargins(0, 0, 0, 0)
