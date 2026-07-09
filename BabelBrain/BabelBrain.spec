@@ -86,7 +86,9 @@ block_cipher = None
 
 datas = []
 binaries = []
-hiddenimports = []
+# 'scripting' is imported lazily inside BabelBrain.main() for the --execute /
+# --code CLI entry; list it explicitly so the frozen binary always bundles it.
+hiddenimports = ['scripting']
 upx_exclude_list = []
 
 # ==============================================================================

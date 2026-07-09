@@ -1933,11 +1933,40 @@ def main():
     
     parser = MyParser(prog='BabelBrain', usage='python %(prog)s.py [options]',description='Run BabelBrain simulation',  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-bInUseWithBrainsight', action='store_true')
+    # Scripting / integration entry (works in the frozen binary too):
+    #   BabelBrain --execute script.py    run a Python script, then quit (exit 0/non-0)
+    #   BabelBrain --code "..."           run an inline snippet
+    #   --headless                        no window (Qt offscreen), for CI
+    #   --do-not-use-last-selection       do NOT seed inputs from the last GUI session
+    #                                     (by default scripted inputs are seeded from it)
+    parser.add_argument('--execute', metavar='SCRIPT.py', default=None,
+                        help='Run a Python script against the app, then exit.')
+    parser.add_argument('--code', metavar='"CODE"', default=None,
+                        help='Run an inline Python snippet against the app, then exit.')
+    parser.add_argument('--headless', action='store_true',
+                        help='Run without a visible window (Qt offscreen platform). '
+                             'Without this flag the GUI is shown while the script runs.')
+    parser.add_argument('--keep-open', action='store_true',
+                        help='Leave BabelBrain open and interactive after the script '
+                             'finishes (default: close and exit). Ignored with --headless.')
+    parser.add_argument('--do-not-use-last-selection', dest='use_last_selection',
+                        action='store_false', default=True,
+                        help='Do not seed scripted inputs from the last GUI selection '
+                             '(seeding is the default; explicit launch() inputs override it).')
 
-    args = parser.parse_args()
+    # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't abort.
+    args, _unknown = parser.parse_known_args()
+
+    if args.headless:
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
     app = QApplication([])
     _apply_color_scheme(app)
+
+    # Scripting mode: hand control to the scripting engine and exit with its code.
+    if args.execute or args.code:
+        import scripting
+        sys.exit(scripting.run_scripting(app, args))
     # Re-apply if the user switches dark/light mode while the app is running.
     # colorSchemeChanged is available from Qt 6.5; guard for older installs.
     try:

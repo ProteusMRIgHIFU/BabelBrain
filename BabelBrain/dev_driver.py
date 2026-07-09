@@ -24,7 +24,6 @@ import traceback
 # (SelFiles.SelFiles, etc.) resolve exactly as they do for BabelBrain.py.
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from BabelBrain import (
@@ -34,51 +33,9 @@ from BabelBrain import (
     resource_path,
 )
 from SelFiles.SelFiles import SelFiles
-
-
-# --------------------------------------------------------------------------
-# Helpers (the pytest-qt replacements, built on Qt's own QTest)
-# --------------------------------------------------------------------------
-def wait_until(cond, timeout_ms=900000, interval_ms=100):
-    """Pump the event loop until cond() is true. Worker-thread signals still
-    fire while we wait; the GUI stays responsive. Mirrors qtbot.waitUntil."""
-    elapsed = 0
-    while not cond():
-        QTest.qWait(interval_ms)
-        elapsed += interval_ms
-        if elapsed >= timeout_ms:
-            raise TimeoutError("wait_until timed out")
-
-
-def wait(ms):
-    """Pump the event loop for a fixed time (e.g. let plots draw)."""
-    QTest.qWait(ms)
-
-
-# Pristine QMessageBox statics, captured before any patching so we can put the
-# real (user-prompting) behaviour back once the automated chain is done.
-_ORIG_DIALOGS = {name: getattr(QMessageBox, name)
-                 for name in ('question', 'warning', 'critical', 'information')}
-
-
-def auto_answer_dialogs(question=QMessageBox.No,
-                        warning=QMessageBox.Ok,
-                        critical=QMessageBox.Ok):
-    """Make blocking QMessageBox.* static calls return canned answers so the
-    script never stalls on a modal. Flip `question` to QMessageBox.Yes to
-    force recalculation instead of reload. Call again mid-script to change.
-    Undone by restore_dialogs() after the chain finishes."""
-    QMessageBox.question = staticmethod(lambda *a, **k: question)
-    QMessageBox.warning = staticmethod(lambda *a, **k: warning)
-    QMessageBox.critical = staticmethod(lambda *a, **k: critical)
-    QMessageBox.information = staticmethod(lambda *a, **k: QMessageBox.Ok)
-
-
-def restore_dialogs():
-    """Put the real QMessageBox.* behaviour back so modals prompt the user
-    again. Call inside a snippet if you want dialogs live before it ends."""
-    for name, orig in _ORIG_DIALOGS.items():
-        setattr(QMessageBox, name, staticmethod(orig))
+# The event-loop / dialog helpers are shared with the frozen scripting engine
+# (BabelBrain --execute) so both behave identically.
+from scripting import wait_until, wait, auto_answer_dialogs, restore_dialogs
 
 
 # --------------------------------------------------------------------------
