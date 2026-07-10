@@ -136,6 +136,35 @@ class OptionalParams(object):
 
     def keys(self):
         return list(self._DefaultAdvanced.keys())
+
+
+def ApplyAdvancedConfig(Config, AllTransducers, force=False, defaults=None):
+    '''
+    Write the advanced-option default values into *Config* — the single source
+    of truth for advanced parameters, shared by:
+
+      * BabelBrain construction (force=False): fills only the keys missing from
+        Config, so a previously-loaded / last-session configuration is kept;
+      * the scripting "reset to defaults" (force=True): resets *every* advanced
+        entry to its default, for a deterministic state (e.g. for testing).
+
+    Returns the OptionalParams instance used so the caller can reuse it.
+    '''
+    import copy
+    if defaults is None:
+        defaults = OptionalParams(AllTransducers)
+    for k in defaults.keys():
+        dv = getattr(defaults, k)
+        if force or k not in Config:
+            Config[k] = copy.deepcopy(dv)
+        elif k == 'TxOptimizedWeights':
+            # keep existing per-transducer entries, just add any missing device
+            for tx in AllTransducers:
+                if tx not in Config['TxOptimizedWeights']:
+                    Config['TxOptimizedWeights'][tx] = dv[tx]
+    return defaults
+
+
 class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,

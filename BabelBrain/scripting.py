@@ -132,6 +132,18 @@ def check_no_error(bb):
         raise ScriptError("BabelBrain reported testing_error=True")
 
 
+def reset_advanced_config(bb):
+    """Reset every Advanced-Options parameter in bb.Config to its default value.
+
+    Gives a deterministic starting state (independent of any previously-saved
+    session) — useful before an automated/regression run. Mirrors the dialog's
+    "Reset to defaults"; call it right after launch() and before Step 1, then
+    apply any specific overrides you want. Returns bb."""
+    from Options.Options import ApplyAdvancedConfig
+    ApplyAdvancedConfig(bb.Config, bb._AllTransducers, force=True)
+    return bb
+
+
 # ── Input-configuration mappings (see SelFiles combo boxes) ──────────────────
 _TRAJECTORY_TYPE = {'brainsight': 0, 'slicer': 1}
 _SIMBNIBS_TYPE = {'charm': 0, 'headreco': 1}
@@ -339,6 +351,7 @@ def make_namespace(use_last_selection=False):
         'auto_answer_dialogs': auto_answer_dialogs,
         'restore_dialogs': restore_dialogs,
         'check_no_error': check_no_error,
+        'reset_advanced_config': reset_advanced_config,
         'fail': fail,
         'QMessageBox': QMessageBox,
     }

@@ -70,7 +70,7 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
-from Options.Options import AdvancedOptions, OptionalParams
+from Options.Options import AdvancedOptions, OptionalParams, ApplyAdvancedConfig
 from ClockDialog import ClockDialog
 from GUIComponents.nifti_viewer import NiftiViewerWindow
 
@@ -501,16 +501,10 @@ class BabelBrain(QWidget):
             
         #default values for advanced features 
 
-        self._DefaultOptions=OptionalParams(self._AllTransducers)  
-        
-        for k in self._DefaultOptions.keys():
-            if k not in self.Config:
-                self.Config[k]=getattr(self._DefaultOptions,k)
-            elif k=='TxOptimizedWeights':
-                #we check if we are missing a Tx
-                for tx in self._AllTransducers:
-                    if tx not in self.Config['TxOptimizedWeights']:
-                        self.Config['TxOptimizedWeights'][tx]=getattr(self._DefaultOptions,k)[tx]
+        # Fill any advanced-option keys missing from Config with their defaults
+        # (force=False preserves a previously-loaded configuration). This is the
+        # shared source of truth also used by scripting's reset_advanced_config.
+        self._DefaultOptions=ApplyAdvancedConfig(self.Config,self._AllTransducers,force=False)
             
         self.Config['AdvancedParamsFile']=self.Config['OutputFilesPath']+os.sep+os.path.split(self.Config['T1W'])[1].split('.nii')[0]+'-AdvancedParams.yaml'
         self.SaveLatestSelection()
