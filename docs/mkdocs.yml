@@ -33,6 +33,7 @@ nav:
   - Coding / API:
     - Scripting BabelBrain: Coding/scripting.md
     - Scriptable operations: Coding/operations.md
+    - Advanced configuration: Coding/advanced_config.md
   - Appendix : Appendix/Appendix.md
 
 markdown_extensions:
