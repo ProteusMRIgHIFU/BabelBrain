@@ -4,18 +4,10 @@ Starting in r0.8.0, there is an experimental feature to integrate with the excel
 
 <img src="PlanTUS-1.png" height=350px>
 
-This procedure in BabelBrain can update the trajectory defined originally in 3DSlicer or Brainsight to improve, for example, incident angle.
+This procedure in BabelBrain can update the trajectory defined originally in 3DSlicer or Brainsight to improve, for example, incident angle. 
 
-# Limitations
-* Operational to most devices excepting generic simple single element transducers; BSonix devices are supported (to be improved in future release). Currently, operation with single element devices will not produce a correct result.
-* Because some dependencies, only macOS and Linux are currently supported (to be improved in future release).
-* Multiple dependencies to external libraries (dependencies to be reduced in future release)
+PlanTUS works the best when a volume mask of a target ROI is provided as input. If no ROI is provided, a 3 mm diameter ROI will be generated at the original target generated in Brainsight or 3DSlicer.
 
-In macOS and if using the binary distribution, it is recommended to run from the terminal to identify error messages during the execution that otherwise are not yet captured in the BabelBrain log window. For example
-
-```bash
-/Applications/BabelBrain.app/Contents/MacOS/BabelBrain 
-```
 
 # Requirements
 In this initial integration, the integration needs:

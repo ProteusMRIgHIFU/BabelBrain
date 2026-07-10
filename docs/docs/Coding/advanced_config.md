@@ -49,6 +49,27 @@ set its members individually, e.g. `bb.Config['HomogenousMediumValues']['Density
     In the GUI, changing an advanced option persists to the next session. In a
     script, assigning to `bb.Config` only affects the current run.
 
+## Resetting to defaults
+
+By default a scripted run **inherits the advanced parameters from your previous
+session** (the same values the GUI would show), so behaviour stays consistent
+with what you last configured. This is the default and nothing resets on its
+own.
+
+When you instead want a **deterministic, known state** — e.g. for regression
+testing — reset every advanced parameter to its default with
+`reset_advanced_config(bb)`. It is **opt-in**: you must call it explicitly.
+
+```python
+bb = launch(...)
+reset_advanced_config(bb)                 # every advanced param -> its default
+bb.Config['TrabecularProportion'] = 0.2   # then apply only the overrides you need
+```
+
+`reset_advanced_config` restores every key listed on this page (including the
+nested `HomogenousMediumValues` and the per-transducer `TxOptimizedWeights`) to
+the defaults shown, mirroring the dialog's **Reset to defaults** button.
+
 ---
 
 ## Domain generation (Step 1)

@@ -74,6 +74,7 @@ scope (no imports needed):
 | `auto_answer_dialogs(question=…)` | Auto-answer pop-up dialogs so an unattended run never blocks (see below). |
 | `restore_dialogs()` | Restore normal (interactive) dialog behaviour. |
 | `check_no_error(bb)` | Raise if a BabelBrain worker flagged an error (`bb.testing_error`). Call after each step. |
+| `reset_advanced_config(bb)` | Reset all advanced-configuration parameters in `bb.Config` to their defaults (see [Advanced configuration](advanced_config.md)). Opt-in; by default the previous session's values are kept. |
 | `fail(msg)` | Abort the script (non-zero exit) with a message. |
 | `QMessageBox` | The Qt message-box enum, for `auto_answer_dialogs`. |
 
