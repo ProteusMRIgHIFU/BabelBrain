@@ -73,7 +73,17 @@ for i in range(n_tabs):
     wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3_600_000)
     check_no_error(bb)
 
+# --- CombineTrajectories (only present/enabled once all fields are done) ---
+if hasattr(bb.AcSim.Widget, 'CombineTrajectories') \
+        and bb.AcSim.Widget.CombineTrajectories.isEnabled():
+    print("Step 2: CombineTrajectories")
+    bb.AcSim.Widget.CombineTrajectories.click()
+    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
+    wait(500)
+
 # --- Step 3: thermal ---
+#he we force to recalculate
+auto_answer_dialogs(question=QMessageBox.Yes)
 bb.Widget.tabWidget.setCurrentIndex(2)
 for i in range(n_tabs):
     print(f"Step 3: CalculateThermal (tab {i})")
@@ -81,5 +91,13 @@ for i in range(n_tabs):
     bb.ThermalSim.Widget.CalculateThermal.click()
     wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
     check_no_error(bb)
+
+if hasattr(bb.ThermalSim.Widget, 'CombineTrajectories') \
+        and bb.ThermalSim.Widget.CombineTrajectories.isEnabled():
+    print("[dev] Step 3: CombineTrajectories")
+    bb.ThermalSim.Widget.CombineTrajectories.click()
+    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3600000)
+    wait(500)
+
 
 print("Integration run OK.")   # falling off the end -> exit code 0

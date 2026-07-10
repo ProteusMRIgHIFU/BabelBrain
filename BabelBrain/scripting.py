@@ -35,26 +35,59 @@ import os
 import sys
 import traceback
 
-from PySide6.QtCore import QTimer
-from PySide6.QtTest import QTest
+from PySide6.QtCore import QElapsedTimer, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 
 # ── Event-loop helpers (Qt-native replacements for pytest-qt's qtbot) ────────
-def wait_until(cond, timeout_ms=900000, interval_ms=100):
-    """Pump the event loop until cond() is true. Worker-thread signals still
-    fire while we wait and the GUI stays responsive. Raises on timeout."""
-    elapsed = 0
-    while not cond():
-        QTest.qWait(interval_ms)
-        elapsed += interval_ms
-        if elapsed >= timeout_ms:
-            raise TimeoutError("wait_until timed out after %d ms" % timeout_ms)
-
-
+# These reenter the *real* event loop via a nested QEventLoop rather than
+# busy-spinning QTest.qWait. That matters for live GUI feedback: a busy loop
+# never goes idle, and macOS only flushes intermediate frames (clock dialog,
+# plots, progress) to the screen when the loop idles — so a scripted run would
+# otherwise show no progress. A nested loop idles between timer ticks, so each
+# update composites and you watch the run advance.
 def wait(ms):
-    """Pump the event loop for a fixed time (e.g. let plots draw)."""
-    QTest.qWait(ms)
+    """Run the event loop for a fixed time (e.g. let plots draw / GUI refresh)."""
+    loop = QEventLoop()
+    QTimer.singleShot(ms, loop.quit)
+    loop.exec()
+
+
+def wait_until(cond, timeout_ms=900000, interval_ms=50, settle_ms=150):
+    """Run the event loop until cond() is true. Worker-thread signals fire and
+    the GUI updates live while we wait. Raises TimeoutError on timeout.
+
+    After the condition is met we keep the loop running for `settle_ms`. A step
+    finishing typically enables the tab (the condition) *and* schedules the
+    result plot via matplotlib's draw_idle(), which defers the real render to a
+    0-ms timer. Without this settle window the script would race into the next
+    step (or app.quit()) before that redraw ever fired, so the canvases would
+    never visibly update even though everything else did."""
+    if not cond():
+        loop = QEventLoop()
+        elapsed = QElapsedTimer()
+        elapsed.start()
+        timed_out = {'v': False}
+        timer = QTimer()
+        timer.setInterval(interval_ms)
+
+        def check():
+            if cond():
+                loop.quit()
+            elif elapsed.elapsed() >= timeout_ms:
+                timed_out['v'] = True
+                loop.quit()
+
+        timer.timeout.connect(check)
+        timer.start()
+        try:
+            loop.exec()
+        finally:
+            timer.stop()
+        if timed_out['v']:
+            raise TimeoutError("wait_until timed out after %d ms" % timeout_ms)
+    if settle_ms:
+        wait(settle_ms)   # let deferred draw_idle() redraws fire and composite
 
 
 # ── Modal-dialog control ─────────────────────────────────────────────────────
@@ -231,19 +264,26 @@ def launch(base_config=None, **inputs):
     computing, multipoint_type, multipoint, frequency_khz, ppw, hu_threshold,
     output_path. `base_config` (a saved-selection dict) seeds any field not
     given in **inputs. Returns the shown BabelBrain widget."""
-    from BabelBrain import BabelBrain
     sf = build_selfiles(inputs, base_config=base_config)
-    bb = BabelBrain(sf, AltOutputFilesPath=inputs.get('output_path'))
+    bb = _babel_main().BabelBrain(sf, AltOutputFilesPath=inputs.get('output_path'))
     bb.show()
     _post_construct(bb, inputs)
+    # Force the window on-screen *now*. The script runs in one event-loop
+    # callback, and macOS defers a window's first composite until the loop goes
+    # idle — which a synchronous script (qWait spinning) only reaches when it
+    # ends. Without this the GUI would appear only at the very end (and never at
+    # all when the run closes on completion). Harmless under --headless/offscreen.
+    _activate_macos_app()   # foreground the app so macOS composites live updates
+    bb.raise_()
+    bb.activateWindow()
+    wait(150)  # let the window composite/appear before the script proceeds
     return bb
 
 
 def launch_from_last_selection(**overrides):
     """Like launch(), but seed every field from the last GUI selection
     (lastselection.yaml); **overrides win over the saved values."""
-    from BabelBrain import GetLatestSelection
-    cfg = GetLatestSelection() or {}
+    cfg = _babel_main().GetLatestSelection() or {}
     return launch(base_config=cfg, **overrides)
 
 
@@ -304,8 +344,51 @@ def make_namespace(use_last_selection=False):
     }
 
 
+def _babel_main():
+    """Return the module that defines the BabelBrain widget / GetLatestSelection.
+
+    Those live in the entry script BabelBrain.py, which is '__main__' at runtime
+    in BOTH source and the frozen app. We must NOT `import BabelBrain`: a 2-byte
+    BabelBrain/__init__.py makes 'BabelBrain' a *package*, and in the frozen
+    bundle that empty package shadows the entry module (ImportError). Prefer
+    __main__; fall back to importing the module for non-entry contexts
+    (e.g. dev_driver, where __main__ is dev_driver.py)."""
+    import importlib
+    m = sys.modules.get('__main__')
+    if m is not None and hasattr(m, 'GetLatestSelection') and hasattr(m, 'BabelBrain'):
+        return m
+    return importlib.import_module('BabelBrain')
+
+
 def _has_visible_window(app):
     return any(w.isVisible() for w in app.topLevelWidgets())
+
+
+def _activate_macos_app():
+    """Bring the process to the foreground on macOS.
+
+    A binary launched from a terminal with no user interaction (unlike
+    dev_driver, whose modal file dialog you click through) stays a *background*
+    app, and macOS then won't composite live window updates — so a scripted run
+    shows a static window and no progress. `[NSApp activateIgnoringOtherApps:]`
+    fixes that. Done via the Obj-C runtime through ctypes so there's no pyobjc
+    dependency (works in the frozen bundle too). Best-effort / no-op elsewhere."""
+    if sys.platform != 'darwin':
+        return
+    try:
+        import ctypes
+        objc = ctypes.cdll.LoadLibrary('/usr/lib/libobjc.dylib')
+        ctypes.cdll.LoadLibrary('/System/Library/Frameworks/AppKit.framework/AppKit')
+        objc.objc_getClass.restype = ctypes.c_void_p
+        objc.sel_registerName.restype = ctypes.c_void_p
+        objc.objc_msgSend.restype = ctypes.c_void_p
+        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        cls = objc.objc_getClass(b'NSApplication')
+        shared = objc.objc_msgSend(cls, objc.sel_registerName(b'sharedApplication'))
+        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_bool]
+        objc.objc_msgSend(shared, objc.sel_registerName(b'activateIgnoringOtherApps:'), True)
+    except Exception:
+        pass
 
 
 def run_script(app, path=None, code=None, use_last_selection=False, keep_open=False):
@@ -345,7 +428,10 @@ def run_script(app, path=None, code=None, use_last_selection=False, keep_open=Fa
             else:
                 app.quit()
 
-    QTimer.singleShot(0, runner)
+    # Small delay (not 0) so app.exec() runs the native loop first: the app
+    # foregrounds and the platform warms up before the (blocking) script starts,
+    # matching dev_driver's delayed kickoff.
+    QTimer.singleShot(300, runner)
     app.exec()
     return result['code']
 
