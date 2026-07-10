@@ -165,6 +165,17 @@ def ApplyAdvancedConfig(Config, AllTransducers, force=False, defaults=None):
     return defaults
 
 
+def DefaultAdvancedConfig(AllTransducers):
+    '''
+    Return the default advanced-option values as a plain, JSON-serializable dict
+    (the keys the Advanced Options dialog controls). Used by the server's
+    /defaultconfig endpoint and as a clean baseline for clients.
+    '''
+    import copy
+    op = OptionalParams(AllTransducers)
+    return {k: copy.deepcopy(getattr(op, k)) for k in op.keys()}
+
+
 class AdvancedOptions(QDialog):
     def __init__(self,
                  currentConfig,

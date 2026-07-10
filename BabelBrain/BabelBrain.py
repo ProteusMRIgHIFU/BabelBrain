@@ -614,6 +614,11 @@ class BabelBrain(QWidget):
             self.moveTimer.start() # the timer will make the move of the wait dialog less clunky
 
     def SaveLatestSelection(self):
+        # In server mode the configuration is memory-only: never persist to
+        # lastselection.yaml (each client job carries its own config). Saving is
+        # allowed only for a normal, local (non-server) session.
+        if os.environ.get('BABEL_SERVER_MODE') == '1':
+            return
         if not os.path.isfile(_LastSelConfig):
             try:
                 os.makedirs(os.path.split(_LastSelConfig)[0],exist_ok=True)
@@ -809,8 +814,13 @@ class BabelBrain(QWidget):
         self.UpdateFrequencyFloat(0)
         self.UpdateMaskParameters()
 
-        stdout = OutputWrapper(self, True)
-        stdout.outputWritten.connect(self.handleOutput)
+        # In server mode there is no GUI terminal to mirror to, and widgets are
+        # created/destroyed per job — hijacking sys.stdout would leave it
+        # dangling on a deleted QObject (RuntimeError on the next print). Keep the
+        # real stdout for the server console/log.
+        if os.environ.get('BABEL_SERVER_MODE') != '1':
+            stdout = OutputWrapper(self, True)
+            stdout.outputWritten.connect(self.handleOutput)
 #        stderr = OutputWrapper(self, False)
 #        stderr.outputWritten.connect(self.handleOutput)
 
@@ -1947,9 +1957,27 @@ def main():
                         action='store_false', default=True,
                         help='Do not seed scripted inputs from the last GUI selection '
                              '(seeding is the default; explicit launch() inputs override it).')
+    # Server mode (v0): expose the pipeline over a small HTTP/JSON job API.
+    parser.add_argument('--serve', action='store_true',
+                        help='Run BabelBrain as a job server (HTTP/JSON). See server.py.')
+    parser.add_argument('--serve-host', default='127.0.0.1',
+                        help='Server bind address (default localhost).')
+    parser.add_argument('--serve-port', type=int, default=8760,
+                        help='Server port.')
+    parser.add_argument('--serve-token', default=None,
+                        help='Optional bearer token required on all endpoints '
+                             '(or set BABEL_SERVER_TOKEN).')
 
-    # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't abort.
+    # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't
+    # abort — but still reject genuine typos/unknown flags (e.g. --server instead
+    # of --serve) with a clear message instead of silently ignoring them.
     args, _unknown = parser.parse_known_args()
+    _unknown = [a for a in _unknown if not a.startswith('-psn_')]
+    if _unknown:
+        parser.print_usage(sys.stderr)
+        sys.stderr.write("error: unrecognized arguments: %s\n" % " ".join(_unknown))
+        sys.stderr.write("Run 'python BabelBrain.py --help' for the list of options.\n")
+        sys.exit(2)
 
     if args.headless:
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -1961,6 +1989,11 @@ def main():
     if args.execute or args.code:
         import scripting
         sys.exit(scripting.run_scripting(app, args))
+
+    # Server mode: run the HTTP job server + Qt loop until interrupted.
+    if args.serve:
+        import server
+        sys.exit(server.run_server(app, args))
     # Re-apply if the user switches dark/light mode while the app is running.
     # colorSchemeChanged is available from Qt 6.5; guard for older installs.
     try:
