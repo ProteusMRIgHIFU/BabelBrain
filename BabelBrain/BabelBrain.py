@@ -1658,6 +1658,11 @@ class BabelBrain(QWidget):
             raise ValueError('type of step to track time not valid -'+step)
         with open(self._trackingtimefile,'w') as f:
             yaml.dump(self._TrackingTime,f,yaml.SafeDumper)
+        try:   # record the execution-times artifact (no-op outside server mode)
+            from ArtifactIO import record as _rec
+            _rec(self._trackingtimefile)
+        except Exception:
+            pass
 
     def CommomAcOptions(self):
         kargs={}

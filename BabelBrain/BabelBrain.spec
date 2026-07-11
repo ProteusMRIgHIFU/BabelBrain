@@ -87,9 +87,10 @@ block_cipher = None
 datas = []
 binaries = []
 # 'scripting' and 'server' are imported lazily inside BabelBrain.main() for the
-# --execute / --code and --serve CLI entries; list them explicitly so the frozen
-# binary always bundles them.
-hiddenimports = ['scripting', 'server', 'OutputNaming', 'ArtifactIO']
+# --execute / --code and --serve CLI entries; 'ArtifactIO' is imported by the
+# server and (guarded) by the pipeline modules. List them so the frozen binary
+# always bundles them.
+hiddenimports = ['scripting', 'server', 'ArtifactIO']
 upx_exclude_list = []
 
 # ==============================================================================

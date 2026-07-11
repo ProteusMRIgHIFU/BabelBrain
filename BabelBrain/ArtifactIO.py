@@ -5,10 +5,16 @@ written, so the artifact list is *observed* rather than reverse-engineered.
 Why a file sidecar (not an in-memory list): the heavy steps run in separate
 processes (Step 1 CalculateMaskProcess, Step 2 CalculateFieldProcess, Step 3
 CalculateThermalProcess), so a registry in the main/server process would never
-see their saves. Instead every save appends one JSON line to a per-run sidecar
-file named by the BABEL_ARTIFACT_LOG env var. That env var is inherited by
+see their saves. Instead every save appends one JSON line to a per-job temporary
+ledger named by the BABEL_ARTIFACT_LOG env var. That env var is inherited by
 spawned children, so main process, worker threads and subprocesses all append to
-the same file. The server/GUI then just reads it.
+the same file. The server reads it at the end of the job, then deletes it.
+
+The ledger is ephemeral and per-job (a tempfile): it captures only what that job
+writes, so the artifact list matches which steps actually ran and never reports
+stale files from an earlier config. Nothing accumulates in the output directory.
+A job that only reloads cached results (saves nothing) therefore reports no
+freshly-produced artifacts — which is the intended per-job semantics.
 
 Recording is a no-op when BABEL_ARTIFACT_LOG is unset (a normal GUI session), so
 this is invisible outside server/scripted runs.
@@ -18,6 +24,7 @@ including inside a freshly-spawned subprocess.
 """
 import json
 import os
+import tempfile
 import time
 
 _ENV_LOG = 'BABEL_ARTIFACT_LOG'
@@ -109,21 +116,28 @@ def save_npy(path, arr, **kw):
 
 
 # ── run lifecycle + reading ──────────────────────────────────────────────────
-def begin_run(log_path):
-    """Start a fresh sidecar for a run and point BABEL_ARTIFACT_LOG at it."""
-    try:
-        d = os.path.dirname(log_path)
-        if d:
-            os.makedirs(d, exist_ok=True)
-        open(log_path, 'w').close()                     # truncate/create
-    except Exception:
-        pass
-    os.environ[_ENV_LOG] = log_path
+def begin_run():
+    """Create a fresh, per-job temporary ledger and point BABEL_ARTIFACT_LOG at
+    it (the path is inherited by spawned children). Ephemeral by design: the
+    artifact list reflects only what THIS job writes — so it naturally tracks
+    which steps ran and never reports stale outputs from earlier configs — and
+    end_run() deletes it, leaving nothing behind in the output directory.
+    Returns the ledger path."""
+    fd, log = tempfile.mkstemp(prefix='babel-artifacts-', suffix='.jsonl')
+    os.close(fd)
+    os.environ[_ENV_LOG] = log
+    return log
 
 
 def end_run():
-    os.environ.pop(_ENV_LOG, None)
+    """Clear the recording env and delete the per-job temporary ledger."""
+    log = os.environ.pop(_ENV_LOG, None)
     os.environ.pop(_ENV_STEP, None)
+    if log:
+        try:
+            os.remove(log)
+        except Exception:
+            pass
 
 
 def read_manifest(log_path=None, existing_only=False):

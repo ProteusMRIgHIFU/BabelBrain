@@ -384,11 +384,9 @@ def run_pipeline(job, manager, headless):
     job._bb = bb
 
     # Record artifacts at save time — across the step subprocesses — into a
-    # per-run sidecar (the env var is inherited by spawned children).
+    # per-job temporary ledger (env var inherited by children; deleted at end).
     import ArtifactIO
-    artlog = os.path.join(bb.Config.get('OutputFilesPath', '.'),
-                          '.artifacts-%s.jsonl' % job.id)
-    ArtifactIO.begin_run(artlog)
+    artlog = ArtifactIO.begin_run()
 
     # The client owns the advanced configuration: start from a deterministic
     # default baseline, then apply the mandatory client-supplied config dict.
@@ -410,6 +408,8 @@ def run_pipeline(job, manager, headless):
 
     # Ground-truth artifacts from the record-at-save sidecar. During the Phase-2
     # transition we cross-check the count against the Phase-1 predicted manifest.
+    # Artifacts are the recorded ledger (record-at-save, cross-process),
+    # filtered to files still present. Complete for fresh and cached/reload runs.
     try:
         recorded = ArtifactIO.read_manifest(artlog, existing_only=True)
         job.artifacts = [{'path': e['path'], 'fmt': e.get('fmt'),
@@ -418,12 +418,6 @@ def run_pipeline(job, manager, headless):
     except Exception as e:
         job.artifacts = []
         emit("collect", "artifact recording failed: %s" % e)
-    try:
-        from OutputNaming import build_manifest
-        predicted = len(build_manifest(bb).primary().existing())
-        emit("collect", "recorded=%d (predicted primary=%d)" % (len(job.artifacts), predicted))
-    except Exception:
-        pass
     ArtifactIO.end_run()
     emit("collect", "Collected %d artifact(s)" % len(job.artifacts), 98)
 
