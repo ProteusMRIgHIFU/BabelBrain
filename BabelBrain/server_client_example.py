@@ -59,6 +59,7 @@ if __name__ == "__main__":
     # `steps` maps planning/acoustic/thermal to an ORDERED list of actions; the
     # client controls both the settings and their order (like scripting).
     # Note: frequency / PPW / HU threshold are Step-1 controls -> planning actions.
+    
     spec = {
         "t1w": "/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55/T1.nii.gz",
         "simbnibs": "/Users/spichardo/Documents/TempForSim/SDR_0p55/m2m_SDR_0p55",
@@ -81,7 +82,12 @@ if __name__ == "__main__":
             ],
             "acoustic": [
                 {"action": "select_trajectory", "index": 0},
-                {"action": "set", "control": "ZSteeringSpinBox", "value": 0.0},
+                # Steering control is transducer-specific:
+                #   phased arrays (H317/DomeTx/REMOPD) -> "ZSteeringSpinBox"
+                #   ring transducers (CTX/DPX)         -> "TPODistanceSpinBox"
+                #     (GUI label "Z Steering (mm)"; a distance in mm within the
+                #      device's post-Step-1 range). Omit to use the auto default.
+                # e.g. CTX:  {"action": "set", "control": "TPODistanceSpinBox", "value": <mm>},
                 {"action": "run"},
                 # {"action": "select_trajectory", "index": 1}, {"action": "run"},
                 # {"action": "click", "control": "CombineTrajectories"},

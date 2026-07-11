@@ -5,6 +5,13 @@ import os
 import numpy as np
 import nibabel as nib
 
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 def ras_to_voxel_idx(affine, ras_xyz):
     # Convert RAS (mm) to voxel index using inverse affine, round to nearest voxel
     vox = np.linalg.inv(affine).dot(np.append(ras_xyz, 1.0))[:3]
@@ -96,6 +103,7 @@ def create_target_mask(in_path, ras, out_path, raddi=(1,1,1)):
 
     
     nib.save(out_img, out_path)
+    _rec_artifact(out_path)
     print(f"Saved mask to {out_path} (voxel index {tuple(idx)})")
 
 def main():

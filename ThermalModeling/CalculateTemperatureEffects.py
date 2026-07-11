@@ -14,6 +14,14 @@ from  scipy.io import loadmat,savemat
 from BabelViscoFDTD.tools.RayleighAndBHTE import BHTE,BHTEMultiplePressureFields
 from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
 from scipy.io import loadmat,savemat
+
+# Artifact recording (see BabelBrain/ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 from platform import platform
 from os.path import isfile
 from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal, InitMLX
@@ -1283,8 +1291,10 @@ def CalculateTemperatureEffects(InputPData,
         SaveDict['MergedPressureRatio']=MergedPressureRatio
     
     SaveToH5py(SaveDict,outfname+'.h5')
+    _rec_artifact(outfname+'.h5')
     savemat(outfname+'.mat',SaveDict)
-    
+    _rec_artifact(outfname+'.mat')
+
     return outfname
         
 

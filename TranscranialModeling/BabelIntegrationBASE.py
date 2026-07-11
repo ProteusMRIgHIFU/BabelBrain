@@ -15,6 +15,15 @@ import sys
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
+
+# Artifact recording (see BabelBrain/ArtifactIO.py). Guarded so this module still
+# imports if ArtifactIO isn't on the path; a no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 from BabelViscoFDTD.PropagationModel import PropagationModel
 from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal
 import nibabel
@@ -774,6 +783,8 @@ def SaveNiftiEnforcedISO(nii_in, fn):
             assert(os.system(cmd)==0)
             os.remove(fn_unc)
 
+    _rec_artifact(newfn)
+
 
 def ResaveNormalized(rpath, mask,bApplyOnlyMask=False):
     '''
@@ -813,6 +824,7 @@ def ResaveNormalized(rpath, mask,bApplyOnlyMask=False):
         ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData.astype(np.float32),Results.affine,header=Results.header)
     NormalizedNifti.to_filename(NRPath)
+    _rec_artifact(NRPath)
 
 def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
                                       ray_spacing_mm=1.8, min_skull_voxels=3,center_region=0.5):
@@ -1829,6 +1841,7 @@ class BabelFTD_Simulations_BASE(object):
         sname=FILENAMES['DataForSim']
         if bMinimalSaving==False:
             SaveToH5py(DataForSim,sname)
+            _rec_artifact(sname)
             if bUseRayleighForWater:
                 #we save now the h5 file for water
                 DataForSim['p_amp']= p_amp_water
@@ -1837,6 +1850,7 @@ class BabelFTD_Simulations_BASE(object):
                     DataForSim.pop('p_amp_refocus')
                 sname=FILENAMESWater['DataForSim']
                 SaveToH5py(DataForSim,sname)
+                _rec_artifact(sname)
 
         gc.collect()
         

@@ -89,7 +89,7 @@ binaries = []
 # 'scripting' and 'server' are imported lazily inside BabelBrain.main() for the
 # --execute / --code and --serve CLI entries; list them explicitly so the frozen
 # binary always bundles them.
-hiddenimports = ['scripting', 'server']
+hiddenimports = ['scripting', 'server', 'OutputNaming', 'ArtifactIO']
 upx_exclude_list = []
 
 # ==============================================================================

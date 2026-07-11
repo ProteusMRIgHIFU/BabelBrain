@@ -5,6 +5,13 @@ import numpy as np
 import nibabel
 import importlib
 
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
     
     class InOutputWrapper(object):
@@ -109,6 +116,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                                 send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
                             finalName=fnames[0].split('__Steer_X')[0]+send
                             combinedNifti.to_filename(finalName)
+                            _rec_artifact(finalName)
 
         if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
             kargs['bDryRun'] = True

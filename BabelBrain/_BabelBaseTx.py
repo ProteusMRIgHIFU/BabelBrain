@@ -6,6 +6,13 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox, QTabWidget
 from PySide6.QtCore import Slot, Signal, QObject, QThread, Qt
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 import numpy as np
 import os
 import time
@@ -1061,6 +1068,7 @@ class RunCombineTrajectories(QObject):
 
                 
             SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
+            _rec_artifact(self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
             #Now water results
             if len(transformed_refocus)>0:
                 for k in ['Transformed_Refocus','p_amp_refocus','p_complex_refocus']:
@@ -1070,6 +1078,7 @@ class RunCombineTrajectories(QObject):
             DataForSim['Transformed']=transformed_water
             DataForSim['MaterialMap'][:,:,:]=0
             SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5')
+            _rec_artifact(self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5')
 
             TotalTime=time.time()-T0
             print('Total time',TotalTime)

@@ -3,6 +3,13 @@ import os
 from pathlib import Path
 import sys
 from multiprocessing import Process,Queue
+
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
 from collections import UserDict
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
@@ -1274,6 +1281,7 @@ class Babel_Thermal(QWidget):
         DataToExport['AdjustRAS']=self.Widget.tableWidget.item(4,1).data(QtCore.Qt.UserRole)
         
         pd.DataFrame.from_dict(data=DataToExport, orient='index').to_csv(outCSV, header=False)
+        _rec_artifact(outCSV)
         currentIsppa=self.Widget.IsppaSpinBox.value()
         currentCombination=self.Widget.SelCombinationDropDown.currentIndex()
         #now we create new Table to export safety metrics based on timing options and Isppa
@@ -1338,6 +1346,7 @@ class Babel_Thermal(QWidget):
                     DataToExport[k].append(data)
                 
             pd.DataFrame.from_dict(data=DataToExport).to_csv(outCSV,mode='a',index=False)
+            _rec_artifact(outCSV)
         if currentCombination !=self.Widget.SelCombinationDropDown.currentIndex():
             self.Widget.SelCombinationDropDown.setCurrentIndex(currentCombination) #this will refresh
         else:
@@ -1376,6 +1385,7 @@ class Babel_Thermal(QWidget):
         Tmap=np.flip(Tmap,axis=2)
         nii=nibabel.Nifti1Image(Tmap.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName)
+        _rec_artifact(OutName)
 
         pressureField = DataThermal['p_map'] * np.sqrt(IsppaRatio)
         
@@ -1393,15 +1403,18 @@ class Babel_Thermal(QWidget):
         OutName2=OutName.replace('ThermalField','PressureField')
         nii=nibabel.Nifti1Image(pressureField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName2)
+        _rec_artifact(OutName2)
 
         OutName3=OutName.replace('ThermalField','IntensityField')
         nii=nibabel.Nifti1Image(intensityField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName3)
+        _rec_artifact(OutName3)
 
         MIField = pressureField/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         OutName4=OutName.replace('ThermalField','MI')
         nii=nibabel.Nifti1Image(MIField.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName4)
+        _rec_artifact(OutName4)
             
         #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:

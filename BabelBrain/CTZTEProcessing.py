@@ -7,6 +7,13 @@ IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10),
 import nibabel
 from nibabel import processing
 from nibabel.spaces import vox2out_vox
+
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
 import SimpleITK as sitk
 import tempfile
 import logging
@@ -98,12 +105,15 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
         if len(savedInfo) <= 80: # Nifiti descrip header can only accept string < 80 bytes (80 utf-8 chars)
             output.header['descrip'] = savedInfo
             nibabel.save(output,outputfilename)
+            _rec_artifact(outputfilename)
         else:
             print(f"'descrip' string not saved in nifti header as it exceeds text limit ({len(savedInfo)} > 80)")
             nibabel.save(output,outputfilename)
+            _rec_artifact(outputfilename)
     elif ".npy" in outputfilename: #numpy
         savedInfoNumpy = np.array(savedInfo)
         np.save(outputfilename,savedInfoNumpy)
+        _rec_artifact(outputfilename)
     else:
         print("Hash data not saved, invalid output file type specified")
 

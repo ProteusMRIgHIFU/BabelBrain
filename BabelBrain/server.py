@@ -45,7 +45,6 @@ scripting operations.
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
 token is configured (--serve-token or BABEL_SERVER_TOKEN).
 """
-import glob
 import json
 import os
 import queue
@@ -233,15 +232,6 @@ def _apply_advanced(config, key, value):
         config[key] = value
 
 
-def _scan_artifacts(output_path):
-    if not output_path or not os.path.isdir(output_path):
-        return []
-    out = []
-    for pat in ("**/*.h5", "**/*.nii.gz", "**/*.csv"):
-        out.extend(glob.glob(os.path.join(output_path, pat), recursive=True))
-    return sorted(set(out))
-
-
 # Per-step wiring: which main tab, the canonical "run" button, the default wait
 # timeout, and how to reach the step's control widget (re-fetched each action,
 # because selecting a trajectory tab repoints AcSim.Widget / ThermalSim.Widget).
@@ -393,6 +383,13 @@ def run_pipeline(job, manager, headless):
         bb = launch(**inputs)
     job._bb = bb
 
+    # Record artifacts at save time — across the step subprocesses — into a
+    # per-run sidecar (the env var is inherited by spawned children).
+    import ArtifactIO
+    artlog = os.path.join(bb.Config.get('OutputFilesPath', '.'),
+                          '.artifacts-%s.jsonl' % job.id)
+    ArtifactIO.begin_run(artlog)
+
     # The client owns the advanced configuration: start from a deterministic
     # default baseline, then apply the mandatory client-supplied config dict.
     reset_advanced_config(bb)
@@ -404,13 +401,30 @@ def run_pipeline(job, manager, headless):
         bb.testing_error = False
         for name in ('planning', 'acoustic', 'thermal'):
             if name in steps:
+                ArtifactIO.set_step({'planning': 1, 'acoustic': 2, 'thermal': 3}[name])
                 acts = steps[name] or []
                 emit(name, "Step '%s': %d action(s)" % (name, len(acts)), _STEP[name]['base_pct'])
                 _run_step(bb, name, acts, emit, check_cancel)
     finally:
         restore_dialogs()
 
-    job.artifacts = _scan_artifacts(spec.get('output_path'))
+    # Ground-truth artifacts from the record-at-save sidecar. During the Phase-2
+    # transition we cross-check the count against the Phase-1 predicted manifest.
+    try:
+        recorded = ArtifactIO.read_manifest(artlog, existing_only=True)
+        job.artifacts = [{'path': e['path'], 'fmt': e.get('fmt'),
+                          'step': e.get('step'), 'role': e.get('role', 'output')}
+                         for e in recorded]
+    except Exception as e:
+        job.artifacts = []
+        emit("collect", "artifact recording failed: %s" % e)
+    try:
+        from OutputNaming import build_manifest
+        predicted = len(build_manifest(bb).primary().existing())
+        emit("collect", "recorded=%d (predicted primary=%d)" % (len(job.artifacts), predicted))
+    except Exception:
+        pass
+    ArtifactIO.end_run()
     emit("collect", "Collected %d artifact(s)" % len(job.artifacts), 98)
 
 

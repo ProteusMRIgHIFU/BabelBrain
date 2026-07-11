@@ -13,6 +13,13 @@ import numpy as np
 import SimpleITK as sitk
 import trimesh
 
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+
 MAX_WORKERS = os.cpu_count() * 4
 logger = logging.getLogger()
 
@@ -110,6 +117,7 @@ class FileManager:
     
     def save_file(self, file_data, filename, precursor_files=None, **kwargs):
         logger.info(f"{filename} preparing to save")
+        _rec_artifact(filename)   # record Step-1 outputs (mask, resampled T1W, CT, …)
 
         # Save object for future use
         self.saved_objects[filename] = file_data
