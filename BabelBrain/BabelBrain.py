@@ -1975,6 +1975,9 @@ def main():
     parser.add_argument('--serve-workspace-root', default=None,
                         help='Parent directory for temp upload workspaces '
                              '(default: system temp; or BABEL_SERVER_WORKSPACE_ROOT).')
+    parser.add_argument('--serve-session-timeout', type=int, default=0,
+                        help='Idle seconds before a persistent (keep_alive) session '
+                             'is auto-closed (0 = never; or BABEL_SERVER_SESSION_TIMEOUT).')
 
     # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't
     # abort — but still reject genuine typos/unknown flags (e.g. --server instead

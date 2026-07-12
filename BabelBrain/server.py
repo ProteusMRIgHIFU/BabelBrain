@@ -41,12 +41,14 @@ HTTP API:
     GET  /workspaces/{id}              -> workspace info (+ staged files)
     POST /workspaces/{id}/files?name=R -> stage an upload (raw body) -> {path,size}
     DELETE /workspaces/{id}            -> close (temp workspaces are deleted)
+    GET  /session                      -> {alive, idle_seconds, timeout}
+    DELETE /session                    -> end the persistent session (close bb)
 
 A JobSpec carries: input-selection fields (see _SERVER_INPUT_KEYS), a mandatory
-`config` object (advanced configuration; the client owns it), and `steps` — an
-object mapping any of 'planning'/'acoustic'/'thermal' to an ordered list of
-actions ({"action": "set"|"click"|"run"|"select_trajectory", ...}) mirroring the
-scripting operations.
+`config` object (advanced configuration; the client owns it), `steps` — an object
+mapping any of 'planning'/'acoustic'/'thermal' to an ordered list of actions
+({"action": "set"|"click"|"run"|"select_trajectory", ...}) mirroring the scripting
+operations — and an optional `keep_alive` flag (see below).
 
 Filesystem sharing is OPTIONAL. A client that does not share the server's disk
 can: create a workspace (mode "temp" -> server-managed tempdir, deleted on close;
@@ -55,6 +57,16 @@ returns the absolute server path to reference in the JobSpec), pass the
 workspace id on the job (outputs default into the workspace), and afterwards pull
 results back via /jobs/{id}/artifacts/{n}. A client that DOES share the disk can
 keep sending real server paths and ignore workspaces entirely.
+
+Persistent sessions: by default each job opens a fresh BabelBrain widget and
+tears it down when the job ends. Set `keep_alive: true` on a job to KEEP that
+widget alive afterwards; the next job (or jobs) then REUSES it — so a client can
+run the pipeline piecewise (e.g. planning first, inspect the result, then decide
+whether to re-run it or move on to acoustic) with Step-1 state retained. The
+session stays up across jobs until the client sends DELETE /session (a job with
+keep_alive omitted/false also reuses then closes it), or, if configured, an idle
+timeout elapses (--serve-session-timeout / BABEL_SERVER_SESSION_TIMEOUT, seconds;
+0 = never). The server is single-worker, so there is at most one live session.
 
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
 token is configured (--serve-token or BABEL_SERVER_TOKEN).
@@ -468,10 +480,15 @@ def _run_step(bb, name, actions, emit, check_cancel):
             raise ValueError("unknown action %r in step %s" % (a, name))
 
 
-def run_pipeline(job, manager, headless):
+def run_pipeline(job, manager, headless, existing_bb=None):
     """Execute one job on the Qt main thread: open BabelBrain with the client's
-    inputs, apply the client-supplied advanced config, then run each requested
-    step's ordered action list. Emits progress; raises on error/cancellation."""
+    inputs (or reuse a persistent session's widget), apply the client-supplied
+    advanced config, then run each requested step's ordered action list. Emits
+    progress; raises on error/cancellation.
+
+    When `existing_bb` is given the launch is skipped and that live widget is
+    reused — this is how a client runs the pipeline piecewise across several jobs
+    (e.g. planning first, inspect, then acoustic) while Step-1 state is retained."""
     from PySide6.QtWidgets import QMessageBox
     from scripting import (launch, launch_from_last_selection,
                            auto_answer_dialogs, restore_dialogs, reset_advanced_config)
@@ -489,12 +506,17 @@ def run_pipeline(job, manager, headless):
     steps = spec.get('steps') or {}
     recalc = spec.get('recalculate', True)
 
-    emit("launch", "Opening BabelBrain with the requested inputs", 5)
-    if spec.get('use_last_selection'):
-        bb = launch_from_last_selection(**inputs)
+    if existing_bb is not None:
+        emit("launch", "Reusing the persistent BabelBrain session", 5)
+        bb = existing_bb
+        job._bb = bb
     else:
-        bb = launch(**inputs)
-    job._bb = bb
+        emit("launch", "Opening BabelBrain with the requested inputs", 5)
+        if spec.get('use_last_selection'):
+            bb = launch_from_last_selection(**inputs)
+        else:
+            bb = launch(**inputs)
+        job._bb = bb
 
     # Record artifacts at save time — across the step subprocesses — into a
     # per-job temporary ledger (env var inherited by children; deleted at end).
@@ -542,19 +564,51 @@ class QtJobExecutor(QObject):
     nested QEventLoop, which can re-fire this timer — the guard makes those
     re-entrant ticks no-ops instead of starting a second job."""
 
-    def __init__(self, manager, headless=False, parent=None):
+    def __init__(self, manager, headless=False, session_timeout=0, parent=None):
         super().__init__(parent)
         self._manager = manager
         self._headless = headless
         self._busy = False
+        # Persistent-session state: one live widget kept across jobs when a job
+        # opts in with keep_alive. All access is on the Qt main thread except the
+        # close/alive flags, which HTTP threads only *set*/read (atomic bools).
+        self._live_bb = None
+        self._live_bb_last = 0.0
+        self._close_requested = False
+        self._session_timeout = session_timeout        # seconds; 0 = never reap
         self._timer = QTimer(self)
         self._timer.setInterval(150)
         self._timer.timeout.connect(self._tick)
         self._timer.start()
 
+    # -- session control (called from HTTP threads) --
+    def request_close_session(self):
+        """Ask for the persistent session to be torn down. The actual close runs
+        on the next main-thread tick. Returns whether a session was alive."""
+        alive = self._live_bb is not None
+        self._close_requested = True
+        return alive
+
+    def session_info(self):
+        alive = self._live_bb is not None
+        return {'alive': alive,
+                'idle_seconds': (time.time() - self._live_bb_last) if alive else None,
+                'timeout': self._session_timeout or None}
+
+    def _idle_expired(self):
+        return (self._session_timeout and self._live_bb is not None
+                and (time.time() - self._live_bb_last) > self._session_timeout)
+
     def _tick(self):
         if self._busy:
             return
+        # Deferred teardown / idle reap of the persistent session (main thread,
+        # so it is safe to touch Qt here — never from an HTTP thread). Handle a
+        # pending close even when no session is live: DELETE /session on an
+        # already-closed session still sets the flag, and it must be cleared here
+        # or it would sabotage the NEXT session's keep_alive (stale close).
+        if self._close_requested or self._idle_expired():
+            self._teardown_live()
         job = self._manager.next_queued()
         if job is None:
             return
@@ -567,7 +621,8 @@ class QtJobExecutor(QObject):
     def _run(self, job):
         self._manager.mark_running(job)
         try:
-            run_pipeline(job, self._manager, self._headless)
+            run_pipeline(job, self._manager, self._headless,
+                         existing_bb=self._live_bb)
             self._manager.mark_finished(job, JobState.SUCCEEDED, exit_code=0)
         except JobCancelled:
             self._manager.mark_finished(job, JobState.CANCELLED, exit_code=2,
@@ -576,11 +631,32 @@ class QtJobExecutor(QObject):
             self._manager.mark_finished(job, JobState.FAILED, exit_code=1,
                                         error=traceback.format_exc())
         finally:
-            self._close_bb(job)
+            self._finalize_bb(job)
 
-    def _close_bb(self, job):
+    def _finalize_bb(self, job):
+        """After a job: keep the widget alive as the persistent session if the
+        job asked for it (keep_alive), otherwise close it. A reused session with
+        keep_alive=False is the client's signal to end the session -> close."""
         bb = job._bb
         job._bb = None
+        if bb is None:
+            return
+        if job.spec.get('keep_alive') and not self._close_requested:
+            self._live_bb = bb
+            self._live_bb_last = time.time()
+        else:
+            if bb is self._live_bb:
+                self._live_bb = None
+            self._close_requested = False
+            self._destroy(bb)
+
+    def _teardown_live(self):
+        bb = self._live_bb
+        self._live_bb = None
+        self._close_requested = False
+        self._destroy(bb)
+
+    def _destroy(self, bb):
         if bb is not None:
             try:
                 bb.close()
@@ -602,11 +678,13 @@ def _validate_spec(spec):
     if 'steps' in spec and not isinstance(spec['steps'], dict):
         return ("'steps' must be an object mapping any of 'planning'/'acoustic'/"
                 "'thermal' to an ordered list of actions")
+    if 'keep_alive' in spec and not isinstance(spec['keep_alive'], bool):
+        return "'keep_alive' must be a boolean"
     return None
 
 
 def _make_handler(manager, token, capabilities, default_config, current_config,
-                  wsman):
+                  wsman, executor):
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "BabelBrain/0"
@@ -694,6 +772,8 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                     return self._send(200, {"jobs": manager.list_summaries()})
                 if path == "/workspaces":
                     return self._send(200, {"workspaces": wsman.list_summaries()})
+                if path == "/session":
+                    return self._send(200, executor.session_info())
                 parts = path.strip("/").split("/")
                 if parts[0] == "workspaces" and len(parts) == 2:
                     ws = wsman.get(parts[1])
@@ -781,6 +861,9 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                 if not self._guard():
                     return
                 parts = path.strip("/").split("/")
+                if path == "/session":
+                    alive = executor.request_close_session()
+                    return self._send(200, {"closing": bool(alive)})
                 if parts[0] == "workspaces" and len(parts) == 2:
                     ws = wsman.delete(parts[1])
                     if ws is None:
@@ -863,21 +946,26 @@ def run_server(app, args):
     # steps. Only our SIGINT handler ends the loop.
     app.setQuitOnLastWindowClosed(False)
 
+    session_timeout = int(getattr(args, 'serve_session_timeout', 0)
+                          or os.environ.get('BABEL_SERVER_SESSION_TIMEOUT', 0) or 0)
+
     manager = JobManager()
     wsman = WorkspaceManager(temp_base=getattr(args, 'serve_workspace_root', None)
                              or os.environ.get('BABEL_SERVER_WORKSPACE_ROOT'))
-    executor = QtJobExecutor(manager, headless=headless)  # noqa: F841 (kept alive)
+    executor = QtJobExecutor(manager, headless=headless,
+                             session_timeout=session_timeout)
     transducers = _discover_transducers()
     capabilities = {"transducers": transducers,
                     "server_version": "v0", "single_worker": True,
-                    "features": ["workspaces", "uploads", "artifact_download"]}
+                    "features": ["workspaces", "uploads", "artifact_download",
+                                 "persistent_session"]}
     default_config = _default_config_dict(transducers)
     current_config = _current_config_dict(transducers)
 
     httpd = ThreadingHTTPServer(
         (host, port),
         _make_handler(manager, token, capabilities, default_config,
-                      current_config, wsman))
+                      current_config, wsman, executor))
     server_thread = threading.Thread(target=httpd.serve_forever, name="babel-http",
                                      daemon=True)
     server_thread.start()
@@ -914,5 +1002,6 @@ def run_server(app, args):
         httpd.shutdown()
     except Exception:
         pass
+    executor._teardown_live()    # close a lingering persistent session (main thread)
     wsman.cleanup_all()          # remove any lingering temp workspaces
     return 0
