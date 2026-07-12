@@ -145,3 +145,6 @@ runPytestWin.bat
 # dev_driver.py scratch snippets — kept out of version control
 dev_scripts/
 *.devscript
+
+# server_client_remote.py example downloads
+BabelBrain/downloaded_artifacts/

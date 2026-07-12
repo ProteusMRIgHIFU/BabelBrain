@@ -1972,6 +1972,9 @@ def main():
     parser.add_argument('--serve-token', default=None,
                         help='Optional bearer token required on all endpoints '
                              '(or set BABEL_SERVER_TOKEN).')
+    parser.add_argument('--serve-workspace-root', default=None,
+                        help='Parent directory for temp upload workspaces '
+                             '(default: system temp; or BABEL_SERVER_WORKSPACE_ROOT).')
 
     # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't
     # abort — but still reject genuine typos/unknown flags (e.g. --server instead

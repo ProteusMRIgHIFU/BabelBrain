@@ -26,7 +26,7 @@ Run it via the BabelBrain CLI:
 
 HTTP API:
     GET  /healthz                      -> {status, busy, queued}
-    GET  /capabilities                 -> {transducers: [...]}
+    GET  /capabilities                 -> {transducers: [...], features: [...]}
     GET  /defaultconfig                -> BabelBrain's default advanced config
     GET  /currentconfig                -> the server's current advanced config
     POST /jobs            (JobSpec)     -> {job_id}   (config field mandatory)
@@ -34,7 +34,13 @@ HTTP API:
     GET  /jobs/{id}                    -> job status (+ artifacts when done)
     GET  /jobs/{id}/events?since=N     -> events since index N (poll)
     GET  /jobs/{id}/stream             -> Server-Sent Events (push)
+    GET  /jobs/{id}/artifacts/{n}      -> download artifact #n (raw bytes)
     POST /jobs/{id}/cancel             -> {cancelled: bool}
+    POST /workspaces      ({mode,path?})-> {workspace_id, root, mode}
+    GET  /workspaces                   -> [workspace summaries]
+    GET  /workspaces/{id}              -> workspace info (+ staged files)
+    POST /workspaces/{id}/files?name=R -> stage an upload (raw body) -> {path,size}
+    DELETE /workspaces/{id}            -> close (temp workspaces are deleted)
 
 A JobSpec carries: input-selection fields (see _SERVER_INPUT_KEYS), a mandatory
 `config` object (advanced configuration; the client owns it), and `steps` — an
@@ -42,13 +48,23 @@ object mapping any of 'planning'/'acoustic'/'thermal' to an ordered list of
 actions ({"action": "set"|"click"|"run"|"select_trajectory", ...}) mirroring the
 scripting operations.
 
+Filesystem sharing is OPTIONAL. A client that does not share the server's disk
+can: create a workspace (mode "temp" -> server-managed tempdir, deleted on close;
+mode "persistent" -> a real directory), upload its inputs into it (each upload
+returns the absolute server path to reference in the JobSpec), pass the
+workspace id on the job (outputs default into the workspace), and afterwards pull
+results back via /jobs/{id}/artifacts/{n}. A client that DOES share the disk can
+keep sending real server paths and ignore workspaces entirely.
+
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
 token is configured (--serve-token or BABEL_SERVER_TOKEN).
 """
 import json
 import os
 import queue
+import shutil
 import signal
+import tempfile
 import threading
 import time
 import traceback
@@ -220,6 +236,103 @@ class JobManager:
     def events_since(self, job, index):
         with self._lock:
             return list(job.events[index:])
+
+
+# ── Workspaces (server-side input staging / output collection) ───────────────
+def _safe_relpath(name):
+    """Turn a client-supplied upload name into a safe path relative to a
+    workspace root. Rejects absolute paths and any '..' component so an upload
+    can never escape its workspace. Sub-directories are allowed (so a whole
+    m2m_* folder can be staged with structure preserved)."""
+    norm = str(name).replace('\\', '/').strip('/')
+    parts = []
+    for p in norm.split('/'):
+        if p in ('', '.'):
+            continue
+        if p == '..':
+            raise ValueError("'..' is not allowed in an upload name")
+        parts.append(p)
+    if not parts:
+        raise ValueError("an upload 'name' is required")
+    return os.path.join(*parts)
+
+
+class Workspace:
+    __slots__ = ('id', 'mode', 'root', 'created', 'files')
+
+    def __init__(self, ws_id, mode, root):
+        self.id = ws_id
+        self.mode = mode           # 'temp' | 'persistent'
+        self.root = root
+        self.created = time.time()
+        self.files = []            # staged relative paths
+
+    def to_dict(self):
+        return {'workspace_id': self.id, 'mode': self.mode, 'root': self.root,
+                'created': self.created, 'files': list(self.files)}
+
+
+class WorkspaceManager:
+    """Thread-safe registry of staging areas. 'temp' workspaces live in a
+    server-managed tempdir and are removed on DELETE or at server shutdown;
+    'persistent' workspaces point at a real directory the server keeps."""
+
+    def __init__(self, temp_base=None):
+        self._ws = {}
+        self._lock = threading.Lock()
+        self._temp_base = temp_base            # None -> system temp
+
+    def create(self, mode, path=None):
+        if mode not in ('temp', 'persistent'):
+            raise ValueError("workspace 'mode' must be 'temp' or 'persistent'")
+        if mode == 'temp':
+            root = tempfile.mkdtemp(prefix='babel-ws-', dir=self._temp_base)
+        else:
+            if not path:
+                raise ValueError("'path' is required for a persistent workspace")
+            root = os.path.abspath(os.path.expanduser(path))
+            os.makedirs(root, exist_ok=True)
+        ws = Workspace(uuid.uuid4().hex[:12], mode, root)
+        with self._lock:
+            self._ws[ws.id] = ws
+        return ws
+
+    def get(self, ws_id):
+        with self._lock:
+            return self._ws.get(ws_id)
+
+    def list_summaries(self):
+        with self._lock:
+            return [w.to_dict() for w in self._ws.values()]
+
+    def dest_for(self, ws, name):
+        """Resolve+create the parent dir for an upload; return (abs_path, rel)."""
+        rel = _safe_relpath(name)
+        dest = os.path.join(ws.root, rel)
+        os.makedirs(os.path.dirname(dest) or ws.root, exist_ok=True)
+        return dest, rel
+
+    def note_file(self, ws, rel):
+        with self._lock:
+            if rel not in ws.files:
+                ws.files.append(rel)
+
+    def delete(self, ws_id):
+        with self._lock:
+            ws = self._ws.pop(ws_id, None)
+        if ws is None:
+            return None
+        if ws.mode == 'temp':
+            shutil.rmtree(ws.root, ignore_errors=True)
+        return ws
+
+    def cleanup_all(self):
+        with self._lock:
+            all_ws = list(self._ws.values())
+            self._ws.clear()
+        for ws in all_ws:
+            if ws.mode == 'temp':
+                shutil.rmtree(ws.root, ignore_errors=True)
 
 
 # ── Pipeline runner (reuses the scripting engine) ────────────────────────────
@@ -492,7 +605,8 @@ def _validate_spec(spec):
     return None
 
 
-def _make_handler(manager, token, capabilities, default_config, current_config):
+def _make_handler(manager, token, capabilities, default_config, current_config,
+                  wsman):
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "BabelBrain/0"
@@ -508,6 +622,39 @@ def _make_handler(manager, token, capabilities, default_config, current_config):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        def _stream_body_to(self, dest):
+            """Stream the raw request body to a file in chunks (uploads can be
+            large NIfTI/CT volumes; don't buffer them whole in memory)."""
+            remaining = int(self.headers.get("Content-Length", 0))
+            written = 0
+            with open(dest, "wb") as f:
+                while remaining > 0:
+                    chunk = self.rfile.read(min(1 << 16, remaining))
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    remaining -= len(chunk)
+                    written += len(chunk)
+            return written
+
+        def _send_file(self, path):
+            """Stream a file back to the client as raw bytes (artifact download)."""
+            if not os.path.isfile(path):
+                return self._send(404, {"error": "artifact file no longer exists"})
+            size = os.path.getsize(path)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(size))
+            self.send_header("Content-Disposition",
+                             'attachment; filename="%s"' % os.path.basename(path))
+            self.end_headers()
+            with open(path, "rb") as f:
+                while True:
+                    chunk = f.read(1 << 16)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
 
         def _authorized(self):
             if not token:
@@ -545,7 +692,14 @@ def _make_handler(manager, token, capabilities, default_config, current_config):
                     return self._send(200, current_config)
                 if path == "/jobs":
                     return self._send(200, {"jobs": manager.list_summaries()})
+                if path == "/workspaces":
+                    return self._send(200, {"workspaces": wsman.list_summaries()})
                 parts = path.strip("/").split("/")
+                if parts[0] == "workspaces" and len(parts) == 2:
+                    ws = wsman.get(parts[1])
+                    if ws is None:
+                        return self._send(404, {"error": "unknown workspace"})
+                    return self._send(200, ws.to_dict())
                 if parts[0] == "jobs" and len(parts) >= 2:
                     job = manager.get(parts[1])
                     if job is None:
@@ -557,6 +711,13 @@ def _make_handler(manager, token, capabilities, default_config, current_config):
                         return self._send(200, {"events": manager.events_since(job, since)})
                     if len(parts) == 3 and parts[2] == "stream":
                         return self._stream(job)
+                    if len(parts) == 4 and parts[2] == "artifacts":
+                        try:
+                            idx = int(parts[3])
+                            entry = job.artifacts[idx]
+                        except (ValueError, IndexError):
+                            return self._send(404, {"error": "unknown artifact"})
+                        return self._send_file(entry['path'])
                 return self._send(404, {"error": "not found"})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
@@ -572,14 +733,59 @@ def _make_handler(manager, token, capabilities, default_config, current_config):
                     err = _validate_spec(spec)
                     if err:
                         return self._send(400, {"error": err})
+                    # If the job names a workspace, default its output into that
+                    # workspace so results are collected where the client can
+                    # reach them (and, for a temp workspace, cleaned up on close).
+                    ws_id = spec.get('workspace')
+                    if ws_id:
+                        ws = wsman.get(ws_id)
+                        if ws is None:
+                            return self._send(400, {"error": "unknown workspace %r" % ws_id})
+                        spec.setdefault('output_path', ws.root)
                     job_id = manager.submit(spec)
                     return self._send(202, {"job_id": job_id})
+                if path == "/workspaces":
+                    body = self._body()
+                    try:
+                        ws = wsman.create(body.get('mode', 'temp'), body.get('path'))
+                    except ValueError as e:
+                        return self._send(400, {"error": str(e)})
+                    return self._send(201, ws.to_dict())
                 parts = path.strip("/").split("/")
                 if parts[0] == "jobs" and len(parts) == 3 and parts[2] == "cancel":
                     accepted = manager.cancel(parts[1])
                     if accepted is None:
                         return self._send(404, {"error": "unknown job"})
                     return self._send(200, {"cancelled": bool(accepted)})
+                if (parts[0] == "workspaces" and len(parts) == 3
+                        and parts[2] == "files"):
+                    ws = wsman.get(parts[1])
+                    if ws is None:
+                        return self._send(404, {"error": "unknown workspace"})
+                    name = parse_qs(url.query).get("name", [None])[0]
+                    try:
+                        dest, rel = wsman.dest_for(ws, name)
+                    except (ValueError, TypeError):
+                        return self._send(400, {"error": "a valid ?name= is required"})
+                    size = self._stream_body_to(dest)
+                    wsman.note_file(ws, rel)
+                    return self._send(201, {"path": dest, "relpath": rel, "size": size})
+                return self._send(404, {"error": "not found"})
+            except Exception as e:
+                return self._send(500, {"error": str(e)})
+
+        def do_DELETE(self):
+            url = urlparse(self.path)
+            path = url.path.rstrip("/") or "/"
+            try:
+                if not self._guard():
+                    return
+                parts = path.strip("/").split("/")
+                if parts[0] == "workspaces" and len(parts) == 2:
+                    ws = wsman.delete(parts[1])
+                    if ws is None:
+                        return self._send(404, {"error": "unknown workspace"})
+                    return self._send(200, {"deleted": True, "mode": ws.mode})
                 return self._send(404, {"error": "not found"})
             except Exception as e:
                 return self._send(500, {"error": str(e)})
@@ -658,16 +864,20 @@ def run_server(app, args):
     app.setQuitOnLastWindowClosed(False)
 
     manager = JobManager()
+    wsman = WorkspaceManager(temp_base=getattr(args, 'serve_workspace_root', None)
+                             or os.environ.get('BABEL_SERVER_WORKSPACE_ROOT'))
     executor = QtJobExecutor(manager, headless=headless)  # noqa: F841 (kept alive)
     transducers = _discover_transducers()
     capabilities = {"transducers": transducers,
-                    "server_version": "v0", "single_worker": True}
+                    "server_version": "v0", "single_worker": True,
+                    "features": ["workspaces", "uploads", "artifact_download"]}
     default_config = _default_config_dict(transducers)
     current_config = _current_config_dict(transducers)
 
     httpd = ThreadingHTTPServer(
         (host, port),
-        _make_handler(manager, token, capabilities, default_config, current_config))
+        _make_handler(manager, token, capabilities, default_config,
+                      current_config, wsman))
     server_thread = threading.Thread(target=httpd.serve_forever, name="babel-http",
                                      daemon=True)
     server_thread.start()
@@ -704,4 +914,5 @@ def run_server(app, args):
         httpd.shutdown()
     except Exception:
         pass
+    wsman.cleanup_all()          # remove any lingering temp workspaces
     return 0
