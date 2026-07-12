@@ -7,7 +7,8 @@ ABOUT:
      last update   - Nov 28, 2021
 
 '''
-from .BabelIntegrationBASE import (RUN_SIM_BASE, 
+from .BabelIntegrationBASE import (RUN_SIM_BASE,
+                            _rec_artifact,
                             BabelFTD_Simulations_BASE,
                             SimulationConditionsBASE,
                             Material)
@@ -229,7 +230,8 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         
         bdir=os.path.dirname(self._MASKFNAME)
         TxStl.save(bdir+os.sep+prefix+'Tx.stl')
-        
+        _rec_artifact(bdir+os.sep+prefix+'Tx.stl')
+
             # TransformationCone=np.eye(4)
             # TransformationCone[2,2]=-1
             # OrientVec=np.array([0,0,1]).reshape((1,3))
