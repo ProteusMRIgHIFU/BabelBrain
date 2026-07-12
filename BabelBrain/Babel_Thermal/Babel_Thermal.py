@@ -666,6 +666,11 @@ class Babel_Thermal(QWidget):
     def _showMatplotlibVisualization(self,bUpdatePlot=True,OverWriteIsppa=None,bIsppaBrainToWater=True):
         if self.bDisableUpdate:
             return
+        # Headless (server): run the metric/table population AND the functional
+        # temperature/intensity NIfTI update (feeds ExportSummary and, via
+        # AllThermalFieldsDone, enables CombineTrajectories) — but skip the 2D
+        # matplotlib drawing (there is no display). See the `_headless` guard.
+        _headless = os.environ.get('BABEL_NO_PLOTS') == '1'
         self._MainApp.Widget.tabWidget.setEnabled(True)
         self.Widget.ExportSummary.setEnabled(True)
         self.Widget.ExportMaps.setEnabled(True)
@@ -988,7 +993,24 @@ class Babel_Thermal(QWidget):
                 Intensity[:,:,DataThermal['ZIntoSkinPixels']]=0
             else:
                 Intensity[:,:,0]=0
-           
+
+            # Temperature/intensity NIfTI + per-trajectory "done" marker are
+            # FUNCTIONAL (AllThermalFieldsDone -> CombineTrajectories button; the
+            # VTK overlay inside is guarded), so update them before the drawing.
+            if not self._IsMergedTab():
+                NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+                NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
+                self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
+            else:
+                NiftiIntensity=nibabel.Nifti1Image(np.transpose(np.flip(Intensity,axis=2).astype(np.float32),(1,2,0)),
+                                                   affine=self._MainApp._NiftiMergeAc.affine)
+                NiftiTemperature=nibabel.Nifti1Image(np.transpose(np.flip(Temperature,axis=2).astype(np.float32),(1,2,0)),
+                                                   affine=self._MainApp._NiftiMergeAc.affine)
+                self._MainApp.UpdateNiftiMergedThermalResults(NiftiIntensity,NiftiTemperature)
+
+            if _headless:
+                return   # table + NIfTI done above; no display -> skip the 2D drawing
+
             if not hasattr(self,'_prevDisplay'):
                 self._prevDisplay = -1 #we set the initial plotting
             IntensityMap=self._SlicePlane(Intensity,SelY,axis).T.copy()
@@ -1161,20 +1183,6 @@ class Babel_Thermal(QWidget):
                 self.Widget.SliceLabel.setText("%s = %3.2f mm" %(vp['poslabel'],posvec[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
             self._prevView=vp['view']
-
-            # Per-trajectory NIfTI/VTK overlays are keyed by trajectory index; the
-            # Merged tab has no such slot (there is no merged thermal viewer), so
-            # skip the 3D update for it — the 2D matplotlib view above is enough.
-            if not self._IsMergedTab():
-                NiftiIntensity=nibabel.Nifti1Image(np.flip(Intensity,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
-                NiftiTemperature=nibabel.Nifti1Image(np.flip(Temperature,axis=2).astype(np.float32),affine=self._MainApp._NiftiSkull[self._TrajectoryNumber].affine)
-                self._MainApp.UpdateNiftiTemperatureResults(NiftiIntensity,NiftiTemperature,self._TrajectoryNumber)
-            else:
-                NiftiIntensity=nibabel.Nifti1Image(np.transpose(np.flip(Intensity,axis=2).astype(np.float32),(1,2,0)),
-                                                   affine=self._MainApp._NiftiMergeAc.affine)
-                NiftiTemperature=nibabel.Nifti1Image(np.transpose(np.flip(Temperature,axis=2).astype(np.float32),(1,2,0)),
-                                                   affine=self._MainApp._NiftiMergeAc.affine)
-                self._MainApp.UpdateNiftiMergedThermalResults(NiftiIntensity,NiftiTemperature)
 
     @Slot()
     def UpdateThermalResults(self):

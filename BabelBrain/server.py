@@ -236,12 +236,12 @@ def _apply_advanced(config, key, value):
 # timeout, and how to reach the step's control widget (re-fetched each action,
 # because selecting a trajectory tab repoints AcSim.Widget / ThermalSim.Widget).
 _STEP = {
-    'planning': dict(tab=0, run='CalculatePlanningMask', timeout=900_000,
+    'planning': dict(tab=0, run='CalculatePlanningMask', timeout=3_600_000,
                      widget=lambda bb: bb.Widget, tabs=None, base_pct=10),
     'acoustic': dict(tab=1, run='CalculateAcField', timeout=3_600_000,
                      widget=lambda bb: bb.AcSim.Widget,
                      tabs=lambda bb: bb.AcSim._txTabs, base_pct=35),
-    'thermal':  dict(tab=2, run='CalculateThermal', timeout=900_000,
+    'thermal':  dict(tab=2, run='CalculateThermal', timeout=3_600_000,
                      widget=lambda bb: bb.ThermalSim.Widget,
                      tabs=lambda bb: bb.ThermalSim._txTabs, base_pct=75),
 }

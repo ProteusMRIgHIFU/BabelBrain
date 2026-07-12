@@ -1986,6 +1986,10 @@ def main():
 
     if args.headless:
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        # No display: skip the matplotlib canvas rendering in the Step 2/3 result
+        # views. The data/table work still runs (the table feeds the CSV export);
+        # only the drawing is skipped — see the _showMatplotlibVisualization guards.
+        os.environ.setdefault('BABEL_NO_PLOTS', '1')
 
     app = QApplication([])
     _apply_color_scheme(app)

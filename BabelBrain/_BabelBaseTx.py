@@ -378,13 +378,17 @@ class BabelBaseTx(QWidget):
             self._BuildAcResultFigure(panel)     # fresh fig/canvas in this tab's plot host
             self._ActivatePanel(panel)           # mirror data into self._* aliases
             self._SyncScrollAndDistance(panel)   # scrollbar defaults + distance label
-            self._RenderAcResultPanel(panel)
+            # Headless (server): the data/aliases above are functional and stay;
+            # only the heavy contour/colourbar drawing is skipped (no display).
+            if os.environ.get('BABEL_NO_PLOTS') != '1':
+                self._RenderAcResultPanel(panel)
             self._bRecalculated = False
         else:
             if panel.get('figure') is None:
                 return
             self._ActivatePanel(panel)
-            self._RenderAcResultPanel(panel)
+            if os.environ.get('BABEL_NO_PLOTS') != '1':
+                self._RenderAcResultPanel(panel)
 
     def _ActivatePanel(self, panel):
         '''
@@ -830,12 +834,16 @@ class BabelBaseTx(QWidget):
         # frequency); the GUI updates happen in _CombineTrajectoriesFinished on
         # the main thread.  Reuses the shared acoustic-sim thread plumbing
         # (hourglass dialog, telemetry, error handling).
-        bCalcMerge=False
+        # Compute by default — including the first combine, when no merged file
+        # exists yet. Only reload when a merged result is already present and the
+        # user declines to recalculate. (Mirrors Step-3 thermal RunSimulation;
+        # the previous default reloaded a non-existent file on a fresh combine.)
+        bCalcMerge=True
         if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
             ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
-            if ret == QMessageBox.Yes:
-                bCalcMerge=True
+            if ret == QMessageBox.No:
+                bCalcMerge=False
 
         if bCalcMerge:
             self._LaunchAcousticSim(RunCombineTrajectories(self._MainApp),

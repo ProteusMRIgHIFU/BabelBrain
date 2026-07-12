@@ -19,14 +19,28 @@ BASE = "http://127.0.0.1:8760"
 TOKEN = None          # set to the --serve-token value if the server requires it
 
 
-def _req(method, path, body=None):
+def _req(method, path, body=None, timeout=60, retries=8):
+    """HTTP request with retry on transient timeouts. While a heavy step runs on
+    the server's Qt main thread it can briefly starve the HTTP thread (GIL), so a
+    poll may time out even though the job is progressing fine — just retry. Only
+    idempotent GETs are retried; POST (job submit) is sent once to avoid
+    double-submitting."""
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"}
     if TOKEN:
         headers["Authorization"] = "Bearer " + TOKEN
-    r = urllib.request.Request(BASE + path, data=data, method=method, headers=headers)
-    with urllib.request.urlopen(r, timeout=30) as resp:
-        return json.loads(resp.read().decode() or "{}")
+    attempts = retries if method == "GET" else 1
+    for attempt in range(attempts):
+        try:
+            r = urllib.request.Request(BASE + path, data=data, method=method, headers=headers)
+            with urllib.request.urlopen(r, timeout=timeout) as resp:
+                return json.loads(resp.read().decode() or "{}")
+        except urllib.error.HTTPError:
+            raise                                   # real 4xx/5xx — don't retry
+        except (TimeoutError, urllib.error.URLError, OSError):
+            if attempt == attempts - 1:
+                raise
+            time.sleep(2)                           # server busy; back off and retry
 
 
 def submit(spec):
