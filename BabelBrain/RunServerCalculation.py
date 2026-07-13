@@ -418,7 +418,12 @@ class RunServerCalculation(QObject):
         seen = 0
         while True:
             for ev in cf._req("GET", "/jobs/%s/events?since=%d" % (job_id, seen))["events"]:
-                print("[remote %3d%%] %-9s %s" % (ev["percent"], ev["phase"], ev["message"]))
+                if ev.get("type") == "log":
+                    # Server-side calculation output, streamed verbatim so it shows
+                    # in the client's output window exactly as a local run would.
+                    print(ev["message"])
+                else:
+                    print("[remote %3d%%] %-9s %s" % (ev["percent"], ev["phase"], ev["message"]))
                 if 'CTS:' in ev["message"]:
                     self.logTelemetry.emit(ev["message"])
                 seen += 1

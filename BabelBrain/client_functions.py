@@ -65,12 +65,17 @@ def submit(spec):
 
 def follow(job_id, poll=1.0, on_event=None):
     """Poll status + new events until the job reaches a terminal state. Prints
-    each event (or calls on_event(ev) if provided). Returns the final status."""
+    each event (or calls on_event(ev) if provided). 'log' events carry the
+    server-side calculation stdout and are printed verbatim, so a remote run reads
+    like a local one; other events are printed as progress. Returns the final
+    status."""
     seen = 0
     while True:
         for ev in _req("GET", "/jobs/%s/events?since=%d" % (job_id, seen))["events"]:
             if on_event:
                 on_event(ev)
+            elif ev.get("type") == "log":
+                print(ev["message"])
             else:
                 print("  [%3d%%] %-9s %s" % (ev["percent"], ev["phase"], ev["message"]))
             seen += 1

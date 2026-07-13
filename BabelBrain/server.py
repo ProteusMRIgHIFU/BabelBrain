@@ -87,6 +87,51 @@ from urllib.parse import urlparse, parse_qs
 from PySide6.QtCore import QObject, QTimer
 
 
+# ── Verbose server logging ───────────────────────────────────────────────────
+def _log(msg):
+    """Timestamped server-side log line. During a running job this goes through
+    the stdout tee, so it is ALSO streamed to the client (see _StreamTee)."""
+    print("[server %s] %s" % (time.strftime("%H:%M:%S"), msg), flush=True)
+
+
+class _StreamTee:
+    """Wraps the real stdout while a job runs: mirrors every write to the console
+    AND turns each completed line into a 'log' event on the job, so the client
+    sees the calculation output live — as if it were running locally. Thread-safe
+    because calculation output is printed from worker QThreads."""
+
+    def __init__(self, job, manager, real):
+        self._job = job
+        self._manager = manager
+        self._real = real
+        self._buf = ''
+        self._lock = threading.Lock()
+
+    def write(self, s):
+        try:
+            self._real.write(s)
+        except Exception:
+            pass
+        lines = []
+        with self._lock:
+            self._buf += s
+            while '\n' in self._buf:
+                line, self._buf = self._buf.split('\n', 1)
+                lines.append(line)
+        for line in lines:
+            # phase=current (don't disturb progress); type='log' -> client prints raw
+            self._manager.add_event(self._job, self._job.phase, line, etype='log')
+
+    def flush(self):
+        try:
+            self._real.flush()
+        except Exception:
+            pass
+
+    def isatty(self):
+        return False
+
+
 # ── Job model ────────────────────────────────────────────────────────────────
 class JobState:
     QUEUED = "QUEUED"
@@ -168,6 +213,10 @@ class JobManager:
             self._jobs[job_id] = job
             self._order.append(job_id)
         self.add_event(job, "queued", "Job accepted", 0)
+        steps = spec.get('steps') or {}
+        _log("job %s accepted: steps=%s recalc=%s keep_alive=%s workspace=%s"
+             % (job_id, ",".join(steps.keys()) or "(none)", spec.get('recalculate', True),
+                bool(spec.get('keep_alive')), spec.get('workspace')))
         self._queue.put(job_id)
         return job_id
 
@@ -233,6 +282,7 @@ class JobManager:
         with self._lock:
             job.state = JobState.RUNNING
             job.started = time.time()
+        _log("job %s started" % job.id)
         self.add_event(job, "running", "Job started", 1)
 
     def mark_finished(self, job, state, exit_code, error=None):
@@ -243,6 +293,11 @@ class JobManager:
             job.finished = time.time()
             if state == JobState.SUCCEEDED:
                 job.percent = 100
+        dt = (job.finished - job.started) if job.started else 0.0
+        _log("job %s %s in %.1fs (%d artifact(s))"
+             % (job.id, state, dt, len(job.artifacts)))
+        if error:
+            _log("job %s error:\n%s" % (job.id, error.rstrip()))
         self.add_event(job, state.lower(), error or "Job %s" % state.lower(), etype="final")
 
     def events_since(self, job, index):
@@ -307,6 +362,7 @@ class WorkspaceManager:
         ws = Workspace(uuid.uuid4().hex[:12], mode, root)
         with self._lock:
             self._ws[ws.id] = ws
+        _log("workspace %s created (%s): %s" % (ws.id, mode, root))
         return ws
 
     def get(self, ws_id):
@@ -336,6 +392,9 @@ class WorkspaceManager:
             return None
         if ws.mode == 'temp':
             shutil.rmtree(ws.root, ignore_errors=True)
+            _log("workspace %s deleted (temp dir removed): %s" % (ws.id, ws.root))
+        else:
+            _log("workspace %s closed (persistent dir kept): %s" % (ws.id, ws.root))
         return ws
 
     def cleanup_all(self):
@@ -474,8 +533,10 @@ def _run_step(bb, name, actions, emit, check_cancel):
             _click(bb, meta['widget'](bb), act['control'],
                    act.get('wait', True), act.get('timeout_ms', meta['timeout']))
         elif a == 'run':
+            _log("========== %s: running calculation (%s) ==========" % (name, meta['run']))
             _click(bb, meta['widget'](bb), meta['run'], True,
                    act.get('timeout_ms', meta['timeout']))
+            _log("========== %s: calculation finished ==========" % name)
         else:
             raise ValueError("unknown action %r in step %s" % (a, name))
 
@@ -506,12 +567,19 @@ def run_pipeline(job, manager, headless, existing_bb=None):
     steps = spec.get('steps') or {}
     recalc = spec.get('recalculate', True)
 
+    _log("job %s: executing step(s) %s%s" % (
+        job.id, ",".join(k for k in ('planning', 'acoustic', 'thermal') if k in steps),
+        "" if existing_bb is None else " (reusing live session)"))
+
     if existing_bb is not None:
         emit("launch", "Reusing the persistent BabelBrain session", 5)
+        _log("job %s: reusing the persistent BabelBrain session" % job.id)
         bb = existing_bb
         job._bb = bb
     else:
         emit("launch", "Opening BabelBrain with the requested inputs", 5)
+        _log("job %s: launching BabelBrain (transducer=%s, output=%s)"
+             % (job.id, inputs.get('transducer'), inputs.get('output_path')))
         if spec.get('use_last_selection'):
             bb = launch_from_last_selection(**inputs)
         else:
@@ -528,7 +596,16 @@ def run_pipeline(job, manager, headless, existing_bb=None):
     reset_advanced_config(bb)
     for k, v in spec['config'].items():
         _apply_advanced(bb.Config, k, v)
+    _log("job %s: applied %d advanced-config override(s); recalculate=%s"
+         % (job.id, len(spec['config']), recalc))
 
+    # Stream the calculation's stdout to the client as 'log' events, so the user
+    # sees the same progress/error prints they would locally. The step's heavy
+    # work runs on a worker QThread, but sys.stdout is process-global, so the tee
+    # (installed here on the main thread) captures those prints too.
+    import sys as _sys
+    _saved_out = _sys.stdout
+    _sys.stdout = _StreamTee(job, manager, _saved_out)
     auto_answer_dialogs(question=QMessageBox.Yes if recalc else QMessageBox.No)
     try:
         bb.testing_error = False
@@ -537,8 +614,10 @@ def run_pipeline(job, manager, headless, existing_bb=None):
                 ArtifactIO.set_step({'planning': 1, 'acoustic': 2, 'thermal': 3}[name])
                 acts = steps[name] or []
                 emit(name, "Step '%s': %d action(s)" % (name, len(acts)), _STEP[name]['base_pct'])
+                _log("---------- step '%s': %d action(s) ----------" % (name, len(acts)))
                 _run_step(bb, name, acts, emit, check_cancel)
     finally:
+        _sys.stdout = _saved_out
         restore_dialogs()
 
     # Ground-truth artifacts from the record-at-save sidecar. During the Phase-2
@@ -554,6 +633,9 @@ def run_pipeline(job, manager, headless, existing_bb=None):
         job.artifacts = []
         emit("collect", "artifact recording failed: %s" % e)
     ArtifactIO.end_run()
+    _log("job %s: collected %d artifact(s):" % (job.id, len(job.artifacts)))
+    for a in job.artifacts:
+        _log("    %s" % os.path.basename(a['path']))
     emit("collect", "Collected %d artifact(s)" % len(job.artifacts), 98)
 
 
@@ -644,16 +726,20 @@ class QtJobExecutor(QObject):
         if job.spec.get('keep_alive') and not self._close_requested:
             self._live_bb = bb
             self._live_bb_last = time.time()
+            _log("session kept alive after job %s (ready to reuse)" % job.id)
         else:
             if bb is self._live_bb:
                 self._live_bb = None
             self._close_requested = False
+            _log("closing BabelBrain session after job %s" % job.id)
             self._destroy(bb)
 
     def _teardown_live(self):
         bb = self._live_bb
         self._live_bb = None
         self._close_requested = False
+        if bb is not None:
+            _log("tearing down persistent session")
         self._destroy(bb)
 
     def _destroy(self, bb):
@@ -797,6 +883,8 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                             entry = job.artifacts[idx]
                         except (ValueError, IndexError):
                             return self._send(404, {"error": "unknown artifact"})
+                        _log("serving artifact #%d to client: %s"
+                             % (idx, os.path.basename(entry['path'])))
                         return self._send_file(entry['path'])
                 return self._send(404, {"error": "not found"})
             except Exception as e:
@@ -849,6 +937,8 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                         return self._send(400, {"error": "a valid ?name= is required"})
                     size = self._stream_body_to(dest)
                     wsman.note_file(ws, rel)
+                    _log("received upload: %s (%d bytes) into workspace %s"
+                         % (rel, size, ws.id))
                     return self._send(201, {"path": dest, "relpath": rel, "size": size})
                 return self._send(404, {"error": "not found"})
             except Exception as e:
@@ -863,6 +953,7 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                 parts = path.strip("/").split("/")
                 if path == "/session":
                     alive = executor.request_close_session()
+                    _log("client requested session close (was alive: %s)" % bool(alive))
                     return self._send(200, {"closing": bool(alive)})
                 if parts[0] == "workspaces" and len(parts) == 2:
                     ws = wsman.delete(parts[1])
