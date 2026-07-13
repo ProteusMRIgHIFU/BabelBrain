@@ -727,6 +727,16 @@ class Babel_Thermal(QWidget):
                                                         self.Config['BaseIsppa'],
                                                         combination['PRF'],
                                                         combination['Repetitions'])+'.h5'
+                if not os.path.isfile(ThermalName):
+                    # The thermal result does not exist yet. This fires when a
+                    # parameter-change signal (e.g. UpdateIsppaWater) triggers a
+                    # display refresh BEFORE the calculation has run — notably on
+                    # the headless server while the client's parameters are being
+                    # replayed. There is nothing to show: reset and bail out
+                    # instead of crashing on a missing file.
+                    self._NiftiThermalNames=[]
+                    self._ThermalResults=[]
+                    return
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
             if self.Config['bConcatenateSimulations']:
