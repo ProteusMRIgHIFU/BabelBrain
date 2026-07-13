@@ -127,6 +127,11 @@ class RunServerCalculation(QObject):
         # before combining. (The acoustic combine merges from files, no GUI input.)
         self._combine_sync_actions = (self._capture_all_traj_params(STEP_THERMAL)
                                       if combine and step == STEP_THERMAL else [])
+        # Thermal runs must use the profile currently selected on the client (the
+        # user may have picked a new one via Babel_Thermal.SelectProfile). Capture
+        # its path now; the worker uploads it and tells the server to reload it.
+        self._thermal_profile = ((mainApp.Config or {}).get('ThermalProfile')
+                                 if step == STEP_THERMAL else None)
 
     # ── server addressing / preflight ────────────────────────────────────
     def _bind(self):
@@ -347,6 +352,17 @@ class RunServerCalculation(QObject):
         sess['launched'] = True
         return result
 
+    def _thermal_profile_actions(self, sess):
+        """Upload the client's current thermal profile YAML and return the action
+        that makes the server (re)load it, so a profile the user changed in Step 3
+        (Babel_Thermal.SelectProfile) is honoured. Empty if not a thermal step."""
+        if not self._thermal_profile or not os.path.isfile(self._thermal_profile):
+            return []
+        server_path = cf.upload(sess['workspace'], self._thermal_profile,
+                                os.path.basename(self._thermal_profile))
+        print('[remote] using thermal profile:', os.path.basename(self._thermal_profile))
+        return [{'action': 'set_thermal_profile', 'value': server_path}]
+
     def _upload_existing(self, ws_id, local_path):
         if os.path.isfile(local_path):
             cf.upload(ws_id, local_path, os.path.basename(local_path))
@@ -483,7 +499,8 @@ class RunServerCalculation(QObject):
             self._ensure_acoustic(sess, traj)
         print("[remote] Step %s trajectory %d (%d parameter(s))"
               % (self._step, traj, len(self._param_actions)))
-        acts = ([{'action': 'select_trajectory', 'index': traj}]
+        acts = (self._thermal_profile_actions(sess)          # no-op unless thermal
+                + [{'action': 'select_trajectory', 'index': traj}]
                 + self._param_actions
                 + [{'action': 'run'}])
         result = self._submit_step(sess, self._step, acts, recalculate=True)
@@ -517,7 +534,8 @@ class RunServerCalculation(QObject):
                 self._ensure_thermal(sess, traj)
             # Sync each trajectory's Isppa (and other Step-3 inputs) to the server,
             # then combine — the merge is scaled per trajectory by these values.
-            acts = (self._combine_sync_actions
+            acts = (self._thermal_profile_actions(sess)
+                    + self._combine_sync_actions
                     + [{'action': 'select_trajectory', 'index': 0},
                        {'action': 'click', 'control': 'CombineTrajectories'}])
             print('[remote] thermal CombineTrajectories over %d trajectories (%d sync action(s))'

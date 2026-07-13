@@ -510,6 +510,8 @@ def _describe(act):
         return "run"
     if a == 'select_trajectory':
         return "select trajectory %s" % act.get('index')
+    if a == 'set_thermal_profile':
+        return "set thermal profile -> %s" % os.path.basename(str(act.get('value')))
     return str(a)
 
 
@@ -527,6 +529,12 @@ def _run_step(bb, name, actions, emit, check_cancel):
             if meta['tabs'] is None:
                 raise ValueError("select_trajectory is not valid in 'planning'")
             meta['tabs'](bb).setCurrentIndex(int(act['index']))
+        elif a == 'set_thermal_profile':
+            # Point the server at the client's (re)selected thermal profile and
+            # reload it, exactly as Babel_Thermal.SelectProfile does locally
+            # (without the file dialog). Re-reads AllDC_PRF_Duration/BaseIsppa/etc.
+            bb.Config['ThermalProfile'] = act['value']
+            bb.ThermalSim.DefaultConfig()
         elif a == 'set':
             _set_control(meta['widget'](bb), act['control'], act['value'])
         elif a == 'click':
