@@ -70,6 +70,33 @@ def acoustic_carryover_files(cfg, prefix_path):
             prefix_path + 'Water_FullElasticSolution_Sub_NORM.nii.gz']
 
 
+def thermal_carryover_files(cfg, prefix_path):
+    """Step-3 outputs the server needs to RELOAD a trajectory's thermal result (so
+    a thermal COMBINE can run) when it was reloaded locally. The exact filename
+    depends on the Isppa/DC/PRF/Duration combination, so glob the ThermalField
+    results for this trajectory's prefix."""
+    return sorted(glob(prefix_path + '*ThermalField*.h5'))
+
+
+def merged_acoustic_carryover_files(cfg, merged_prefix_path):
+    """The merged-acoustic outputs the server needs to RELOAD the combined Step-2
+    result (so a thermal combine can run on it) when it was made locally."""
+    return [merged_prefix_path + 'Merged_DataForSim.h5',
+            merged_prefix_path + 'Water_Merged_DataForSim.h5',
+            merged_prefix_path + 'Merged_NORM.nii.gz']
+
+
+def _new_session(workspace_id, server_paths):
+    """Per-trajectory session state tracking what the server has loaded, so we
+    prime only what's missing (and can drive multi-trajectory combines)."""
+    return {'workspace': workspace_id, 'server_paths': server_paths,
+            'launched': False,
+            'planning': False,          # planning (all trajectories) loaded
+            'acoustic': set(),          # trajectory indices with acoustic loaded
+            'thermal': set(),           # trajectory indices with thermal loaded
+            'merged_acoustic': False}   # combined Step-2 field present on server
+
+
 class RemoteNotReady(Exception):
     """Raised when the configured server can't be reached / used."""
 
@@ -81,17 +108,18 @@ class RunServerCalculation(QObject):
     endError = Signal()
     logTelemetry = Signal(str)
 
-    def __init__(self, mainApp, step, trajectory=None):
+    def __init__(self, mainApp, step, trajectory=None, combine=False):
         super().__init__()
         self._mainApp = mainApp
         self._step = step
         self._trajectory = trajectory      # active trajectory index for Steps 2/3
+        self._combine = combine            # CombineTrajectories (merged) operation
         self._server = (mainApp.Config or {}).get('RemoteServer')
         self._errorText = None
         # Capture the trajectory's user parameters NOW, on the GUI thread (the
         # worker runs off-thread and must not read live widgets). Empty for Step 1
-        # (its controls are handled by _planning_steps).
-        self._param_actions = self._capture_params()
+        # and for a combine (which just clicks the CombineTrajectories button).
+        self._param_actions = [] if combine else self._capture_params()
 
     # ── server addressing / preflight ────────────────────────────────────
     def _bind(self):
@@ -265,8 +293,7 @@ class RunServerCalculation(QObject):
         ws = cf.create_workspace(mode='temp')
         print('[remote] no session — uploading inputs to prime a new one')
         server_paths = self._upload_inputs(ws['workspace_id'])
-        sess = {'workspace': ws['workspace_id'], 'server_paths': server_paths,
-                'steps_loaded': set(), 'launched': False}
+        sess = _new_session(ws['workspace_id'], server_paths)
         m._RemoteSession = sess
         return sess
 
@@ -299,35 +326,69 @@ class RunServerCalculation(QObject):
         print('[remote] WARNING carry-over file missing (skipped):', local_path)
         return False
 
-    def _prime(self, sess, step_name):
-        """Reload a PRIOR step on the server from uploaded carry-over files, so a
-        later step can run even though the prior step was reloaded (not run) on
-        the client. No-op if the server already has it loaded."""
-        if step_name in sess['steps_loaded']:
+    def _reload(self, sess, step_key, acts, files):
+        """Upload carry-over files and run a step in RELOAD mode (recalculate=
+        False) so the server loads that state into its live session instead of
+        recomputing it."""
+        for f in files:
+            self._upload_existing(sess['workspace'], f)
+        self._submit_step(sess, step_key, acts, recalculate=False)
+
+    # ── ensure prior server state (prime only what's missing) ─────────────
+    def _ensure_planning(self, sess):
+        if sess['planning']:
             return
-        m = self._mainApp
-        cfg = m.Config
-        if step_name == 'planning':
-            # A planning reload chains ALL trajectories on the server, so every
-            # trajectory's carry-over files must be present.
-            for traj in range(len(cfg['ID'])):
-                for f in planning_carryover_files(cfg, m._prefix_path[traj]):
-                    self._upload_existing(sess['workspace'], f)
-            acts = self._planning_steps()
-        else:  # 'acoustic' — reload just the target trajectory
-            traj = int(self._trajectory or 0)
-            for f in acoustic_carryover_files(cfg, m._prefix_path[traj]):
-                self._upload_existing(sess['workspace'], f)
-            acts = [{'action': 'select_trajectory', 'index': traj},
-                    {'action': 'run'}]
-        print('[remote] priming %s on server (reload from carry-over files)' % step_name)
-        self._submit_step(sess, step_name, acts, recalculate=False)
-        sess['steps_loaded'].add(step_name)
+        m, cfg = self._mainApp, self._mainApp.Config
+        files = []
+        for traj in range(len(cfg['ID'])):     # planning reload chains all trajectories
+            files += planning_carryover_files(cfg, m._prefix_path[traj])
+        print('[remote] priming planning (reload all trajectories from carry-over)')
+        self._reload(sess, 'planning', self._planning_steps(), files)
+        sess['planning'] = True
+
+    def _ensure_acoustic(self, sess, traj):
+        self._ensure_planning(sess)
+        if traj in sess['acoustic']:
+            return
+        m, cfg = self._mainApp, self._mainApp.Config
+        files = acoustic_carryover_files(cfg, m._prefix_path[traj])
+        print('[remote] priming acoustic trajectory %d (reload from carry-over)' % traj)
+        self._reload(sess, 'acoustic',
+                     [{'action': 'select_trajectory', 'index': traj},
+                      {'action': 'run'}], files)
+        sess['acoustic'].add(traj)
+
+    def _ensure_merged_acoustic(self, sess):
+        for traj in range(len(self._mainApp.Config['ID'])):
+            self._ensure_acoustic(sess, traj)
+        if sess['merged_acoustic']:
+            return
+        m, cfg = self._mainApp, self._mainApp.Config
+        files = merged_acoustic_carryover_files(cfg, m._merged_prefix_path)
+        print('[remote] priming merged acoustic (reload from carry-over)')
+        self._reload(sess, 'acoustic',
+                     [{'action': 'select_trajectory', 'index': 0},
+                      {'action': 'click', 'control': 'CombineTrajectories'}], files)
+        sess['merged_acoustic'] = True
+
+    def _ensure_thermal(self, sess, traj):
+        self._ensure_acoustic(sess, traj)
+        if traj in sess['thermal']:
+            return
+        m, cfg = self._mainApp, self._mainApp.Config
+        files = thermal_carryover_files(cfg, m._prefix_path[traj])
+        print('[remote] priming thermal trajectory %d (reload from carry-over)' % traj)
+        self._reload(sess, 'thermal',
+                     [{'action': 'select_trajectory', 'index': traj},
+                      {'action': 'run'}], files)
+        sess['thermal'].add(traj)
 
     # ── run (Qt worker slot) ──────────────────────────────────────────────
     def run(self):
         try:
-            if self._step == STEP_PLANNING:
+            if self._combine:
+                self._run_combine()
+            elif self._step == STEP_PLANNING:
                 self._run_planning()
             elif self._step in (STEP_ACOUSTIC, STEP_THERMAL):
                 self._run_reuse_step()
@@ -354,8 +415,7 @@ class RunServerCalculation(QObject):
         print("*" * 5 + " Remote Step 1 on %s — BE PATIENT..." % RemoteServers.base_url(self._server))
         print("*" * 40)
         ws = cf.create_workspace(mode='temp')
-        sess = {'workspace': ws['workspace_id'], 'server_paths': None,
-                'steps_loaded': set(), 'launched': False}
+        sess = _new_session(ws['workspace_id'], None)
         m._RemoteSession = sess
         T0 = time.time()
         try:
@@ -366,7 +426,7 @@ class RunServerCalculation(QObject):
             result = self._submit_step(sess, STEP_PLANNING, self._planning_steps(),
                                        recalculate=True)
             output_files = self._download(result, out_dir)
-            sess['steps_loaded'].add('planning')
+            sess['planning'] = True
         except BaseException:
             cleanup_session(m)                 # don't leak the workspace/session
             raise
@@ -387,12 +447,12 @@ class RunServerCalculation(QObject):
         self._bind()
         out_dir = m.Config['OutputFilesPath']
         sess = self._ensure_session()
-        # Make sure every prior step is loaded on the server.
-        needed = {STEP_ACOUSTIC: ['planning'],
-                  STEP_THERMAL: ['planning', 'acoustic']}[self._step]
-        for prior in needed:
-            self._prime(sess, prior)
         traj = int(self._trajectory or 0)
+        # Ensure the server has the prior-step state this trajectory needs.
+        if self._step == STEP_ACOUSTIC:
+            self._ensure_planning(sess)
+        else:  # thermal needs this trajectory's acoustic (and planning)
+            self._ensure_acoustic(sess, traj)
         print("[remote] Step %s trajectory %d (%d parameter(s))"
               % (self._step, traj, len(self._param_actions)))
         acts = ([{'action': 'select_trajectory', 'index': traj}]
@@ -400,7 +460,39 @@ class RunServerCalculation(QObject):
                 + [{'action': 'run'}])
         result = self._submit_step(sess, self._step, acts, recalculate=True)
         self._download(result, out_dir)
-        sess['steps_loaded'].add(self._step)
+        sess[self._step].add(traj)
+        self.finished.emit({})
+
+    def _run_combine(self):
+        """CombineTrajectories (merged Step-2 or Step-3). Ensures every trajectory
+        the merge needs is loaded on the server (priming from carry-over files any
+        that were reloaded locally), then clicks CombineTrajectories and downloads
+        the merged artifacts. The GUI's finished slot reloads them from disk."""
+        m = self._mainApp
+        self.preflight()
+        self._bind()
+        out_dir = m.Config['OutputFilesPath']
+        sess = self._ensure_session()
+        ntraj = len(m.Config['ID'])
+        if self._step == STEP_ACOUSTIC:
+            for traj in range(ntraj):
+                self._ensure_acoustic(sess, traj)
+            print('[remote] acoustic CombineTrajectories over %d trajectories' % ntraj)
+            result = self._submit_step(sess, 'acoustic',
+                        [{'action': 'select_trajectory', 'index': 0},
+                         {'action': 'click', 'control': 'CombineTrajectories'}],
+                        recalculate=True)
+            sess['merged_acoustic'] = True
+        else:  # thermal combine needs the merged acoustic + every trajectory's thermal
+            self._ensure_merged_acoustic(sess)
+            for traj in range(ntraj):
+                self._ensure_thermal(sess, traj)
+            print('[remote] thermal CombineTrajectories over %d trajectories' % ntraj)
+            result = self._submit_step(sess, 'thermal',
+                        [{'action': 'select_trajectory', 'index': 0},
+                         {'action': 'click', 'control': 'CombineTrajectories'}],
+                        recalculate=True)
+        self._download(result, out_dir)
         self.finished.emit({})
 
     def _download(self, result, out_dir):

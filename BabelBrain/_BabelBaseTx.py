@@ -854,8 +854,15 @@ class BabelBaseTx(QWidget):
                 bCalcMerge=False
 
         if bCalcMerge:
-            self._LaunchAcousticSim(RunCombineTrajectories(self._MainApp),
-                                self._CombineTrajectoriesFinished)
+            if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+                # Offload the merge to the remote server: the worker ensures every
+                # trajectory's acoustic is loaded there, clicks CombineTrajectories,
+                # and downloads the merged result for _CombineTrajectoriesFinished.
+                from RunServerCalculation import RunServerCalculation, STEP_ACOUSTIC
+                worker = RunServerCalculation(self._MainApp, STEP_ACOUSTIC, combine=True)
+            else:
+                worker = RunCombineTrajectories(self._MainApp)
+            self._LaunchAcousticSim(worker, self._CombineTrajectoriesFinished)
         else:
             self._CombineTrajectoriesFinished()
 
@@ -935,6 +942,9 @@ class RunCombineTrajectories(QObject):
             cfg['output']={'amp':Path(self._MainApp._merged_prefix_path+'Merged_NORM.nii.gz')}
 
             do_complex_merge(cfg)
+            # do_complex_merge writes Merged_NORM.nii.gz directly; record it so
+            # the remote client downloads it (read by _CombineTrajectoriesFinished).
+            _rec_artifact(self._MainApp._merged_prefix_path+'Merged_NORM.nii.gz')
             MergedNifti=nibabel.load(cfg['output']['amp'])
             
             transformed=[]
