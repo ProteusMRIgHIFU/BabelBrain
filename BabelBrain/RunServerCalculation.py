@@ -42,6 +42,34 @@ STEP_THERMAL = 'thermal'
 _REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'persistent_session'}
 
 
+# ── Carry-over files ─────────────────────────────────────────────────────────
+# When a prior step was RELOADED locally (user answered "No" to recalculate), the
+# server session has no in-memory state for it. To run the next step remotely we
+# upload the minimal set of that step's outputs and reload them on the server.
+# These lists are the files the server's reload path reads (UpdateMask for Step 1;
+# UpdateAcResults/_LoadAcResultData for Step 2). Paths are built from the
+# per-trajectory prefix path (Config['OutputFilesPath'] + prefix).
+#
+# FIRST PASS = single-focus. For multifocus / phased arrays add the extra
+# per-focus files here (e.g. the additional DataForSim/field files) — the rest of
+# the machinery (upload + reload) needs no change.
+def planning_carryover_files(cfg, prefix_path):
+    files = [prefix_path + 'BabelViscoInput.nii.gz',
+             prefix_path + 'T1W_Resampled.nii.gz']
+    if cfg.get('bUseCT'):
+        files += [prefix_path + 'CT.nii.gz', prefix_path + 'CT-cal.npz']
+        if cfg.get('bExtractAirRegions'):
+            files.append(prefix_path + 'AirRegions.nii.gz')
+    return files
+
+
+def acoustic_carryover_files(cfg, prefix_path):
+    return [prefix_path + 'DataForSim.h5',
+            prefix_path + 'Water_DataForSim.h5',
+            prefix_path + 'FullElasticSolution_Sub_NORM.nii.gz',
+            prefix_path + 'Water_FullElasticSolution_Sub_NORM.nii.gz']
+
+
 class RemoteNotReady(Exception):
     """Raised when the configured server can't be reached / used."""
 
@@ -202,13 +230,12 @@ class RunServerCalculation(QObject):
                 continue
         return choices + values
 
-    def _build_spec(self, ws_id, server_paths):
+    def _input_fields(self, server_paths):
+        """SelFiles-level input-selection fields (uploaded server paths + types)
+        needed to LAUNCH the server's BabelBrain. Sent only on the first job of a
+        session; later jobs reuse the live session and ignore inputs."""
         cfg = self._mainApp.Config
-        spec = {
-            'workspace': ws_id,                 # outputs collected here
-            'recalculate': True,                # this path only runs when recalculating
-            'keep_alive': True,                 # keep the session so Steps 2/3 reuse it
-            'config': self.advanced_config_payload(),
+        fields = {
             't1w': server_paths['t1w'],
             'simbnibs': server_paths['simbnibs'],
             'simbnibs_type': cfg.get('SimbNIBSType'),
@@ -217,15 +244,85 @@ class RunServerCalculation(QObject):
             'transducer': cfg.get('TxSystem'),
             'ct_type': cfg.get('CTType'),       # server _combo_index accepts the int
             'coreg_ct': cfg.get('CoregCT_MRI'),
-            'steps': {STEP_PLANNING: self._planning_steps()},
         }
         if 'thermal_profile' in server_paths:
-            spec['thermal_profile'] = server_paths['thermal_profile']
+            fields['thermal_profile'] = server_paths['thermal_profile']
         if cfg.get('bUseCT'):
-            spec['ct'] = server_paths['ct']
+            fields['ct'] = server_paths['ct']
             if cfg.get('CTMapCombo') is not None:
-                spec['ct_mapping'] = list(cfg['CTMapCombo'])
-        return spec
+                fields['ct_mapping'] = list(cfg['CTMapCombo'])
+        return fields
+
+    # ── session lifecycle / job submission ────────────────────────────────
+    def _ensure_session(self):
+        """Return the live remote session, creating a fresh one (temp workspace +
+        uploaded inputs) if none exists. A session may already exist from a remote
+        Step 1, or be missing because Step 1 was reloaded locally."""
+        m = self._mainApp
+        sess = getattr(m, '_RemoteSession', None)
+        if sess:
+            return sess
+        ws = cf.create_workspace(mode='temp')
+        print('[remote] no session — uploading inputs to prime a new one')
+        server_paths = self._upload_inputs(ws['workspace_id'])
+        sess = {'workspace': ws['workspace_id'], 'server_paths': server_paths,
+                'steps_loaded': set(), 'launched': False}
+        m._RemoteSession = sess
+        return sess
+
+    def _submit_step(self, sess, step_key, acts, recalculate):
+        """Submit one step as a job and follow it. Inputs are attached only on the
+        first job of a session (so the server launches its BabelBrain); later jobs
+        reuse the live session."""
+        spec = {
+            'workspace': sess['workspace'],
+            'recalculate': recalculate,
+            'keep_alive': True,
+            'config': self.advanced_config_payload(),
+            'steps': {step_key: acts},
+        }
+        if not sess.get('launched'):
+            spec.update(self._input_fields(sess['server_paths']))
+        job_id = cf.submit(spec)
+        print('[remote] submitted %s job %s (recalc=%s)' % (step_key, job_id, recalculate))
+        result = self._follow(job_id)
+        if result['state'] != 'SUCCEEDED':
+            raise RemoteNotReady("Remote %s failed:\n%s"
+                                 % (step_key, result.get('error') or result['state']))
+        sess['launched'] = True
+        return result
+
+    def _upload_existing(self, ws_id, local_path):
+        if os.path.isfile(local_path):
+            cf.upload(ws_id, local_path, os.path.basename(local_path))
+            return True
+        print('[remote] WARNING carry-over file missing (skipped):', local_path)
+        return False
+
+    def _prime(self, sess, step_name):
+        """Reload a PRIOR step on the server from uploaded carry-over files, so a
+        later step can run even though the prior step was reloaded (not run) on
+        the client. No-op if the server already has it loaded."""
+        if step_name in sess['steps_loaded']:
+            return
+        m = self._mainApp
+        cfg = m.Config
+        if step_name == 'planning':
+            # A planning reload chains ALL trajectories on the server, so every
+            # trajectory's carry-over files must be present.
+            for traj in range(len(cfg['ID'])):
+                for f in planning_carryover_files(cfg, m._prefix_path[traj]):
+                    self._upload_existing(sess['workspace'], f)
+            acts = self._planning_steps()
+        else:  # 'acoustic' — reload just the target trajectory
+            traj = int(self._trajectory or 0)
+            for f in acoustic_carryover_files(cfg, m._prefix_path[traj]):
+                self._upload_existing(sess['workspace'], f)
+            acts = [{'action': 'select_trajectory', 'index': traj},
+                    {'action': 'run'}]
+        print('[remote] priming %s on server (reload from carry-over files)' % step_name)
+        self._submit_step(sess, step_name, acts, recalculate=False)
+        sess['steps_loaded'].add(step_name)
 
     # ── run (Qt worker slot) ──────────────────────────────────────────────
     def run(self):
@@ -257,27 +354,22 @@ class RunServerCalculation(QObject):
         print("*" * 5 + " Remote Step 1 on %s — BE PATIENT..." % RemoteServers.base_url(self._server))
         print("*" * 40)
         ws = cf.create_workspace(mode='temp')
-        ws_id = ws['workspace_id']
+        sess = {'workspace': ws['workspace_id'], 'server_paths': None,
+                'steps_loaded': set(), 'launched': False}
+        m._RemoteSession = sess
         T0 = time.time()
-        print('[remote] uploading inputs…')
-        server_paths = self._upload_inputs(ws_id)
-        spec = self._build_spec(ws_id, server_paths)
-        self.logTelemetry.emit("CTS:L3:S1: Frequency=%d PPW=%d (remote)"
-                               % (m._Frequency, m._BasePPW))
-        job_id = cf.submit(spec)
-        print('[remote] submitted planning job', job_id)
-        result = self._follow(job_id)
-        if result['state'] != 'SUCCEEDED':
-            try:
-                cf.delete_workspace(ws_id)
-                cf._req("DELETE", "/session")
-            except Exception:
-                pass
-            raise RemoteNotReady("Remote planning failed:\n%s"
-                                 % (result.get('error') or result['state']))
-        output_files = self._download(result, out_dir)
-        # Persist the live session so Steps 2/3 reuse the server bb + workspace.
-        m._RemoteSession = {'workspace': ws_id, 'server_paths': server_paths}
+        try:
+            print('[remote] uploading inputs…')
+            sess['server_paths'] = self._upload_inputs(ws['workspace_id'])
+            self.logTelemetry.emit("CTS:L3:S1: Frequency=%d PPW=%d (remote)"
+                                   % (m._Frequency, m._BasePPW))
+            result = self._submit_step(sess, STEP_PLANNING, self._planning_steps(),
+                                       recalculate=True)
+            output_files = self._download(result, out_dir)
+            sess['steps_loaded'].add('planning')
+        except BaseException:
+            cleanup_session(m)                 # don't leak the workspace/session
+            raise
 
         dt = time.time() - T0
         print("*" * 40)
@@ -286,38 +378,29 @@ class RunServerCalculation(QObject):
         self.finished.emit(output_files)
 
     def _run_reuse_step(self):
-        """Steps 2/3: reuse the persistent session opened by Step 1. Submit the
-        step for the active trajectory (select_trajectory -> run), download its
-        artifacts. The GUI's finished slot reloads them from disk."""
+        """Steps 2/3: run on the persistent session. Any prior step that was
+        reloaded locally (so the server lacks its state) is primed first from
+        uploaded carry-over files. Then submit this step for the active
+        trajectory; the GUI's finished slot reloads the downloaded results."""
         m = self._mainApp
-        sess = getattr(m, '_RemoteSession', None)
-        if not sess:
-            raise RemoteNotReady("Run Step 1 (Domain) on the remote server first — "
-                                 "there is no active remote session to reuse.")
         self.preflight()
         self._bind()
         out_dir = m.Config['OutputFilesPath']
+        sess = self._ensure_session()
+        # Make sure every prior step is loaded on the server.
+        needed = {STEP_ACOUSTIC: ['planning'],
+                  STEP_THERMAL: ['planning', 'acoustic']}[self._step]
+        for prior in needed:
+            self._prime(sess, prior)
         traj = int(self._trajectory or 0)
-        print("[remote] Step %s trajectory %d on %s (%d parameter(s))"
-              % (self._step, traj, RemoteServers.base_url(self._server),
-                 len(self._param_actions)))
+        print("[remote] Step %s trajectory %d (%d parameter(s))"
+              % (self._step, traj, len(self._param_actions)))
         acts = ([{'action': 'select_trajectory', 'index': traj}]
                 + self._param_actions
                 + [{'action': 'run'}])
-        spec = {
-            'workspace': sess['workspace'],
-            'recalculate': True,
-            'keep_alive': True,                 # keep the session for further steps
-            'config': self.advanced_config_payload(),
-            'steps': {self._step: acts},
-        }
-        job_id = cf.submit(spec)
-        print('[remote] submitted %s job %s' % (self._step, job_id))
-        result = self._follow(job_id)
-        if result['state'] != 'SUCCEEDED':
-            raise RemoteNotReady("Remote %s failed:\n%s"
-                                 % (self._step, result.get('error') or result['state']))
+        result = self._submit_step(sess, self._step, acts, recalculate=True)
         self._download(result, out_dir)
+        sess['steps_loaded'].add(self._step)
         self.finished.emit({})
 
     def _download(self, result, out_dir):
