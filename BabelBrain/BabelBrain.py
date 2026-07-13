@@ -578,6 +578,13 @@ class BabelBrain(QWidget):
         self.SendTelemetry(waittocomplete=True)
         if hasattr(self,'_vtk_visualization'):
             self._vtk_visualization.close()
+        # Release any live remote session (server bb + temp workspace).
+        if getattr(self,'_RemoteSession',None):
+            try:
+                from RunServerCalculation import cleanup_session
+                cleanup_session(self)
+            except Exception:
+                pass
         super().closeEvent(event)  # let the default close logic run
 
     def centerOnScreen(self):
@@ -966,10 +973,6 @@ class BabelBrain(QWidget):
 
     def ExecuteTrajectory(self):
 
-        if self.IsRemoteBackend() and len(self.Config['ID'])>1:
-            self._NotifyRemoteMultiTrajUnsupported()
-            return
-
         basedir = self.Config['OutputFilesPath']
         if not os.path.isdir(basedir):
             try:
@@ -980,13 +983,30 @@ class BabelBrain(QWidget):
                 msgBox.setText("Unable to create directory to save results at:\n" + basedir)
                 msgBox.exec()
                 raise
-                
+
         if not os.path.isfile(self._trackingtimefile):
             self.UpdateComputationalTime('domain',0.0) #this will initalize the trackig file
-        
+
         print('outname',self._outnameMask[self._TrajectoryNumber])
         bCalcMask=False
-        if os.path.isfile(self._outnameMask[self._TrajectoryNumber]) and os.path.isfile(self._T1W_resampled_fname[self._TrajectoryNumber]):
+        if self.IsRemoteBackend():
+            # Remote Step 1 runs ALL trajectories in a single server job. Only the
+            # first trajectory triggers the server run; once it finishes it has
+            # downloaded every trajectory's mask, so the chained trajectories just
+            # reload from disk (bCalcMask stays False). _bRemotePlanningComplete
+            # is set True by VerifyResults (recalc) or here (reload).
+            if self._TrajectoryNumber == 0:
+                self._bRemotePlanningComplete = False
+                if os.path.isfile(self._outnameMask[0]) and os.path.isfile(self._T1W_resampled_fname[0]):
+                    ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+                    bCalcMask = (ret == QMessageBox.Yes)
+                else:
+                    bCalcMask = True
+                if not bCalcMask:
+                    self._bRemotePlanningComplete = True
+            else:
+                bCalcMask = False       # chained trajectory: reload downloaded files
+        elif os.path.isfile(self._outnameMask[self._TrajectoryNumber]) and os.path.isfile(self._T1W_resampled_fname[self._TrajectoryNumber]):
             # Parent to self.Widget (the styled MainForm) so the dialog inherits
             # the compact _FORM_QSS; self is the top-level app and carries no
             # stylesheet of its own.
@@ -1114,6 +1134,10 @@ class BabelBrain(QWidget):
 
     def VerifyResults(self,output_files):
         self.hideClockDialog()
+        # Remote Step 1 computed every trajectory in one server job and downloaded
+        # them all; mark it so the chained trajectories reload instead of re-running.
+        if self.IsRemoteBackend():
+            self._bRemotePlanningComplete = True
         if self.Config['bUseCT']:
             if self.Config['CTType'] in [2,3]:
                 if not ConfirmPseudoCT(output_files['pCTfname']):

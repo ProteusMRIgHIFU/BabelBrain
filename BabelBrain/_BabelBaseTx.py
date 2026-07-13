@@ -270,9 +270,6 @@ class BabelBaseTx(QWidget):
         # Runs only the active trajectory (the visible tab).  The user runs each
         # trajectory's tab one at a time, adjusting and re-running as needed;
         # self._TrajectoryNumber tracks the active tab.
-        if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
-            self._MainApp._NotifyRemoteNotWired()
-            return
         self._ResolveSimulationFilenames()
         if self._ExistingSimulationFiles():
             bCalcFields = self._PromptReuseOrRecalc()
@@ -280,8 +277,16 @@ class BabelBaseTx(QWidget):
             bCalcFields = True
         self._bRecalculated = True
         if bCalcFields:
-            self._LaunchAcousticSim(self._CreateAcousticWorker(),
-                                    self._SimulationFinishedSlot())
+            if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+                # Offload Step 2 to the remote server, reusing the session Step 1
+                # opened. The worker mirrors the acoustic worker's signals; its
+                # finished slot (UpdateAcResults) reloads the downloaded results.
+                from RunServerCalculation import RunServerCalculation, STEP_ACOUSTIC
+                worker = RunServerCalculation(self._MainApp, STEP_ACOUSTIC,
+                                              trajectory=self._TrajectoryNumber)
+            else:
+                worker = self._CreateAcousticWorker()
+            self._LaunchAcousticSim(worker, self._SimulationFinishedSlot())
         else:
             self._ReloadExistingResults()
 

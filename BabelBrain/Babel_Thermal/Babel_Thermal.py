@@ -516,7 +516,9 @@ class Babel_Thermal(QWidget):
             
     @Slot()
     def RunSimulation(self,bMergedSimulation=False,MergedPressureRatio=[]):
-        if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+        if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)() and bMergedSimulation:
+            # Combining trajectories remotely is not wired yet; per-trajectory
+            # thermal runs are.
             self._MainApp._NotifyRemoteNotWired()
             return
         bCalcFields=False
@@ -573,7 +575,13 @@ class Babel_Thermal(QWidget):
             ExtraData = self._CaptureFromAcSim(
                 self._MainApp.AcSim.GetExtraDataForThermal, t)
             self.thread = QThread()
-            self.worker = RunThermalSim(self._MainApp, case, bRefocus, ExtraData,bMergedSimulation,MergedPressureRatio)
+            if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+                # Offload Step 3 to the remote server, reusing Step 1's session.
+                # finished -> UpdateThermalResults reloads the downloaded H5/nii.
+                from RunServerCalculation import RunServerCalculation, STEP_THERMAL
+                self.worker = RunServerCalculation(self._MainApp, STEP_THERMAL, trajectory=t)
+            else:
+                self.worker = RunThermalSim(self._MainApp, case, bRefocus, ExtraData,bMergedSimulation,MergedPressureRatio)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.UpdateThermalResults)
