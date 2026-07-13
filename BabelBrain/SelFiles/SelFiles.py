@@ -21,6 +21,7 @@ sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('../../'))
 
 from TranscranialModeling.BabelIntegrationBASE import SpeedofSoundWebbDataset
+import RemoteServers
     
 
 _IS_MAC = platform.system() == 'Darwin'
@@ -195,18 +196,19 @@ class SelFiles(QDialog):
 
         self._GPUs=self.GetAvailableGPUs()
 
-        if len(self._GPUs)==0: #only CPU
-            msgBox = QMessageBox()
-            msgBox.setText("No GPUs were detected!\nBabelBrain can't run without a GPU\nfor simulations")
-            msgBox.exec()
-            sys.exit(0)
+        # The computing-engine dropdown lists local GPUs, any saved remote
+        # servers, and an "Add / remove remote server…" action. A machine with no
+        # GPU is no longer a dead end: it can offload work to a remote BabelBrain
+        # server (see RemoteServers.py / server.py).
+        self.ui.ComputingEnginecomboBox.activated.connect(self.OnComputeEngineActivated)
+        self._PopulateComputeEngines(GPU=GPU, Backend=Backend)
 
-        for dev in self._GPUs:
-            self.ui.ComputingEnginecomboBox.addItem(dev[0] + ' -- ' + dev[1])
-        for sel,dev in enumerate(self._GPUs):
-            if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
-                self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
-                break
+        if len(self._GPUs)==0 and not any(it['kind']=='remote' for it in self._computeItems):
+            msgBox = QMessageBox()
+            msgBox.setText("No GPUs were detected on this machine.\n\nTo run simulations, "
+                           "add a remote BabelBrain server via the computing-engine "
+                           "dropdown ('Add / remove remote server…').")
+            msgBox.exec()
 
         df = SpeedofSoundWebbDataset()
         for index, row in df.iterrows():
@@ -224,19 +226,109 @@ class SelFiles(QDialog):
         """
         return [self.ui.TransducerTypecomboBox.itemText(i) for i in range(self.ui.TransducerTypecomboBox.count())]
 
+    # ── Computing-engine dropdown (local GPUs + remote servers) ──────────────
+    def _engineKey(self, it):
+        """A stable identity for a combo row, used to reselect after a repopulate."""
+        if it['kind'] == 'gpu':
+            return ('gpu', it['device'], it['backend'])
+        if it['kind'] == 'remote':
+            return ('remote', it['server']['name'])
+        return ('action',)
+
+    def _PopulateComputeEngines(self, GPU='CPU', Backend=''):
+        """(Re)build the dropdown: local GPUs, saved remote servers, then the
+        add/remove action. Selects the requested engine when possible."""
+        combo = self.ui.ComputingEnginecomboBox
+        combo.blockSignals(True)
+        combo.clear()
+        self._computeItems = []
+        for dev in self._GPUs:
+            self._computeItems.append({'kind': 'gpu', 'device': dev[0],
+                                       'backend': dev[1],
+                                       'label': dev[0] + ' -- ' + dev[1]})
+        for srv in RemoteServers.load_servers():
+            self._computeItems.append({'kind': 'remote', 'server': srv,
+                                       'label': 'Remote: %s (%s:%d)'
+                                       % (srv['name'], srv['host'], srv['port'])})
+        self._computeItems.append({'kind': 'action',
+                                   'label': '➕  Add / remove remote server…'})
+        for it in self._computeItems:
+            combo.addItem(it['label'])
+        combo.blockSignals(False)
+
+        target = None
+        if Backend == 'Server':
+            name = GPU[len('Remote: '):] if GPU.startswith('Remote: ') else GPU
+            target = next((i for i, it in enumerate(self._computeItems)
+                           if it['kind'] == 'remote' and it['server']['name'] == name), None)
+        if target is None:
+            target = next((i for i, it in enumerate(self._computeItems)
+                           if it['kind'] == 'gpu' and GPU in it['device']
+                           and (GPU == 'CPU' or Backend in it['backend'])), None)
+        if target is None:                       # fall back to the first real engine
+            target = next((i for i, it in enumerate(self._computeItems)
+                           if it['kind'] in ('gpu', 'remote')), 0)
+        combo.setCurrentIndex(target)
+        self._prevEngineKey = self._engineKey(self._computeItems[target])
+
+    def OnComputeEngineActivated(self, index):
+        """Open the server manager when the action row is chosen; otherwise just
+        remember the pick so we can restore it after managing servers."""
+        items = self._computeItems
+        if not (0 <= index < len(items)):
+            return
+        if items[index]['kind'] != 'action':
+            self._prevEngineKey = self._engineKey(items[index])
+            return
+        from GUIComponents.RemoteServerDialog import RemoteServerManagerDialog
+        RemoteServerManagerDialog(self).exec()
+        prev = getattr(self, '_prevEngineKey', None)
+        self._PopulateComputeEngines()
+        for i, it in enumerate(self._computeItems):     # restore previous choice
+            if prev is not None and self._engineKey(it) == prev:
+                self.ui.ComputingEnginecomboBox.setCurrentIndex(i)
+                return
+        for i, it in enumerate(self._computeItems):     # else first real engine
+            if it['kind'] in ('gpu', 'remote'):
+                self.ui.ComputingEnginecomboBox.setCurrentIndex(i)
+                return
+
     def SelectComputingEngine(self,GPU='CPU',Backend=''):
-        for sel,dev in enumerate(self._GPUs):
-            if GPU in dev[0] and (GPU=='CPU' or Backend in dev[1]):
+        for sel, it in enumerate(self._computeItems):
+            if it['kind'] == 'gpu' and GPU in it['device'] and (GPU == 'CPU' or Backend in it['backend']):
                 self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
-                break
+                return
+            if it['kind'] == 'remote' and Backend == 'Server':
+                name = GPU[len('Remote: '):] if GPU.startswith('Remote: ') else GPU
+                if it['server']['name'] == name:
+                    self.ui.ComputingEnginecomboBox.setCurrentIndex(sel)
+                    return
+
     def SelectTxSystem(self,TxSystem='CTX_500'):
         index = self.ui.TransducerTypecomboBox.findText(TxSystem)
         if index >=0:
             self.ui.TransducerTypecomboBox.setCurrentIndex(index)
 
+    def _CurrentEngineItem(self):
+        idx = self.ui.ComputingEnginecomboBox.currentIndex()
+        if 0 <= idx < len(self._computeItems):
+            return self._computeItems[idx]
+        return None
+
     def GetSelectedComputingEngine(self):
-        index = self.ui.ComputingEnginecomboBox.currentIndex()
-        return self._GPUs[index]
+        it = self._CurrentEngineItem()
+        if it is None:
+            return ['CPU', '']
+        if it['kind'] == 'remote':
+            return ['Remote: ' + it['server']['name'], 'Server']
+        if it['kind'] == 'gpu':
+            return [it['device'], it['backend']]
+        return ['CPU', '']                       # action row (not a real engine)
+
+    def GetSelectedServer(self):
+        """The remote-server dict when a remote engine is selected, else None."""
+        it = self._CurrentEngineItem()
+        return it['server'] if it and it['kind'] == 'remote' else None
             
 
     def GetAvailableGPUs(self):

@@ -270,6 +270,9 @@ class BabelBaseTx(QWidget):
         # Runs only the active trajectory (the visible tab).  The user runs each
         # trajectory's tab one at a time, adjusting and re-running as needed;
         # self._TrajectoryNumber tracks the active tab.
+        if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+            self._MainApp._NotifyRemoteNotWired()
+            return
         self._ResolveSimulationFilenames()
         if self._ExistingSimulationFiles():
             bCalcFields = self._PromptReuseOrRecalc()

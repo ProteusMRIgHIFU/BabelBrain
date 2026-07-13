@@ -438,10 +438,15 @@ class BabelBrain(QWidget):
             ComputingBackend=3
         elif Backend=='MLX':
             ComputingBackend=4
+        elif Backend=='Server':          # remote server offloads the GPU work
+            ComputingBackend=5
 
         self.Config['bUseRayleighForWater']= True
         self.Config['ComputingBackend']=ComputingBackend
         self.Config['ComputingDevice']=ComputingDevice
+        # Remote-server details when ComputingBackend==5 (else None); consumed by
+        # the client/server offload path (RunServerCalculation).
+        self.Config['RemoteServer']=widget.GetSelectedServer() if ComputingBackend==5 else None
         self.Config['TxSystem']=widget.ui.TransducerTypecomboBox.currentText()
 
         self.Config['simbnibs_path']=simbnibs_path
@@ -938,8 +943,25 @@ class BabelBrain(QWidget):
         #we run first trajectory, most cases it will be only one
         self.ExecuteTrajectory()
 
+    def IsRemoteBackend(self):
+        """True when the selected computing engine is a remote server (offload)."""
+        return self.Config.get('ComputingBackend')==5
+
+    def _NotifyRemoteNotWired(self):
+        srv=(self.Config.get('RemoteServer') or {}).get('name','the remote server')
+        msgBox = QMessageBox(self.Widget)
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText("Remote execution on '%s' is being set up and is not available "
+                       "yet in this build.\n\nSelect a local GPU in the computing-engine "
+                       "dropdown to run now." % srv)
+        msgBox.exec()
+
     def ExecuteTrajectory(self):
-        
+
+        if self.IsRemoteBackend():
+            self._NotifyRemoteNotWired()
+            return
+
         basedir = self.Config['OutputFilesPath']
         if not os.path.isdir(basedir):
             try:
@@ -2079,6 +2101,8 @@ def main():
                     Backend='Metal'
                 elif prevConfig['ComputingBackend']==4:
                     Backend='MLX'
+                elif prevConfig['ComputingBackend']==5:
+                    Backend='Server'
                 if len(Backend)>0:
                     selwidget.SelectComputingEngine(GPU=GPU,Backend=Backend)
 

@@ -516,6 +516,9 @@ class Babel_Thermal(QWidget):
             
     @Slot()
     def RunSimulation(self,bMergedSimulation=False,MergedPressureRatio=[]):
+        if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+            self._MainApp._NotifyRemoteNotWired()
+            return
         bCalcFields=False
 
         # Acoustic result for THIS thermal tab's trajectory (read by index; the

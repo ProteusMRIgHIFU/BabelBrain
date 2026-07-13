@@ -90,7 +90,9 @@ binaries = []
 # --execute / --code and --serve CLI entries; 'ArtifactIO' is imported by the
 # server and (guarded) by the pipeline modules. List them so the frozen binary
 # always bundles them.
-hiddenimports = ['scripting', 'server', 'ArtifactIO']
+hiddenimports = ['scripting', 'server', 'ArtifactIO',
+                 'RemoteServers', 'RunServerCalculation',
+                 'client_functions', 'GUIComponents.RemoteServerDialog']
 upx_exclude_list = []
 
 # ==============================================================================
