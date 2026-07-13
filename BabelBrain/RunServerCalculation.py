@@ -26,6 +26,7 @@ follow. Reuses client_functions.py (HTTP helpers) and RemoteServers.py.
 import os
 import time
 import traceback
+import urllib.error
 from glob import glob
 
 from PySide6.QtCore import QObject, Signal
@@ -120,6 +121,12 @@ class RunServerCalculation(QObject):
         # worker runs off-thread and must not read live widgets). Empty for Step 1
         # and for a combine (which just clicks the CombineTrajectories button).
         self._param_actions = [] if combine else self._capture_params()
+        # A thermal combine scales the merge by EACH trajectory's Isppa (see
+        # Babel_Thermal.CombineTrajectories -> MergedPressureRatio), so capture
+        # every trajectory's Step-3 GUI inputs to sync them on the server just
+        # before combining. (The acoustic combine merges from files, no GUI input.)
+        self._combine_sync_actions = (self._capture_all_traj_params(STEP_THERMAL)
+                                      if combine and step == STEP_THERMAL else [])
 
     # ── server addressing / preflight ────────────────────────────────────
     def _bind(self):
@@ -229,6 +236,27 @@ class RunServerCalculation(QObject):
         except Exception:
             return []
         return self._scan_settable(widget)
+
+    def _capture_all_traj_params(self, step):
+        """Capture EVERY trajectory's Step-2/3 settable controls as
+        (select_trajectory + set…) actions, so a combine syncs each trajectory's
+        GUI inputs (e.g. IsppaSpinBox) to the server before merging. GUI thread."""
+        m = self._mainApp
+        try:
+            sim = m.AcSim if step == STEP_ACOUSTIC else m.ThermalSim
+            ntraj = len(m.Config['ID'])
+        except Exception:
+            return []
+        actions = []
+        for traj in range(ntraj):
+            try:
+                sets = self._scan_settable(sim._Widgets[traj])
+            except Exception:
+                continue
+            if sets:
+                actions.append({'action': 'select_trajectory', 'index': traj})
+                actions += sets
+        return actions
 
     @staticmethod
     def _scan_settable(widget):
@@ -487,11 +515,14 @@ class RunServerCalculation(QObject):
             self._ensure_merged_acoustic(sess)
             for traj in range(ntraj):
                 self._ensure_thermal(sess, traj)
-            print('[remote] thermal CombineTrajectories over %d trajectories' % ntraj)
-            result = self._submit_step(sess, 'thermal',
-                        [{'action': 'select_trajectory', 'index': 0},
-                         {'action': 'click', 'control': 'CombineTrajectories'}],
-                        recalculate=True)
+            # Sync each trajectory's Isppa (and other Step-3 inputs) to the server,
+            # then combine — the merge is scaled per trajectory by these values.
+            acts = (self._combine_sync_actions
+                    + [{'action': 'select_trajectory', 'index': 0},
+                       {'action': 'click', 'control': 'CombineTrajectories'}])
+            print('[remote] thermal CombineTrajectories over %d trajectories (%d sync action(s))'
+                  % (ntraj, len(self._combine_sync_actions)))
+            result = self._submit_step(sess, 'thermal', acts, recalculate=True)
         self._download(result, out_dir)
         self.finished.emit({})
 
@@ -506,22 +537,37 @@ class RunServerCalculation(QObject):
             print('   %10d B  %s' % (n, os.path.basename(lp)))
         return self._reconstruct_output_files([lp for lp, _ in downloaded])
 
-    def _follow(self, job_id, poll=1.0):
+    def _follow(self, job_id, poll=1.0, max_stalls=120):
+        """Poll events + status until the job is terminal. A heavy step can hold
+        the server's GIL for long stretches (e.g. a merged-thermal compute or a
+        big display refresh), during which polls time out — the job is still
+        running, so we keep waiting rather than failing. Only give up after
+        max_stalls consecutive unreachable polls (a genuinely dead server)."""
         seen = 0
+        stalls = 0
         while True:
-            for ev in cf._req("GET", "/jobs/%s/events?since=%d" % (job_id, seen))["events"]:
-                if ev.get("type") == "log":
-                    # Server-side calculation output, streamed verbatim so it shows
-                    # in the client's output window exactly as a local run would.
-                    print(ev["message"])
-                else:
-                    print("[remote %3d%%] %-9s %s" % (ev["percent"], ev["phase"], ev["message"]))
-                if 'CTS:' in ev["message"]:
-                    self.logTelemetry.emit(ev["message"])
-                seen += 1
-            st = cf._req("GET", "/jobs/%s" % job_id)
-            if st["state"] in ("SUCCEEDED", "FAILED", "CANCELLED"):
-                return st
+            try:
+                evs = cf._req("GET", "/jobs/%s/events?since=%d" % (job_id, seen),
+                              timeout=30, retries=1)["events"]
+                for ev in evs:
+                    if ev.get("type") == "log":
+                        # Server-side calculation output, streamed verbatim so it
+                        # shows in the client's output window as a local run would.
+                        print(ev["message"])
+                    else:
+                        print("[remote %3d%%] %-9s %s" % (ev["percent"], ev["phase"], ev["message"]))
+                    if 'CTS:' in ev["message"]:
+                        self.logTelemetry.emit(ev["message"])
+                    seen += 1
+                st = cf._req("GET", "/jobs/%s" % job_id, timeout=30, retries=1)
+                stalls = 0
+                if st["state"] in ("SUCCEEDED", "FAILED", "CANCELLED"):
+                    return st
+            except (TimeoutError, urllib.error.URLError, OSError):
+                stalls += 1
+                if stalls >= max_stalls:
+                    raise
+                print("[remote] server busy during a heavy step; still waiting… (%d)" % stalls)
             time.sleep(poll)
 
     def _reconstruct_output_files(self, local_paths):
