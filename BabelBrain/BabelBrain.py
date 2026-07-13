@@ -956,10 +956,18 @@ class BabelBrain(QWidget):
                        "dropdown to run now." % srv)
         msgBox.exec()
 
+    def _NotifyRemoteMultiTrajUnsupported(self):
+        msgBox = QMessageBox(self.Widget)
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText("Remote execution currently supports a single trajectory.\n\n"
+                       "Use a single-trajectory input for remote offload, or select a "
+                       "local GPU for multi-trajectory runs.")
+        msgBox.exec()
+
     def ExecuteTrajectory(self):
 
-        if self.IsRemoteBackend():
-            self._NotifyRemoteNotWired()
+        if self.IsRemoteBackend() and len(self.Config['ID'])>1:
+            self._NotifyRemoteMultiTrajUnsupported()
             return
 
         basedir = self.Config['OutputFilesPath']
@@ -995,7 +1003,14 @@ class BabelBrain(QWidget):
             # successful run that should be followed by another trajectory.
             self._bRunNextTrajectory = False
             self.thread = QThread()
-            self.worker = RunMaskGeneration(self)
+            if self.IsRemoteBackend():
+                # Offload Step 1 to the configured remote server. The worker
+                # mirrors RunMaskGeneration's signals, so the wiring below is
+                # identical for local and remote runs.
+                from RunServerCalculation import RunServerCalculation, STEP_PLANNING
+                self.worker = RunServerCalculation(self, STEP_PLANNING)
+            else:
+                self.worker = RunMaskGeneration(self)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.VerifyResults)
