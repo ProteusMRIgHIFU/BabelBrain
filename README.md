@@ -6,7 +6,8 @@ Radiology and Clinical Neurosciences, Hotchkiss Brain Institute
 Cumming School of Medicine,  
 University of Calgary   
 samuel.pichardo@ucalgary.ca  
-www.neurofus.ca
+https://profiles.ucalgary.ca/samuel-pichardo 
+https://www.neurofus.ca
 
 
 [![License: BSD-3](https://img.shields.io/badge/BSD-3-Clause.svg)](LICENSE)
