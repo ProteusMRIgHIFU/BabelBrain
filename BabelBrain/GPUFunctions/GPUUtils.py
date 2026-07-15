@@ -102,7 +102,8 @@ def InitCUDA(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fals
     # Select device that matches specified name
     for deviceID in range(0, devCount):
         d=cp.cuda.runtime.getDeviceProperties(deviceID)
-        if DeviceName in d['name'].decode('UTF-8'):
+        devname=f'{deviceID}:'+d['name'].decode('UTF-8')
+        if DeviceName in devname:
             selDevice=cp.cuda.Device(deviceID)
             break
 

@@ -1535,8 +1535,17 @@ def discover_gpus():
         from SelFiles.SelFiles import SelFiles
         sf = SelFiles()
         gpus = [list(g) for g in sf._GPUs]
+        #we do a clean up to avoid reporting the same GPUs appearing with CUDA/Metal and OpenCL
+        CUDAMetalgpus=[]
+        for (name,backend) in gpus:
+            if backend in ['CUDA','Metal']:
+                CUDAMetalgpus.append(name)
+        finalgpus=[]
+        for (name,backend) in gpus:
+            if (backend=='OpenCL' and name not in CUDAMetalgpus) or backend  != 'OpenCL':
+                finalgpus.append((name,backend))
         sf.deleteLater()
-        return gpus
+        return finalgpus
     except Exception as e:
         _log("GPU discovery failed: %s" % e)
         return []

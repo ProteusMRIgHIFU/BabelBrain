@@ -202,7 +202,7 @@ dependencies:
   - zstd=1.5.7=h3eecb57_6
   - pip:
       - altgraph==0.17.5
-      - babelviscofdtd==1.2.6
+      - babelviscofdtd==1.2.7
       - certifi==2026.4.22
       - charset-normalizer==3.4.7
       - click==8.3.3
