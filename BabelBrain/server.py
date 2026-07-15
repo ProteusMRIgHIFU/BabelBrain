@@ -1540,7 +1540,10 @@ def run_server(app, args):
                     "gpu_pool_size": gpu_pool.size,
                     "max_concurrent_gpu_jobs": gpu_pool.size,
                     "features": ["workspaces", "uploads", "artifact_download",
-                                 "sessions", "multi_gpu"]}
+                                 # 'persistent_session' kept for older clients
+                                 # (RunServerCalculation._REQUIRED_FEATURES); the
+                                 # new per-session workers provide it.
+                                 "persistent_session", "sessions", "multi_gpu"]}
     default_config = _default_config_dict(transducers)
     current_config = _current_config_dict(transducers)
 
