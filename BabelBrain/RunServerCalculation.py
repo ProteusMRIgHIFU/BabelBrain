@@ -92,6 +92,7 @@ def _new_session(workspace_id, server_paths):
     prime only what's missing (and can drive multi-trajectory combines)."""
     return {'workspace': workspace_id, 'server_paths': server_paths,
             'launched': False,
+            'session_id': None,         # server-assigned session (per-session worker)
             'planning': False,          # planning (all trajectories) loaded
             'acoustic': set(),          # trajectory indices with acoustic loaded
             'thermal': set(),           # trajectory indices with thermal loaded
@@ -341,10 +342,17 @@ class RunServerCalculation(QObject):
             'config': self.advanced_config_payload(),
             'steps': {step_key: acts},
         }
+        # Route every step of this session to the SAME server worker so Step-1
+        # state is retained (the server assigns the session on the first job).
+        if sess.get('session_id'):
+            spec['session_id'] = sess['session_id']
         if not sess.get('launched'):
             spec.update(self._input_fields(sess['server_paths']))
         job_id = cf.submit(spec)
-        print('[remote] submitted %s job %s (recalc=%s)' % (step_key, job_id, recalculate))
+        if not sess.get('session_id'):
+            sess['session_id'] = cf.LAST_SESSION_ID
+        print('[remote] submitted %s job %s (recalc=%s, session=%s)'
+              % (step_key, job_id, recalculate, sess.get('session_id')))
         result = self._follow(job_id)
         if result['state'] != 'SUCCEEDED':
             raise RemoteNotReady("Remote %s failed:\n%s"
@@ -622,7 +630,9 @@ def cleanup_session(mainApp):
         except Exception:
             pass
         try:
-            cf._req("DELETE", "/session")
+            sid = sess.get('session_id')
+            if sid:
+                cf._req("DELETE", "/sessions/%s" % sid)
         except Exception:
             pass
     mainApp._RemoteSession = None

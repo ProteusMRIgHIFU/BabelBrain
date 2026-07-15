@@ -7,13 +7,15 @@ results — a network front-end over the same engine used by `--execute`
 (see scripting.py).
 
 Design constraints that shape this:
-  * All GUI/pipeline work must happen on the Qt main thread. The HTTP server
-    runs on background threads and NEVER touches Qt directly; it hands work to a
-    QtJobExecutor that runs on the main thread (pumped by a QTimer).
-  * One BabelBrain process = one GPU pipeline. Jobs are therefore serialized:
-    a single-worker queue, one job in flight at a time.
+  * All GUI/pipeline work must happen on the Qt main thread. So each SESSION runs
+    in its own worker PROCESS (a headless BabelBrain with its own Qt loop); the
+    controller here holds only the HTTP surface, job records, and the GPU pool.
+  * GPUs are a shared pool. A worker binds a GPU only for the duration of a 'run'
+    action's compute, then returns it — so N GPUs serve up to N concurrent runs,
+    and a persistent session never pins a GPU. If all are busy a run waits and
+    the client is told "waiting for GPU to be available".
   * Jobs are long-running and produce files, so the API is job-oriented:
-    submit -> job_id (immediately) -> poll status / stream events -> artifacts.
+    submit -> {job_id, session_id} -> poll status / stream events -> artifacts.
 
 Transport is intentionally thin (stdlib http.server, no extra dependencies) so
 it bundles into the frozen app as-is; the JobManager/executor core is
@@ -29,7 +31,7 @@ HTTP API:
     GET  /capabilities                 -> {transducers: [...], features: [...]}
     GET  /defaultconfig                -> BabelBrain's default advanced config
     GET  /currentconfig                -> the server's current advanced config
-    POST /jobs            (JobSpec)     -> {job_id}   (config field mandatory)
+    POST /jobs            (JobSpec)     -> {job_id, session_id}  (config mandatory)
     GET  /jobs                         -> [job summaries]
     GET  /jobs/{id}                    -> job status (+ artifacts when done)
     GET  /jobs/{id}/events?since=N     -> events since index N (poll)
@@ -41,8 +43,9 @@ HTTP API:
     GET  /workspaces/{id}              -> workspace info (+ staged files)
     POST /workspaces/{id}/files?name=R -> stage an upload (raw body) -> {path,size}
     DELETE /workspaces/{id}            -> close (temp workspaces are deleted)
-    GET  /session                      -> {alive, idle_seconds, timeout}
-    DELETE /session                    -> end the persistent session (close bb)
+    GET  /sessions                     -> [session summaries]
+    GET  /sessions/{id}                -> session info (alive, idle_seconds, jobs)
+    DELETE /sessions/{id}              -> end that session (close its worker)
 
 A JobSpec carries: input-selection fields (see _SERVER_INPUT_KEYS), a mandatory
 `config` object (advanced configuration; the client owns it), `steps` — an object
@@ -58,20 +61,23 @@ workspace id on the job (outputs default into the workspace), and afterwards pul
 results back via /jobs/{id}/artifacts/{n}. A client that DOES share the disk can
 keep sending real server paths and ignore workspaces entirely.
 
-Persistent sessions: by default each job opens a fresh BabelBrain widget and
-tears it down when the job ends. Set `keep_alive: true` on a job to KEEP that
-widget alive afterwards; the next job (or jobs) then REUSES it — so a client can
-run the pipeline piecewise (e.g. planning first, inspect the result, then decide
-whether to re-run it or move on to acoustic) with Step-1 state retained. The
-session stays up across jobs until the client sends DELETE /session (a job with
-keep_alive omitted/false also reuses then closes it), or, if configured, an idle
-timeout elapses (--serve-session-timeout / BABEL_SERVER_SESSION_TIMEOUT, seconds;
-0 = never). The server is single-worker, so there is at most one live session.
+Sessions and concurrency: each session is an independent worker process, so many
+clients run concurrently (bounded only by the shared GPU pool at 'run' time). The
+first job with `keep_alive: true` and no `session_id` creates a session; POST
+/jobs returns its `session_id`, which the client passes back on later jobs to
+REUSE the same worker — so it can run the pipeline piecewise (planning, inspect,
+then acoustic/thermal) with Step-1 state retained. A job WITHOUT keep_alive runs
+in a transient session that is closed once it finishes. Sessions end on
+DELETE /sessions/{id}, on a keep_alive-less job completing, or, if configured, an
+idle timeout (--serve-session-timeout / BABEL_SERVER_SESSION_TIMEOUT, seconds;
+0 = never). The client-supplied `gpu`/`backend` in a spec are ignored — the
+server assigns a GPU from its pool (--use-GPUs) per run.
 
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
 token is configured (--serve-token or BABEL_SERVER_TOKEN).
 """
 import json
+import multiprocessing
 import os
 import queue
 import shutil
@@ -130,6 +136,49 @@ class _StreamTee:
 
     def isatty(self):
         return False
+
+
+# ── GPU pool ─────────────────────────────────────────────────────────────────
+class GPUPool:
+    """Shared pool of GPU devices, arbitrated by a multiprocessing.Queue.
+
+    A device is a (name, backend) descriptor. Session workers acquire a device
+    ONLY for the duration of a 'run' action's compute and return it immediately
+    afterwards, so GPUs stay commodities rather than being pinned to a session.
+
+    The queue IS the arbiter — no lock needed: acquire() pops a free device (or
+    blocks until one is returned, giving the natural "waiting for GPU" behaviour),
+    release() puts it back. The pool (holding the mp.Queue) is passed to each
+    worker at spawn so every worker draws from the same set.
+    """
+
+    def __init__(self, devices):
+        self._devices = [tuple(d) for d in devices]
+        self._size = len(self._devices)
+        self._q = multiprocessing.Queue()
+        for d in self._devices:
+            self._q.put(d)
+
+    @property
+    def size(self):
+        return self._size
+
+    @property
+    def devices(self):
+        return list(self._devices)
+
+    def acquire(self, on_wait=None):
+        """Return the next free (name, backend). If none is free, call on_wait()
+        once (to notify the client) and then block until one is released."""
+        try:
+            return self._q.get_nowait()
+        except queue.Empty:
+            if on_wait is not None:
+                on_wait()
+            return self._q.get()
+
+    def release(self, device):
+        self._q.put(tuple(device))
 
 
 # ── Job model ────────────────────────────────────────────────────────────────
@@ -515,7 +564,43 @@ def _describe(act):
     return str(a)
 
 
-def _run_step(bb, name, actions, emit, check_cancel):
+# backend string -> Config['ComputingBackend'] code (canonical map; scripting.py:332)
+_BACKEND_CODE = {'CUDA': 1, 'OpenCL': 2, 'Metal': 3, 'MLX': 4}
+
+
+def _assign_gpu(bb, device):
+    """Point the session's bb at an assigned GPU for the next compute. The
+    calculate handlers read Config['ComputingDevice']/['ComputingBackend'] when
+    they spawn the compute subprocess (BabelBrain.py:1804-1805), so setting them
+    here — just before the run's click — is what binds this compute to `device`."""
+    name, backend = device
+    bb.Config['ComputingDevice'] = name
+    bb.Config['ComputingBackend'] = _BACKEND_CODE.get(backend, 0)
+
+
+def _run_calculation(bb, name, meta, act, emit, gpu_pool):
+    """The 'run' action. Acquire a GPU from the shared pool for the duration of
+    THIS compute only, then release it — GPUs are never held across actions, so a
+    persistent session ties up a GPU only while actually computing. If the pool is
+    momentarily empty, emit 'waiting for GPU to be available' and block until one
+    frees. gpu_pool=None keeps the legacy behaviour (device comes from the spec)."""
+    device = None
+    if gpu_pool is not None:
+        device = gpu_pool.acquire(
+            on_wait=lambda: emit(name, "waiting for GPU to be available"))
+        _assign_gpu(bb, device)
+        emit(name, "running on GPU %s [%s]" % (device[0], device[1]))
+    try:
+        _log("========== %s: running calculation (%s) ==========" % (name, meta['run']))
+        _click(bb, meta['widget'](bb), meta['run'], True,
+               act.get('timeout_ms', meta['timeout']))
+        _log("========== %s: calculation finished ==========" % name)
+    finally:
+        if device is not None:
+            gpu_pool.release(device)
+
+
+def _run_step(bb, name, actions, emit, check_cancel, gpu_pool=None):
     """Execute an ordered list of client actions for one pipeline step."""
     meta = _STEP[name]
     bb.Widget.tabWidget.setCurrentIndex(meta['tab'])
@@ -541,15 +626,12 @@ def _run_step(bb, name, actions, emit, check_cancel):
             _click(bb, meta['widget'](bb), act['control'],
                    act.get('wait', True), act.get('timeout_ms', meta['timeout']))
         elif a == 'run':
-            _log("========== %s: running calculation (%s) ==========" % (name, meta['run']))
-            _click(bb, meta['widget'](bb), meta['run'], True,
-                   act.get('timeout_ms', meta['timeout']))
-            _log("========== %s: calculation finished ==========" % name)
+            _run_calculation(bb, name, meta, act, emit, gpu_pool)
         else:
             raise ValueError("unknown action %r in step %s" % (a, name))
 
 
-def run_pipeline(job, manager, headless, existing_bb=None):
+def run_pipeline(job, manager, headless, existing_bb=None, gpu_pool=None):
     """Execute one job on the Qt main thread: open BabelBrain with the client's
     inputs (or reuse a persistent session's widget), apply the client-supplied
     advanced config, then run each requested step's ordered action list. Emits
@@ -571,7 +653,10 @@ def run_pipeline(job, manager, headless, existing_bb=None):
         if job.cancel_requested:
             raise JobCancelled()
 
-    inputs = {k: spec[k] for k in _SERVER_INPUT_KEYS if spec.get(k) is not None}
+    # The server owns GPU selection: ignore any client-supplied gpu/backend here
+    # (a device is assigned from the pool per 'run' — see _run_calculation).
+    inputs = {k: spec[k] for k in _SERVER_INPUT_KEYS
+              if k not in ('gpu', 'backend') and spec.get(k) is not None}
     steps = spec.get('steps') or {}
     recalc = spec.get('recalculate', True)
 
@@ -623,7 +708,7 @@ def run_pipeline(job, manager, headless, existing_bb=None):
                 acts = steps[name] or []
                 emit(name, "Step '%s': %d action(s)" % (name, len(acts)), _STEP[name]['base_pct'])
                 _log("---------- step '%s': %d action(s) ----------" % (name, len(acts)))
-                _run_step(bb, name, acts, emit, check_cancel)
+                _run_step(bb, name, acts, emit, check_cancel, gpu_pool)
     finally:
         _sys.stdout = _saved_out
         restore_dialogs()
@@ -654,22 +739,35 @@ class QtJobExecutor(QObject):
     nested QEventLoop, which can re-fire this timer — the guard makes those
     re-entrant ticks no-ops instead of starting a second job."""
 
-    def __init__(self, manager, headless=False, session_timeout=0, parent=None):
+    def __init__(self, manager, headless=False, session_timeout=0, parent=None,
+                 gpu_pool=None, always_persist=False):
         super().__init__(parent)
         self._manager = manager
         self._headless = headless
         self._busy = False
         # Persistent-session state: one live widget kept across jobs when a job
         # opts in with keep_alive. All access is on the Qt main thread except the
-        # close/alive flags, which HTTP threads only *set*/read (atomic bools).
+        # close/alive flags, which other threads only *set*/read (atomic bools).
         self._live_bb = None
         self._live_bb_last = 0.0
         self._close_requested = False
         self._session_timeout = session_timeout        # seconds; 0 = never reap
+        # Multi-GPU server mode: the shared GPU pool (bound only during a 'run'),
+        # and always_persist — in a per-session worker the widget is kept alive
+        # across ALL the session's jobs (the controller, not per-job keep_alive,
+        # decides when the session ends), so Step-1 state is retained.
+        self._gpu_pool = gpu_pool
+        self._always_persist = always_persist
+        self._shutdown = False
         self._timer = QTimer(self)
         self._timer.setInterval(150)
         self._timer.timeout.connect(self._tick)
         self._timer.start()
+
+    def request_shutdown(self):
+        """Ask the executor to tear down its session and stop the Qt loop. Safe to
+        call from another thread (only sets a flag; the work happens on _tick)."""
+        self._shutdown = True
 
     # -- session control (called from HTTP threads) --
     def request_close_session(self):
@@ -692,11 +790,21 @@ class QtJobExecutor(QObject):
     def _tick(self):
         if self._busy:
             return
+        # Worker shutdown (controller closed this session): tear down the live
+        # widget and stop the Qt loop. Done here on the main thread — the drain
+        # thread only sets the flag via request_shutdown().
+        if self._shutdown:
+            self._teardown_live()
+            from PySide6.QtWidgets import QApplication
+            appq = QApplication.instance()
+            if appq is not None:
+                appq.quit()
+            return
         # Deferred teardown / idle reap of the persistent session (main thread,
         # so it is safe to touch Qt here — never from an HTTP thread). Handle a
-        # pending close even when no session is live: DELETE /session on an
-        # already-closed session still sets the flag, and it must be cleared here
-        # or it would sabotage the NEXT session's keep_alive (stale close).
+        # pending close even when no session is live: a close on an already-closed
+        # session still sets the flag, and it must be cleared here or it would
+        # sabotage the NEXT session's keep_alive (stale close).
         if self._close_requested or self._idle_expired():
             self._teardown_live()
         job = self._manager.next_queued()
@@ -712,7 +820,7 @@ class QtJobExecutor(QObject):
         self._manager.mark_running(job)
         try:
             run_pipeline(job, self._manager, self._headless,
-                         existing_bb=self._live_bb)
+                         existing_bb=self._live_bb, gpu_pool=self._gpu_pool)
             self._manager.mark_finished(job, JobState.SUCCEEDED, exit_code=0)
         except JobCancelled:
             self._manager.mark_finished(job, JobState.CANCELLED, exit_code=2,
@@ -731,7 +839,12 @@ class QtJobExecutor(QObject):
         job._bb = None
         if bb is None:
             return
-        if job.spec.get('keep_alive') and not self._close_requested:
+        # In a per-session worker (always_persist) the widget is ALWAYS kept for
+        # the next job; the controller ends the session out-of-band. Otherwise the
+        # legacy single-session rule applies (keep only if the job opted in).
+        keep = self._always_persist or (job.spec.get('keep_alive')
+                                        and not self._close_requested)
+        if keep:
             self._live_bb = bb
             self._live_bb_last = time.time()
             _log("session kept alive after job %s (ready to reuse)" % job.id)
@@ -759,6 +872,286 @@ class QtJobExecutor(QObject):
                 pass
 
 
+# ── Per-session worker process (multi-GPU concurrency) ───────────────────────
+class _WorkerManager:
+    """The 'manager' handed to run_pipeline/QtJobExecutor INSIDE a session worker
+    process. It implements the JobManager methods they call, but instead of
+    keeping an event stream it FORWARDS every event/lifecycle change to the
+    controller over out_q; jobs arrive via ingest() (fed from the controller)."""
+
+    def __init__(self, out_q):
+        self._out = out_q
+        self._jobs = {}
+        self._queue = queue.Queue()
+
+    def ingest(self, job_id, spec):
+        self._jobs[job_id] = Job(job_id, spec)
+        self._queue.put(job_id)
+
+    def cancel_local(self, job_id):
+        job = self._jobs.get(job_id)
+        if job is not None:
+            job.cancel_requested = True
+
+    def get(self, job_id):
+        return self._jobs.get(job_id)
+
+    def next_queued(self):
+        while True:
+            try:
+                jid = self._queue.get_nowait()
+            except queue.Empty:
+                return None
+            job = self._jobs.get(jid)
+            if job is None or job.state == JobState.CANCELLED:
+                continue
+            return job
+
+    def add_event(self, job, phase, message, percent=None, etype="phase"):
+        if percent is not None:
+            job.percent = percent
+        job.phase = phase
+        self._out.put({'kind': 'event', 'job_id': job.id, 'phase': phase,
+                       'message': message, 'percent': job.percent, 'etype': etype})
+
+    def mark_running(self, job):
+        job.state = JobState.RUNNING
+        job.started = time.time()
+        self._out.put({'kind': 'running', 'job_id': job.id})
+
+    def mark_finished(self, job, state, exit_code, error=None):
+        job.state = state
+        job.exit_code = exit_code
+        job.error = error
+        job.finished = time.time()
+        self._out.put({'kind': 'final', 'job_id': job.id, 'state': state,
+                       'exit_code': exit_code, 'error': error,
+                       'artifacts': list(job.artifacts)})
+
+
+def _session_worker_main(in_q, out_q, gpu_pool, headless):
+    """Entry point of a session-worker subprocess: a headless BabelBrain that runs
+    ONE session's jobs against a persistent widget, drawing a GPU from the shared
+    pool per 'run'. Job/cancel/close messages arrive on in_q; events/finals go out
+    on out_q (drained by the controller into its JobManager)."""
+    os.environ['BABEL_SERVER_MODE'] = '1'
+    os.environ.setdefault('BABEL_PYTEST', '1')
+    if headless:
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+        os.environ.setdefault('BABEL_NO_PLOTS', '1')
+
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    app.setQuitOnLastWindowClosed(False)
+
+    manager = _WorkerManager(out_q)
+    executor = QtJobExecutor(manager, headless=headless, session_timeout=0,
+                             gpu_pool=gpu_pool, always_persist=True)
+
+    stop = threading.Event()
+
+    def _drain_in():
+        # Deliver jobs and control messages to the executor. Runs off the Qt
+        # thread so a cancel/close is seen even while a run occupies the event
+        # loop; the executor honours cancel between steps and shuts down on _tick.
+        while not stop.is_set():
+            try:
+                msg = in_q.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            if not isinstance(msg, dict):
+                continue
+            kind = msg.get('kind')
+            if kind == 'job':
+                manager.ingest(msg['job_id'], msg['spec'])
+            elif kind == 'cancel':
+                manager.cancel_local(msg['job_id'])
+            elif kind == 'close':
+                executor.request_shutdown()
+                stop.set()
+                return
+
+    threading.Thread(target=_drain_in, name="worker-in", daemon=True).start()
+    app.exec()
+    stop.set()
+    executor._teardown_live()
+
+
+# ── Controller-side session registry ─────────────────────────────────────────
+class _Session:
+    __slots__ = ('id', 'proc', 'in_q', 'out_q', 'created', 'last_used', 'jobs')
+
+    def __init__(self, sid, proc, in_q, out_q):
+        self.id = sid
+        self.proc = proc
+        self.in_q = in_q
+        self.out_q = out_q
+        self.created = time.time()
+        self.last_used = time.time()
+        self.jobs = set()          # job ids routed here (for info + crash cleanup)
+
+    def to_dict(self):
+        return {'session_id': self.id, 'alive': self.proc.is_alive(),
+                'created': self.created,
+                'idle_seconds': time.time() - self.last_used,
+                'jobs': list(self.jobs)}
+
+
+class SessionManager:
+    """Controller-side registry of per-session worker processes. Spawns a worker
+    on demand, routes jobs to it, and drains its events back into the controller's
+    JobManager so /jobs, /jobs/{id}/events and /stream keep working unchanged.
+    Concurrency = number of live sessions; GPU concurrency is bounded by the pool."""
+
+    def __init__(self, controller_manager, gpu_pool, headless=False, session_timeout=0,
+                 worker_target=_session_worker_main):
+        self._cm = controller_manager
+        self._pool = gpu_pool
+        self._headless = headless
+        self._timeout = session_timeout
+        self._worker_target = worker_target    # injectable for tests (fake compute)
+        self._sessions = {}
+        self._job_session = {}     # job_id -> session_id (to route cancels)
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        threading.Thread(target=self._reap_loop, name="session-reaper",
+                         daemon=True).start()
+
+    def create(self):
+        sid = uuid.uuid4().hex[:12]
+        in_q, out_q = multiprocessing.Queue(), multiprocessing.Queue()
+        # NOT daemon: the worker itself spawns the compute subprocess
+        # (CalculateMaskProcess), and daemonic processes can't have children.
+        # We tear workers down explicitly (close -> join -> terminate) in
+        # _reap()/shutdown_all(), so they don't linger.
+        proc = multiprocessing.Process(
+            target=self._worker_target, name="babel-session-%s" % sid,
+            args=(in_q, out_q, self._pool, self._headless), daemon=False)
+        proc.start()
+        sess = _Session(sid, proc, in_q, out_q)
+        with self._lock:
+            self._sessions[sid] = sess
+        threading.Thread(target=self._drain, args=(sess,), name="drain-%s" % sid,
+                         daemon=True).start()
+        _log("session %s started (worker pid %s)" % (sid, proc.pid))
+        return sid
+
+    def get(self, sid):
+        with self._lock:
+            return self._sessions.get(sid)
+
+    def list_summaries(self):
+        with self._lock:
+            return [s.to_dict() for s in self._sessions.values()]
+
+    def submit_to(self, sid, job_id, spec):
+        sess = self.get(sid)
+        if sess is None:
+            return False
+        sess.jobs.add(job_id)
+        sess.last_used = time.time()
+        with self._lock:
+            self._job_session[job_id] = sid
+        sess.in_q.put({'kind': 'job', 'job_id': job_id, 'spec': spec})
+        return True
+
+    def cancel(self, sid, job_id):
+        sess = self.get(sid)
+        if sess is not None:
+            sess.in_q.put({'kind': 'cancel', 'job_id': job_id})
+
+    def cancel_job(self, job_id):
+        """Forward a cancel to whichever session's worker is running the job."""
+        with self._lock:
+            sid = self._job_session.get(job_id)
+        if sid:
+            self.cancel(sid, job_id)
+
+    def close(self, sid):
+        sess = self.get(sid)
+        if sess is None:
+            return False
+        try:
+            sess.in_q.put({'kind': 'close'})
+        except Exception:
+            pass
+        return True
+
+    def _drain(self, sess):
+        """Apply a worker's out_q to the controller JobManager. Ends when the
+        worker process exits (clean close or crash), then reaps the session."""
+        cm = self._cm
+        while True:
+            try:
+                msg = sess.out_q.get(timeout=0.5)
+            except queue.Empty:
+                if not sess.proc.is_alive():
+                    break
+                continue
+            if not isinstance(msg, dict):
+                continue
+            job = cm.get(msg.get('job_id'))
+            if job is None:
+                continue
+            kind = msg.get('kind')
+            if kind == 'event':
+                cm.add_event(job, msg['phase'], msg['message'],
+                             msg.get('percent'), msg.get('etype', 'phase'))
+            elif kind == 'running':
+                cm.mark_running(job)
+            elif kind == 'final':
+                job.artifacts = msg.get('artifacts') or []
+                cm.mark_finished(job, msg['state'], msg['exit_code'], msg.get('error'))
+                sess.jobs.discard(job.id)
+                if not job.spec.get('keep_alive'):
+                    self.close(sess.id)          # one-shot / transient -> end session
+        self._reap(sess)
+
+    def _reap(self, sess):
+        with self._lock:
+            self._sessions.pop(sess.id, None)
+        # Any job routed here that never reached a terminal state (worker crashed,
+        # or the session was closed with jobs still queued) is marked failed.
+        for jid in list(sess.jobs):
+            job = self._cm.get(jid)
+            if job is not None and job.state not in TERMINAL:
+                self._cm.mark_finished(job, JobState.FAILED, 1,
+                                       error="session ended before job completed")
+        try:
+            sess.proc.join(timeout=2)
+        except Exception:
+            pass
+        if sess.proc.is_alive():
+            sess.proc.terminate()
+            sess.proc.join(timeout=2)
+        _log("session %s ended" % sess.id)
+
+    def _reap_loop(self):
+        while not self._stop.wait(2.0):
+            if not self._timeout:
+                continue
+            for s in self.list_summaries():
+                if s['alive'] and s['idle_seconds'] > self._timeout:
+                    _log("session %s idle > %ds -> closing"
+                         % (s['session_id'], self._timeout))
+                    self.close(s['session_id'])
+
+    def shutdown_all(self):
+        self._stop.set()
+        with self._lock:
+            sessions = list(self._sessions.values())
+        for sess in sessions:
+            self.close(sess.id)
+        for sess in sessions:
+            try:
+                sess.proc.join(timeout=3)
+            except Exception:
+                pass
+            if sess.proc.is_alive():
+                sess.proc.terminate()
+                sess.proc.join(timeout=2)
+
+
 # ── HTTP surface (stdlib) ────────────────────────────────────────────────────
 def _validate_spec(spec):
     """Reject a malformed JobSpec at submit time. The advanced-configuration
@@ -778,7 +1171,7 @@ def _validate_spec(spec):
 
 
 def _make_handler(manager, token, capabilities, default_config, current_config,
-                  wsman, executor):
+                  wsman, sessionmgr):
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "BabelBrain/0"
@@ -866,9 +1259,14 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                     return self._send(200, {"jobs": manager.list_summaries()})
                 if path == "/workspaces":
                     return self._send(200, {"workspaces": wsman.list_summaries()})
-                if path == "/session":
-                    return self._send(200, executor.session_info())
+                if path == "/sessions":
+                    return self._send(200, {"sessions": sessionmgr.list_summaries()})
                 parts = path.strip("/").split("/")
+                if parts[0] == "sessions" and len(parts) == 2:
+                    sess = sessionmgr.get(parts[1])
+                    if sess is None:
+                        return self._send(404, {"error": "unknown session"})
+                    return self._send(200, sess.to_dict())
                 if parts[0] == "workspaces" and len(parts) == 2:
                     ws = wsman.get(parts[1])
                     if ws is None:
@@ -918,8 +1316,20 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                         if ws is None:
                             return self._send(400, {"error": "unknown workspace %r" % ws_id})
                         spec.setdefault('output_path', ws.root)
+                    # Resolve the session (per-session worker). Reuse the client's
+                    # session_id when given; otherwise spin up a fresh session. A
+                    # job without keep_alive runs in a transient session that the
+                    # controller closes once the job finishes.
+                    sid = spec.get('session_id')
+                    if sid:
+                        if sessionmgr.get(sid) is None:
+                            return self._send(404, {"error": "unknown session %r" % sid})
+                    else:
+                        sid = sessionmgr.create()
                     job_id = manager.submit(spec)
-                    return self._send(202, {"job_id": job_id})
+                    if not sessionmgr.submit_to(sid, job_id, spec):
+                        return self._send(404, {"error": "unknown session %r" % sid})
+                    return self._send(202, {"job_id": job_id, "session_id": sid})
                 if path == "/workspaces":
                     body = self._body()
                     try:
@@ -932,6 +1342,7 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                     accepted = manager.cancel(parts[1])
                     if accepted is None:
                         return self._send(404, {"error": "unknown job"})
+                    sessionmgr.cancel_job(parts[1])   # forward to the worker running it
                     return self._send(200, {"cancelled": bool(accepted)})
                 if (parts[0] == "workspaces" and len(parts) == 3
                         and parts[2] == "files"):
@@ -959,10 +1370,12 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
                 if not self._guard():
                     return
                 parts = path.strip("/").split("/")
-                if path == "/session":
-                    alive = executor.request_close_session()
-                    _log("client requested session close (was alive: %s)" % bool(alive))
-                    return self._send(200, {"closing": bool(alive)})
+                if parts[0] == "sessions" and len(parts) == 2:
+                    if sessionmgr.get(parts[1]) is None:
+                        return self._send(404, {"error": "unknown session"})
+                    sessionmgr.close(parts[1])
+                    _log("client requested close of session %s" % parts[1])
+                    return self._send(200, {"closing": True})
                 if parts[0] == "workspaces" and len(parts) == 2:
                     ws = wsman.delete(parts[1])
                     if ws is None:
@@ -1007,6 +1420,55 @@ def _discover_transducers():
         return []
 
 
+def discover_gpus():
+    """Enumerate available GPUs as [name, backend] pairs, reusing SelFiles'
+    per-platform logic (Metal on macOS; CUDA/OpenCL elsewhere). Constructing
+    SelFiles already runs GetAvailableGPUs() into sf._GPUs (SelFiles.py:197), so
+    we just read it back. Requires a QApplication to already exist."""
+    try:
+        from SelFiles.SelFiles import SelFiles
+        sf = SelFiles()
+        gpus = [list(g) for g in sf._GPUs]
+        sf.deleteLater()
+        return gpus
+    except Exception as e:
+        _log("GPU discovery failed: %s" % e)
+        return []
+
+
+def print_available_gpus():
+    """Back the --print-GPUs-available flag: list index/name/backend, then done."""
+    gpus = discover_gpus()
+    if not gpus:
+        print("No GPUs detected (check drivers / BabelViscoFDTD install).")
+        return
+    print("Available GPUs (index: name [backend]):")
+    for i, (name, backend) in enumerate(gpus):
+        print("  %d: %s [%s]" % (i, name, backend))
+
+
+def select_gpus(all_gpus, use_gpus_arg):
+    """Resolve the --use-GPUs selection (comma-separated indices into `all_gpus`,
+    or empty/None for all) into the concrete device list for the pool."""
+    if use_gpus_arg is None or str(use_gpus_arg).strip() == "":
+        return list(all_gpus)
+    selected = []
+    for tok in str(use_gpus_arg).split(","):
+        tok = tok.strip()
+        if tok == "":
+            continue
+        try:
+            idx = int(tok)
+        except ValueError:
+            raise ValueError("--use-GPUs expects comma-separated indices; got %r" % tok)
+        if idx < 0 or idx >= len(all_gpus):
+            raise ValueError("--use-GPUs index %d out of range (0..%d); "
+                             "run --print-GPUs-available to list them"
+                             % (idx, len(all_gpus) - 1))
+        selected.append(all_gpus[idx])
+    return selected
+
+
 def _default_config_dict(transducers):
     """BabelBrain's pristine advanced-config defaults (for GET /defaultconfig)."""
     from Options.Options import DefaultAdvancedConfig
@@ -1028,8 +1490,10 @@ def _current_config_dict(transducers):
 
 # ── Entry point (called from BabelBrain.main) ────────────────────────────────
 def run_server(app, args):
-    """Start the HTTP server (background threads) and run the Qt loop (main
-    thread) until interrupted. Returns a process exit code."""
+    """Start the controller: HTTP server + session/GPU scheduling. Per-session
+    worker processes do the actual pipeline work (each on a GPU drawn from the
+    shared pool per run), so the controller itself runs no Qt loop. Blocks until
+    interrupted; returns a process exit code."""
     host = getattr(args, 'serve_host', '127.0.0.1')
     port = int(getattr(args, 'serve_port', 8760))
     token = getattr(args, 'serve_token', None) or os.environ.get('BABEL_SERVER_TOKEN')
@@ -1039,56 +1503,66 @@ def run_server(app, args):
     # and dialogs are bypassed as in scripting mode.
     os.environ['BABEL_SERVER_MODE'] = '1'
     os.environ.setdefault('BABEL_PYTEST', '1')
-
-    # A server must NOT exit when a job's window (or a transient dialog such as
-    # the progress clock) closes — otherwise the whole process quits between/after
-    # steps. Only our SIGINT handler ends the loop.
     app.setQuitOnLastWindowClosed(False)
 
     session_timeout = int(getattr(args, 'serve_session_timeout', 0)
                           or os.environ.get('BABEL_SERVER_SESSION_TIMEOUT', 0) or 0)
+    use_gpus_arg = getattr(args, 'use_GPUs', None) or os.environ.get('BABEL_SERVER_USE_GPUS')
 
     manager = JobManager()
     wsman = WorkspaceManager(temp_base=getattr(args, 'serve_workspace_root', None)
                              or os.environ.get('BABEL_SERVER_WORKSPACE_ROOT'))
-    executor = QtJobExecutor(manager, headless=headless,
-                             session_timeout=session_timeout)
     transducers = _discover_transducers()
-    capabilities = {"transducers": transducers,
-                    "server_version": "v0", "single_worker": True,
+
+    # Build the GPU pool the sessions draw from. Discovery + config probing use
+    # the controller's QApplication (already created) but not its event loop.
+    all_gpus = discover_gpus()
+    try:
+        selected_gpus = select_gpus(all_gpus, use_gpus_arg)
+    except ValueError as e:
+        print("[server] %s" % e, flush=True)
+        return 2
+    gpu_pool = GPUPool(selected_gpus)
+    if gpu_pool.size == 0:
+        print("[server] WARNING: no GPUs in the pool — runs will wait indefinitely "
+              "for a GPU. Check drivers or --use-GPUs / --print-GPUs-available.",
+              flush=True)
+    else:
+        print("[server] GPU pool (%d): %s"
+              % (gpu_pool.size, ", ".join("%s [%s]" % (n, b)
+                                          for n, b in gpu_pool.devices)), flush=True)
+
+    sessionmgr = SessionManager(manager, gpu_pool, headless=headless,
+                                session_timeout=session_timeout)
+
+    capabilities = {"transducers": transducers, "server_version": "v1-multigpu",
+                    "gpus": [list(d) for d in gpu_pool.devices],
+                    "gpu_pool_size": gpu_pool.size,
+                    "max_concurrent_gpu_jobs": gpu_pool.size,
                     "features": ["workspaces", "uploads", "artifact_download",
-                                 "persistent_session"]}
+                                 "sessions", "multi_gpu"]}
     default_config = _default_config_dict(transducers)
     current_config = _current_config_dict(transducers)
 
     httpd = ThreadingHTTPServer(
         (host, port),
         _make_handler(manager, token, capabilities, default_config,
-                      current_config, wsman, executor))
-    server_thread = threading.Thread(target=httpd.serve_forever, name="babel-http",
-                                     daemon=True)
-    server_thread.start()
-    print("[server] BabelBrain job server on http://%s:%d  (auth: %s, headless: %s)"
-          % (host, port, "token" if token else "disabled", headless))
+                      current_config, wsman, sessionmgr))
+    threading.Thread(target=httpd.serve_forever, name="babel-http",
+                     daemon=True).start()
+    print("[server] BabelBrain multi-GPU job server on http://%s:%d  "
+          "(auth: %s, headless: %s)"
+          % (host, port, "token" if token else "disabled", headless), flush=True)
 
+    stop_event = threading.Event()
     _shutting = {'v': False}
 
     def _shutdown(*_a):
         if _shutting['v']:
-            # Second Ctrl-C — or a job is mid-step and the main thread can't
-            # yield — so force-exit immediately.
-            os._exit(130)
+            os._exit(130)                 # second Ctrl-C — force-quit
         _shutting['v'] = True
         print("\n[server] shutting down… (press Ctrl-C again to force-quit)", flush=True)
-        # Stop the HTTP server off the signal handler so it returns fast.
-        threading.Thread(target=httpd.shutdown, daemon=True).start()
-        app.quit()
-
-    # Keep the interpreter ticking so the Python SIGINT handler runs promptly
-    # even while Qt's C++ event loop is otherwise idle.
-    wake = QTimer()                       # noqa: F841 (kept alive for the loop's lifetime)
-    wake.timeout.connect(lambda: None)
-    wake.start(100)
+        stop_event.set()
 
     try:
         signal.signal(signal.SIGINT, _shutdown)
@@ -1096,11 +1570,15 @@ def run_server(app, args):
     except Exception:
         pass
 
-    app.exec()
+    # No Qt loop in the controller — just wait (waking periodically so SIGINT is
+    # handled promptly on every platform) until asked to stop.
+    while not stop_event.wait(0.5):
+        pass
+
     try:
         httpd.shutdown()
     except Exception:
         pass
-    executor._teardown_live()    # close a lingering persistent session (main thread)
+    sessionmgr.shutdown_all()    # close every session worker
     wsman.cleanup_all()          # remove any lingering temp workspaces
     return 0

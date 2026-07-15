@@ -57,10 +57,22 @@ def _req(method, path, body=None, timeout=60, retries=8):
             time.sleep(2)                           # server busy; back off and retry
 
 
+# Set by submit() to the session the server assigned/reused for the last job.
+# Pass it back as spec['session_id'] to route later jobs to the SAME persistent
+# worker (so Step-1 state is retained across a planning -> acoustic -> thermal
+# sequence). On a multi-GPU server each session is an independent worker; a GPU
+# is bound only while a 'run' actually computes.
+LAST_SESSION_ID = None
+
+
 # ── Jobs ─────────────────────────────────────────────────────────────────────
 def submit(spec):
-    """Submit a JobSpec; returns the new job_id."""
-    return _req("POST", "/jobs", spec)["job_id"]
+    """Submit a JobSpec; returns the new job_id and records the server-assigned
+    session_id in the module-level LAST_SESSION_ID."""
+    global LAST_SESSION_ID
+    resp = _req("POST", "/jobs", spec)
+    LAST_SESSION_ID = resp.get("session_id")
+    return resp["job_id"]
 
 
 def follow(job_id, poll=1.0, on_event=None):

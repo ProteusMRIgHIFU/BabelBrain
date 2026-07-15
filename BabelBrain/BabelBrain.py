@@ -2039,6 +2039,13 @@ def main():
     parser.add_argument('--serve-session-timeout', type=int, default=0,
                         help='Idle seconds before a persistent (keep_alive) session '
                              'is auto-closed (0 = never; or BABEL_SERVER_SESSION_TIMEOUT).')
+    parser.add_argument('--print-GPUs-available', action='store_true',
+                        help='List the GPUs the server can use (index: name [backend]) '
+                             'and exit.')
+    parser.add_argument('--use-GPUs', default=None,
+                        help='Comma-separated GPU indices (from --print-GPUs-available) '
+                             'the server may schedule jobs onto (default: all; or '
+                             'BABEL_SERVER_USE_GPUS). Enables concurrent multi-GPU runs.')
 
     # parse_known_args so platform-injected args (e.g. macOS -psn_...) don't
     # abort — but still reject genuine typos/unknown flags (e.g. --server instead
@@ -2060,6 +2067,13 @@ def main():
 
     app = QApplication([])
     _apply_color_scheme(app)
+
+    # List the GPUs the server could schedule onto, then exit. Needs the
+    # QApplication above (GPU discovery goes through the SelFiles widget).
+    if getattr(args, 'print_GPUs_available', False):
+        import server
+        server.print_available_gpus()
+        sys.exit(0)
 
     # Scripting mode: hand control to the scripting engine and exit with its code.
     if args.execute or args.code:
