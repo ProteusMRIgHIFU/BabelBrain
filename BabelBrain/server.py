@@ -76,6 +76,7 @@ server assigns a GPU from its pool (--use-GPUs) per run.
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
 token is configured (--serve-token or BABEL_SERVER_TOKEN).
 """
+import faulthandler
 import json
 import multiprocessing
 import os
@@ -98,6 +99,66 @@ def _log(msg):
     """Timestamped server-side log line. During a running job this goes through
     the stdout tee, so it is ALSO streamed to the client (see _StreamTee)."""
     print("[server %s] %s" % (time.strftime("%H:%M:%S"), msg), flush=True)
+
+
+# ── Diagnostics (for chasing intermittent hangs) ─────────────────────────────
+_DEBUG = os.environ.get('BABEL_SERVER_DEBUG', '') not in ('', '0', 'false', 'False')
+
+
+def _dbg(msg):
+    """Verbose trace line, enabled with BABEL_SERVER_DEBUG=1. Prefixed with the
+    pid so controller vs. per-session-worker lines are distinguishable."""
+    if _DEBUG:
+        print("[dbg %s pid%d] %s"
+              % (time.strftime("%H:%M:%S"), os.getpid(), msg), flush=True)
+
+
+# What the current process is doing right now — updated at each pipeline step so a
+# watchdog / stack dump can say where a stuck worker is parked.
+_ACTIVITY = {'what': 'idle', 'since': time.time(), 'job': None, 'seq': 0}
+
+
+def _activity(what, job_id=None):
+    _ACTIVITY['what'] = what
+    _ACTIVITY['since'] = time.time()
+    _ACTIVITY['seq'] += 1
+    if job_id is not None:
+        _ACTIVITY['job'] = job_id
+    _dbg("activity: %s" % what)
+
+
+def _install_stack_dumper(tag):
+    """Register SIGUSR1 to dump every thread's stack (faulthandler). When a
+    session hangs, find its worker pid in the log ('session X started (worker pid
+    N)') and run  kill -USR1 N  — the full stack dump lands on the server console,
+    pinpointing where it is stuck (e.g. wait_until, a queue put, matplotlib).
+    Best-effort; SIGUSR1 does not exist on Windows."""
+    try:
+        faulthandler.enable()
+        if hasattr(signal, 'SIGUSR1'):
+            faulthandler.register(signal.SIGUSR1, all_threads=True, chain=False)
+            _log("%s: SIGUSR1 -> thread-stack dump enabled (pid %d)"
+                 % (tag, os.getpid()))
+    except Exception as e:
+        _log("stack dumper not installed: %s" % e)
+
+
+def _watchdog_loop(stop, threshold):
+    """Optional (BABEL_SERVER_WATCHDOG=<seconds>): if a single activity runs longer
+    than `threshold`, dump all thread stacks automatically. Off by default because
+    a legitimate compute is one long activity; set it above your longest run."""
+    while not stop.wait(5.0):
+        a = _ACTIVITY
+        if a['what'] != 'idle' and (time.time() - a['since']) > threshold:
+            print("[watchdog pid%d] activity '%s' (job %s) has run %.0fs — "
+                  "dumping thread stacks:"
+                  % (os.getpid(), a['what'], a['job'], time.time() - a['since']),
+                  flush=True)
+            try:
+                faulthandler.dump_traceback()
+            except Exception:
+                pass
+            a['since'] = time.time()      # re-arm; report again after another window
 
 
 class _StreamTee:
@@ -586,17 +647,26 @@ def _run_calculation(bb, name, meta, act, emit, gpu_pool):
     frees. gpu_pool=None keeps the legacy behaviour (device comes from the spec)."""
     device = None
     if gpu_pool is not None:
+        _activity("%s: acquiring GPU" % name)
         device = gpu_pool.acquire(
             on_wait=lambda: emit(name, "waiting for GPU to be available"))
         _assign_gpu(bb, device)
         emit(name, "running on GPU %s [%s]" % (device[0], device[1]))
     try:
         _log("========== %s: running calculation (%s) ==========" % (name, meta['run']))
+        # If a hang shows up "after DONE ...", the activity stays on this line
+        # (wait_until is still blocking for the tab to re-enable) — SIGUSR1 the
+        # worker to see exactly where. The next marker proves wait_until returned.
+        _activity("%s: compute issued, waiting for completion (%s)" % (name, meta['run']))
+        t0 = time.time()
         _click(bb, meta['widget'](bb), meta['run'], True,
                act.get('timeout_ms', meta['timeout']))
-        _log("========== %s: calculation finished ==========" % name)
+        _activity("%s: compute completed (wait_until returned)" % name)
+        _log("========== %s: calculation finished in %.1fs =========="
+             % (name, time.time() - t0))
     finally:
         if device is not None:
+            _dbg("%s: releasing GPU %s" % (name, device))
             gpu_pool.release(device)
 
 
@@ -609,6 +679,7 @@ def _run_step(bb, name, actions, emit, check_cancel, gpu_pool=None):
         if not isinstance(act, dict) or 'action' not in act:
             raise ValueError("each %s action must be an object with an 'action' key" % name)
         a = act['action']
+        _activity("%s action: %s" % (name, _describe(act)))
         emit(name, "%s: %s" % (name, _describe(act)))
         if a == 'select_trajectory':
             if meta['tabs'] is None:
@@ -700,19 +771,29 @@ def run_pipeline(job, manager, headless, existing_bb=None, gpu_pool=None):
     _saved_out = _sys.stdout
     _sys.stdout = _StreamTee(job, manager, _saved_out)
     auto_answer_dialogs(question=QMessageBox.Yes if recalc else QMessageBox.No)
+    t_job = time.time()
     try:
         bb.testing_error = False
         for name in ('planning', 'acoustic', 'thermal'):
             if name in steps:
                 ArtifactIO.set_step({'planning': 1, 'acoustic': 2, 'thermal': 3}[name])
                 acts = steps[name] or []
+                _activity("step '%s' (%d actions)" % (name, len(acts)), job.id)
                 emit(name, "Step '%s': %d action(s)" % (name, len(acts)), _STEP[name]['base_pct'])
                 _log("---------- step '%s': %d action(s) ----------" % (name, len(acts)))
+                t_step = time.time()
                 _run_step(bb, name, acts, emit, check_cancel, gpu_pool)
+                # Elapsed at each step boundary: a slow step still prints this
+                # (with a large number); a HUNG step never reaches it — so the
+                # last "step ... done" vs "step ... : N action(s)" pins the stall.
+                _log("---------- step '%s' done in %.1fs (job elapsed %.1fs) ----------"
+                     % (name, time.time() - t_step, time.time() - t_job))
+                emit(name, "step '%s' done in %.1fs" % (name, time.time() - t_step))
     finally:
         _sys.stdout = _saved_out
         restore_dialogs()
 
+    _activity("collecting artifacts", job.id)
     # Ground-truth artifacts from the record-at-save sidecar. During the Phase-2
     # transition we cross-check the count against the Phase-1 predicted manifest.
     # Artifacts are the recorded ledger (record-at-save, cross-process),
@@ -817,6 +898,7 @@ class QtJobExecutor(QObject):
             self._busy = False
 
     def _run(self, job):
+        _activity("starting job %s" % job.id, job.id)
         self._manager.mark_running(job)
         try:
             run_pipeline(job, self._manager, self._headless,
@@ -829,7 +911,9 @@ class QtJobExecutor(QObject):
             self._manager.mark_finished(job, JobState.FAILED, exit_code=1,
                                         error=traceback.format_exc())
         finally:
+            _activity("finalizing job %s" % job.id, job.id)
             self._finalize_bb(job)
+            _activity("idle")
 
     def _finalize_bb(self, job):
         """After a job: keep the widget alive as the persistent session if the
@@ -924,6 +1008,8 @@ class _WorkerManager:
         job.exit_code = exit_code
         job.error = error
         job.finished = time.time()
+        _dbg("worker emitting FINAL for job %s -> %s (%d artifact(s))"
+             % (job.id, state, len(job.artifacts)))
         self._out.put({'kind': 'final', 'job_id': job.id, 'state': state,
                        'exit_code': exit_code, 'error': error,
                        'artifacts': list(job.artifacts)})
@@ -940,6 +1026,9 @@ def _session_worker_main(in_q, out_q, gpu_pool, headless):
         os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
         os.environ.setdefault('BABEL_NO_PLOTS', '1')
 
+    _install_stack_dumper("session-worker")     # kill -USR1 <pid> -> stack dump
+    _dbg("session worker up (pid %d)" % os.getpid())
+
     from PySide6.QtWidgets import QApplication
     app = QApplication.instance() or QApplication([])
     app.setQuitOnLastWindowClosed(False)
@@ -947,6 +1036,13 @@ def _session_worker_main(in_q, out_q, gpu_pool, headless):
     manager = _WorkerManager(out_q)
     executor = QtJobExecutor(manager, headless=headless, session_timeout=0,
                              gpu_pool=gpu_pool, always_persist=True)
+
+    # Optional auto stack-dump if any single activity runs longer than N seconds.
+    wd_threshold = float(os.environ.get('BABEL_SERVER_WATCHDOG', 0) or 0)
+    wd_stop = threading.Event()
+    if wd_threshold > 0:
+        threading.Thread(target=_watchdog_loop, args=(wd_stop, wd_threshold),
+                         name="worker-watchdog", daemon=True).start()
 
     stop = threading.Event()
 
@@ -974,6 +1070,7 @@ def _session_worker_main(in_q, out_q, gpu_pool, headless):
     threading.Thread(target=_drain_in, name="worker-in", daemon=True).start()
     app.exec()
     stop.set()
+    wd_stop.set()
     executor._teardown_live()
 
 
@@ -1090,21 +1187,30 @@ class SessionManager:
                 continue
             if not isinstance(msg, dict):
                 continue
-            job = cm.get(msg.get('job_id'))
-            if job is None:
-                continue
-            kind = msg.get('kind')
-            if kind == 'event':
-                cm.add_event(job, msg['phase'], msg['message'],
-                             msg.get('percent'), msg.get('etype', 'phase'))
-            elif kind == 'running':
-                cm.mark_running(job)
-            elif kind == 'final':
-                job.artifacts = msg.get('artifacts') or []
-                cm.mark_finished(job, msg['state'], msg['exit_code'], msg.get('error'))
-                sess.jobs.discard(job.id)
-                if not job.spec.get('keep_alive'):
-                    self.close(sess.id)          # one-shot / transient -> end session
+            # NEVER let one bad message kill this thread: if the drain stops, the
+            # worker's events pile up undelivered and a finished job looks hung.
+            try:
+                job = cm.get(msg.get('job_id'))
+                if job is None:
+                    continue
+                kind = msg.get('kind')
+                if kind == 'event':
+                    cm.add_event(job, msg['phase'], msg['message'],
+                                 msg.get('percent'), msg.get('etype', 'phase'))
+                elif kind == 'running':
+                    cm.mark_running(job)
+                elif kind == 'final':
+                    job.artifacts = msg.get('artifacts') or []
+                    cm.mark_finished(job, msg['state'], msg['exit_code'],
+                                     msg.get('error'))
+                    sess.jobs.discard(job.id)
+                    _dbg("drain %s: FINAL job %s -> %s" % (sess.id, job.id, msg['state']))
+                    if not job.spec.get('keep_alive'):
+                        self.close(sess.id)      # one-shot / transient -> end session
+            except Exception:
+                _log("drain error (session %s, msg kind=%r) — continuing:\n%s"
+                     % (sess.id, msg.get('kind'), traceback.format_exc()))
+        _dbg("drain %s: worker exited, reaping" % sess.id)
         self._reap(sess)
 
     def _reap(self, sess):
@@ -1504,6 +1610,7 @@ def run_server(app, args):
     os.environ['BABEL_SERVER_MODE'] = '1'
     os.environ.setdefault('BABEL_PYTEST', '1')
     app.setQuitOnLastWindowClosed(False)
+    _install_stack_dumper("controller")     # kill -USR1 <controller pid> -> dump
 
     session_timeout = int(getattr(args, 'serve_session_timeout', 0)
                           or os.environ.get('BABEL_SERVER_SESSION_TIMEOUT', 0) or 0)
