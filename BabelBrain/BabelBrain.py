@@ -560,12 +560,12 @@ class BabelBrain(QWidget):
 
         mem = psutil.virtual_memory()
         info = cpuinfo.get_cpu_info()
-        print(f'CPU: {info['brand_raw']}')
+        print(f"CPU: {info['brand_raw']}")
         print(f'Total memory:{mem.total / 2**30:.2f} GB')
-        self.LogTelemetry(f'CTS:L1: CPU: {info['brand_raw']}')
+        self.LogTelemetry(f"CTS:L1: CPU: {info['brand_raw']}")
         self.LogTelemetry(f'CTS:L1: Memory: {mem.total / 2**30:.2f} GB')
         self.LogTelemetry(f'CTS:L1: GPU: {Backend} {ComputingDevice}')
-        self.LogTelemetry(f'CTS:L4: Device: {self.Config['TxSystem']}')
+        self.LogTelemetry(f"CTS:L4: Device: {self.Config['TxSystem']}")
         self.SendTelemetry()
         
         

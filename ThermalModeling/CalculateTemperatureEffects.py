@@ -1225,7 +1225,7 @@ def CalculateTemperatureEffects(InputPData,
         SaveDict['TempProfileTarget']=np.hstack((PreviousData['TempProfileTarget'],TemperaturePoints[IndTarget,:]))
         SaveDict['TemperaturePoints']=np.hstack((PreviousData['TemperaturePoints'],TemperaturePoints))
         
-    print(f'CTS:L4:S3 total duration (time, steps): ({SaveDict['TimeProfileTarget'][-1]},{TemperaturePoints.shape[1]})')
+    print(f"CTS:L4:S3 total duration (time, steps): ({SaveDict['TimeProfileTarget'][-1]},{TemperaturePoints.shape[1]})")
         
     SaveDict['MI']=MI
     SaveDict['x_vec']=xf*1e3
