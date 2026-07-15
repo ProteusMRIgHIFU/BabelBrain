@@ -943,7 +943,11 @@ class Babel_Thermal(QWidget):
             self.Widget.tableWidget.resizeRowToContents(4)
 
         AdjustedTemp=((DataThermal['TemperaturePoints']-BaselineTemperature)*IsppaRatio+BaselineTemperature)
-        DoseUpdate=np.trapezoid(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
+        try:
+            DoseUpdate=np.trapezoid(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
+        except:
+            #we need to call the old function for older versions of Numpy
+            DoseUpdate=np.trapz(RCoeff(AdjustedTemp)**(43.0-AdjustedTemp),dx=DataThermal['dt'],axis=1)/60
    
         MTT=(DataThermal['TempEndFUS'][tuple(Loc)]-BaselineTemperature)*IsppaRatio+BaselineTemperature
         if self._MainApp.Config['bForceHomogenousMedium']:

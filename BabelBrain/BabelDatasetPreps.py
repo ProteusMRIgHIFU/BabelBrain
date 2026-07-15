@@ -331,6 +331,7 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
                     [shell,
                     path_script,
                     SimbNINBSRoot,
+                    scriptbase,
                     reference,
                     mesh,
                     finalname], capture_output=True, text=True
