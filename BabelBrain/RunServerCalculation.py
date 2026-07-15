@@ -164,8 +164,13 @@ class RunServerCalculation(QObject):
         choices (client-owned config)."""
         self._bind()
         default = cf._req("GET", "/defaultconfig")
+        current = cf._req("GET","/currentconfig")
         cfg = dict(self._mainApp.Config or {})
-        return {k: (cfg[k] if k in cfg else dv) for k, dv in default.items()}
+        retcfg={k: (cfg[k] if k in cfg else dv) for k, dv in default.items()}
+        # we just need to recover SimNIBS path as in the server, along with PlanTUS and Connectome
+        for k in ['SimbNINBSRoot','PlanTUSRoot','ConnectomeRoot']:
+            retcfg[k]=current[k]
+        return retcfg
 
     # ── input staging ────────────────────────────────────────────────────
     def _upload_inputs(self, ws_id):
