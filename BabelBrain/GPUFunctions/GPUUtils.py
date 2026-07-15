@@ -166,9 +166,10 @@ def InitOpenCL(preamble=None,kernel_files=None,DeviceName='A6000',build_later=Fa
     # Obtain list of available devices and select one 
     SelDevice=None
     for p in Platforms:
-        for device in p.get_devices():
-            print(device.name)
-            if DeviceName in device.name:
+        for n,device in enumerate(p.get_devices()):
+            devname = f'{n}:'+device.name
+            print(devname)
+            if DeviceName in devname:
                 SelDevice=device
     if SelDevice is None:
         raise SystemError("No OpenCL device containing name [%s]" %(DeviceName))
