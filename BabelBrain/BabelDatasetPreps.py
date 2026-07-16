@@ -52,9 +52,9 @@ except:
 
 
 try:
-    from ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    from ConvMatTransform import ReadTrajectoryBrainsight, read_itk_affine_transform,itk_to_BSight
 except:
-    from .ConvMatTransform import ReadTrajectoryBrainsight, GetIDTrajectoryBrainsight,read_itk_affine_transform,itk_to_BSight
+    from .ConvMatTransform import ReadTrajectoryBrainsight, read_itk_affine_transform,itk_to_BSight
 
 try:
     from FileManager import FileManager

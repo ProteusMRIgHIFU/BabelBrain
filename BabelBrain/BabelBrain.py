@@ -61,7 +61,6 @@ from CalculateMaskProcess import CalculateMaskProcess
 from CTZTEProcessing import ConfirmPseudoCT
 from ConvMatTransform import (
     BSight_to_itk,
-    GetIDTrajectoryBrainsight,
     ReadTrajectoryBrainsight,
     GetBrainSightHeader,
     itk_to_BSight,
@@ -265,7 +264,11 @@ def GetInputFromBrainsight():
             if len(l)>0:
                 res['outputfiles_path']=l   
 
-        ID=GetIDTrajectoryBrainsight(PathMat4Trajectory)
+        ID=ReadTrajectoryBrainsight(PathMat4Trajectory,bGetID=True)[1]
+        if type(ID) is not list:
+            ID=[ID] #we enforce a list of 1 ID to simpliy processing
+        IdStr='+'.join(ID)
+
         header =  GetBrainSightHeader(PathMat4Trajectory)
         if header['Version']=='13':
             # EndWithError("Version 13 of export trajectory not supported.\nEnding BabelBrain execution")
@@ -314,10 +317,10 @@ def GetInputFromBrainsight():
         
         
         #for the time being, we need the trajectory to be next to T1w
-        RPath=outpath+os.sep+ID+'.txt'
+        RPath=outpath+os.sep+IdStr+'.txt'
         assert(shutil.copyfile(PathMat4Trajectory,RPath))
 
-        print('ID,RPath',ID,RPath)
+        print('ID,RPath',IdStr,RPath)
 
         res['Mat4Trajectory']=RPath
         

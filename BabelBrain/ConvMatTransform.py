@@ -104,18 +104,9 @@ def BSight_to_itk(BSight_transform):
     return transform_to_LPS
 
 
-def GetIDTrajectoryBrainsight(fname):
-    names=['Target name', 
-      'Loc. X','Loc. Y','Loc. Z',
-      'm0n0','m0n1','m0n2',
-      'm1n0','m1n1','m1n2',
-      'm2n0','m2n1','m2n2']
-    df=pd.read_csv(fname,comment='#',sep='\t',header=None,names=names,engine='python',usecols=names).iloc[0]  
-    return df['Target name']
-
 def GetBrainSightHeader(fname):
     data = open(fname).readlines()
-    dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:-2]}
+    dct = {line.split(":")[0].split("# ")[1]:line.split(":",1)[1].strip() for line in data[:6]}
     return dct
 
 def ReadTrajectoryBrainsight(fname,bGetID=False):
