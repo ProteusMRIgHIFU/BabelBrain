@@ -214,6 +214,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
     
     def AddSaveDataSim(self,DataForSim):
         super().AddSaveDataSim(DataForSim)
+        DataForSim['TransducerType']='SingleElement'
         DataForSim['Aperture']=self._Aperture
         DataForSim['FocalLength']=self._FocalLength
 

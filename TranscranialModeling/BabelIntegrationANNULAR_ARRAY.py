@@ -257,6 +257,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def AddSaveDataSim(self,DataForSim):
         super().AddSaveDataSim(DataForSim)
+        DataForSim['TransducerType']='ConcaveAnnularArray'
         DataForSim['ZSteering']=self._ZSteering
         DataForSim['BasePhasedArrayProgramming']=self._SIM_SETTINGS.BasePhasedArrayProgramming
 

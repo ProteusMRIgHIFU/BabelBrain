@@ -166,6 +166,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def AddSaveDataSim(self,DataForSim):
         super().AddSaveDataSim(DataForSim)
+        DataForSim['TransducerType']='DomePhasedArray'
         DataForSim['XSteering']=self._XSteering
         DataForSim['YSteering']=self._YSteering
         DataForSim['ZSteering']=self._ZSteering
