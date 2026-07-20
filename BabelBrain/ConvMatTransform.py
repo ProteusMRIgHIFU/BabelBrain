@@ -143,6 +143,48 @@ def ReadTrajectoryBrainsight(fname,bGetID=False):
     else:
         return Mat4
 
+def ReplaceTrajectoryBrainsight(fname,Mat4,TargetName,row,outfname=None):
+    '''
+    Replace the data of a single trajectory in a Brainsight trajectory/target text file.
+
+    Parameters
+    ----------
+    fname : str
+        Path to the Brainsight text file to read.
+    Mat4 : array_like (4x4)
+        Orientation + translation matrix, using the same convention as
+        ReadTrajectoryBrainsight (translation in Mat4[:3,3], and the three
+        orientation vectors in Mat4[:3,0], Mat4[:3,1] and Mat4[:3,2]).
+    TargetName : str
+        New value for the 'Target name' (first) column.
+    row : int
+        0-based index of the trajectory to replace, counting only trajectory
+        lines (i.e. ignoring the header lines starting with '#').
+    outfname : str, optional
+        Path to write the result to. If None, `fname` is overwritten.
+    '''
+    Mat4=np.asarray(Mat4)
+    if Mat4.shape!=(4,4):
+        raise ValueError("Mat4 must be a 4x4 matrix")
+
+    with open(fname,'r') as f:
+        lines=f.read().splitlines()
+
+    indTraj=[n for n,line in enumerate(lines) if len(line.strip())>0 and not line.startswith('#')]
+
+    if row<0 or row>=len(indTraj):
+        raise IndexError("row %i is out of range, file has %i trajectories" %(row,len(indTraj)))
+
+    values=np.concatenate((Mat4[:3,3],Mat4[:3,0],Mat4[:3,1],Mat4[:3,2]))
+    newline='\t'.join([TargetName]+['{0:10.9f}'.format(v) for v in values])
+
+    lines[indTraj[row]]=newline
+
+    if outfname is None:
+        outfname=fname
+    with open(outfname,'w') as f:
+        f.write('\n'.join(lines)+'\n')
+
 def write_insight_transform_from_ras(transform, filename):
     """
     Write an Insight Transform (.tfm) file from a 4x4 RAS transform matrix (as in 3D Slicer).

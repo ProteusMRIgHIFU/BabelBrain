@@ -1,7 +1,8 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout
+from PySide6.QtWidgets import (QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout,QInputDialog,
+                              QDialogButtonBox,QLabel,QComboBox)
 from PySide6.QtCore import Slot, Qt,QTimer
 
 # Important:
@@ -28,6 +29,7 @@ from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
 from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
 
 from Telemetry.TelemetryConsentDialog import TelemetrySettingsWidget, TELEMETRY_OFF
+from ConvMatTransform import ReadTrajectoryBrainsight
 
 
 
@@ -550,6 +552,39 @@ class AdvancedOptions(QDialog):
 
     @Slot()
     def RUNPlanTUS(self):
-        R=RUN_PLAN_TUS(self.parent(),self)
+        def ask_trajectory_index(items, title="Select trajectory", label="Trajectory:", default=0, parent=None):
+            dlg = QDialog(parent)
+            dlg.setWindowTitle(title)
+        
+            combo = QComboBox(dlg)
+            combo.addItems(items)
+            combo.setCurrentIndex(default)
+        
+            buttons = QDialogButtonBox(
+                QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dlg
+            )
+            buttons.accepted.connect(dlg.accept)
+            buttons.rejected.connect(dlg.reject)
+        
+            layout = QVBoxLayout(dlg)
+            layout.addWidget(QLabel(label, dlg))
+            layout.addWidget(combo)
+            layout.addWidget(buttons)
+        
+            if dlg.exec() == QDialog.Accepted:
+                return combo.currentIndex()   # pair with items[idx] if you want the string
+            return None
+        
+        OrigIDs=ReadTrajectoryBrainsight(self.parent().Config['OrigMat4Trajectory'],bGetID=True)[1]
+        if len(self.parent().Config['ID'])>1:
+            IDIndex = ask_trajectory_index(OrigIDs)
+            if IDIndex is None:
+                return
+            ID=OrigIDs[IDIndex]
+
+        else:
+            ID=OrigIDs[0]
+            IDIndex=0
+        R=RUN_PLAN_TUS(self.parent(),self,ID,IDIndex)
         R.Execute()
     

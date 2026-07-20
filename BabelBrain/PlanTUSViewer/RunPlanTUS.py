@@ -27,7 +27,7 @@ from ConvMatTransform import (
     ReadTrajectoryBrainsight,
     itk_to_BSight,
     read_itk_affine_transform,
-    templateBSight,
+    ReplaceTrajectoryBrainsight,
     BSight_to_itk,
     templateSlicer
 )
@@ -184,10 +184,12 @@ class PlanTUSTxConfig(object):
 
 
 class RUN_PLAN_TUS(QObject):
-    def __init__(self, MainApp, OptionsDlg):
+    def __init__(self, MainApp, OptionsDlg,ID,IDIndex):
         super().__init__(OptionsDlg)
         self.MainApp = MainApp # reference to main BabelBrain object
         self.OptionsDlg = OptionsDlg #reference to options dialog that is calling this class
+        self.ID=ID
+        self.IDIndex=IDIndex
         self.CalQueue = None
         self.CalProcess = None
         self.CaltimerTUSPlan = QTimer(self)
@@ -212,6 +214,8 @@ class RUN_PLAN_TUS(QObject):
 
         if TrajectoryType =='brainsight':
             RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+            if len(RMat.shape)==3:
+                RMat=RMat[:,:,self.IDIndex]
         else:
             inMat=read_itk_affine_transform(Mat4Trajectory)
             RMat = itk_to_BSight(inMat)
@@ -293,12 +297,12 @@ class RUN_PLAN_TUS(QObject):
             additional_offset=float(additional_offset),
             focal_distance_list=focal_distance_list,
             flhm_list=flhm_list,
-            IDTarget=self.MainApp.Config['ID'],
+            IDTarget=self.ID,
             connectome_path=ConnectomeRoot,
             bUseGenericTransducerModel=bUseGenericTransducerModel
         )
   
-
+    
         t1Path=self.MainApp.Config['T1W']
         voxel_radius=2/np.array(nibabel.load(t1Path).header.get_zooms()) #2mm radius
         raddi=tuple(np.ceil(voxel_radius).astype(int))
@@ -309,7 +313,7 @@ class RUN_PLAN_TUS(QObject):
         plan_tus_config.ExportYAML(TxConfigName)
         
         mshPath=glob.glob(self.MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
-        maskPath=Mat4Trajectory.replace('.txt','_PlanTUSMask.nii.gz')
+        maskPath=Mat4Trajectory.replace('.txt',f'_PlanTUSMask_T{self.IDIndex}.nii.gz')
         self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+Path(maskPath).name.replace('.nii.gz','')
         print('self.PlanOutputPath', self.PlanOutputPath)
 
@@ -344,7 +348,7 @@ class RUN_PLAN_TUS(QObject):
                 self.GenerateTrajectory(self.select_vortex)
                 return
 
-        print('Starting PlanTUS for target', self.MainApp.Config['ID'])
+        print('Starting PlanTUS for target', self.ID)
         self.RunningTUSPlan = True
 
         fieldWorkerProcess = Process(target=RunPlanTUSBackground, 
@@ -438,86 +442,75 @@ class RUN_PLAN_TUS(QObject):
                 basepath=self.PlanOutputPath            
 
                 #we look for new trajectory files
-                trajFiles=glob.glob(basepath+os.sep+'**'+os.sep+'*Localite.mat',recursive=True)
+                trajFiles=glob.glob(basepath+os.sep+self.ID+os.sep+'*BabelBrain.txt')
                 if len(trajFiles)>0:
                     assert(len(trajFiles)==1)
-                    for trajFile in trajFiles:
-                        id = self.MainApp.Config['ID']+'_PlanTUS'
-                        transform=loadmat(trajFile)['position_matrix']
-                        TT=transform.copy()
-                        # we need to convert the transform to the correct format
-                        TT[:3,0] = -transform[0:3,1]
-                        TT[:3,1] = transform[0:3,2] 
-                        TT[:3,2] = -transform[0:3,0]
-                        transform=TT 
-                        print("Found trajectory file:", trajFile)
-                        # we will reuse to recover the center of the trajectory
-                        outString=templateBSight.format(m0n0=transform[0,0],
-                                m0n1=transform[1,0],
-                                m0n2=transform[2,0],
-                                m1n0=transform[0,1],
-                                m1n1=transform[1,1],
-                                m1n2=transform[2,1],
-                                m2n0=transform[0,2],
-                                m2n1=transform[1,2],
-                                m2n2=transform[2,2],
-                                X=self._RMat[0,3],
-                                Y=self._RMat[1,3],
-                                Z=self._RMat[2,3],
-                                name=id)
-                        foutnameBSight = trajFile.split('Localite.mat')[0] + 'BSight.txt'
-                        with open(foutnameBSight, 'w') as f:
-                            f.write(outString)
+                    trajFile=trajFiles[0]
+                   
+                    id = self.ID
+                    TT=ReadTrajectoryBrainsight(trajFile)
+                    
+                    
+                    transform = BSight_to_itk(TT)
+                    transform[:3,:3]=transform[:3,:3].T
+                    outString=templateSlicer.format(m0n0=transform[0,0],
+                                    m0n1=transform[1,0],
+                                    m0n2=transform[2,0],
+                                    m1n0=transform[0,1],
+                                    m1n1=transform[1,1],
+                                    m1n2=transform[2,1],
+                                    m2n0=transform[0,2],
+                                    m2n1=transform[1,2],
+                                    m2n2=transform[2,2],
+                                    X=transform[0,3],
+                                    Y=transform[1,3],
+                                    Z=transform[2,3])
 
-                        transform = BSight_to_itk(ReadTrajectoryBrainsight(foutnameBSight))
-                        transform[:3,:3]=transform[:3,:3].T
-                        outString=templateSlicer.format(m0n0=transform[0,0],
-                                        m0n1=transform[1,0],
-                                        m0n2=transform[2,0],
-                                        m1n0=transform[0,1],
-                                        m1n1=transform[1,1],
-                                        m1n2=transform[2,1],
-                                        m2n0=transform[0,2],
-                                        m2n1=transform[1,2],
-                                        m2n2=transform[2,2],
-                                        X=transform[0,3],
-                                        Y=transform[1,3],
-                                        Z=transform[2,3])
+                    foutnameSlicer = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
+                    with open(foutnameSlicer, 'w') as f:
+                        f.write(outString)
 
-                        foutnameSlicer = trajFile.split('Localite.mat')[0] + 'Slicer.txt'
-                        with open(foutnameSlicer, 'w') as f:
-                            f.write(outString)
-
-                        bdir,sfile = os.path.split(trajFile)
-                        tfile = sfile.replace('position_matrix','transducer').replace('_Localite.mat','.surf.gii')
-                        self.showFinalResults(bdir+os.sep+tfile)
+                    bdir,sfile = os.path.split(trajFile)
+                    tfile = sfile.replace('trajectory','transducer').replace('_BabelBrain.txt','.surf.gii')
+                    self.showFinalResults(bdir+os.sep+tfile)
 
                     ret = QMessageBox.question(self.OptionsDlg,'', "Do you want to use the\n PlanTUS results to update the trajectory? ",QMessageBox.Yes | QMessageBox.No)
                     if ret == QMessageBox.Yes:
                         TrajectoryType=self.MainApp.Config['TrajectoryType']
                         if TrajectoryType =='brainsight':
                             ext='*BSight.txt'
-                            lastfoutname=foutnameBSight
                         else:
                             ext='*Slicer.txt'
                             lastfoutname=foutnameSlicer
 
                         finalfname=self.MainApp.Config['OrigMat4Trajectory'].split('.txt')[0]+'_PlanTUS.txt'
                                 
-    
                         if len(trajFiles)>1:
                             fname = QFileDialog.getOpenFileName(self.OptionsDlg, "Select txt file with calibration input fields",basepath, "Text files ("+ext+")")[0]
                             if len(fname)>0:
                                 shutil.copy(fname, finalfname)
                                 self.MainApp.Config['Mat4Trajectory'] = finalfname
-                                self.MainApp.Config['ID'] = id
+                                self.MainApp.Config['ID'][self.IDIndex] = id
                                 self.MainApp.UpdateWindowTitle()
                         else:
-                            fname = lastfoutname
-                            shutil.copy(fname, finalfname)
+                            if TrajectoryType =='brainsight':
+                                ReplaceTrajectoryBrainsight(self.MainApp.Config['Mat4Trajectory'],TT,id,self.IDIndex,finalfname)
+                            else:
+                                shutil.copy(lastfoutname,finalfname)
                             self.MainApp.Config['Mat4Trajectory'] = finalfname
-                            self.MainApp.Config['ID'] = id
+                            self.MainApp.Config['ID'][self.IDIndex] = id
                             self.MainApp.UpdateWindowTitle()
+                else:
+                    print("*"*40)
+                    print("*"*5+" Incomplete execution of PlanTUS.")
+                    print("*"*40)
+                    msg = QMessageBox(self.OptionsDlg)
+                    msg.setIcon(QMessageBox.Icon.Critical)
+                    msg.setWindowTitle("Incomplete execution in PlanTUS.")
+                    msg.setText("We couldn't find any PlanTUS generated trajectory.")
+                    msg.setInformativeText("Check console terminal output in main Window for details")
+                    msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msg.exec()
             else:
                 print("*"*40)
                 print("*"*5+" Error in execution of PlanTUS.")
