@@ -184,6 +184,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         TxStl = mesh.Mesh(np.zeros(FaceDisplay.shape[0]*2, dtype=mesh.Mesh.dtype))
 
         TxVert=TxVert.T[:,:3]
+        self._TxElemCenters=np.mean(TxVert,axis=0).reshape((1,3))
         for i, f in enumerate(FaceDisplay):
             TxStl.vectors[i*2][0] = TxVert[f[0],:]
             TxStl.vectors[i*2][1] = TxVert[f[1],:]

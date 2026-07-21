@@ -1248,15 +1248,16 @@ def CalculateTemperatureEffects(InputPData,
     #we carry over these params to simplify analysis later
     PhaseDataKeys={'BasePhasedArrayProgramming':'PhaseData',\
                   'BasePhasedArrayProgrammingRefocusing':'PhaseDataRefocusing'} #Matlab can handled long variable names
+    optionalFilesPerTypeOrVersion =['XSteering','YSteering','ZSteering','TxElemCenters','TransducerType']
     if type(InputPData) is str: 
-        for k in ['XSteering','YSteering','ZSteering']:
+        for k in optionalFilesPerTypeOrVersion:
             if k in Input:
                 SaveDict[k]=Input[k]
         for k in PhaseDataKeys:
             if k in Input:
                 SaveDict[PhaseDataKeys[k]]=Input[k]
     else:
-        for k in ['XSteering','YSteering','ZSteering']:
+        for k in optionalFilesPerTypeOrVersion:
             if k in Input:
                 steering =np.ones(len(ALL_ACFIELDSKULL))
                 for n,entry in enumerate(ALL_ACFIELDSKULL):

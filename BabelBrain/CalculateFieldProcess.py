@@ -63,6 +63,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                         bTightNarrowBeamDomain=True,
                         bForceRecalc=True,
                         bDisplay=False,
+                        TxSystem=TxSystem,
                         **kargs)
         bDryRun = False
         
@@ -78,6 +79,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bForceRecalc=True,
                             bWaterOnly=True,
                             bDisplay=False,
+                            TxSystem=TxSystem,
                             **kargs)
         if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
             #we need to combine ac field files for display if using multipoint
@@ -88,6 +90,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bForceRecalc=True,
                             bWaterOnly=True,
                             bDisplay=False,
+                            TxSystem=TxSystem,
                             **kargs)
                 #now we combine the individual Nifti files into a single one , this is required mainly for proper visualization in Brainsight
                 for fnames in [FilesSkull,FilesWater]:
@@ -125,6 +128,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bForceRecalc=True,
                             bWaterOnly=True,
                             bDisplay=False,
+                            TxSystem=TxSystem,
                             **kargs)
             outFiles={'FilesSkull':FilesSkull,'FilesWater':FilesWater}
             if bDryRun==False:

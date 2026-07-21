@@ -206,9 +206,11 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     **kargs)
     
     def GenerateSTLTx(self,prefix):
-        n=1
         affine=self._SkullMask.affine
         LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
+
+        allMeshes=[]
+        TxElemCenters=[]
 
         for VertDisplay,FaceDisplay in zip(self._SIM_SETTINGS._TxRCOrig['RingVertDisplay'],
                                 self._SIM_SETTINGS._TxRCOrig['RingFaceDisplay']):
@@ -227,6 +229,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxStl = mesh.Mesh(np.zeros(FaceDisplay.shape[0]*2, dtype=mesh.Mesh.dtype))
 
             TxVert=TxVert.T[:,:3]
+            TxElemCenters.append(np.mean(TxVert,axis=0)) #In ring Tx, we use the center of mass of all vertices
             for i, f in enumerate(FaceDisplay):
                 TxStl.vectors[i*2][0] = TxVert[f[0],:]
                 TxStl.vectors[i*2][1] = TxVert[f[1],:]
@@ -236,10 +239,12 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                 TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
                 TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
 
-            bdir=os.path.dirname(self._MASKFNAME)
-            TxStl.save(bdir+os.sep+prefix+'Tx_Ring_%i.stl' %(n))
-            _rec_artifact(bdir+os.sep+prefix+'Tx_Ring_%i.stl' %(n))
-            n+=1
+            allMeshes.append(TxStl.data)
+
+        bdir=os.path.dirname(self._MASKFNAME)
+        FinalMesh=mesh.Mesh(np.concatenate(allMeshes))
+        FinalMesh.save(bdir+os.sep+prefix+'Tx.stl')
+        _rec_artifact(bdir+os.sep+prefix+'Tx.stl' )
         TransformationCone=np.eye(4)
         TransformationCone[2,2]=-1
         OrientVec=np.array([0,0,1]).reshape((1,3))
@@ -254,6 +259,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         #we save the final cone profile
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         _rec_artifact(bdir+os.sep+prefix+'_Cone.stl')
+        self._TxElemCenters=np.array(TxElemCenters)
 
     def AddSaveDataSim(self,DataForSim):
         super().AddSaveDataSim(DataForSim)

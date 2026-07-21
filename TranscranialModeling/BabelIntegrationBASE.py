@@ -1216,6 +1216,7 @@ class RUN_SIM_BASE(object):
                                     'ShearSoS':0.0, #m/s
                                     'ShearAtt':0.0}, #Np/m
                 InputFocusStart='',
+                TxSystem='',
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -1295,6 +1296,7 @@ class RUN_SIM_BASE(object):
                                                     InputFocusStart=InputFocusStart,
                                                     OptimizedWeightsFile=OptimizedWeightsFile,
                                                     AIRMASK=AIRMASK,
+                                                    TxSystem=TxSystem,
                                                     **kargs)
                     print('  Step 1')
 
@@ -1412,7 +1414,8 @@ class BabelFTD_Simulations_BASE(object):
                  BenchmarkTestFile='',
                  InputFocusStart='',
                  OptimizedWeightsFile='',
-                 AIRMASK=None):
+                 AIRMASK=None,
+                 TxSystem=''):
         self._MASKFNAME=MASKFNAME
 
         if 'BABEL_PYTEST_QFACTOR' in os.environ:
@@ -1457,6 +1460,7 @@ class BabelFTD_Simulations_BASE(object):
         self._InputFocusStart=InputFocusStart
         self._OptimizedWeightsFile=OptimizedWeightsFile
         self._AIRMASK=AIRMASK
+        self._TxSystem = TxSystem
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -1702,6 +1706,8 @@ class BabelFTD_Simulations_BASE(object):
     def AddSaveDataSim(self,DataForSim):
         if hasattr(self,'_SDR'):
             DataForSim['SDR']=self._SDR
+        DataForSim['TxElemCenters']=self._TxElemCenters
+        DataForSim['TxSystem']=self._TxSystem
 
     def Step10_GetResults(self,FILENAMES,subsamplingFactor=1,bMinimalSaving=False,bUseRayleighForWater=False,FILENAMESWater=None):
         ss=subsamplingFactor

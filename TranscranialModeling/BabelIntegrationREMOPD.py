@@ -202,49 +202,43 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
-        TxVert=self._SIM_SETTINGS._TxREMOPD['VertDisplay'].T.copy()
-        TxVert/=self._SIM_SETTINGS.SpatialStep
-        TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
+
         affine=self._SkullMask.affine
-        
         LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
 
-        TxVert[2,:]=-TxVert[2,:]
-        TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-        TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-        TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+        for nt,st in enumerate(['VertDisplay','elemcenter']):
+            TxVert=self._SIM_SETTINGS._TxREMOPD[st].T.copy()
+            TxVert/=self._SIM_SETTINGS.SpatialStep
+            TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
 
-        TxVert=np.dot(affine,TxVert)
+            TxVert[2,:]=-TxVert[2,:]
+            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
+            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
+            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
 
-        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxREMOPD['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+            TxVert=np.dot(affine,TxVert)
 
-        TxVert=TxVert.T[:,:3]
-        for i, f in enumerate(self._SIM_SETTINGS._TxREMOPD['FaceDisplay']):
-            TxStl.vectors[i*2][0] = TxVert[f[0],:]
-            TxStl.vectors[i*2][1] = TxVert[f[1],:]
-            TxStl.vectors[i*2][2] = TxVert[f[3],:]
+            TxVert=TxVert.T[:,:3]
 
-            TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
-            TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
-            TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
-        
-        bdir=os.path.dirname(self._MASKFNAME)
-        TxStl.save(bdir+os.sep+prefix+'Tx.stl')
-        _rec_artifact(bdir+os.sep+prefix+'Tx.stl')
+            if nt ==0:
 
-            # TransformationCone=np.eye(4)
-            # TransformationCone[2,2]=-1
-            # OrientVec=np.array([0,0,1]).reshape((1,3))
-            # TransformationCone[0,3]=LocSpot[0]
-            # TransformationCone[1,3]=LocSpot[1]
-            # RadCone=self._SIM_SETTINGS._Aperture/self._SIM_SETTINGS.SpatialStep/2
-            # HeightCone=self._SIM_SETTINGS._ZSteering/self._SIM_SETTINGS.SpatialStep
-            # HeightCone=np.sqrt(HeightCone**2-RadCone**2)
-            # TransformationCone[2,3]=LocSpot[2]+HeightCone - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
-            # Cone=creation.cone(RadCone,HeightCone,transform=TransformationCone)
-            # Cone.apply_transform(affine)
-            # #we save the final cone profile
-            # Cone.export(bdir+os.sep+prefix+'_Cone.stl')
+                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxREMOPD['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+
+                for i, f in enumerate(self._SIM_SETTINGS._TxREMOPD['FaceDisplay']):
+                    TxStl.vectors[i*2][0] = TxVert[f[0],:]
+                    TxStl.vectors[i*2][1] = TxVert[f[1],:]
+                    TxStl.vectors[i*2][2] = TxVert[f[3],:]
+
+                    TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
+                    TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
+                    TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
+                
+                bdir=os.path.dirname(self._MASKFNAME)
+                TxStl.save(bdir+os.sep+prefix+'Tx.stl')
+                _rec_artifact(bdir+os.sep+prefix+'Tx.stl')
+            else:
+                self._TxElemCenters=TxVert
+                
         
 
     def AddSaveDataSim(self,DataForSim):

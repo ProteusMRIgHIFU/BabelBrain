@@ -154,35 +154,39 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
 
     def GenerateSTLTx(self,prefix):
         #we also export the STL of the Tx for display in Brainsight or 3D slicer
-        TxVert=self._SIM_SETTINGS._TxOrig['VertDisplay'].T.copy()
-        TxVert/=self._SIM_SETTINGS.SpatialStep
-        TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
         affine=self._SkullMask.affine
-        
         LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
-
-        TxVert[2,:]=-TxVert[2,:]
-        TxVert[0,:]+=LocSpot[0]
-        TxVert[1,:]+=LocSpot[1]
-        TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
-
-        TxVert=np.dot(affine,TxVert)
-
-        TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxOrig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
-
-        TxVert=TxVert.T[:,:3]
-        for i, f in enumerate(self._SIM_SETTINGS._TxOrig['FaceDisplay']):
-            TxStl.vectors[i*2][0] = TxVert[f[0],:]
-            TxStl.vectors[i*2][1] = TxVert[f[1],:]
-            TxStl.vectors[i*2][2] = TxVert[f[3],:]
-
-            TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
-            TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
-            TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
         
-        bdir=os.path.dirname(self._MASKFNAME)
-        TxStl.save(bdir+os.sep+prefix+'Tx.stl')
-        _rec_artifact(bdir+os.sep+prefix+'Tx.stl')
+        for nt,st in enumerate(['VertDisplay','elemcenter']):
+            TxVert=self._SIM_SETTINGS._TxREMOPD[st].T.copy()
+            TxVert/=self._SIM_SETTINGS.SpatialStep
+            TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
+            TxVert[2,:]=-TxVert[2,:]
+            TxVert[0,:]+=LocSpot[0]
+            TxVert[1,:]+=LocSpot[1]
+            TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+
+            TxVert=np.dot(affine,TxVert)
+
+            TxVert=TxVert.T[:,:3]
+
+            if nt ==0:
+                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxOrig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+                for i, f in enumerate(self._SIM_SETTINGS._TxOrig['FaceDisplay']):
+                    TxStl.vectors[i*2][0] = TxVert[f[0],:]
+                    TxStl.vectors[i*2][1] = TxVert[f[1],:]
+                    TxStl.vectors[i*2][2] = TxVert[f[3],:]
+
+                    TxStl.vectors[i*2+1][0] = TxVert[f[1],:]
+                    TxStl.vectors[i*2+1][1] = TxVert[f[2],:]
+                    TxStl.vectors[i*2+1][2] = TxVert[f[3],:]
+                
+                bdir=os.path.dirname(self._MASKFNAME)
+                TxStl.save(bdir+os.sep+prefix+'Tx.stl')
+                _rec_artifact(bdir+os.sep+prefix+'Tx.stl')
+            else:
+                self._TxElemCenters=TxVert
+                
         
         TransformationCone=np.eye(4)
         TransformationCone[2,2]=-1
