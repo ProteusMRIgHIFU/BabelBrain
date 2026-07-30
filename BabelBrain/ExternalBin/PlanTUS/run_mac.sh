@@ -10,5 +10,5 @@ fi
 # Check if the simnibs_env directory exists
 echo "Activating virtual environment from $1/simnibs_env/bin/activate"
 source "$1/simnibs_env/bin/activate"
-echo "running $2/PlanTUS_wrapper.py with arguments: $3 $4 $5 $6 --skip_wb_view $7 $8"
-python "$2/PlanTUS_wrapper.py" "$3" "$4" "$5" "$6" --skip_wb_view $7 $8
+echo "running $2/PlanTUS_wrapper.py with arguments: $3 $4 $5 $6 --skip_wb_view $7 $8 $9"
+python "$2/PlanTUS_wrapper.py" "$3" "$4" "$5" "$6" --skip_wb_view $7 $8 $9

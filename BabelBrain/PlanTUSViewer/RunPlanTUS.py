@@ -631,7 +631,8 @@ def RunPlanTUSBackground(queue,
                     t1Path,
                     mshPath,
                     maskPath,
-                    TxConfigName]
+                    TxConfigName,
+                    '--overwrite']
             if runOnlyTrajectory>-1:
                 args.append('--do_only_trajectory')
                 args.append(str(runOnlyTrajectory))
@@ -650,7 +651,8 @@ def RunPlanTUSBackground(queue,
                     t1Path,
                     mshPath,
                     maskPath,
-                    TxConfigName]
+                    TxConfigName,
+                    '--overwrite']
             if runOnlyTrajectory>-1:
                     args.append('--do_only_trajectory')
                     args.append(str(runOnlyTrajectory))
