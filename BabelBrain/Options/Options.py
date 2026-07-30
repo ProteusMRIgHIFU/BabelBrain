@@ -4,6 +4,7 @@ import sys
 from PySide6.QtWidgets import (QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout,QInputDialog,
                               QDialogButtonBox,QLabel,QComboBox)
 from PySide6.QtCore import Slot, Qt,QTimer
+from PySide6.QtGui import QPalette
 
 # Important:
 # You need to run the following command to generate the ui_form.py file
@@ -47,6 +48,14 @@ def resource_path():  # needed for bundling
         bundle_dir = os.path.join(Path(__file__).parent,'..')
 
     return bundle_dir
+
+def plantus_bundled_path():
+    """Absolute path to the PlanTUS tool bundled with BabelBrain.
+
+    This is the submodule/checkout populated by Scripts/fetch_plantus.py at
+    ExternalBin/PlanTUS/PlanTUS."""
+    return os.path.normpath(os.path.join(resource_path(),'ExternalBin','PlanTUS','PlanTUS'))
+
 
 def connect_folder_button(parent,button, line_edit, title):
     """Helper to connect a button to folder selection behavior."""
@@ -245,6 +254,23 @@ class AdvancedOptions(QDialog):
         self.ui.TxOptimizedWeightspushButton.clicked.connect(self.VerifyCalibrationFile)
     
         self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
+
+        # An empty PlanTUS root means "use the built-in PlanTUS bundled with BabelBrain".
+        # Advertise that with an always-visible hint, shown grey (Qt default) and italic.
+        # Qt has no separate placeholder font, so we italicize the field only while it is
+        # empty -- when only the placeholder is visible -- and revert once a path is typed.
+        self.ui.PlanTUSRootlineEdit.setPlaceholderText(
+            "Optional: folder for a custom PlanTUS version (empty = built-in)")
+        # Qt's default placeholder is the text colour at ~50% alpha, too faint to read
+        # in macOS light mode. Bump the alpha (derived from the field's own text colour,
+        # so it still adapts to light/dark themes) for a bit more contrast.
+        _pal = self.ui.PlanTUSRootlineEdit.palette()
+        _ph = _pal.color(QPalette.Text)
+        _ph.setAlpha(190)
+        _pal.setColor(QPalette.PlaceholderText, _ph)
+        self.ui.PlanTUSRootlineEdit.setPalette(_pal)
+        self.ui.PlanTUSRootlineEdit.textChanged.connect(self._UpdatePlanTUSPlaceholderStyle)
+        self._UpdatePlanTUSPlaceholderStyle(self.ui.PlanTUSRootlineEdit.text())
 
         TxSystem = self.parent().Config['TxSystem']
 
@@ -458,8 +484,11 @@ class AdvancedOptions(QDialog):
         self.ui.SegmentBrainTissuecheckBox.setChecked(values.bSegmentBrainTissue)
         self.ui.SimbNINBSRootlineEdit.setText(values.SimbNINBSRoot)
         self.ui.SimbNINBSRootlineEdit.setCursorPosition(len(values.SimbNINBSRoot))
-        self.ui.PlanTUSRootlineEdit.setText(values.PlanTUSRoot)
-        self.ui.PlanTUSRootlineEdit.setCursorPosition(len(values.PlanTUSRoot))
+        # Show the field empty (revealing the placeholder hint) when no explicit
+        # folder is set; an empty value means the built-in PlanTUS is used.
+        PlanTUSRoot='' if values.PlanTUSRoot in ('...','') else values.PlanTUSRoot
+        self.ui.PlanTUSRootlineEdit.setText(PlanTUSRoot)
+        self.ui.PlanTUSRootlineEdit.setCursorPosition(len(PlanTUSRoot))
         self.ui.ConnectomeRootlineEdit.setText(values.ConnectomeRoot)
         self.ui.ConnectomeRootlineEdit.setCursorPosition(len(values.ConnectomeRoot))
 
@@ -551,6 +580,18 @@ class AdvancedOptions(QDialog):
         self.done(-1)
 
     @Slot()
+    def _UpdatePlanTUSPlaceholderStyle(self, text):
+        '''
+        Render the PlanTUS root field in italic while it is empty (so the grey
+        placeholder hint reads as italic) and normal once a path is entered.
+        '''
+        le = self.ui.PlanTUSRootlineEdit
+        f = le.font()
+        italic = len(text) == 0
+        if f.italic() != italic:
+            f.setItalic(italic)
+            le.setFont(f)
+
     def RUNPlanTUS(self):
         def ask_trajectory_index(items, title="Select trajectory", label="Trajectory:", default=0, parent=None):
             dlg = QDialog(parent)

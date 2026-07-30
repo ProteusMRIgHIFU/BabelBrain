@@ -19,6 +19,15 @@ def collect_external_bin_binaries():
     # Recursively loop through external bin directory and add binaries
     for path in glob("ExternalBin" + os.sep + "**", recursive=True):
         if os.path.isfile(path):
+            # PlanTUS is a pinned submodule: bundle its whole tree (yaml configs,
+            # .scene templates, .gii transducer models, code), not just .py files.
+            # glob("**") already skips dotfiles, so .git contents are excluded.
+            if os.path.join("PlanTUS", "PlanTUS") + os.sep in path:
+                if "__pycache__" in path:
+                    continue
+                collected_binaries += [(path, "." + os.sep + os.path.dirname(path))]
+                continue
+
             # Common binaries
             if ".txt" in path:
                 collected_binaries += [(path, "." + os.sep + os.path.dirname(path))]

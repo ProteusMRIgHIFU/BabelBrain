@@ -46,6 +46,52 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/) for details on instructions for use.
 
 # Manual Installation for Development 
+## Cloning the repository
+BabelBrain bundles the external [PlanTUS](https://github.com/mlueckel/PlanTUS) tool as a git submodule pinned to a known-good commit (`BabelBrain/ExternalBin/PlanTUS/PlanTUS`). Clone with submodules so PlanTUS is fetched automatically:
+
+```bash
+git clone --recurse-submodules https://github.com/ProteusMRIgHIFU/BabelBrain.git
+```
+
+If you already cloned without `--recurse-submodules`, populate it with:
+
+```bash
+git submodule update --init --recursive
+```
+
+If you obtained BabelBrain as a zip/archive (no git submodule), or want to (re)pin PlanTUS, run:
+
+```bash
+python Scripts/fetch_plantus.py          # fetch PlanTUS at the pinned commit
+python Scripts/fetch_plantus.py --check  # report status without changing anything
+```
+
+By default BabelBrain uses this built-in, pinned PlanTUS; the PlanTUS root field in the Advanced Options dialog is left empty. You may point that field at your own PlanTUS checkout to use a different version, at your own risk.
+
+## Updating the PlanTUS pin
+The PlanTUS version is pinned in two places that must stay in sync: the submodule **gitlink** (used by `--recurse-submodules` clones) and `PLANTUS_PIN` in `Scripts/fetch_plantus.py` (used by zip/standalone installs). To move both to a new commit or tag (`NEWSHA` below — use the full 40-char SHA; get it from a tag with `git rev-parse <tag>^{commit}`):
+
+```bash
+cd BabelBrain/ExternalBin/PlanTUS/PlanTUS
+git fetch origin
+git checkout NEWSHA                                   # a commit SHA or a tag
+cd -
+git add BabelBrain/ExternalBin/PlanTUS/PlanTUS        # moves the gitlink
+# edit Scripts/fetch_plantus.py: set PLANTUS_PIN = "NEWSHA"
+git add Scripts/fetch_plantus.py
+git commit -m "Bump PlanTUS pin to NEWSHA"
+```
+
+Before committing, confirm both sides agree:
+
+```bash
+git submodule status                     # gitlink SHA
+grep PLANTUS_PIN Scripts/fetch_plantus.py
+python Scripts/fetch_plantus.py --check  # passes only if they match
+```
+
+Also review PlanTUS's changes between the old and new commit (`git -C BabelBrain/ExternalBin/PlanTUS/PlanTUS diff --stat OLDSHA NEWSHA`) in case the `PlanTUS_wrapper.py` call in `BabelBrain/PlanTUSViewer/RunPlanTUS.py` needs matching updates. After pulling a bump, teammates must run `git submodule update --init --recursive` to move their local checkout to the new commit.
+
 ## Recommended settings
 * All OS: create a conda environment using the appropriate yaml file for macOS Intel, macOS ARM64, Windows or Linux. 
 

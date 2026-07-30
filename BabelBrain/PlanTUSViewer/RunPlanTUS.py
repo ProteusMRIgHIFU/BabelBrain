@@ -208,6 +208,14 @@ class RUN_PLAN_TUS(QObject):
         Mat4Trajectory=self.MainApp.Config['OrigMat4Trajectory']
 
         PlanTUSRoot=self.OptionsDlg.ui.PlanTUSRootlineEdit.text()
+        # Fall back to the PlanTUS bundled with BabelBrain (pinned version at
+        # ExternalBin/PlanTUS/PlanTUS) when the user has not set a valid folder.
+        if PlanTUSRoot in ('...','') or not os.path.isfile(os.path.join(PlanTUSRoot,'PlanTUS_wrapper.py')):
+            _bundled=os.path.normpath(os.path.join(resource_path(),'ExternalBin','PlanTUS','PlanTUS'))
+            if os.path.isfile(os.path.join(_bundled,'PlanTUS_wrapper.py')):
+                PlanTUSRoot=_bundled
+            else:
+                raise RuntimeError(f"PlanTUS_wrapper.py does not exist where is expected: {_bundled}")
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
         ConnectomeRoot=self.OptionsDlg.ui.ConnectomeRootlineEdit.text()
         VolumeROIPlanTUS=self.OptionsDlg.ui.VolumeROIPlanTUSlineEdit.text()
