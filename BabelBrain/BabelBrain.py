@@ -464,19 +464,16 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['CTMapCombo']=CTMapCombo
-        self.Config['NumberTransducers']=1 
         if self.Config['TrajectoryType']=='brainsight':
             ID=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
-            if type(ID) is list:
-                self.Config['NumberTransducers']=len(ID) #multiple devices
-            else:
-                ID=[ID] #we enforce a list of 1 ID to simpliy processing
-            self.Config['ID'] = ID
         else:
-            #for 3DSlicer, we will limit to only one - the time we found a better strategy
-            self.Config['ID'] = [os.path.splitext(os.path.split(self.Config['Mat4Trajectory'])[1])[0]]
-            
+            ID=read_itk_affine_transform(self.Config['Mat4Trajectory'],bGetID=True)[1]
 
+        if type(ID) is str:
+            ID=[ID] #we enforce a list of 1 ID to simpliy processing
+
+        self.Config['NumberTransducers']=len(ID)
+        self.Config['ID'] = ID
         #filenames when saving results for Brainsight
         self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
         self.Config['BrainsightSyncPath']  = _BrainsightSyncPath
@@ -1070,8 +1067,18 @@ class BabelBrain(QWidget):
 
     #this will modify the coordinates of the trajectory
     def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0,Ntraj=0):
-        newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
-            
+
+        MultiYaml=None
+        if self.Config['TrajectoryType']=='brainsight' or\
+            os.path.splitext(self.Config['Mat4Trajectory'])[1]=='.txt':
+            prevname=self.Config['Mat4Trajectory']
+        else:
+            with open(self.Config['Mat4Trajectory']) as f:
+                multi=yaml.safe_load(f)
+            prevName=multi[self.Config['ID'][Ntraj]]
+            MultiYaml = os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
+        newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(prevName)[1])
+                
         if self.Config['TrajectoryType']=='brainsight':
             OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])
             if len(OrigTraj.shape)==3:
@@ -1096,6 +1103,8 @@ class BabelBrain(QWidget):
                 f.writelines(allLines)
         else:
             inMat=read_itk_affine_transform(self.Config['Mat4Trajectory'])
+            if len(inMat.shape)==3:
+                inMat=inMat[:,:,Ntraj]
             OrigTraj = itk_to_BSight(inMat)
             OrigTraj[0,3]-=CorX
             OrigTraj[1,3]-=CorY
@@ -1117,6 +1126,10 @@ class BabelBrain(QWidget):
         
             with open(newFName,'w') as f:
                 f.write(outString)
+            if MultiYaml is not None:
+                multi[self.Config['ID'][Ntraj]]=newFName
+                with open(MultiYaml,'w') as f:
+                    yaml.dump(multi,f)
         return newFName
 
     def UpdateAcousticTab(self):

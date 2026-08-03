@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import argparse
 import sys
+import yaml
 
 templateSlicer=\
 '''#Insight Transform File V1.0
@@ -24,15 +25,16 @@ templateBSight=\
 # Target Name	Loc. X	Loc. Y	Loc. Z	m0n0	m0n1	m0n2	m1n0	m1n1	m1n2	m2n0	m2n1	m2n2
 {name}\t{X:10.9f}\t{Y:10.9f}\t{Z:10.9f}\t{m0n0:10.9f}\t{m0n1:10.9f}\t{m0n2:10.9f}\t{m1n0:10.9f}\t{m1n1:10.9f}\t{m1n2:10.9f}\t{m2n0:10.9f}\t{m2n1:10.9f}\t{m2n2:10.9f}
 '''
-
+import os
 import re
-def read_itk_affine_transform(filename):
+
+def read_individual_itk_transform(filename):
     with open(filename) as f:
         tfm_file_lines = f.readlines()
-    # parse the transform parameters
+        # parse the transform parameters
     match = re.match("Transform: AffineTransform_[a-z]+_([0-9]+)_([0-9]+)", tfm_file_lines[2])
     if not match or match.group(1) != '3' or match.group(2) != '3':
-         raise ValueError(f"{filename} is not an ITK 3D affine transform file")
+        raise ValueError(f"{filename} is not an ITK 3D affine transform file")
     # Extract Parameters
     params_line = next(line for line in tfm_file_lines if line.startswith('Parameters:'))
     params = list(map(float, params_line.replace('Parameters:', '').strip().split()))
@@ -57,6 +59,32 @@ def read_itk_affine_transform(filename):
 
     return transform
 
+def read_itk_affine_transform(filename,bGetID=False):
+    if os.path.splitext(filename)[1]=='.txt':
+        ID=os.path.splitext(os.path.split(filename)[1])[0]
+        transform=read_individual_itk_transform(filename)
+        if bGetID:
+            return transform,ID
+        else:
+            return transform
+    else:
+        try:
+            with open(filename) as f:
+                trajectories=yaml.safe_load(f)
+        except:
+            raise RuntimeError(f"Unable to load YAML file for 3D Slicer trajectories {filename}")
+        if type(trajectories) is not dict:
+            raise RuntimeError('3D Slicer trajectories file must be a simple dictionary with "key: path" pairs to individual linear transforms')
+        transform=np.zeros((4,4,len(trajectories)))
+        ID=list(trajectories.keys())
+        for n,k in enumerate(ID):
+            if not os.path.isfile(trajectories[k]):
+                raise RuntimeError(f"File path for trajectory {k} does not exist: {trajectories[k]}")
+            transform[:,:,n]=read_individual_itk_transform(trajectories[k])
+        if bGetID:
+            return transform,ID
+        else:
+            return transform
 
 def itk_to_BSight(itk_transform):
     # ITK transform: from parent, using LPS coordinate system

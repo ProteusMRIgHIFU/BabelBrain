@@ -616,9 +616,9 @@ class AdvancedOptions(QDialog):
                 return combo.currentIndex()   # pair with items[idx] if you want the string
             return None
         
-        OrigIDs=ReadTrajectoryBrainsight(self.parent().Config['OrigMat4Trajectory'],bGetID=True)[1]
-        if len(self.parent().Config['ID'])>1:
-            IDIndex = ask_trajectory_index(OrigIDs)
+        OrigIDs=self.parent().Config['ID']
+        if len(OrigIDs)>1:
+            IDIndex = ask_trajectory_index(self.parent().Config['ID'])
             if IDIndex is None:
                 return
             ID=OrigIDs[IDIndex]

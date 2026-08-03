@@ -71,7 +71,7 @@ class TableModel(QAbstractTableModel):
 ORIGINAL_BABELBRAIN_SELECTION={'real CT':19,'ZTE':19,'PETRA':19}
 
 def ValidThermalProfile(fProf):
-    msgDetails=None
+    msgDetails=''
     try:
         with open(fProf,'r') as f:
             profile=yaml.safe_load(f)
@@ -359,18 +359,11 @@ class SelFiles(QDialog):
             except:
                 pass 
         return AllDevices
-    
-    def ValidTrajectory(self):
-        fTraj = self.ui.TrajectorylineEdit.text()
 
-        if not os.path.isfile(fTraj):
-            self.msgDetails = "Trajectory file was not specified"
-            return False
-
+    def ValidateIndivTrajectory(self,fTraj):
         with open(fTraj) as f:
             lines = f.readlines()
         lines= str(lines).lower()
-
         if self.ui.TrajectoryTypecomboBox.currentIndex() == 0: # Brainsight
             if re.search("brainsight",lines):
                 return True
@@ -383,6 +376,36 @@ class SelFiles(QDialog):
             else:
                 self.msgDetails = "Selected trajectory file is not a Slicer file"
                 return False
+    def ValidTrajectory(self):
+        fTraj = self.ui.TrajectorylineEdit.text()
+
+        if not os.path.isfile(fTraj):
+            self.msgDetails = "Trajectory file was not specified"
+            return False
+
+        if os.path.splitext(fTraj)[1]=='.txt':
+            return self.ValidateIndivTrajectory(fTraj)
+        else: #this is a yaml file for 3D Slicer trajectories
+            try:
+                with open(fTraj) as f:
+                    trajectories=yaml.safe_load(f)
+            except:
+                self.msgDetails = "Unable to load YAML file for 3D Slicer trajectories"
+                return False
+            if type(trajectories) is not dict:
+                print(type(trajectories),trajectories,fTraj)
+                self.msgDetails = "3D Slicer trajectories file must be a simple dictionary\n"+\
+                                   'with "key: path" pairs to individual linear transforms'
+                return False
+            for k in trajectories:
+                if not os.path.isfile(trajectories[k]):
+                    self.msgDetails = f"File path for trajectory {k} does not exist"
+                    return False
+                if not self.ValidateIndivTrajectory(trajectories[k]):
+                    self.msgDetails = f"For trajectory {k}\n" + self.msgDetails
+                    return False
+                return True
+                
             
     def ValidSimNIBS(self):
         folderSimNIBS = self.ui.SimbNIBSlineEdit.text()
@@ -461,8 +484,13 @@ class SelFiles(QDialog):
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
             bdir=os.getcwd()
+        bSight = self.ui.TrajectoryTypecomboBox.currentIndex() == 0
+        if bSight:
+            file_extension='*.txt'
+        else:
+            file_extension='*.txt *.yaml *.yml'
         fTraj=QFileDialog.getOpenFileName(self,
-            "Select trajectory", bdir, "Trajectory (*.txt)")[0]
+            "Select trajectory", bdir, f"Trajectory ({file_extension})")[0]
         if len(fTraj)>0:
             self.ui.TrajectorylineEdit.setText(fTraj)
             self.ui.TrajectorylineEdit.setCursorPosition(len(fTraj))

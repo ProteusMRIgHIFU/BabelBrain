@@ -526,6 +526,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             RMat=RMat[:,:,TrajectoryNumber]
     else:
         inMat=read_itk_affine_transform(Mat4Trajectory)
+        if len(inMat.shape)==3: #multi trajectory
+            inMat=inMat[:,:,TrajectoryNumber]
          #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
          #to the feet direction , while in SlicerIGT it starts with a vector towards the head
         print('*'*40+'\n Reading orientation and target location directly from Slicer export\n'+'*'*40)
