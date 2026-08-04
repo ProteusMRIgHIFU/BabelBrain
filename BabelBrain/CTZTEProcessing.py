@@ -128,22 +128,17 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
                 path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
             
             logger.info("Starting Elastix")
-            if _IS_MAC:
-                cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '" "' + elastix_param + '"'
-                print(cmd)
-                result = os.system(cmd)
-            else:
-                result = subprocess.run(
-                        [shell,
-                        path_script,
-                        reference,
-                        moving,
-                        tmpdirname,
-                        elastix_param], capture_output=True, text=True
-                )
-                print("stdout:", result.stdout)
-                print("stderr:", result.stderr)
-                result=result.returncode 
+            result = subprocess.run(
+                    [shell,
+                    path_script,
+                    reference,
+                    moving,
+                    tmpdirname,
+                    elastix_param], capture_output=True, text=True
+            )
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            result=result.returncode 
         else:
             path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
             
