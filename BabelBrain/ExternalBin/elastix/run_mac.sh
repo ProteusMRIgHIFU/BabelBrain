@@ -1,4 +1,4 @@
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$( cd -- "$( dirname -- "$0" )" &> /dev/null && pwd )
 target="/mac/lib/"
 echo ${SCRIPT_DIR}
 OLD_DYLD=$DYLD_LIBRARY_PATH
