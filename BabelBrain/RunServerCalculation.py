@@ -136,9 +136,8 @@ class RunServerCalculation(QObject):
 
     # ── server addressing / preflight ────────────────────────────────────
     def _bind(self):
-        """Point the shared client helpers at this job's server."""
-        cf.BASE = RemoteServers.base_url(self._server)
-        cf.TOKEN = self._server.get('token')
+        """Point the shared client helpers at this job's server (incl. TLS)."""
+        cf.bind_server(self._server)
 
     def preflight(self):
         """Verify the server is reachable and capable, or raise RemoteNotReady."""
@@ -628,8 +627,7 @@ def cleanup_session(mainApp):
         return
     srv = (getattr(mainApp, 'Config', None) or {}).get('RemoteServer')
     if srv:
-        cf.BASE = RemoteServers.base_url(srv)
-        cf.TOKEN = srv.get('token')
+        cf.bind_server(srv)
         try:
             cf.delete_workspace(sess['workspace'])
         except Exception:

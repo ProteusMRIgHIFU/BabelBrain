@@ -9,6 +9,13 @@ once by setting the module-level BASE / TOKEN, then use the helpers:
     cf.BASE = "http://gpu-box:8760"
     cf.TOKEN = "secret"                       # only if the server requires it
 
+For an HTTPS server use an https:// BASE; if it presents a private-CA or
+self-signed certificate, point cf.CA at the CA bundle (and cf.CLIENT_CERT /
+cf.CLIENT_KEY for mutual TLS):
+
+    cf.BASE = "https://gpu-box:8760"
+    cf.CA = "/etc/babelbrain/ca.pem"
+
     config = cf._req("GET", "/defaultconfig")
     job_id = cf.submit(spec)
     result = cf.follow(job_id)
@@ -18,6 +25,7 @@ create_workspace / upload / upload_dir / download(_all) / delete_workspace.
 """
 import json
 import os
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -26,6 +34,49 @@ import urllib.error
 # Configure these once per client before calling anything below.
 BASE = "http://127.0.0.1:8760"
 TOKEN = None          # set to the --serve-token value if the server requires it
+
+# TLS options — used only when BASE is an https:// URL.
+CA = None             # path to a CA bundle to trust (private CA / self-signed cert)
+CLIENT_CERT = None    # client certificate (PEM) for mutual TLS
+CLIENT_KEY = None     # client private key (PEM) for mutual TLS
+INSECURE = False      # skip verification (testing only — invites a MITM attack)
+
+_SSL_CTX = None       # memoized context (rebuilt when BASE/TLS options change)
+_SSL_KEY = None
+
+
+def _ssl_context():
+    """SSLContext for https requests (None for plain http). Trusts CA when set,
+    loads a client cert for mutual TLS, and — only if INSECURE — skips
+    verification. Memoized and rebuilt when any relevant option changes."""
+    global _SSL_CTX, _SSL_KEY
+    if not str(BASE).lower().startswith("https"):
+        return None
+    key = (BASE, CA, CLIENT_CERT, CLIENT_KEY, INSECURE)
+    if _SSL_CTX is not None and _SSL_KEY == key:
+        return _SSL_CTX
+    ctx = ssl.create_default_context(cafile=CA)
+    if INSECURE:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    if CLIENT_CERT:
+        ctx.load_cert_chain(CLIENT_CERT, CLIENT_KEY)
+    _SSL_CTX, _SSL_KEY = ctx, key
+    return ctx
+
+
+def bind_server(server):
+    """Point these module globals (BASE/TOKEN + TLS options) at a RemoteServers
+    record so a caller doesn't have to set each field by hand. Unknown/absent
+    TLS fields fall back to plain-http defaults."""
+    global BASE, TOKEN, CA, CLIENT_CERT, CLIENT_KEY, INSECURE
+    scheme = "https" if server.get('https') else "http"
+    BASE = "%s://%s:%d" % (scheme, server['host'], int(server.get('port', 8760) or 8760))
+    TOKEN = server.get('token')
+    CA = server.get('cafile')
+    CLIENT_CERT = server.get('client_cert')
+    CLIENT_KEY = server.get('client_key')
+    INSECURE = bool(server.get('insecure', False))
 
 
 def _headers(extra=None):
@@ -47,7 +98,7 @@ def _req(method, path, body=None, timeout=60, retries=8):
     for attempt in range(attempts):
         try:
             r = urllib.request.Request(BASE + path, data=data, method=method, headers=headers)
-            with urllib.request.urlopen(r, timeout=timeout) as resp:
+            with urllib.request.urlopen(r, timeout=timeout, context=_ssl_context()) as resp:
                 return json.loads(resp.read().decode() or "{}")
         except urllib.error.HTTPError:
             raise                                   # real 4xx/5xx — don't retry
@@ -121,7 +172,7 @@ def upload(ws_id, local_path, name, timeout=300):
         "%s/workspaces/%s/files?name=%s" % (BASE, ws_id, urllib.parse.quote(name)),
         data=data, method="POST",
         headers=_headers({"Content-Type": "application/octet-stream"}))
-    with urllib.request.urlopen(r, timeout=timeout) as resp:
+    with urllib.request.urlopen(r, timeout=timeout, context=_ssl_context()) as resp:
         return json.loads(resp.read().decode())["path"]
 
 
@@ -144,7 +195,7 @@ def download(job_id, index, out_path, timeout=300):
     """Download artifact #index to the local file `out_path`; returns byte count."""
     r = urllib.request.Request("%s/jobs/%s/artifacts/%d" % (BASE, job_id, index),
                                headers=_headers())
-    with urllib.request.urlopen(r, timeout=timeout) as resp:
+    with urllib.request.urlopen(r, timeout=timeout, context=_ssl_context()) as resp:
         blob = resp.read()
     with open(out_path, "wb") as f:
         f.write(blob)

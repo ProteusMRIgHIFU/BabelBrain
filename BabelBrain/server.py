@@ -74,15 +74,28 @@ idle timeout (--serve-session-timeout / BABEL_SERVER_SESSION_TIMEOUT, seconds;
 server assigns a GPU from its pool (--use-GPUs) per run.
 
 All endpoints except /healthz require `Authorization: Bearer <token>` when a
-token is configured (--serve-token or BABEL_SERVER_TOKEN).
+token is configured (--serve-token or BABEL_SERVER_TOKEN). The token is compared
+in constant time.
+
+Transport security (TLS): pass --serve-certfile/--serve-keyfile (or
+BABEL_SERVER_CERTFILE/BABEL_SERVER_KEYFILE) to serve over HTTPS instead of plain
+HTTP. Add --serve-cafile (BABEL_SERVER_CAFILE) to REQUIRE and verify client
+certificates (mutual TLS) — the strongest option for a known set of users. When
+the server binds a non-loopback address it refuses to start without a token, and
+warns loudly if TLS is not enabled; set BABEL_SERVER_ALLOW_INSECURE=1 to override
+(e.g. when a reverse proxy terminates TLS in front). The recommended production
+setup is still a TLS-terminating reverse proxy (nginx/Caddy) with BabelBrain
+bound to localhost.
 """
 import faulthandler
+import hmac
 import json
 import multiprocessing
 import os
 import queue
 import shutil
 import signal
+import ssl
 import tempfile
 import threading
 import time
@@ -1331,7 +1344,9 @@ def _make_handler(manager, token, capabilities, default_config, current_config,
             if not token:
                 return True
             hdr = self.headers.get("Authorization", "")
-            return hdr == "Bearer " + token
+            # Constant-time compare so a caller can't learn the token byte-by-byte
+            # from response timing. compare_digest short-circuits on length only.
+            return hmac.compare_digest(hdr, "Bearer " + token)
 
         def _guard(self):
             if not self._authorized():
@@ -1603,6 +1618,26 @@ def _current_config_dict(transducers):
     return {k: (saved[k] if k in saved else dv) for k, dv in defaults.items()}
 
 
+def _is_loopback(host):
+    """True if `host` binds only the local machine (no remote reach). An empty
+    host or 0.0.0.0/:: means "all interfaces" — i.e. remotely reachable."""
+    return str(host).strip().lower() in ('127.0.0.1', 'localhost', '::1')
+
+
+def _build_tls_context(certfile, keyfile, cafile):
+    """Build the server SSLContext for HTTPS. With `cafile` also require and
+    verify client certificates (mutual TLS). Returns None if no cert is given."""
+    if not certfile:
+        return None
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
+    if cafile:
+        ctx.load_verify_locations(cafile)
+        ctx.verify_mode = ssl.CERT_REQUIRED
+    return ctx
+
+
 # ── Entry point (called from BabelBrain.main) ────────────────────────────────
 def run_server(app, args):
     """Start the controller: HTTP server + session/GPU scheduling. Per-session
@@ -1613,6 +1648,36 @@ def run_server(app, args):
     port = int(getattr(args, 'serve_port', 8760))
     token = getattr(args, 'serve_token', None) or os.environ.get('BABEL_SERVER_TOKEN')
     headless = getattr(args, 'headless', False)
+
+    # ── Transport security ───────────────────────────────────────────────────
+    certfile = getattr(args, 'serve_certfile', None) or os.environ.get('BABEL_SERVER_CERTFILE')
+    keyfile = getattr(args, 'serve_keyfile', None) or os.environ.get('BABEL_SERVER_KEYFILE')
+    cafile = getattr(args, 'serve_cafile', None) or os.environ.get('BABEL_SERVER_CAFILE')
+    allow_insecure = os.environ.get('BABEL_SERVER_ALLOW_INSECURE', '') not in ('', '0', 'false', 'False')
+    try:
+        tls_ctx = _build_tls_context(certfile, keyfile, cafile)
+    except (ssl.SSLError, OSError, ValueError) as e:
+        print("[server] cannot load TLS cert/key (%s): %s" % (certfile, e), flush=True)
+        return 2
+    scheme = "https" if tls_ctx is not None else "http"
+
+    # Guard the exposed-and-open foot-gun. When bound to a remotely reachable
+    # address, a missing token means anyone who can reach the port can read/write
+    # files through the API — refuse unless explicitly overridden. Plain HTTP on
+    # a public bind (token crosses the wire in cleartext) is warned, not blocked,
+    # since a reverse proxy may terminate TLS in front (BABEL_SERVER_ALLOW_INSECURE).
+    if not _is_loopback(host) and not allow_insecure:
+        if not token:
+            print("[server] REFUSING to start: bound to a non-loopback address (%s) "
+                  "with no token. Set --serve-token/BABEL_SERVER_TOKEN, bind "
+                  "127.0.0.1, or set BABEL_SERVER_ALLOW_INSECURE=1 to override."
+                  % host, flush=True)
+            return 2
+        if tls_ctx is None:
+            print("[server] WARNING: serving plain HTTP on a non-loopback address "
+                  "(%s) — the bearer token and all data cross the network in "
+                  "cleartext. Enable TLS (--serve-certfile/--serve-keyfile) or put "
+                  "a TLS-terminating reverse proxy in front." % host, flush=True)
 
     # Server mode: configuration is memory-only (SaveLatestSelection is disabled)
     # and dialogs are bypassed as in scripting mode.
@@ -1655,6 +1720,8 @@ def run_server(app, args):
                     "gpus": [list(d) for d in gpu_pool.devices],
                     "gpu_pool_size": gpu_pool.size,
                     "max_concurrent_gpu_jobs": gpu_pool.size,
+                    "tls": tls_ctx is not None,
+                    "mutual_tls": bool(tls_ctx is not None and cafile),
                     "features": ["workspaces", "uploads", "artifact_download",
                                  # 'persistent_session' kept for older clients
                                  # (RunServerCalculation._REQUIRED_FEATURES); the
@@ -1667,11 +1734,18 @@ def run_server(app, args):
         (host, port),
         _make_handler(manager, token, capabilities, default_config,
                       current_config, wsman, sessionmgr))
+    if tls_ctx is not None:
+        # Wrap the listening socket: ThreadingHTTPServer then does the TLS
+        # handshake per connection in its worker threads, transparently.
+        httpd.socket = tls_ctx.wrap_socket(httpd.socket, server_side=True)
     threading.Thread(target=httpd.serve_forever, name="babel-http",
                      daemon=True).start()
-    print("[server] BabelBrain multi-GPU job server on http://%s:%d  "
-          "(auth: %s, headless: %s)"
-          % (host, port, "token" if token else "disabled", headless), flush=True)
+    tls_desc = ("mutual-TLS" if (tls_ctx is not None and cafile)
+                else "TLS" if tls_ctx is not None else "no-TLS")
+    print("[server] BabelBrain multi-GPU job server on %s://%s:%d  "
+          "(auth: %s, %s, headless: %s)"
+          % (scheme, host, port, "token" if token else "disabled",
+             tls_desc, headless), flush=True)
 
     stop_event = threading.Event()
     _shutting = {'v': False}

@@ -2048,7 +2048,17 @@ def main():
                         help='Server port.')
     parser.add_argument('--serve-token', default=None,
                         help='Optional bearer token required on all endpoints '
-                             '(or set BABEL_SERVER_TOKEN).')
+                             '(or set BABEL_SERVER_TOKEN). Required when binding a '
+                             'non-loopback --serve-host.')
+    parser.add_argument('--serve-certfile', default=None,
+                        help='PEM certificate (chain) to serve over HTTPS instead '
+                             'of plain HTTP (or BABEL_SERVER_CERTFILE).')
+    parser.add_argument('--serve-keyfile', default=None,
+                        help='PEM private key for --serve-certfile '
+                             '(or BABEL_SERVER_KEYFILE).')
+    parser.add_argument('--serve-cafile', default=None,
+                        help='CA bundle to REQUIRE and verify client certificates '
+                             '(mutual TLS; or BABEL_SERVER_CAFILE).')
     parser.add_argument('--serve-workspace-root', default=None,
                         help='Parent directory for temp upload workspaces '
                              '(default: system temp; or BABEL_SERVER_WORKSPACE_ROOT).')
