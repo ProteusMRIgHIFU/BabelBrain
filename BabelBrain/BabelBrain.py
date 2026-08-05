@@ -1071,7 +1071,7 @@ class BabelBrain(QWidget):
         MultiYaml=None
         if self.Config['TrajectoryType']=='brainsight' or\
             os.path.splitext(self.Config['Mat4Trajectory'])[1]=='.txt':
-            prevname=self.Config['Mat4Trajectory']
+            prevName=self.Config['Mat4Trajectory']
         else:
             with open(self.Config['Mat4Trajectory']) as f:
                 multi=yaml.safe_load(f)
