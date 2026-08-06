@@ -478,16 +478,24 @@ class BabelBrain(QWidget):
         self.Config['bInUseWithBrainsight']= bInUseWithBrainsight #this will be use to sync input and output with Brainsight
         self.Config['BrainsightSyncPath']  = _BrainsightSyncPath
         self.Config['Brainsight-Output']   = _BrainsightSyncPath+ os.sep+'Output.txt'
+        self.Config['Brainsight-OutputJSON']   = _BrainsightSyncPath+ os.sep+'Output.json'
         self.Config['Brainsight-Target']   = _BrainsightSyncPath+ os.sep+'Output_TargetModified.txt'
         self.Config['Brainsight-ThermalOutput']  = _BrainsightSyncPath+ os.sep+'Output_Thermal.txt'
+        self.Config['Brainsight-ThermalOutputJSON'] = _BrainsightSyncPath+ os.sep+'Output_Thermal.json'
 
         if bInUseWithBrainsight:
             #if we are running from Brainsight
-            for k in ['Brainsight-Output','Brainsight-Target','Brainsight-ThermalOutput']:
+            for k in ['Brainsight-Output','Brainsight-OutputJSON','Brainsight-Target','Brainsight-ThermalOutput','Brainsight-ThermalOutputJSON']:
                 fpath = self.Config[k]
                 if os.path.isfile(fpath):
                     os.remove(fpath)
-
+        if self.Config['NumberTransducers']==1:
+            nEntries=1
+        else:
+            nEntries=self.Config['NumberTransducers']+1
+        self._BrainsightOutput=['']*nEntries
+        self._BrainsightThermalOutput=['']*nEntries
+                
         if AltOutputFilesPath is not None:
             self.Config['OutputFilesPath']=AltOutputFilesPath
         else:

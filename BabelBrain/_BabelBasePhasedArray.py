@@ -287,9 +287,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         if self._MainApp.Config['bInUseWithBrainsight']:
             if Skull['bDoRefocusing']:
                 #we update the name to be loaded in BSight
-                self._MainApp._BrainsightInput = self._MainApp._prefix_path[self._TrajectoryNumber] + 'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
+                self._MainApp._BrainsightOutput[self._TrajectoryNumber] = self._MainApp._prefix_path[self._TrajectoryNumber] + 'FullElasticSolutionRefocus_Sub_NORM.nii.gz'
             else:
-                self._MainApp._BrainsightInput = self._MainApp._prefix_path[self._TrajectoryNumber] + 'FullElasticSolution_Sub_NORM.nii.gz'
+                self._MainApp._BrainsightOutput[self._TrajectoryNumber] = self._MainApp._prefix_path[self._TrajectoryNumber] + 'FullElasticSolution_Sub_NORM.nii.gz'
         self.ExportStep2Results(Skull)
 
         LocTarget = Skull['TargetLocation']

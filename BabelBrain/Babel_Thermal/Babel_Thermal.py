@@ -39,6 +39,7 @@ import shutil
 from datetime import datetime
 import time
 import yaml
+import json
 from ThermalModeling.CalculateTemperatureEffects import GetThermalOutName
 from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from .CalculateThermalProcess import CalculateThermalProcess
@@ -1449,8 +1450,11 @@ class Babel_Thermal(QWidget):
             
         #If running with Brainsight, we save the path of thermal map
         if self._MainApp.Config['bInUseWithBrainsight']:
+            self._MainApp._BrainsightThermalOutput[self._txTabs.currentIndex()]=OutName
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
-                f.write(OutName)
+                f.write('\n'.join(self._MainApp._BrainsightThermalOutput))
+            with open(self._MainApp.Config['Brainsight-ThermalOutputJSON'],'w') as f:
+                json.dump(self._MainApp._BrainsightThermalOutput,f)
         txt =  'Thermal map file\n' + os.path.basename(OutName) +',\n'
         txt += 'Pressure map file\n' + os.path.basename(OutName2) +',\n'
         txt += 'Intensiy map file\n' + os.path.basename(OutName3) +',\n'

@@ -15,6 +15,7 @@ except Exception:
 
 import numpy as np
 import os
+import json
 import time
 import traceback
 import matplotlib.pyplot as plt
@@ -203,17 +204,22 @@ class BabelBaseTx(QWidget):
 
         print('AdjustmentInRAS recalc',AdjustmentInRAS)
         print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
-
-
         fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
-                                        CorY=Results['AdjustmentInRAS'][1],
-                                        CorZ=Results['AdjustmentInRAS'][2],
-                                        Ntraj=self._TrajectoryNumber)
+                                                        CorY=Results['AdjustmentInRAS'][1],
+                                                        CorZ=Results['AdjustmentInRAS'][2],
+                                                        Ntraj=self._TrajectoryNumber)
         if self._MainApp.Config['bInUseWithBrainsight']:
-            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
-                f.write(self._MainApp._BrainsightInput)
             with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
                 f.write(fnameTrajectory)
+        self.UpdateBSightOutputs()
+
+    def UpdateBSightOutputs(self):        
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
+                f.write('\n'.join(self._MainApp._BrainsightOutput))
+            with open(self._MainApp.Config['Brainsight-OutputJSON'],'w') as f:
+                json.dump(self._MainApp._BrainsightOutput,f)      
+
 
     def GetExtraSuffixAcFields(self):
         #By default, it returns empty string, useful when dealing with user-specified geometry
@@ -558,7 +564,7 @@ class BabelBaseTx(QWidget):
             panel['SDR'] = Skull['SDR']
 
         extrasuffix = self.GetExtraSuffixAcFields()
-        self._MainApp._BrainsightInput = self._MainApp._prefix_path[self._TrajectoryNumber] + extrasuffix + 'FullElasticSolution_Sub_NORM.nii.gz'
+        self._MainApp._BrainsightOutput[self._TrajectoryNumber] = self._MainApp._prefix_path[self._TrajectoryNumber] + extrasuffix + 'FullElasticSolution_Sub_NORM.nii.gz'
 
         self.ExportStep2Results(Skull)
 
@@ -877,7 +883,9 @@ class BabelBaseTx(QWidget):
         #show the combined Skull/Water results in a dedicated read-only tab
         self._AddMergedResultsTab()
         self._MainApp.ThermalSim.UpdateCombineResultsButton()
-
+        # the merged results will be always the last entry in the brainsight output files
+        self._MainApp._BrainsightOutput[-1]=self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'
+        self.UpdateBSightOutputs()
 
 class RunCombineTrajectories(QObject):
     '''
