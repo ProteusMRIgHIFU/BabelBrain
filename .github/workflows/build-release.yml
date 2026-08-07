@@ -4,6 +4,15 @@ name: Build BabelBrain (cross-platform)
 #   - push of a tag starting with "v" (e.g. v0.8.2) -> full release build + draft GitHub Release
 #   - manual dispatch from the Actions tab          -> build only (no release published)
 # Releases are always created as drafts so we can add notes before publishing.
+#
+# What each build now produces (per platform):
+#   * The Hub launcher, packaged as the user-facing installer (DMG on macOS,
+#     Inno Setup .exe on Windows). The Hub carries a read-only "bundled" copy of
+#     this build's BabelBrain so a fresh install works offline.
+#   * A relocatable <artifact>-version.zip of just the BabelBrain version, plus a
+#     .sha256, which the Hub downloads to add/swap versions. Add these to the
+#     curated releases.json (see Hub/gen_manifest_entry.py) to make the version
+#     appear in the launcher.
 on:
   push:
     tags:
@@ -109,25 +118,54 @@ jobs:
           which pyinstaller || true
           pyinstaller --version
 
-      - name: Build with PyInstaller
+      # --------------------------------------------------------------------
+      # Build metadata: derive the channel + tag from the git ref, then stamp a
+      # build_info.json the Hub uses to identify this build by (version, commit).
+      #   refs/tags/v*     -> stable release
+      #   refs/tags/test-* -> prerelease (test build)
+      #   manual dispatch  -> dev
+      # --------------------------------------------------------------------
+      - name: Compute build metadata
+        run: |
+          REF="${GITHUB_REF:-}"
+          if [[ "$REF" == refs/tags/v* ]]; then
+            echo "BABEL_CHANNEL=stable"   >> "$GITHUB_ENV"
+            echo "BABEL_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          elif [[ "$REF" == refs/tags/test-* ]]; then
+            echo "BABEL_CHANNEL=prerelease" >> "$GITHUB_ENV"
+            echo "BABEL_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "BABEL_CHANNEL=dev" >> "$GITHUB_ENV"
+            echo "BABEL_TAG=" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build BabelBrain version (PyInstaller) + stamp build_info
         working-directory: BabelBrain
         run: |
-          pyinstaller BabelBrain.spec --noconfirm --clean
+          python Hub/gen_build_info.py --channel "$BABEL_CHANNEL" \
+            ${BABEL_TAG:+--tag "$BABEL_TAG"} --out build_info.json
+          cat build_info.json
+          # Build the real BabelBrain into its own dist/work paths so the Hub
+          # build below (same BabelBrain.app name) does not collide with it.
+          pyinstaller BabelBrain.spec --noconfirm --clean \
+            --distpath dist/version --workpath build/version
+          # Stamp the identity where the Hub looks for it.
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            cp build_info.json "dist/version/BabelBrain.app/Contents/Resources/build_info.json"
+          else
+            cp build_info.json "dist/version/BabelBrain/build_info.json"
+          fi
 
       # --------------------------------------------------------------------
-      # macOS: sign + notarize .app, then build PKG installer and DMG
+      # macOS signing/notarization. The VERSION app is signed + notarized +
+      # stapled first (so the standalone -version.zip the Hub downloads is
+      # itself notarized), then nested into the Hub, then the Hub is signed +
+      # notarized as the shipped installer.
       # Required repo secrets (signing is skipped if MACOS_CERT_P12_BASE64 is unset):
-      #   MACOS_CERT_P12_BASE64           - base64 of .p12 containing BOTH the
-      #                                     "Developer ID Application" and
-      #                                     "Developer ID Installer" certs
-      #   MACOS_CERT_P12_PASSWORD         - password for the .p12
-      #   MACOS_SIGN_IDENTITY             - "Developer ID Application: Name (TEAMID)"
-      #   MACOS_INSTALLER_SIGN_IDENTITY   - "Developer ID Installer: Name (TEAMID)"
-      #   MACOS_NOTARY_APPLE_ID           - Apple ID email
-      #   MACOS_NOTARY_TEAM_ID            - 10-char team ID
-      #   MACOS_NOTARY_APP_PASSWORD       - app-specific password from appleid.apple.com
-      # If signing secrets are not set, an unsigned DMG is still produced for
-      # pipeline testing; no PKG is produced (a PKG must be signed to be useful).
+      #   MACOS_CERT_P12_BASE64 / _PASSWORD, MACOS_SIGN_IDENTITY,
+      #   MACOS_INSTALLER_SIGN_IDENTITY, MACOS_NOTARY_APPLE_ID / _TEAM_ID / _APP_PASSWORD
+      # If signing secrets are absent, an unsigned DMG is still produced for
+      # pipeline testing.
       # --------------------------------------------------------------------
       - name: Import signing certificate (macOS)
         if: runner.os == 'macOS'
@@ -154,27 +192,94 @@ jobs:
           echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
 
-      - name: Sign .app (macOS)
+      - name: Sign version .app (macOS)
         if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
-          APP="BabelBrain/dist/BabelBrain.app"
+          APP="BabelBrain/dist/version/BabelBrain.app"
           ENTITLEMENTS="BabelBrain/entitlements.plist"
           codesign --deep --force --options=runtime --timestamp \
             --entitlements "$ENTITLEMENTS" \
             --sign "$SIGN_IDENTITY" "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
 
-      - name: Notarize and staple .app (macOS)
+      - name: Notarize and staple version .app (macOS)
         if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
         env:
           APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
           TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
           APP_PASSWORD: ${{ secrets.MACOS_NOTARY_APP_PASSWORD }}
         run: |
-          APP="BabelBrain/dist/BabelBrain.app"
-          ZIP="$RUNNER_TEMP/BabelBrain-app.zip"
+          APP="BabelBrain/dist/version/BabelBrain.app"
+          ZIP="$RUNNER_TEMP/BabelBrain-version-app.zip"
+          /usr/bin/ditto -c -k --keepParent "$APP" "$ZIP"
+          xcrun notarytool submit "$ZIP" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APP_PASSWORD" \
+            --wait
+          xcrun stapler staple "$APP"
+          spctl --assess --type execute --verbose=4 "$APP" || true
+
+      - name: Package relocatable version zip + sha256 (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p artifacts
+          # keepParent so the archive's top-level entry is BabelBrain.app,
+          # which the Hub extracts straight into <root>/<build_id>/BabelBrain.app.
+          ZIP="artifacts/${{ matrix.artifact_name }}-version.zip"
+          /usr/bin/ditto -c -k --keepParent "BabelBrain/dist/version/BabelBrain.app" "$ZIP"
+          shasum -a 256 "$ZIP" | awk '{print $1}' > "$ZIP.sha256"
+          cat "$ZIP.sha256"
+
+      # --------------------------------------------------------------------
+      # Build the Hub launcher, then nest the (signed) version inside it.
+      # --------------------------------------------------------------------
+      - name: Build Hub launcher (PyInstaller)
+        working-directory: BabelBrain
+        run: |
+          pyinstaller BabelBrainHub.spec --noconfirm --clean \
+            --distpath dist/hub --workpath build/hub
+
+      - name: Sign Hub's own frameworks (macOS)
+        # Sign the Hub's own nested dylibs/frameworks BEFORE nesting the version,
+        # so the version's existing signature+ticket are not touched by --deep.
+        if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          APP="BabelBrain/dist/hub/BabelBrain.app"
+          ENTITLEMENTS="BabelBrain/entitlements.plist"
+          codesign --deep --force --options=runtime --timestamp \
+            --entitlements "$ENTITLEMENTS" \
+            --sign "$SIGN_IDENTITY" "$APP"
+
+      - name: Nest version into Hub (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          DEST="BabelBrain/dist/hub/BabelBrain.app/Contents/Resources/bundled"
+          mkdir -p "$DEST"
+          # ditto preserves the nested app's signature and notarization ticket.
+          /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" "$DEST/BabelBrain.app"
+
+      - name: Seal + notarize + staple Hub (macOS)
+        if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+          APP_PASSWORD: ${{ secrets.MACOS_NOTARY_APP_PASSWORD }}
+        run: |
+          APP="BabelBrain/dist/hub/BabelBrain.app"
+          ENTITLEMENTS="BabelBrain/entitlements.plist"
+          # Re-seal the TOP-LEVEL bundle only (no --deep) so CodeResources now
+          # covers the freshly nested version, without re-signing it.
+          codesign --force --options=runtime --timestamp \
+            --entitlements "$ENTITLEMENTS" \
+            --sign "$SIGN_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          ZIP="$RUNNER_TEMP/BabelBrain-hub.zip"
           /usr/bin/ditto -c -k --keepParent "$APP" "$ZIP"
           xcrun notarytool submit "$ZIP" \
             --apple-id "$APPLE_ID" \
@@ -193,7 +298,8 @@ jobs:
           VERSION=$(cat BabelBrain/version.txt)
           STAGE="$RUNNER_TEMP/pkg_root"
           mkdir -p "$STAGE/Applications"
-          /usr/bin/ditto "BabelBrain/dist/BabelBrain.app" "$STAGE/Applications/BabelBrain.app"
+          # The Hub (which contains the nested version) is what gets installed.
+          /usr/bin/ditto "BabelBrain/dist/hub/BabelBrain.app" "$STAGE/Applications/BabelBrain.app"
           productbuild \
             --identifier com.ucalgary.babelbrain.pkg \
             --version "$VERSION" \
@@ -262,12 +368,52 @@ jobs:
             --wait
           xcrun stapler staple "$DMG"
 
+      - name: Build unsigned DMG (macOS, no signing secrets)
+        # Fallback so pipeline testing without signing secrets still yields a DMG.
+        if: runner.os == 'macOS' && env.SIGNING_AVAILABLE != 'true'
+        run: |
+          mkdir -p artifacts
+          STAGE="$RUNNER_TEMP/dmg_stage_unsigned"
+          rm -rf "$STAGE" && mkdir -p "$STAGE"
+          /usr/bin/ditto "BabelBrain/dist/hub/BabelBrain.app" "$STAGE/BabelBrain.app"
+          create-dmg \
+            --volname "BabelBrain Installer (unsigned)" \
+            --window-pos 200 120 --window-size 800 400 --icon-size 100 \
+            --icon "BabelBrain.app" 200 190 \
+            "artifacts/${{ matrix.artifact_name }}.dmg" "$STAGE/" || \
+          hdiutil create -volname "BabelBrain (unsigned)" -srcfolder "$STAGE" \
+            -ov -format UDZO "artifacts/${{ matrix.artifact_name }}.dmg"
+
       # --------------------------------------------------------------------
-      # Windows: build the installer with Inno Setup.
-      # ISCC.exe ships pre-installed on windows-latest. The .iss script lives
-      # at BabelBrain/BabelBrain.iss and reads from BabelBrain/dist/BabelBrain/
-      # (PyInstaller's onedir output) directly — no flatten step needed.
+      # Windows: nest the version into the Hub, then build the Inno installer.
+      # The installer is now PER-USER (no admin) so locked-down research
+      # machines can install without elevation.
       # --------------------------------------------------------------------
+      - name: Nest version into Hub (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: BabelBrain
+        run: |
+          $dest = "dist\hub\BabelBrain\bundled"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          # Copy the onedir *contents* so bundled\BabelBrain.exe sits directly
+          # under bundled\ (matches paths.bundled_version_dir on Windows).
+          Copy-Item -Path "dist\version\BabelBrain\*" -Destination $dest -Recurse -Force
+
+      - name: Package relocatable version zip + sha256 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: BabelBrain
+        run: |
+          New-Item -ItemType Directory -Force -Path ..\artifacts | Out-Null
+          $zip = "..\artifacts\${{ matrix.artifact_name }}-version.zip"
+          # Archive the onedir CONTENTS at the zip root so the Hub extracts
+          # straight into <root>\<build_id>\BabelBrain.exe.
+          Compress-Archive -Path "dist\version\BabelBrain\*" -DestinationPath $zip -Force
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "$zip.sha256" -Value $hash -NoNewline
+          Write-Host "sha256: $hash"
+
       - name: Build Inno Setup installer (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -292,10 +438,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          # PKG is bundled inside the DMG; Windows ships an Inno Setup .exe.
+          # Installer (Windows .exe, macOS .dmg) plus the relocatable version
+          # zip + its sha256 that the Hub downloads and verifies.
           path: |
             artifacts/*.exe
             artifacts/*.dmg
+            artifacts/*-version.zip
+            artifacts/*-version.zip.sha256
           if-no-files-found: error
           retention-days: 14
 
@@ -323,3 +472,5 @@ jobs:
           files: |
             dist-artifacts/**/*.exe
             dist-artifacts/**/*.dmg
+            dist-artifacts/**/*-version.zip
+            dist-artifacts/**/*-version.zip.sha256

@@ -1,6 +1,8 @@
 ; BabelBrain — Windows installer (Inno Setup)
 ; Build:  ISCC.exe /DAppVersion=<version> BabelBrain.iss
-; Expects PyInstaller's onedir output at .\dist\BabelBrain\
+; Expects the Hub launcher's onedir output at .\dist\hub\BabelBrain\
+; (which contains a nested BabelBrain version under .\bundled\). The installed
+; BabelBrain.exe is the Hub, which lets users pick/swap BabelBrain versions.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -22,6 +24,8 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
+; With PrivilegesRequired=lowest, {autopf} resolves to the per-user
+; %LOCALAPPDATA%\Programs\BabelBrain so no admin rights are needed.
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -35,7 +39,11 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-PrivilegesRequired=admin
+; Install per-user by default (no elevation) so locked-down research machines
+; can install the launcher without administrator rights. The user may still
+; opt into a system-wide install via the elevation dialog.
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -44,9 +52,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; Pull the entire onedir bundle. recursesubdirs/createallsubdirs replicates
-; the directory tree under {app} (Program Files\BabelBrain by default).
-Source: "dist\BabelBrain\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Pull the entire Hub onedir bundle (which nests a BabelBrain version under
+; bundled\). recursesubdirs/createallsubdirs replicates the directory tree
+; under {app} (per-user %LOCALAPPDATA%\Programs\BabelBrain by default).
+Source: "dist\hub\BabelBrain\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
