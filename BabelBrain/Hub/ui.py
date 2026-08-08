@@ -9,7 +9,7 @@ rather than silently redirecting — see the install handler.
 '''
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import QEventLoop, Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -278,6 +278,13 @@ class HubWindow(QDialog):
 
         worker = _DownloadWorker(entry, scope)
         result = {'status': None, 'kind': None, 'msg': None}
+        canceled = {'value': False}
+        # Drive the worker with a nested event loop that quits on QThread.finished.
+        # finished_ok/failed are emitted from run() BEFORE finished, so they are
+        # always delivered before we inspect `result` — avoiding the race where a
+        # busy-wait exits (thread no longer "running") before the success signal
+        # is processed, which produced a spurious "Unknown error".
+        loop = QEventLoop()
 
         def on_progress(done, total):
             if total > 0:
@@ -289,23 +296,28 @@ class HubWindow(QDialog):
 
         def on_ok(_path):
             result['status'] = 'ok'
-            progress.close()
 
         def on_fail(kind, msg):
             result['status'] = 'fail'
             result['kind'] = kind
             result['msg'] = msg
-            progress.close()
+
+        def on_cancel():
+            canceled['value'] = True
+            worker.terminate()
 
         worker.progress.connect(on_progress)
         worker.finished_ok.connect(on_ok)
         worker.failed.connect(on_fail)
-        progress.canceled.connect(worker.terminate)
+        worker.finished.connect(loop.quit)
+        progress.canceled.connect(on_cancel)
         worker.start()
-        while worker.isRunning():
-            from PySide6.QtWidgets import QApplication
-            QApplication.processEvents()
-            worker.wait(50)
+        loop.exec()
+        worker.wait()          # ensure the thread has fully finished
+        progress.close()
+
+        if canceled['value'] and result['status'] is None:
+            return 'done'      # user cancelled; not an error
 
         if result['status'] == 'ok':
             self._populate()
