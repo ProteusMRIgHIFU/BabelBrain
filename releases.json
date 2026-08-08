@@ -23,7 +23,10 @@
                 "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/v0.8.1/BabelBrain-macOS-x64-version.zip",
                 "sha256": "68f761cf9fed4d7a987ed1900dbeaf77c810f0e2afcb0796324cac371550f6ce"
               },
-        "windows-x64": { "url": "", "sha256": "" }
+        "windows-x64": { 
+                "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/v0.8.1/BabelBrain-Windows-x64-version.zip", 
+                "sha256": "617c3a6e978a436b51e4c3885945ebbc332d958255b69f1e9958d2a3cf8d5f9d" 
+              }
       }
     },
     {
