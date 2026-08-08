@@ -41,7 +41,10 @@
               "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.8.0/BabelBrain-macOS-x64-version.zip",
               "sha256": "2a521e6fd749e5f73464ab3f7060feeec82e278326abf1edc1b3e2ebf9df4bcb"
             },
-        "windows-x64": { "url": "", "sha256": "" }
+       "windows-x64": { 
+                     "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.8.0/BabelBrain-Windows-x64-version.zip", 
+                     "sha256": "6c168191482446326afc3c88fbe44a60a14cb17e405d40dd7b1edbfff8a653da" 
+                    }
       }
     },
     {
@@ -59,7 +62,9 @@
                 "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.3/BabelBrain-macOS-x64-version.zip",
                 "sha256": "9cfa789d064c1e7af243debdd43fd0be82e326309708ab0ec2fbdcbd2ccc74e2"
               },
-        "windows-x64": { "url": "", "sha256": "" }
+        "windows-x64": { "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.3/BabelBrain-Windows-x64-version.zip", 
+                         "sha256": "2b86db4927e249bb751df221b32c4ff77be251f8692b7f4ad8165d7e7686c43b"
+                        }
       }
     },
     {
@@ -77,7 +82,9 @@
                           "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.2/BabelBrain-macOS-x64-version.zip",
                           "sha256": "8e438016558aff2076b1c21bc8831fa3607913adb359bb9d448547d9aeb12c2a"
                         },
-        "windows-x64": { "url": "", "sha256": "" }
+        "windows-x64": { "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.2/BabelBrain-Windows-x64-version.zip", 
+                        "sha256": "51841e853d2fd252e194171b960a8eac8a8c90f2e42647c678c08d5d026f0e52" 
+                      }
       }
     },
     {
@@ -95,7 +102,10 @@
                           "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.1/BabelBrain-macOS-x64-version.zip",
                           "sha256": "5e1d2f330a9876b2defaa97a13e4fecc8033ef63c7e37a3786f531036eb6943a"
                         },
-        "windows-x64": { "url": "", "sha256": "" }
+        "windows-x64": { "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/0.4.1/BabelBrain-Windows-x64-version.zip", 
+                          "sha256": "d9705c79dfdbba160601adb9ab0df2e467b2a6fdedd2ffc52df37268f961a805" 
+                        }
+
       }
     }
   ]
