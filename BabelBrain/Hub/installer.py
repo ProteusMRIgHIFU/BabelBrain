@@ -31,7 +31,7 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-from . import paths
+from . import netutil, paths
 from .manifest import Asset, CatalogEntry
 
 ProgressCb = Callable[[int, int], None]   # (bytes_done, bytes_total)
@@ -74,7 +74,7 @@ class ElevationDenied(InstallError):
 def download_and_verify(asset: Asset, dest: Path, progress: ProgressCb | None = None) -> Path:
     req = urllib.request.Request(asset.url, headers={'User-Agent': 'BabelBrain-Hub'})
     sha = hashlib.sha256()
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, context=netutil.ssl_context()) as resp:
         total = int(resp.headers.get('Content-Length', 0) or 0)
         done = 0
         with open(dest, 'wb') as fh:

@@ -24,7 +24,7 @@ not preserve them.
 '''
 import platform
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 is_mac = "Darwin" in platform.system()
 
@@ -32,6 +32,7 @@ is_mac = "Darwin" in platform.system()
 hub_version = "1.0.0"
 
 datas = []
+binaries = []
 
 # hub.py imports the Hub package dynamically (Hub.cli -> ui/installer/...).
 hiddenimports = collect_submodules("Hub") + [
@@ -39,12 +40,20 @@ hiddenimports = collect_submodules("Hub") + [
     "yaml",
 ]
 
+# Bundle certifi's CA bundle so the Hub can verify TLS for the manifest fetch
+# and version downloads. Without this a frozen app has no CA path and every
+# HTTPS request fails certificate verification (see Hub/netutil.py).
+_cf_datas, _cf_bins, _cf_hidden = collect_all("certifi")
+datas += _cf_datas
+binaries += _cf_bins
+hiddenimports += _cf_hidden + ["certifi"]
+
 block_cipher = None
 
 a = Analysis(
     ["hub.py"],
     pathex=["./"],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],

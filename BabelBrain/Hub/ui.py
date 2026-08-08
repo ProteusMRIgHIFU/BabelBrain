@@ -79,6 +79,7 @@ class HubWindow(QDialog):
         self.resize(560, 460)
         self._state = state
         self._manifest: manifest_mod.Manifest | None = None
+        self._manifest_error: str | None = None
         self._selected_version: versions_mod.VersionInfo | None = None
         self._launch_requested = False
 
@@ -128,8 +129,12 @@ class HubWindow(QDialog):
     def _load_manifest(self):
         try:
             self._manifest = manifest_mod.fetch()
-        except Exception:  # noqa: BLE001 - offline is fine, just no downloads
+            self._manifest_error = None
+        except Exception as e:  # noqa: BLE001 - offline is fine, just no downloads
             self._manifest = None
+            self._manifest_error = str(e)
+            # Also print so `--` terminal launches leave a diagnosable trace.
+            print(f'BabelBrain Hub: could not load version catalog: {e}')
 
     def _refresh_all(self):
         if self._manifest is None:
@@ -172,7 +177,16 @@ class HubWindow(QDialog):
             self._list.setCurrentRow(target_row)
 
     def _update_banner(self):
-        if self._manifest and hub_update_available(self._manifest.hub):
+        if self._manifest is None:
+            # Catalog unreachable: say so instead of showing an empty list with
+            # no explanation. Installed versions are still runnable.
+            msg = ('Could not load the online version catalog, so no downloads '
+                   'are listed — only installed versions are available.')
+            if self._manifest_error:
+                msg += f'\n({self._manifest_error})'
+            self._banner.setText(msg)
+            self._banner.setVisible(True)
+        elif hub_update_available(self._manifest.hub):
             self._banner.setText(
                 f'A newer BabelBrain launcher ({self._manifest.hub.latest}) is available. '
                 f'Update the launcher to unlock the latest BabelBrain versions.')

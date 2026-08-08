@@ -34,7 +34,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
-from . import paths
+from . import netutil, paths
 
 MANIFEST_URL = (
     'https://raw.githubusercontent.com/ProteusMRIgHIFU/BabelBrain/main/releases.json'
@@ -96,7 +96,7 @@ def _fetch_raw(timeout: float) -> bytes:
         with open(path, 'rb') as f:
             return f.read()
     req = urllib.request.Request(url, headers={'User-Agent': 'BabelBrain-Hub'})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout, context=netutil.ssl_context()) as resp:
         return resp.read()
 
 
