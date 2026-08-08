@@ -7,12 +7,14 @@ Command-line entry shared by the two installed apps:
   download, and switch versions. Selecting a version here records it as the
   current selection, so BabelBrain.app then runs it.
 
-Both forward everything they don't recognise to the chosen BabelBrain version.
-Arguments can be passed after a ``--`` separator (``--version 0.8.2 -- --serve``)
-or directly — so Brainsight's ``BabelBrain -bInUseWithBrainsight`` still works
-(it launches the current version and forwards the flag).
+**launcher mode is fully transparent**: it intercepts NOTHING and forwards every
+argument to the selected version, so BabelBrain.app behaves exactly like running
+BabelBrain.py directly — ``BabelBrain --help`` shows BabelBrain's own help,
+``BabelBrain --serve …`` / ``BabelBrain -bInUseWithBrainsight`` all pass straight
+through. Version choice is the Version Selector's job, not this app's.
 
-Hub flags::
+**selector mode** owns a small set of flags and forwards the rest (unknown flags,
+and anything after a ``--`` separator) to the version it launches::
 
     --version SELECTOR     run this version (build id or version string) directly
     --list-versions        print installed versions and exit
@@ -94,8 +96,21 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
     '''Entry point. ``mode`` is 'launcher' for BabelBrain.app (run current
     version, no picker) or 'selector' for the Version Selector (show the picker).'''
     argv = list(sys.argv[1:] if argv is None else argv)
-    hub_argv, after_sep = _split_forwarded(argv)
 
+    # BabelBrain.app: fully transparent. Run the current version and forward
+    # EVERY argument to it, intercepting nothing — so it behaves exactly like
+    # launching BabelBrain.py directly (--help, --serve, -bInUseWithBrainsight …).
+    if mode == 'launcher':
+        st = state_mod.load()
+        versions = versions_mod.discover()
+        vi = _default_version(versions, st)
+        if vi is None:
+            _no_version_dialog()
+            return 3
+        return launch(vi, argv)
+
+    # Version Selector: parse the small set of hub flags, forward the rest.
+    hub_argv, after_sep = _split_forwarded(argv)
     parser = _build_parser()
     args, unknown = parser.parse_known_args(hub_argv)
 
@@ -115,21 +130,13 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
         _print_versions(versions)
         return 0
 
-    # Explicit selection works in either mode (advanced / Brainsight / scripts).
+    # Explicit selection (advanced / scripts): run it directly.
     if args.selector:
         vi = versions_mod.find_by_selector(versions, args.selector)
         if vi is None:
             sys.stderr.write(
                 f"error: no installed version matches '{args.selector}'. "
                 f"Run 'BabelBrain --list-versions' to see what is installed.\n")
-            return 3
-        return launch(vi, forwarded)
-
-    # BabelBrain.app: run the current selection (or default) directly, no picker.
-    if mode == 'launcher':
-        vi = _default_version(versions, st)
-        if vi is None:
-            _no_version_dialog()
             return 3
         return launch(vi, forwarded)
 
