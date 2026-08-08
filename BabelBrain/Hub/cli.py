@@ -1,18 +1,21 @@
 '''
-Hub command-line entry.
+Command-line entry shared by the two installed apps:
 
-The Hub owns only a small set of flags; everything else is forwarded, unchanged,
-to the selected BabelBrain version. Two ways to pass BabelBrain arguments:
+* **BabelBrain.app** (mode='launcher') — opens BabelBrain directly by running the
+  currently-selected version, no picker. This is the "as before" main app.
+* **BabelBrain-Version-Selector.app** (mode='selector') — the picker: choose,
+  download, and switch versions. Selecting a version here records it as the
+  current selection, so BabelBrain.app then runs it.
 
-* after a ``--`` separator: ``BabelBrain --version 0.8.2 -- --serve`` , or
-* directly (anything the Hub does not recognise is forwarded), so Brainsight's
-  ``BabelBrain -bInUseWithBrainsight`` works without changes.
+Both forward everything they don't recognise to the chosen BabelBrain version.
+Arguments can be passed after a ``--`` separator (``--version 0.8.2 -- --serve``)
+or directly — so Brainsight's ``BabelBrain -bInUseWithBrainsight`` still works
+(it launches the current version and forwards the flag).
 
 Hub flags::
 
-    --version SELECTOR     launch this version (build_id or version string), no picker
+    --version SELECTOR     run this version (build id or version string) directly
     --list-versions        print installed versions and exit
-    --no-picker            launch the remembered/default version without the picker
     --show-prereleases     include pre-releases when the picker opens
     --install-worker FILE  internal: elevated helper that finishes a shared install
 '''
@@ -36,13 +39,11 @@ def _split_forwarded(argv: list[str]) -> tuple[list[str], list[str]]:
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog='BabelBrain', add_help=True,
-        description='BabelBrain launcher — choose and run a BabelBrain version.')
+        description='BabelBrain launcher — run and switch between BabelBrain versions.')
     p.add_argument('--version', dest='selector', default=None,
-                   help='Launch this version (build id or version string) without the picker.')
+                   help='Run this version (build id or version string) directly.')
     p.add_argument('--list-versions', action='store_true',
                    help='List installed versions and exit.')
-    p.add_argument('--no-picker', action='store_true',
-                   help='Launch the remembered/default version without showing the picker.')
     p.add_argument('--show-prereleases', action='store_true',
                    help='Include pre-releases when the picker opens.')
     p.add_argument('--install-worker', dest='install_worker', default=None,
@@ -52,10 +53,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _default_version(versions: list[versions_mod.VersionInfo],
                      st: state_mod.HubState) -> versions_mod.VersionInfo | None:
-    '''Resolve the version to run without a picker: remembered first, else the
-    highest-versioned installed build, else the builtin.'''
-    if st.remembered_build_id:
-        vi = versions_mod.find_by_selector(versions, st.remembered_build_id)
+    '''The version to run without a picker: the current selection first, else the
+    highest-versioned installed build.'''
+    if st.current_build_id:
+        vi = versions_mod.find_by_selector(versions, st.current_build_id)
         if vi is not None:
             return vi
     if not versions:
@@ -75,7 +76,23 @@ def _print_versions(versions: list[versions_mod.VersionInfo]):
         print(f'{vi.build_id:24s}  {vi.display_name:32s}  [{vi.scope_label}]')
 
 
-def main(argv: list[str] | None = None) -> int:
+def _no_version_dialog():
+    '''Tell the user (of BabelBrain.app) how to get a version when none exist.'''
+    try:
+        from PySide6.QtWidgets import QApplication, QMessageBox
+        app = QApplication.instance() or QApplication([])  # noqa: F841
+        QMessageBox.warning(
+            None, 'BabelBrain',
+            'No BabelBrain version is installed yet.\n\n'
+            'Open "BabelBrain Version Selector" to download one.')
+    except Exception:  # noqa: BLE001 - headless: fall back to stderr
+        sys.stderr.write('No BabelBrain version is installed. Open the '
+                         'BabelBrain Version Selector to download one.\n')
+
+
+def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
+    '''Entry point. ``mode`` is 'launcher' for BabelBrain.app (run current
+    version, no picker) or 'selector' for the Version Selector (show the picker).'''
     argv = list(sys.argv[1:] if argv is None else argv)
     hub_argv, after_sep = _split_forwarded(argv)
 
@@ -98,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_versions(versions)
         return 0
 
-    # Direct selection: skip the picker entirely.
+    # Explicit selection works in either mode (advanced / Brainsight / scripts).
     if args.selector:
         vi = versions_mod.find_by_selector(versions, args.selector)
         if vi is None:
@@ -108,13 +125,15 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         return launch(vi, forwarded)
 
-    # No picker: launch remembered/default.
-    if args.no_picker or st.dont_ask:
+    # BabelBrain.app: run the current selection (or default) directly, no picker.
+    if mode == 'launcher':
         vi = _default_version(versions, st)
-        if vi is not None:
-            return launch(vi, forwarded)
-        # Nothing resolvable — fall through to the picker.
+        if vi is None:
+            _no_version_dialog()
+            return 3
+        return launch(vi, forwarded)
 
+    # Version Selector: always show the picker.
     return _run_picker(st, versions, forwarded)
 
 
@@ -123,11 +142,11 @@ def _run_picker(st: state_mod.HubState, versions, forwarded: list[str]) -> int:
     from PySide6.QtWidgets import QApplication
     from .ui import HubWindow
 
-    app = QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])  # noqa: F841
     win = HubWindow(st)
     ret = win.exec()
     if ret != HubWindow.Accepted:
-        return 0                       # user quit the launcher
+        return 0                       # user closed the selector
     vi = win.selected_version()
     if vi is None:
         return 0

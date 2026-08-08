@@ -16,8 +16,7 @@ from . import paths
 
 @dataclass
 class HubState:
-    remembered_build_id: str | None = None   # last version the user chose
-    dont_ask: bool = False                    # skip the picker and launch remembered
+    current_build_id: str | None = None       # the version BabelBrain.app runs
     show_prereleases: bool = False            # reveal prerelease entries in the picker
     preferred_scope: str = 'user'             # default install target: 'user' | 'shared'
 

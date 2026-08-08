@@ -1,7 +1,7 @@
 {
   "version": "0.8.8",
-  "git_commit": "5302084c5fe9e263f58bf2741127c425c6e2246a",
+  "git_commit": "fc33a7693ff47126201d2126657f9c49c45f7274",
   "channel": "dev",
-  "tag": "test-hub-installer",
-  "built": "2026-08-08T16:10:42+00:00"
+  "tag": null,
+  "built": "2026-08-08T22:02:18+00:00"
 }

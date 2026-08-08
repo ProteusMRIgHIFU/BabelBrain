@@ -1,26 +1,30 @@
 #!/usr/bin/env bash
 #
-# Build the BabelBrain Hub installer DMG locally, UNSIGNED — a fast alternative
-# to waiting for the GitHub Actions release build. It mirrors the macOS steps in
-# .github/workflows/build-release.yml (build the version -> stamp build_info ->
-# build the Hub -> nest the version inside the Hub -> make a DMG), just without
-# code signing / notarization and without the PKG (a PKG is only useful signed).
+# Build the BabelBrain installer DMG locally, UNSIGNED — a fast alternative to
+# waiting for the GitHub Actions release build. It mirrors the macOS steps in
+# .github/workflows/build-release.yml, just without code signing / notarization.
 #
-# The resulting DMG is a drag-install containing BabelBrain.app (the Hub, with a
-# bundled BabelBrain version inside). Since it is built locally (no quarantine
-# attribute), it launches without a Gatekeeper prompt.
+# Two-app model: the PKG inside the DMG installs
+#   * /Applications/BabelBrain.app                    (the launcher / main app)
+#   * /Applications/BabelBrain-Version-Selector.app   (the picker)
+# and seeds a default BabelBrain version into the shared versions store
+#   * /Users/Shared/BabelBrain/versions/<build_id>/BabelBrain.app
+# so the app works offline right after install.
 #
 # Run from anywhere with the babelbrain conda env active:
-#     ./create_unsigned_dmg.sh                 # full build
-#     ./create_unsigned_dmg.sh --skip-version-build   # reuse dist/version, rebuild Hub+DMG only
+#     ./create_unsigned_dmg.sh                        # full build
+#     ./create_unsigned_dmg.sh --skip-version-build   # reuse dist/version (fast Hub-only rebuild)
 #
-# For the very fastest inner loop you can also skip the DMG entirely and just run
-#     dist/hub/BabelBrain.app/Contents/MacOS/BabelBrain
+# Fastest inner loop (no DMG/PKG at all): run a built app directly, e.g.
+#     dist/selector/BabelBrain-Version-Selector.app/Contents/MacOS/BabelBrain-Version-Selector
+#     dist/launcher/BabelBrain.app/Contents/MacOS/BabelBrain
 #
+rm *.pkg
+rm *.dmg
+rm -rf dist
+rm -rf build
 set -euo pipefail
 
-# Resolve our own path BEFORE changing directory, then operate from the
-# BabelBrain/ directory (where the specs live).
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename "$0")"
 cd "$SCRIPT_DIR"
@@ -29,7 +33,7 @@ SKIP_VERSION_BUILD="no"
 for arg in "$@"; do
   case "$arg" in
     --skip-version-build) SKIP_VERSION_BUILD="yes";;
-    -h|--help) sed -n '2,30p' "$SCRIPT_PATH"; exit 0;;
+    -h|--help) sed -n '2,32p' "$SCRIPT_PATH"; exit 0;;
     *) echo "Unknown argument: $arg" >&2; exit 1;;
   esac
 done
@@ -42,9 +46,11 @@ case "$(uname -m)" in
   *)      ARCHKEY="$(uname -m)";;
 esac
 DMG="BabelBrain-macOS-${ARCHKEY}-unsigned.dmg"
+PKG="BabelBrain-macOS-${ARCHKEY}.pkg"
 
 VERSION_APP="dist/version/BabelBrain.app"
-HUB_APP="dist/hub/BabelBrain.app"
+SELECTOR_APP="dist/selector/BabelBrain-Version-Selector.app"
+LAUNCHER_APP="dist/launcher/BabelBrain.app"
 
 # ---------------------------------------------------------------------------
 # 1. Build the BabelBrain version (the heavy part) + stamp build_info.json.
@@ -55,37 +61,60 @@ else
   echo ">> Generating build_info.json (channel=dev)"
   python Hub/gen_build_info.py --channel dev --out build_info.json
   cat build_info.json
-  echo ">> Building BabelBrain version with PyInstaller"
+  echo ">> Building BabelBrain version"
   pyinstaller BabelBrain.spec --noconfirm --clean \
     --distpath dist/version --workpath build/version
   cp build_info.json "$VERSION_APP/Contents/Resources/build_info.json"
 fi
 [[ -d "$VERSION_APP" ]] || { echo "error: $VERSION_APP missing." >&2; exit 1; }
 
+# build_id (version+shortcommit) names the version's folder in the store.
+BUILD_INFO="$VERSION_APP/Contents/Resources/build_info.json"
+BUILD_ID="$(python -c "import json;d=json.load(open('$BUILD_INFO'));c=(d.get('git_commit') or '');print(d['version']+('+'+c[:7] if c else ''))")"
+echo ">> build_id: $BUILD_ID"
+
 # ---------------------------------------------------------------------------
-# 2. Build the Hub launcher (fast).
+# 2. Build the two launcher apps (fast).
 # ---------------------------------------------------------------------------
-echo ">> Building Hub launcher with PyInstaller"
+echo ">> Building Version Selector app"
 pyinstaller BabelBrainHub.spec --noconfirm --clean \
-  --distpath dist/hub --workpath build/hub
+  --distpath dist/selector --workpath build/selector
+echo ">> Building BabelBrain launcher app"
+pyinstaller BabelBrainLauncher.spec --noconfirm --clean \
+  --distpath dist/launcher --workpath build/launcher
 
 # ---------------------------------------------------------------------------
-# 3. Nest the version inside the Hub at the executable-relative bundled path.
+# 3. Stage the PKG payload: both apps in /Applications, the version seeded in
+#    the shared store.
 # ---------------------------------------------------------------------------
-echo ">> Nesting version into Hub"
-DEST="$HUB_APP/Contents/Resources/bundled"
-mkdir -p "$DEST"
-rm -rf "$DEST/BabelBrain.app"
-/usr/bin/ditto "$VERSION_APP" "$DEST/BabelBrain.app"
+echo ">> Staging PKG payload"
+STAGE="$(mktemp -d -t bbpkg)"
+trap 'rm -rf "$STAGE" "$STAGE_DMG" 2>/dev/null || true' EXIT
+mkdir -p "$STAGE/Applications" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID"
+/usr/bin/ditto "$LAUNCHER_APP" "$STAGE/Applications/BabelBrain.app"
+/usr/bin/ditto "$SELECTOR_APP" "$STAGE/Applications/BabelBrain-Version-Selector.app"
+/usr/bin/ditto "$VERSION_APP" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID/BabelBrain.app"
 
 # ---------------------------------------------------------------------------
-# 4. Build the (unsigned) drag-install DMG.
+# 4. Build the (unsigned) PKG.
+# ---------------------------------------------------------------------------
+echo ">> Building unsigned PKG: $PKG"
+VERSION_STR="$(cat version.txt)"
+[[ -f "$PKG" ]] && rm -f "$PKG"
+productbuild \
+  --identifier com.ucalgary.babelbrain.pkg \
+  --version "$VERSION_STR" \
+  --root "$STAGE" / \
+  "$PKG"
+
+# ---------------------------------------------------------------------------
+# 5. Wrap the PKG in a DMG (unsigned).
 # ---------------------------------------------------------------------------
 echo ">> Building DMG: $DMG"
 [[ -f "$DMG" ]] && rm -f "$DMG"
-STAGE="$(mktemp -d -t bbdmg)"
-trap 'rm -rf "$STAGE"' EXIT
-/usr/bin/ditto "$HUB_APP" "$STAGE/BabelBrain.app"
+STAGE_DMG="$(mktemp -d -t bbdmg)"
+cp "$PKG" "$STAGE_DMG/BabelBrain.pkg"
+cp ../LICENSE "$STAGE_DMG/" 2>/dev/null || true
 
 if command -v create-dmg >/dev/null; then
   create-dmg \
@@ -93,19 +122,20 @@ if command -v create-dmg >/dev/null; then
     --window-pos 200 120 \
     --window-size 800 400 \
     --icon-size 100 \
-    --icon "BabelBrain.app" 200 190 \
-    --app-drop-link 600 185 \
+    --icon "BabelBrain.pkg" 200 190 \
     "$DMG" \
-    "$STAGE/" \
-  || hdiutil create -volname "BabelBrain (unsigned)" -srcfolder "$STAGE" \
+    "$STAGE_DMG/" \
+  || hdiutil create -volname "BabelBrain (unsigned)" -srcfolder "$STAGE_DMG" \
        -ov -format UDZO "$DMG"
 else
   echo ">> create-dmg not found (brew install create-dmg) — using hdiutil"
-  hdiutil create -volname "BabelBrain (unsigned)" -srcfolder "$STAGE" \
+  hdiutil create -volname "BabelBrain (unsigned)" -srcfolder "$STAGE_DMG" \
     -ov -format UDZO "$DMG"
 fi
 
 echo ""
-echo "Done: $(pwd)/$DMG"
-echo "Open it and drag BabelBrain.app to /Applications, or just run:"
-echo "  dist/hub/BabelBrain.app/Contents/MacOS/BabelBrain"
+echo "Done: $(pwd)/$DMG   (contains $PKG)"
+echo "Install: open the DMG and double-click BabelBrain.pkg (needs your password)."
+echo "It installs both apps to /Applications and seeds version $BUILD_ID into"
+echo "/Users/Shared/BabelBrain/versions. For a fast loop you can instead run:"
+echo "  dist/selector/BabelBrain-Version-Selector.app/Contents/MacOS/BabelBrain-Version-Selector"

@@ -1,11 +1,10 @@
 # This Python file uses the following encoding: utf-8
 '''
-BabelBrain Hub — launcher entry point for the frozen distribution.
+BabelBrain Version Selector — entry point for BabelBrain-Version-Selector.app.
 
-This is the app users double-click (and the one Brainsight invokes). It lets
-them pick which BabelBrain version to run, download more, and swap between them,
-then hands off to the chosen version's real binary with all remaining arguments
-forwarded unchanged.
+The picker: choose which BabelBrain version to run, download more, and switch
+between them. Launching a version here records it as the current selection, so
+BabelBrain.app (see babelbrain_launcher.py) then opens that version directly.
 
 Developers running from source do not need this — launch BabelBrain directly
 with ``python BabelBrain/BabelBrain.py`` and swap versions using git.
@@ -21,4 +20,4 @@ from Hub.cli import main  # noqa: E402
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    sys.exit(main())
+    sys.exit(main(mode='selector'))

@@ -75,7 +75,7 @@ class _DownloadWorker(QThread):
 class HubWindow(QDialog):
     def __init__(self, state: state_mod.HubState, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle('BabelBrain — Choose a version')
+        self.setWindowTitle('BabelBrain Version Selector')
         self.resize(560, 460)
         self._state = state
         self._manifest: manifest_mod.Manifest | None = None
@@ -94,7 +94,7 @@ class HubWindow(QDialog):
         layout.addWidget(QLabel('Installed versions and available downloads:'))
         self._list = QListWidget()
         self._list.itemSelectionChanged.connect(self._on_selection_changed)
-        self._list.itemDoubleClicked.connect(lambda *_: self._on_launch())
+        self._list.itemDoubleClicked.connect(lambda *_: self._set_default())
         layout.addWidget(self._list, 1)
 
         self._prerelease_cb = QCheckBox('Show pre-releases')
@@ -102,13 +102,11 @@ class HubWindow(QDialog):
         self._prerelease_cb.toggled.connect(self._on_prerelease_toggled)
         layout.addWidget(self._prerelease_cb)
 
-        self._remember_cb = QCheckBox("Remember my choice and don't ask again")
-        self._remember_cb.setChecked(state.dont_ask)
-        layout.addWidget(self._remember_cb)
-
         buttons = QHBoxLayout()
-        self._launch_btn = QPushButton('Launch')
-        self._launch_btn.setDefault(True)
+        self._setdefaul_btn = QPushButton('Selected as default')
+        self._setdefaul_btn.setDefault(True)
+        self._setdefaul_btn.clicked.connect(self._set_default)
+        self._launch_btn = QPushButton('Selected as default and launch')
         self._launch_btn.clicked.connect(self._on_launch)
         self._download_btn = QPushButton('Download && install')
         self._download_btn.clicked.connect(self._on_download)
@@ -116,6 +114,7 @@ class HubWindow(QDialog):
         self._uninstall_btn.clicked.connect(self._on_uninstall)
         self._quit_btn = QPushButton('Quit')
         self._quit_btn.clicked.connect(self.reject)
+        buttons.addWidget(self._setdefaul_btn)
         buttons.addWidget(self._launch_btn)
         buttons.addWidget(self._download_btn)
         buttons.addWidget(self._uninstall_btn)
@@ -164,13 +163,13 @@ class HubWindow(QDialog):
                 item.setData(_ROLE_PAYLOAD, entry)
                 self._list.addItem(item)
 
-        # Preselect the remembered build, else the first row.
+        # Preselect the current selection, else the first row.
         target_row = 0
-        if self._state.remembered_build_id:
+        if self._state.current_build_id:
             for row in range(self._list.count()):
                 it = self._list.item(row)
                 if it.data(_ROLE_KIND) == 'installed' and \
-                        it.data(_ROLE_PAYLOAD).build_id == self._state.remembered_build_id:
+                        it.data(_ROLE_PAYLOAD).build_id == self._state.current_build_id:
                     target_row = row
                     break
         if self._list.count():
@@ -223,14 +222,23 @@ class HubWindow(QDialog):
         self._persist_choice(payload.build_id)
         self.accept()
 
+    def _set_default(self):
+        kind, payload = self._current()
+        if kind != 'installed':
+            return
+        self._selected_version = payload
+        self._launch_requested = True
+        self._persist_choice(payload.build_id)
+
     def _persist_choice(self, build_id: str):
-        self._state.remembered_build_id = build_id
-        self._state.dont_ask = self._remember_cb.isChecked()
+        # Launching a version makes it the current selection, so BabelBrain.app
+        # then opens it directly.
+        self._state.current_build_id = build_id
         self._state.show_prereleases = self._prerelease_cb.isChecked()
         if not state_mod.save(self._state):
             QMessageBox.warning(self, 'BabelBrain',
-                                'Your preferences could not be saved, so you may be '
-                                'asked to choose a version again next time.')
+                                'Your selection could not be saved, so BabelBrain '
+                                'may open a different version next time.')
 
     def _choose_scope(self) -> str | None:
         '''Explicit local/global choice. Returns 'user', 'shared', or None.'''
