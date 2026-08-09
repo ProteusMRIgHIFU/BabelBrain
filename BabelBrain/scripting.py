@@ -361,16 +361,30 @@ def _babel_main():
     """Return the module that defines the BabelBrain widget / GetLatestSelection.
 
     Those live in the entry script BabelBrain.py, which is '__main__' at runtime
-    in BOTH source and the frozen app. We must NOT `import BabelBrain`: a 2-byte
-    BabelBrain/__init__.py makes 'BabelBrain' a *package*, and in the frozen
-    bundle that empty package shadows the entry module (ImportError). Prefer
-    __main__; fall back to importing the module for non-entry contexts
-    (e.g. dev_driver, where __main__ is dev_driver.py)."""
+    in BOTH source and the frozen app (including a frozen 'spawn' child, as long
+    as BabelBrain.py defers freeze_support() to its __main__ guard so the module
+    finishes defining before the child is dispatched). We must NOT plain
+    `import BabelBrain`: a 2-byte BabelBrain/__init__.py makes 'BabelBrain' a
+    *package*, and in the frozen bundle that empty package shadows the entry
+    module. Prefer __main__; fall back to importing the module for non-entry
+    contexts (e.g. dev_driver, where __main__ is dev_driver.py)."""
     import importlib
     m = sys.modules.get('__main__')
     if m is not None and hasattr(m, 'GetLatestSelection') and hasattr(m, 'BabelBrain'):
         return m
-    return importlib.import_module('BabelBrain')
+    # Fallback for non-entry contexts. Validate it actually has the symbols — the
+    # frozen empty 'BabelBrain' package would otherwise be returned and blow up
+    # later with a confusing AttributeError at the call site.
+    mod = importlib.import_module('BabelBrain')
+    if not (hasattr(mod, 'GetLatestSelection') and hasattr(mod, 'BabelBrain')):
+        raise RuntimeError(
+            "Could not locate the BabelBrain entry module (GetLatestSelection / "
+            "BabelBrain widget). __main__ is incomplete and 'import BabelBrain' "
+            "resolved to %r, which lacks those symbols. In a frozen build this "
+            "means a spawn child was dispatched before BabelBrain.py finished "
+            "defining — ensure freeze_support() is called from its __main__ guard."
+            % getattr(mod, '__file__', mod))
+    return mod
 
 
 def _has_visible_window(app):

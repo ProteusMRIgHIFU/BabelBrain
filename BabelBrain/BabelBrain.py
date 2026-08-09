@@ -77,12 +77,15 @@ from Telemetry.Telemetry import send_telemetry
 from datetime import datetime, timezone
 
 
-multiprocessing.freeze_support()
-if sys.platform =='linux':
-    try:
-        multiprocessing.set_start_method('spawn')
-    except RuntimeError:
-        pass
+# NOTE: multiprocessing.freeze_support() and set_start_method() are intentionally
+# NOT called here at module top. In a frozen build, a 'spawn' child re-executes
+# this entry script as __main__; if freeze_support() ran here (before the class
+# and function definitions below), it would hijack the child at this point and
+# the child's __main__ would be missing GetLatestSelection / the BabelBrain class.
+# The server's persistent-session worker (a spawned process) needs those symbols
+# via scripting._babel_main(). Calling freeze_support() from the __main__ guard
+# at the bottom instead — the documented-correct placement — lets the whole module
+# finish defining before the child is dispatched. See scripting._babel_main.
 
 
 bINUSE_INSIDE_BRAINSIGHT = False
@@ -2231,5 +2234,15 @@ def main():
         return retcode
 
 if __name__ == "__main__":
+
+    # freeze_support() must be the first thing in the main guard: in a frozen
+    # 'spawn' child it dispatches the worker here (after the whole module has
+    # finished defining), then exits; in the parent it is a no-op and we proceed.
+    multiprocessing.freeze_support()
+    if sys.platform == 'linux':
+        try:
+            multiprocessing.set_start_method('spawn')
+        except RuntimeError:
+            pass
 
     main()
