@@ -116,6 +116,30 @@ def _req(method, path, body=None, timeout=60, retries=8):
 LAST_SESSION_ID = None
 
 
+# ── Server-path helpers (cross-OS) ────────────────────────────────────────────
+# Paths RETURNED by the server (upload()['path'], artifact 'path', …) use the
+# SERVER's path convention, which may differ from the client's. A macOS/Linux
+# client parsing a Windows server path with os.path (posixpath) would not treat
+# '\\' as a separator — os.path.dirname/basename then return wrong values (an
+# empty dir, or a "basename" still carrying 'C:\\...' ). These split on WHICHEVER
+# separator the server used, so they work regardless of the client OS. Use them
+# for server paths; keep os.path.* for genuinely local paths.
+def _last_sep(server_path):
+    return max(server_path.rfind('/'), server_path.rfind('\\'))
+
+
+def server_basename(server_path):
+    """basename of a server-side path (handles '/' and '\\' separators)."""
+    i = _last_sep(server_path)
+    return server_path[i + 1:] if i >= 0 else server_path
+
+
+def server_dirname(server_path):
+    """dirname of a server-side path (handles '/' and '\\' separators)."""
+    i = _last_sep(server_path)
+    return server_path[:i] if i >= 0 else server_path
+
+
 # ── Jobs ─────────────────────────────────────────────────────────────────────
 def submit(spec):
     """Submit a JobSpec; returns the new job_id and records the server-assigned
@@ -186,8 +210,12 @@ def upload_dir(ws_id, local_dir, prefix, timeout=300):
             rel = os.path.relpath(lp, local_dir).replace(os.sep, "/")
             sp = upload(ws_id, lp, "%s/%s" % (prefix, rel), timeout=timeout)
             if server_root is None:                 # infer the staged dir root
+                # sp is a SERVER path (its own separators); normalise a COPY to '/'
+                # to locate the prefix marker — index alignment is preserved since
+                # the replace is length-preserving, so we slice the original sp.
+                norm = sp.replace("\\", "/")
                 marker = "/" + prefix + "/"
-                server_root = sp[: sp.rfind(marker) + len("/" + prefix)]
+                server_root = sp[: norm.rfind(marker) + len("/" + prefix)]
     return server_root
 
 
@@ -208,6 +236,8 @@ def download_all(job_id, artifacts, out_dir, timeout=300):
     os.makedirs(out_dir, exist_ok=True)
     out = []
     for i, a in enumerate(artifacts):
-        local = os.path.join(out_dir, os.path.basename(a["path"]))
+        # a["path"] is a SERVER path — split it with the server-aware helper so a
+        # Windows-server basename isn't left intact on a POSIX client (and vice versa).
+        local = os.path.join(out_dir, server_basename(a["path"]))
         out.append((local, download(job_id, i, local, timeout=timeout)))
     return out

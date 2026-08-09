@@ -205,7 +205,10 @@ class RunServerCalculation(QObject):
             cf.upload(ws_id, mshfile, 'm2m/' +os.path.split(mshfile)[1])
 
 
-        paths['simbnibs'] = os.path.dirname(seg_server)
+        # seg_server is a SERVER path (its own OS's separators); use the
+        # server-aware dirname so this doesn't collapse to '' when the server and
+        # client run different OSes (e.g. Windows server, macOS client).
+        paths['simbnibs'] = cf.server_dirname(seg_server)
         charm_log = os.path.join(m2m, 'charm_log.html')
         if os.path.isfile(charm_log):
             cf.upload(ws_id, charm_log, 'm2m/charm_log.html')
