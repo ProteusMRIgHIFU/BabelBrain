@@ -315,22 +315,18 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
             path_script = os.path.join(resource_path(),"ExternalBin/SimbNIBSMesh/run_mac.sh")
         
         print("Starting MeshConv")
-        if _IS_MAC:
-            cmd ='source "'+path_script + '" "' + SimbNINBSRoot + '" "' + scriptbase + '" "' + reference + '" "' + mesh +'" "' + finalname + '"'
-            print(cmd)
-            result = os.system(cmd)
-        else:
-            result = subprocess.run(
-                    [shell,
-                    path_script,
-                    SimbNINBSRoot,
-                    reference,
-                    mesh,
-                    finalname], capture_output=True, text=True
-            )
-            print("stdout:", result.stdout)
-            print("stderr:", result.stderr)
-            result=result.returncode 
+        result = subprocess.run(
+                [shell,
+                path_script,
+                SimbNINBSRoot,
+                scriptbase,
+                reference,
+                mesh,
+                finalname], capture_output=True, text=True
+        )
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        result=result.returncode 
     else:
         path_script = os.path.join(resource_path(),"ExternalBin","SimbNIBSMesh","run_win.bat")
         print('path_script for MeshConv',path_script)
