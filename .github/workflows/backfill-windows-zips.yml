@@ -1,0 +1,108 @@
+name: Backfill legacy Windows version zips (TEMPORARY)
+
+# One-off helper: get the frozen BabelBrain onedir out of each legacy Windows
+# installer, repackage it as a relocatable BabelBrain-Windows-x64-version.zip, and
+# upload it to the SAME existing release (no new tags). Delete this workflow after.
+#
+#   * MSI (0.4.x, 0.8.0): `msiexec /a` administrative extract (no real install).
+#   * Inno .exe (v0.8.1): innoextract can't parse Inno Setup 6.3+ loaders, so we
+#     install it SILENTLY (the runner account is an administrator, no UAC prompt)
+#     and copy the onedir out.
+#
+# The four MSI zips already uploaded successfully, so this run targets 0.8.1 only.
+# Re-add the MSI rows below if you ever need to redo them (upload uses --clobber).
+#
+# NOTE: workflow_dispatch only works once this file exists on the default branch
+# (main). Commit it to main, run it from the Actions tab, then remove it.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # upload assets to existing releases
+
+jobs:
+  backfill:
+    runs-on: windows-latest
+    steps:
+      - name: Extract onedir from installers and upload version zips
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = '${{ github.repository }}'
+
+          # version | tag | installer asset | type (msi|inno)
+          # MSI rows already done; only the Inno .exe (0.8.1) remains. To redo an
+          # MSI, add e.g. @{ ver='0.8.0'; tag='0.8.0'; asset='BabelBrain-0.8.0.0-64.msi'; type='msi' }
+          $rows = @(
+            @{ ver='0.8.1'; tag='v0.8.1'; asset='BabelBrain-Windows-x64.exe'; type='inno' }
+          )
+
+          $work = Join-Path $env:RUNNER_TEMP 'bb'
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+
+          "## Legacy Windows version zips" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          "Paste each ``windows-x64`` block into the matching entry in releases.json:" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+          '```json' | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+          foreach ($r in $rows) {
+            Write-Host "==== $($r.ver) ($($r.tag)) via $($r.type) : $($r.asset) ===="
+            $vdir = Join-Path $work $r.ver
+            $ext  = Join-Path $vdir 'extract'
+            New-Item -ItemType Directory -Force -Path $ext | Out-Null
+
+            gh release download $r.tag --repo $repo --pattern $r.asset --dir $vdir
+            $inst = Join-Path $vdir $r.asset
+
+            if ($r.type -eq 'msi') {
+              # Administrative install = extract files to TARGETDIR, no real install.
+              $p = Start-Process msiexec.exe -Wait -PassThru -NoNewWindow `
+                     -ArgumentList "/a","`"$inst`"","/qn","TARGETDIR=`"$ext`""
+              if ($p.ExitCode -ne 0) { throw "msiexec /a failed for $($r.ver): $($p.ExitCode)" }
+            } else {
+              # Inno Setup 6.3+ can't be read by innoextract, so install silently.
+              # The runner account is an administrator (no UAC prompt for an admin
+              # installer). /DIR sets the target; /VERYSILENT suppresses all UI.
+              $installdir = Join-Path $ext 'BabelBrain'
+              $p = Start-Process -FilePath $inst -Wait -PassThru `
+                     -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/NOICONS',"/DIR=`"$installdir`""
+              if ($p.ExitCode -ne 0) { throw "silent install failed for $($r.ver): $($p.ExitCode)" }
+            }
+
+            # Find BabelBrain.exe under the extract dir; for the silent install also
+            # check the default Program Files locations in case /DIR was overridden.
+            $searchRoots = @($ext)
+            if ($r.type -eq 'inno') {
+              $searchRoots += "$env:ProgramFiles\BabelBrain"
+              $searchRoots += "${env:ProgramFiles(x86)}\BabelBrain"
+            }
+            $exe = $null
+            foreach ($sr in $searchRoots) {
+              if (Test-Path $sr) {
+                $exe = Get-ChildItem -Path $sr -Recurse -Filter 'BabelBrain.exe' -ErrorAction SilentlyContinue |
+                       Select-Object -First 1
+                if ($exe) { break }
+              }
+            }
+            if (-not $exe) { throw "BabelBrain.exe not found in extracted $($r.ver)" }
+            $onedir = $exe.Directory.FullName
+            Write-Host "onedir: $onedir"
+
+            $zip = Join-Path $vdir 'BabelBrain-Windows-x64-version.zip'
+            # Archive the onedir CONTENTS at the zip root (exe at top level), so the
+            # Hub extracts straight into <root>\<build_id>\BabelBrain.exe.
+            Compress-Archive -Path (Join-Path $onedir '*') -DestinationPath $zip -Force
+
+            $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+            gh release upload $r.tag --repo $repo $zip --clobber
+            $url = "https://github.com/$repo/releases/download/$($r.tag)/BabelBrain-Windows-x64-version.zip"
+
+            Write-Host "DONE $($r.ver): $sha"
+            "// $($r.ver)" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+            "`"windows-x64`": { `"url`": `"$url`", `"sha256`": `"$sha`" }" |
+              Out-File -Append $env:GITHUB_STEP_SUMMARY
+          }
+
+          '```' | Out-File -Append $env:GITHUB_STEP_SUMMARY
