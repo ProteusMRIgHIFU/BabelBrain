@@ -28,6 +28,7 @@ from nibabel.spaces import vox2out_vox
 import SimpleITK as sitk
 import tempfile
 import os
+import subprocess
 import scipy
 from scipy import signal
 # from CTZTEProcessing import RunElastix
@@ -216,12 +217,16 @@ class Processing(object):
         elastix_param = os.path.join(tmpdirname,'inputparam.txt')
         with open(elastix_param,'w') as g:
             g.writelines(Params)
-        shell='zsh'
-        path_script = os.path.join(resource_path,"ExternalBin/elastix/run_mac.sh")
-        cmd ='"'+path_script + '" "' + reference + '" "' + moving +'" "' + tmpdirname + '" "' + elastix_param + '"'
-        print(cmd)
-        result = os.system(cmd)
-        if result == 0:
+        if sys.platform == 'linux':
+            shell='bash'
+            path_script = os.path.join(resource_path,"ExternalBin/elastix/run_linux.sh")
+        else:
+            shell='zsh'
+            path_script = os.path.join(resource_path,"ExternalBin/elastix/run_mac.sh")
+             
+        rcmd=[shell,path_script,reference,moving,tmpdirname,elastix_param]
+        result = subprocess.run(rcmd, capture_output=True, text=True)
+        if result.returncode == 0:
             shutil.move(os.path.join(tmpdirname,'result.0.nii.gz'),finalname)
             shutil.move(os.path.join(tmpdirname,'TransformParameters.0.txt'),
                         tpname)
@@ -251,10 +256,10 @@ class Processing(object):
         os.mkdir(tmpdirname)
         shell='zsh'
         path_script = os.path.join(resource_path,"ExternalBin/elastix/run_mac_transformix.sh")
-        cmd ='"'+path_script + '" "' + reference + '" "' + inputtransform +'" "' + tmpdirname +'"'
-        print(cmd)
-        result = os.system(cmd)
-        if result == 0:
+        rcmd =[shell,path_script,reference,inputtransform,tmpdirname]
+        print(rcmd)
+        result = subprocess.run(rcmd, capture_output=True, text=True)
+        if result.returncode == 0:
             shutil.move(os.path.join(tmpdirname,'result.nii.gz'),finalname)
         else:
             raise SystemError("Error when trying to run elastix")

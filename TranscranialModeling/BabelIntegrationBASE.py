@@ -34,7 +34,7 @@ import warnings
 import time
 import gc
 import os
-import os
+import subprocess
 import pandas as pd
 import h5py
 from linetimer import CodeTimer
@@ -778,9 +778,11 @@ def SaveNiftiEnforcedISO(nii_in, fn):
             os.remove(fn_unc)
         except: #last resource is to use flirt
             res = '%6.5f' % (res)
-            cmd='flirt -in "'+fn_unc + '" -ref "'+ fn_unc + '" -applyisoxfm ' +res + ' -nosearch -out "' + newfn +'"'
-            print(cmd)
-            assert(os.system(cmd)==0)
+            rcmd=['flirt','-in',fn_unc,'-ref',fn_unc,'-applyisoxfm',res,'-nosearch','-out','newfn']
+            result = subprocess.run(rcmd, capture_output=True, text=True)
+            print("stdout:", result.stdout)
+            print("stderr:", result.stderr)
+            assert(result.returncode==0)
             os.remove(fn_unc)
 
     _rec_artifact(newfn)

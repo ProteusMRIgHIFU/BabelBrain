@@ -144,8 +144,7 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
                     reference,
                     moving,
                     tmpdirname,
-                    elastix_param], capture_output=True, text=True
-            )
+                    elastix_param], capture_output=True, text=True)
             print("stdout:", result.stdout)
             print("stderr:", result.stderr)
             result=result.returncode 
