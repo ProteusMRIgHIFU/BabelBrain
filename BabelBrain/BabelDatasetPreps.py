@@ -369,8 +369,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 HUThreshold=300.0,
                                 HUCapThreshold=2100.0,
                                 CT_quantification=10, #bits
-                                Mat4Trajectory=None, 
-                                TrajectoryType='brainsight',                               
+                                Mat4Trajectory=None, #path to file containing trajectory information or 4x4 ndarray
+                                TrajectoryType='brainsight', #only used if Mat4Trajectory is a path                     
                                 Foc=135.0, #Tx focal length
                                 TxDiam=157.0, # Tx aperture diameter used for FOV subvolume
                                 Location=[27.5, -42, 42],#RAS location of target ,
@@ -519,19 +519,27 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     InVAffine=np.linalg.inv(baseaffine)
 
-    if TrajectoryType =='brainsight':
-        print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
-        RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+    if type(Mat4Trajectory) is np.ndarray:
+        print('Mat4Trajectory passed as an array')
+        RMat=Mat4Trajectory.copy()
         if len(RMat.shape)==3: #multi trajectory
             RMat=RMat[:,:,TrajectoryNumber]
     else:
-        inMat=read_itk_affine_transform(Mat4Trajectory)
-        if len(inMat.shape)==3: #multi trajectory
-            inMat=inMat[:,:,TrajectoryNumber]
-         #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
-         #to the feet direction , while in SlicerIGT it starts with a vector towards the head
-        print('*'*40+'\n Reading orientation and target location directly from Slicer export\n'+'*'*40)
-        RMat = itk_to_BSight(inMat)
+        if TrajectoryType =='brainsight':
+            print('*'*40+'\n Reading orientation and target location directly from Brainsight export\n'+'*'*40)
+            RMat=ReadTrajectoryBrainsight(Mat4Trajectory)
+            if len(RMat.shape)==3: #multi trajectory
+                RMat=RMat[:,:,TrajectoryNumber]
+        elif TrajectoryType =='slicer':
+            inMat=read_itk_affine_transform(Mat4Trajectory)
+            if len(inMat.shape)==3: #multi trajectory
+                inMat=inMat[:,:,TrajectoryNumber]
+            #we add this as in Brainsight the needle for trajectory starts at with a vector pointing 
+            #to the feet direction , while in SlicerIGT it starts with a vector towards the head
+            print('*'*40+'\n Reading orientation and target location directly from Slicer export\n'+'*'*40)
+            RMat = itk_to_BSight(inMat)
+        else:
+            raise ValueError("Trajectory type not supported yet: "+TrajectoryType)
 
     print('Trajectory Matrix\n',RMat)
     Location=RMat[:3,3].tolist()

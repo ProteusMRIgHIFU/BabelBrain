@@ -370,12 +370,29 @@ class SelFiles(QDialog):
             else:
                 self.msgDetails = "Selected trajectory file is not a Brainsight file"
                 return False
-        else: # Slicer
+        elif self.ui.TrajectoryTypecomboBox.currentIndex() == 1: # Slicer
+            #TODO: we need something better for this
             if re.search("(?<!bra)insight",lines): #insight, but not brainsight in text
                 return True
             else:
                 self.msgDetails = "Selected trajectory file is not a Slicer file"
                 return False
+        else: # Localite
+            import xml.etree.ElementTree as ET
+
+            def is_valid_xml(path):
+                try:
+                    for _ in ET.iterparse(path):
+                        pass
+                    return True
+                except ET.ParseError:
+                    return False
+            if is_valid_xml(fTraj):
+                return True
+            else:
+                self.msgDetails = "Selected trajectory file is not a XML file"
+                return False
+
     def ValidTrajectory(self):
         fTraj = self.ui.TrajectorylineEdit.text()
 
@@ -383,7 +400,7 @@ class SelFiles(QDialog):
             self.msgDetails = "Trajectory file was not specified"
             return False
 
-        if os.path.splitext(fTraj)[1]=='.txt':
+        if os.path.splitext(fTraj)[1].lower() in ['.txt','.xml']:
             return self.ValidateIndivTrajectory(fTraj)
         else: #this is a yaml file for 3D Slicer trajectories
             try:
@@ -484,11 +501,15 @@ class SelFiles(QDialog):
         bdir=os.path.dirname(curfile)
         if not os.path.isdir(bdir):
             bdir=os.getcwd()
-        bSight = self.ui.TrajectoryTypecomboBox.currentIndex() == 0
-        if bSight:
+        if self.ui.TrajectoryTypecomboBox.currentIndex() == 0:
+            # brainsight
             file_extension='*.txt'
-        else:
+        elif self.ui.TrajectoryTypecomboBox.currentIndex() == 1:
+            # slicer
             file_extension='*.txt *.yaml *.yml'
+        else:
+            # localite
+            file_extension='*.xml *.XML'
         fTraj=QFileDialog.getOpenFileName(self,
             "Select trajectory", bdir, f"Trajectory ({file_extension})")[0]
         if len(fTraj)>0:

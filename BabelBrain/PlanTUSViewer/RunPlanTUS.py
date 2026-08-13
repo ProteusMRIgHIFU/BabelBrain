@@ -25,10 +25,10 @@ from ClockDialog import ClockDialog
 from CreateVoxelMask import create_target_mask
 from ConvMatTransform import (
     ReadTrajectoryBrainsight,
-    itk_to_BSight,
-    read_itk_affine_transform,
+    read_converted_itk_affine_transform,
     ReplaceTrajectoryBrainsight,
     BSight_to_itk,
+    LocaliteTargeting,
     templateSlicer
 )
 
@@ -225,11 +225,9 @@ class RUN_PLAN_TUS(QObject):
             if len(RMat.shape)==3:
                 RMat=RMat[:,:,self.IDIndex]
         else:
-            inMat=read_itk_affine_transform(Mat4Trajectory)
-            if len(inMat.shape)==3:
-                inMat=inMat[:,:,self.IDIndex]
-            RMat = itk_to_BSight(inMat)
-
+            RMat=read_converted_itk_affine_transform(Mat4Trajectory)
+            if len(RMat.shape)==3:
+                RMat=RMat[:,:,self.IDIndex]
         #we will reuse to recover the center of the trajectory
         self._RMat = RMat
         if 'CTX' in TxSystem or 'DPX' in TxSystem:
@@ -486,14 +484,15 @@ class RUN_PLAN_TUS(QObject):
                         TrajectoryType=self.MainApp.Config['TrajectoryType']
                         if TrajectoryType =='brainsight':
                             ext='*BSight.txt'
-                        else:
+                        elif TrajectoryType =='slicer':
                             ext='*Slicer.txt'
                             lastfoutname=foutnameSlicer
-
+                        else:
+                            raise NotImplementedError("Need to implement handling for PlanTUS for Localite")
                         if TrajectoryType =='brainsight':
                             finalfname=self.MainApp.Config['OrigMat4Trajectory'].split('.txt')[0]+'_PlanTUS.txt'
                             ReplaceTrajectoryBrainsight(self.MainApp.Config['Mat4Trajectory'],TT,id,self.IDIndex,finalfname)
-                        else:
+                        elif TrajectoryType =='slicer':
                             if os.path.splitext(self.MainApp.Config['OrigMat4Trajectory'])[1]=='.txt':
                                 finalfname=os.path.splitext(self.MainApp.Config['OrigMat4Trajectory'])[0]+'_PlanTUS.txt'
                                 shutil.copy(lastfoutname,finalfname)
@@ -507,6 +506,8 @@ class RUN_PLAN_TUS(QObject):
                                 finalfname = os.path.splitext(self.MainApp.Config['OrigMat4Trajectory'])[0]+'_PlanTUS'+ext
                                 with open(finalfname,'w') as f:
                                     yaml.dump(slicerTraj,f)
+                        else:
+                            finalfname=os.path.splitext(self.MainApp.Config['OrigMat4Trajectory'])[0]+'_PlanTUS.xml'
      
                         self.MainApp.Config['Mat4Trajectory'] = finalfname
                         self.MainApp.Config['ID'][self.IDIndex] = id

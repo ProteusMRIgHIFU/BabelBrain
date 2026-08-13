@@ -103,6 +103,7 @@ class Ui_Dialog(object):
         self.TrajectoryTypecomboBox = QComboBox(self.groupBox)
         self.TrajectoryTypecomboBox.addItem("")
         self.TrajectoryTypecomboBox.addItem("")
+        self.TrajectoryTypecomboBox.addItem("")
         self.TrajectoryTypecomboBox.setObjectName(u"TrajectoryTypecomboBox")
         self.TrajectoryTypecomboBox.setGeometry(QRect(110, 25, 110, 30))
         self.TrajectoryTypecomboBox.setStyleSheet(u"")
@@ -237,6 +238,7 @@ class Ui_Dialog(object):
         self.TrajectorylineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
         self.TrajectoryTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"Brainsight", None))
         self.TrajectoryTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"Slicer", None))
+        self.TrajectoryTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"Localite", None))
 
         self.CoregCTcomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"NO", None))
         self.CoregCTcomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"CT to MRI", None))

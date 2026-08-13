@@ -1,11 +1,17 @@
 '''
 Tool to convert between Brainsight and 3D Slicer linear transform
 '''
+from __future__ import annotations
+
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 import pandas as pd
 import numpy as np
 import argparse
 import sys
 import yaml
+
+from LocaliteTargeting import LocaliteTargeting
 
 templateSlicer=\
 '''#Insight Transform File V1.0
@@ -86,12 +92,27 @@ def read_itk_affine_transform(filename,bGetID=False):
         else:
             return transform
 
+def read_converted_itk_affine_transform(filename,bGetID=False):
+    raw_result=read_itk_affine_transform(filename,bGetID)
+    if type(raw_result) is tuple:
+        return itk_to_BSight(raw_result[0]),raw_result[1]
+    else:
+        return(itk_to_BSight(raw_result))
+
+
 def itk_to_BSight(itk_transform):
     # ITK transform: from parent, using LPS coordinate system
     # Transform displayed in Slicer: to parent, using RAS coordinate system
     ras2lps = np.diag([-1, -1, 1, 1])
-    transform_from_parent_RAS = np.linalg.inv(ras2lps @ itk_transform @ ras2lps)
-    transform_from_parent_RAS[:3,:3]=np.diagflat([-1,-1,-1])@transform_from_parent_RAS[:3,:3]
+    if len(itk_transform.shape)==3:
+        transform_from_parent_RAS=np.zeros(itk_transform.shape)
+        for n in range(itk_transform.shape[2]):
+            transform_from_parent_RAS[:,:,n] = np.linalg.inv(ras2lps @ itk_transform[:,:,n] @ ras2lps)
+            transform_from_parent_RAS[:3,:3,n]=np.diagflat([-1,-1,-1])@transform_from_parent_RAS[:3,:3,n]
+    else:
+        
+        transform_from_parent_RAS = np.linalg.inv(ras2lps @ itk_transform @ ras2lps)
+        transform_from_parent_RAS[:3,:3]=np.diagflat([-1,-1,-1])@transform_from_parent_RAS[:3,:3]
     return transform_from_parent_RAS
 
 def test_inverse():

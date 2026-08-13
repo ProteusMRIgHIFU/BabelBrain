@@ -145,7 +145,7 @@ def reset_advanced_config(bb):
 
 
 # ── Input-configuration mappings (see SelFiles combo boxes) ──────────────────
-_TRAJECTORY_TYPE = {'brainsight': 0, 'slicer': 1}
+_TRAJECTORY_TYPE = {'brainsight': 0, 'slicer': 1,'localite':2}
 _SIMBNIBS_TYPE = {'charm': 0, 'headreco': 1}
 _CT_TYPE = {'none': 0, 'no': 0, 'ct': 1, 'real ct': 1, 'zte': 2, 'petra': 3}
 _COREG = {'no': 0, 'yes': 1, False: 0, True: 1}
@@ -325,7 +325,8 @@ def _apply_prev_config(sf, cfg):
     if 'SimbNIBSType' in cfg:
         ui.SimbNIBSTypecomboBox.setCurrentIndex(0 if cfg['SimbNIBSType'] == 'charm' else 1)
     if 'TrajectoryType' in cfg:
-        ui.TrajectoryTypecomboBox.setCurrentIndex(0 if cfg['TrajectoryType'] == 'brainsight' else 1)
+        indexTypes=['brainsight','slicer','localite']
+        ui.TrajectoryTypecomboBox.setCurrentIndex(indexTypes.index(cfg['TrajectoryType']))
     if 'CoregCT_MRI' in cfg:
         ui.CoregCTcomboBox.setCurrentIndex(cfg['CoregCT_MRI'])
     if 'ComputingBackend' in cfg and cfg['ComputingBackend'] != 0:

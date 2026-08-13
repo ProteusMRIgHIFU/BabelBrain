@@ -63,9 +63,10 @@ from ConvMatTransform import (
     BSight_to_itk,
     ReadTrajectoryBrainsight,
     GetBrainSightHeader,
-    itk_to_BSight,
     templateSlicer,
     read_itk_affine_transform,
+    read_converted_itk_affine_transform,
+    LocaliteTargeting
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 
@@ -425,8 +426,11 @@ class BabelBrain(QWidget):
             SimbNIBSType ='headreco'
         if widget.ui.TrajectoryTypecomboBox.currentIndex()==0:
             TrajectoryType ='brainsight'
-        else:
+        elif widget.ui.TrajectoryTypecomboBox.currentIndex()==1:
             TrajectoryType ='slicer'
+        else:
+            assert(widget.ui.TrajectoryTypecomboBox.currentIndex()==2)
+            TrajectoryType ='localite'
         
         prevConfig = GetLatestSelection()
         if prevConfig is None:
@@ -467,11 +471,8 @@ class BabelBrain(QWidget):
         self.Config['CoregCT_MRI']=widget.ui.CoregCTcomboBox.currentIndex()
         self.Config['CT_or_ZTE_input']=CT_or_ZTE_input
         self.Config['CTMapCombo']=CTMapCombo
-        if self.Config['TrajectoryType']=='brainsight':
-            ID=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=True)[1]
-        else:
-            ID=read_itk_affine_transform(self.Config['Mat4Trajectory'],bGetID=True)[1]
-
+        ID=self.ReadTrajectory(bGetID=True)[1]
+    
         if type(ID) is str:
             ID=[ID] #we enforce a list of 1 ID to simpliy processing
 
@@ -1075,13 +1076,23 @@ class BabelBrain(QWidget):
                 self._TrajectoryNumber+=1
                 self.ExecuteTrajectory()
 
+    def ReadTrajectory(self,bGetID=False):
+         if self.Config['TrajectoryType']=='brainsight':
+             return ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=bGetID)
+         elif self.Config['TrajectoryType']=='slicer':
+             return read_converted_itk_affine_transform(self.Config['Mat4Trajectory'],bGetID=bGetID)
+         elif self.Config['TrajectoryType']=='localite':
+             return LocaliteTargeting.from_file(self.Config['Mat4Trajectory']).ReturnBabelBrainTrajectories(bGetID=bGetID)
+         else:
+             raise ValueError("trajectory type not supported yet: "+self.Config['TrajectoryType'])
+         
 
     #this will modify the coordinates of the trajectory
     def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0,Ntraj=0):
 
         MultiYaml=None
         if self.Config['TrajectoryType']=='brainsight' or\
-            os.path.splitext(self.Config['Mat4Trajectory'])[1]=='.txt':
+            os.path.splitext(self.Config['Mat4Trajectory'])[1].lower() in ['.txt','.xml']:
             prevName=self.Config['Mat4Trajectory']
         else:
             with open(self.Config['Mat4Trajectory']) as f:
@@ -1089,14 +1100,15 @@ class BabelBrain(QWidget):
             prevName=multi[self.Config['ID'][Ntraj]]
             MultiYaml = os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
         newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(prevName)[1])
+
+        OrigTraj=self.ReadTrajectory()
+        if len(OrigTraj.shape)==3:
+            OrigTraj=OrigTraj[:,:,Ntraj]
+        OrigTraj[0,3]-=CorX
+        OrigTraj[1,3]-=CorY
+        OrigTraj[2,3]-=CorZ
                 
         if self.Config['TrajectoryType']=='brainsight':
-            OrigTraj=ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'])
-            if len(OrigTraj.shape)==3:
-                OrigTraj=OrigTraj[:,:,Ntraj]
-            OrigTraj[0,3]-=CorX
-            OrigTraj[1,3]-=CorY
-            OrigTraj[2,3]-=CorZ
             with open(self.Config['Mat4Trajectory'],'r') as f:
                 allLines=f.readlines()
             for n,l in enumerate(allLines):
@@ -1112,14 +1124,7 @@ class BabelBrain(QWidget):
             allLines[n]='\t'.join(LastLine)
             with open(newFName,'w') as f:
                 f.writelines(allLines)
-        else:
-            inMat=read_itk_affine_transform(self.Config['Mat4Trajectory'])
-            if len(inMat.shape)==3:
-                inMat=inMat[:,:,Ntraj]
-            OrigTraj = itk_to_BSight(inMat)
-            OrigTraj[0,3]-=CorX
-            OrigTraj[1,3]-=CorY
-            OrigTraj[2,3]-=CorZ
+        elif self.Config['TrajectoryType']=='slicer':
             transform = BSight_to_itk(OrigTraj)
             transform[:3,:3]=transform[:3,:3].T
             outString=templateSlicer.format(m0n0=transform[0,0],
@@ -1141,6 +1146,10 @@ class BabelBrain(QWidget):
                 multi[self.Config['ID'][Ntraj]]=newFName
                 with open(MultiYaml,'w') as f:
                     yaml.dump(multi,f)
+        else:
+            Localite=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            Localite[Ntraj].update_localite_pose(OrigTraj,CorX,CorY,CorZ)
+            Localite.to_file(newFName)
         return newFName
 
     def UpdateAcousticTab(self):
@@ -1856,7 +1865,7 @@ class RunMaskGeneration(QObject):
         kargs['SimbNIBSType']=self._mainApp.Config['SimbNIBSType']
         kargs['CoregCT_MRI']=self._mainApp.Config['CoregCT_MRI']
         kargs['TrajectoryType']=self._mainApp.Config['TrajectoryType']
-        kargs['Mat4Trajectory']=self._mainApp.Config['Mat4Trajectory'] #Path to trajectory file
+        kargs['Mat4Trajectory']=self._mainApp.ReadTrajectory() #we pass now the ndarray
         kargs['T1Source_nii']=T1W
         kargs['T1Conformal_nii']=T1WIso
         kargs['SpatialStep']=SpatialStep
@@ -2171,8 +2180,11 @@ def main():
             TrajectoryType=prevConfig['TrajectoryType']
             if TrajectoryType =='brainsight':
                 TrajectoryTypeint=0
-            else:
+            elif TrajectoryType =='slicer':
                 TrajectoryTypeint=1
+            else:
+                assert(TrajectoryType=='localite')
+                TrajectoryTypeint=2
             selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(TrajectoryTypeint)
         if 'CoregCT_MRI' in prevConfig:
             selwidget.ui.CoregCTcomboBox.setCurrentIndex(prevConfig['CoregCT_MRI'])

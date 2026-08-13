@@ -330,6 +330,11 @@ PETRA, Density?</string>
       <string>Slicer</string>
      </property>
     </item>
+    <item>
+     <property name="text">
+      <string>Localite</string>
+     </property>
+    </item>
    </widget>
    <widget class="QComboBox" name="CoregCTcomboBox">
     <property name="enabled">
