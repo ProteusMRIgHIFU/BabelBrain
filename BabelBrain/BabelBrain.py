@@ -1154,8 +1154,8 @@ class BabelBrain(QWidget):
             AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
             LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
             prevSteering=LocTraj[self._TrajectoryNumber].steering
-            InitCorrecX=prevSteering[2]
-            InitCorrecY=prevSteering[1]
+            InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
+            InitCorrecY=np.round(prevSteering[1],1)
             InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
 
 
