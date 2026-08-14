@@ -87,16 +87,15 @@ class Trajectory:
         newMat[:3,3]= self.target_position
         return newMat
 
-    def update_localite_pose(self,inBBMat,adjustX=0.0,adjustY=0.0,adjustZ=0.0):
-        BBMat=inBBMat.copy()
+    def update_localite_pose(self,adjustR=0.0,adjustA=0.0,adjustS=0.0):
+        RASMat=np.zeros((4,4))
+        RASMat[0,3]=adjustR
+        RASMat[1,3]=adjustA
+        RASMat[2,3]=adjustS
         #we just convert the adjustments to the pose
-        BBMat[0,3]=adjustX
-        BBMat[1,3]=adjustY
-        BBMat[2,3]=adjustZ
-        newMat=BBMat@self._BBconvMat
+        newMat=RASMat@self._BBconvMat
         #then, we just apply the adjustment to the original pose coordinates
-        newMat[:3,3]+=self.pose[:3,3]
-        self.pose=newMat
+        self.pose[:3,3]+=newMat[:3,3]
     # ------------------------------------------------------------------ #
     # XML (de)serialization for a single <Trajectory> element
     # ------------------------------------------------------------------ #

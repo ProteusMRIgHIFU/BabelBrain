@@ -1088,7 +1088,7 @@ class BabelBrain(QWidget):
          
 
     #this will modify the coordinates of the trajectory
-    def ExportTrajectory(self,CorX=0.0,CorY=0.0,CorZ=0.0,Ntraj=0):
+    def ExportTrajectory(self,CorR=0.0,CorA=0.0,CorS=0.0,Ntraj=0):
 
         MultiYaml=None
         if self.Config['TrajectoryType']=='brainsight' or\
@@ -1104,9 +1104,9 @@ class BabelBrain(QWidget):
         OrigTraj=self.ReadTrajectory()
         if len(OrigTraj.shape)==3:
             OrigTraj=OrigTraj[:,:,Ntraj]
-        OrigTraj[0,3]-=CorX
-        OrigTraj[1,3]-=CorY
-        OrigTraj[2,3]-=CorZ
+        OrigTraj[0,3]-=CorR
+        OrigTraj[1,3]-=CorA
+        OrigTraj[2,3]-=CorS
                 
         if self.Config['TrajectoryType']=='brainsight':
             with open(self.Config['Mat4Trajectory'],'r') as f:
@@ -1147,13 +1147,61 @@ class BabelBrain(QWidget):
                 with open(MultiYaml,'w') as f:
                     yaml.dump(multi,f)
         else:
-            Localite=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
-            Localite[Ntraj].update_localite_pose(OrigTraj,CorX,CorY,CorZ)
-            Localite.to_file(newFName)
+
+            #For Localite, we need a different approach
+            #We calculate the difference in in the initial mechanical corrections and the current one
+            #then we calculate that difference to 
+            AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
+            LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            prevSteering=LocTraj[self._TrajectoryNumber].steering
+            InitCorrecX=prevSteering[2]
+            InitCorrecY=prevSteering[1]
+            InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
+
+
+            FocIJK=np.ones((4,1))
+            FocIJK[:3,0]=np.array(np.where(self._FinalMask[self._TrajectoryNumber]==5)).flatten()
+            
+            FocIJKInit=FocIJK.copy()
+            #we adjust in steps
+            FocIJKInit[0,0]+=InitCorrecX/self._MaskNib[0].header.get_zooms()[0]
+            FocIJKInit[1,0]+=InitCorrecY/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKInit[1,0]+=InitCorrecZ/self._MaskNib[0].header.get_zooms()[1]
+
+            FocRASInit=self._MaskNib[self._TrajectoryNumber].affine@FocIJKInit
+
+            FocIJKAdjust=FocIJK.copy()
+            #we adjust in steps
+            FocIJKAdjust[0,0]+=AcWidget.XMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[0]
+            FocIJKAdjust[1,0]+=AcWidget.YMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKAdjust[1,0]+=AcWidget.SkinDistanceSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
+
+            FocRASAdjust=self._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
+
+            FocRASAdjust-=FocRASInit
+
+            #The difference in RAS is converted to the Localite convention and added to the pose translation vector
+            LocTraj[self._TrajectoryNumber].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
+            LocTraj[self._TrajectoryNumber].steering[0]=AcWidget.ZSteeringSpinBox.value()
+            LocTraj[self._TrajectoryNumber].steering[1]=-AcWidget.YSteeringSpinBox.value()
+            LocTraj[self._TrajectoryNumber].steering[2]=-AcWidget.XSteeringSpinBox.value()
+            LocTraj.to_file(newFName)
         return newFName
 
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
+        #once UI elements are updated, we handle here special cases
+        if self.Config['TrajectoryType']=='localite' and self.Config['TxSystem']=='REMOPD':
+            LocTraj = LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            Steering=LocTraj[self._TrajectoryNumber].steering
+            AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
+            AcWidget.XSteeringSpinBox.setValue(-Steering[2])
+            AcWidget.YSteeringSpinBox.setValue(-Steering[1])
+            AcWidget.ZSteeringSpinBox.setValue(Steering[0])
+            AcWidget.XMechanicSpinBox.setValue(Steering[2])
+            AcWidget.YMechanicSpinBox.setValue(Steering[1])
+            AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
+            
 
     def NotifyError(self):
         self.SetErrorDomainCode()

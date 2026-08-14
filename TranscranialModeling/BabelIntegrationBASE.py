@@ -1841,8 +1841,8 @@ class BabelFTD_Simulations_BASE(object):
         FocIJKAdjust[0,0]+=self._TxMechanicalAdjustmentX*1e3/self._SkullMask.header.get_zooms()[0]
         FocIJKAdjust[1,0]+=self._TxMechanicalAdjustmentY*1e3/self._SkullMask.header.get_zooms()[1]
 
-        FocXYZAdjust=self._SkullMask.affine@FocIJKAdjust
-        AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
+        FocRASAdjust=self._SkullMask.affine@FocIJKAdjust
+        AdjustmentInRAS=(FocXYZ-FocRASAdjust).flatten()[:3]
         DataForSim['AdjustmentInRAS']=AdjustmentInRAS
         print('Adjustment in RAS - T1W space',AdjustmentInRAS)
             

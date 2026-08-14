@@ -199,14 +199,14 @@ class BabelBaseTx(QWidget):
         FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[0]
         FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[1]
 
-        FocXYZAdjust=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
-        AdjustmentInRAS=(FocXYZ-FocXYZAdjust).flatten()[:3]
+        FocRASAdjust=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
+        AdjustmentInRAS=(FocXYZ-FocRASAdjust).flatten()[:3]
 
         print('AdjustmentInRAS recalc',AdjustmentInRAS)
         print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
-        fnameTrajectory=self._MainApp.ExportTrajectory(CorX=Results['AdjustmentInRAS'][0],
-                                                        CorY=Results['AdjustmentInRAS'][1],
-                                                        CorZ=Results['AdjustmentInRAS'][2],
+        fnameTrajectory=self._MainApp.ExportTrajectory(CorR=Results['AdjustmentInRAS'][0],
+                                                        CorA=Results['AdjustmentInRAS'][1],
+                                                        CorS=Results['AdjustmentInRAS'][2],
                                                         Ntraj=self._TrajectoryNumber)
         if self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
