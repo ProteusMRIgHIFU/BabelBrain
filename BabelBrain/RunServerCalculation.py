@@ -503,6 +503,40 @@ class RunServerCalculation(QObject):
         print("*" * 40)
         self.finished.emit(output_files)
 
+    def _acoustic_out_files(self):
+        """The `OutFiles` payload phased-array devices expect on `finished`.
+
+        Devices deriving from BabelBasePhaseArray (REMOPD included) connect
+        finished -> EndSimulation(OutFiles) instead of the plain UpdateAcResults,
+        and that slot needs the per-focus lists of skull/water result files
+        ({'FilesSkull': [...], 'FilesWater': [...]}, one entry per multifocus
+        point). Locally these come back from the compute subprocess through the
+        worker's queue; remotely the results are only downloaded, so rebuild the
+        lists from the names the GUI already resolved with a dry run just before
+        launching (_BabelBaseTx.RunSimulation -> _ResolveSimulationFilenames).
+        The server derives identical filenames, so they point at the files this
+        job just downloaded.
+
+        Returns {} for every other device/step — their finished slots take no
+        argument.
+        """
+        if self._step != STEP_ACOUSTIC:
+            return {}
+        try:
+            from _BabelBasePhasedArray import BabelBasePhaseArray
+        except Exception:
+            return {}
+        sim = getattr(self._mainApp, 'AcSim', None)
+        if not isinstance(sim, BabelBasePhaseArray):
+            return {}
+        skull = getattr(sim, '_FullSolName', None)
+        water = getattr(sim, '_WaterSolName', None)
+        if not isinstance(skull, list) or not isinstance(water, list):
+            print('[remote] WARNING no resolved simulation filenames for %s; '
+                  'skipping OutFiles notification' % type(sim).__name__)
+            return {}
+        return {'FilesSkull': list(skull), 'FilesWater': list(water)}
+
     def _run_reuse_step(self):
         """Steps 2/3: run on the persistent session. Any prior step that was
         reloaded locally (so the server lacks its state) is primed first from
@@ -528,7 +562,7 @@ class RunServerCalculation(QObject):
         result = self._submit_step(sess, self._step, acts, recalculate=True)
         self._download(result, out_dir)
         sess[self._step].add(traj)
-        self.finished.emit({})
+        self.finished.emit(self._acoustic_out_files())
 
     def _run_combine(self):
         """CombineTrajectories (merged Step-2 or Step-3). Ensures every trajectory
