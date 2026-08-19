@@ -121,7 +121,7 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
 
     totalPoints = output.size
     logger.info(f"Total points: {totalPoints}")
-    step = get_step_size(sel_device,num_large_buffers=2,data_type=output.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=2,bytes_per_point=output.dtype.itemsize,GPUBackend=GPUBackend)
 
     for point in range(0,totalPoints,step):
 

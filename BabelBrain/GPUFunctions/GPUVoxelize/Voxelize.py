@@ -267,37 +267,25 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
     totalGrid = gx * gy * gz
     logger.info(f"TotalGrid: {totalGrid}")
 
+    # Note the large buffer in this case is the Points array and will be 3 times the size of the totalGrid 
+    # since each point in the grid will have an i,j,k value
     step = get_step_size(
         sel_device,
-        num_large_buffers=2,
-        data_type=Points.dtype,
+        num_large_buffers=1,
+        bytes_per_point=Points.dtype.itemsize*3,
         GPUBackend=GPUBackend
     )
-
-    # PATCH for low-VRAM GPUs such as RTX A1000 4GB:
-    # The original step can create very large points_section arrays.
-    # Capping step makes voxelization slower but prevents CUDA/CuPy OOM.
-    MAX_GPU_POINTS_PER_CHUNK = 5000000
-
-    if GPUBackend == 'CUDA' and step > MAX_GPU_POINTS_PER_CHUNK:
-        print(
-            "Capping CUDA voxelization step for low-VRAM GPU:",
-            step,
-            "->",
-            MAX_GPU_POINTS_PER_CHUNK,
-        )
-        step = MAX_GPU_POINTS_PER_CHUNK
-
+    points_section_size = min(step,totalPoints)
     globalcount = np.zeros(2, np.uint32)
     int_params = np.zeros(4, np.uint32)
     prev_start_ind = 0
 
     for point in range(0, totalGrid, step):
-        ntotal = min((totalGrid - point), step)
-        logger.info(f"\nWorking on points {point} to {point + ntotal} out of {totalGrid}")
+        num_points = min((totalGrid - point), step)
+        logger.info(f"\nWorking on points {point} to {point + num_points} out of {totalGrid}")
 
-        # Allocate only what this chunk needs.
-        points_section = np.zeros((min(ntotal, totalPoints), 3), np.float32)
+        # Grab sections of data
+        points_section = np.zeros((points_section_size,3), np.float32)
 
         # Since we run into issues sending numbers larger than 32 bits due to buffer size restrictions,
         # we check the size here, send info to kernel, and create number there as workaround.
@@ -305,7 +293,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         base_32 = current_position // (2**32)
         current_position = current_position - (base_32 * (2**32))
 
-        int_params[0] = ntotal
+        int_params[0] = num_points
         int_params[1] = current_position
         int_params[2] = base_32
         int_params[3] = prev_start_ind
@@ -319,7 +307,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
 
                 # Define block and grid sizes
                 block_size = (64, 1, 1)
-                grid_size = (int(ntotal // block_size[0] + 1), 1, 1)
+                grid_size = (int(num_points // block_size[0] + 1), 1, 1)
 
                 # Deploy kernel
                 prgcl.get_function("ExtractPoints")(
@@ -340,11 +328,11 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                 points_section = points_section_gpu.get()
                 globalcount = globalcount_gpu.get()
 
-                # Explicitly release CUDA/CuPy temporary arrays before next chunk.
+                # Delete array references but keep the memory allocated in CuPy's pool for 
+                # next chunk to save time.
                 del points_section_gpu
                 del globalcount_gpu
                 del int_params_gpu
-                clp.get_default_memory_pool().free_all_blocks()
 
         elif GPUBackend == 'OpenCL':
             # Move input data from host to device memory
@@ -355,7 +343,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             # Deploy kernel
             clExtractPoints(
                 queue,
-                [ntotal],
+                [num_points],
                 None,
                 vtable_gpu,
                 globalcount_gpu,
@@ -382,7 +370,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             # Deploy kernel
             ctx.init_command_buffer()
             handle = prg.function('ExtractPoints')(
-                ntotal,
+                num_points,
                 vtable_gpu,
                 globalcount_gpu,
                 int_params_gpu,
@@ -407,7 +395,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
 
             globalcount_gpu = prg_ExtractPoints(
                 inputs=[vtable_gpu, int_params_gpu, points_section_gpu],
-                grid=[ntotal, 1, 1],
+                grid=[num_points, 1, 1],
                 threadgroup=[1024, 1, 1],
                 output_shapes=[[globalcount.size]],
                 output_dtypes=[ctx.uint32],
@@ -431,10 +419,13 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
             raise ValueError("Error running voxelization for specified parameters, suggest lowering PPW")
 
         prev_start_ind = int(globalcount[0])
-
-    print('prev_start_ind', prev_start_ind)
+        print('prev_start_ind', prev_start_ind)
     print('globalcount', globalcount)
- 
+    if int(globalcount[0]) != int(totalPoints):
+        raise RuntimeError(
+            f"Point extraction incomplete: "
+            f"expected {totalPoints}, extracted {globalcount[0]}"
+        )
     Points[:,0]+=0.5
     Points[:,1]+=0.5
     Points[:,2]+=0.5
