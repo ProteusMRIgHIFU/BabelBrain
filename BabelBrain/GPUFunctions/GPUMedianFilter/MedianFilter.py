@@ -96,7 +96,7 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
     output = np.zeros_like(data)
     totalPoints = output.size
     logger.info(f"Total points: {totalPoints}")
-    step = get_step_size(sel_device,num_large_buffers=2,data_type=data.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=2,bytes_per_point=data.dtype.itemsize,GPUBackend=GPUBackend)
 
     # Handle array in chunks
     for point in range(0,totalPoints,step):

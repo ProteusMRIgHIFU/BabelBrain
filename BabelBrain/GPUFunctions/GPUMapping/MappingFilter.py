@@ -96,7 +96,7 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
     int_params[3] = HUMap.shape[2]
  
     totalPoints = output.size
-    step = get_step_size(sel_device,num_large_buffers=3,data_type=output.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=3,bytes_per_point=output.dtype.itemsize,GPUBackend=GPUBackend)
     logger.info(f"Total points: {totalPoints}")
     
     for point in range(0,totalPoints,step):

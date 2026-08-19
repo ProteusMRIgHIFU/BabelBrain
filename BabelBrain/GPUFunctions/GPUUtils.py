@@ -6,6 +6,8 @@ import platform
 import sys
 
 _IS_MAC = platform.system() == 'Darwin'
+GIB = 1024**3
+MIB = GIB/1024
 
 def resource_path():  # needed for bundling
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -19,28 +21,73 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
+def get_default_step(gpu_device, GPUBackend):
+    import pyopencl as pocl
 
-def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
+    total_VRAM = 0
 
+    if GPUBackend == 'OpenCL':
+        total_VRAM = gpu_device.get_info(pocl.device_info.GLOBAL_MEM_SIZE)
+    else:
+        if GPUBackend == 'CUDA':
+            import cupy as cp
+            device_name = cp.cuda.runtime.getDeviceProperties(gpu_device.id)['name'].decode('UTF-8')
+        elif GPUBackend in ['Metal','MLX']:
+            device_name = gpu_device.deviceName
+
+        selected_device = None
+        for platform in pocl.get_platforms():
+            for device in platform.get_devices():
+                if device_name in device.name:
+                    selected_device = device
+
+        total_VRAM = selected_device.get_info(pocl.device_info.GLOBAL_MEM_SIZE)
+
+    if total_VRAM < 8 * GIB:
+        # This new value should work for even low-VRAM GPUs such as RTX A1000 4GB and prevents 
+        # OOM errors. However GPU kernels will run slower
+        default_step = 5000000
+    else:
+        default_step = 240000000
+    return default_step
+
+def get_step_size(gpu_device,num_large_buffers,bytes_per_point,GPUBackend):
+    
     # Set default step size value
-    step = 240000000
+    step = get_default_step(gpu_device,GPUBackend)
     
     # Find optimal step size based on GPU device limitations
     if GPUBackend == 'CUDA':
         import cupy as cp
 
-        # Get available memory
-        gpu_available_memory = cp.cuda.Device(gpu_device).mem_info[0]
-        logger.info(f"GPU available memory: {gpu_available_memory} bytes")
+        # Grab GPU memory information
+        with cp.cuda.Device(gpu_device):
+            cp.get_default_memory_pool().free_all_blocks()
+            free_memory, total_memory = cp.cuda.runtime.memGetInfo()
+            mempool = cp.get_default_memory_pool()
+        logger.info(f"GPU memory: {free_memory / GIB:.3f} GiB free / {total_memory / GIB:.3f} GiB total")
+        logger.info(f"CuPy pool used: {mempool.used_bytes() / GIB:.3f} GiB")
+        logger.info(f"CuPy pool total: {mempool.total_bytes() / GIB:.3f} GiB")
 
-        # Check for valid response
-        if gpu_available_memory == 0:
-            print(f"Queried GPU available memory returned 0, most likely a communication issue, will try using default step size ({step})")
+        # Communication error check
+        if free_memory == 0:
+            logger.warning(f"Queried GPU available memory returned 0, most likely a communication issue, will try using default step size ({step}).")
             return step
 
-        # Get GPU max buffer size
-        max_buffer_size = gpu_available_memory // num_large_buffers
-        logger.info(f"GPU max buffer size for {num_large_buffers} array(s): {max_buffer_size} bytes")
+        # Reserve memory for CUDA/CuPy/temporary allocations.
+        reserve_memory = 512 * MIB  # 512 MiB
+        logger.info(f"Reserved GPU memory: {reserve_memory / MIB:.0f} MiB")
+
+        # Calculate usuable memory
+        usable_memory = max(0,free_memory - reserve_memory,)
+        logger.info(f"Usable GPU memory: {usable_memory / GIB:.3f} GiB")
+
+        # Limited memory check
+        if usable_memory == 0:
+            logger.warning(f"Limited available memory, will try using default step size ({step})")
+            return step
+        
+        max_buffer_size = (usable_memory // num_large_buffers)
 
     elif GPUBackend == 'OpenCL':
         import pyopencl as pocl
@@ -72,11 +119,11 @@ def get_step_size(gpu_device,num_large_buffers,data_type,GPUBackend):
         return step
     
     # Determine largest safe buffer size
-    max_buffer_size = int(max_buffer_size * 0.8)  # Use 80% to be safe
-    logger.info(f"GPU max safe buffer size: {max_buffer_size} bytes")
+    max_safe_buffer_size = int(max_buffer_size * 0.8)  # Use 80% to be safe
+    logger.info(f"Max buffer size: {max_safe_buffer_size / GIB:.3f} GiB")
 
     # Determine appropriate step size
-    step = max_buffer_size//data_type.itemsize # Accounting for array dtype size
+    step = int(max_buffer_size // bytes_per_point)
     logger.info(f"Step size: {step}")
 
     return step
