@@ -61,6 +61,6 @@ class REMOPDForm(TxPanelBase):
         lay.addSpacing(6)
 
         self._build_mech_and_actions(
-            lay, xy_mech=(-10.0, 10.0), skin_distance=(-90.0, 90.0),
+            lay, xy_mech=(-40.0, 40.0), skin_distance=(-90.0, 90.0),
             tissue_warning="Tissue layers\nwill be removed!")
         return frame

@@ -1154,10 +1154,13 @@ class BabelBrain(QWidget):
             AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
             LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
             prevSteering=LocTraj[self._TrajectoryNumber].steering
-            InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
-            InitCorrecY=np.round(prevSteering[1],1)
-            InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
-
+            InitCorrecX=0.0
+            InitCorrecY=0.0
+            InitCorrecZ=0.0
+            if self.Config['TxSystem']=='REMOPD':
+                InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
+                InitCorrecY=np.round(prevSteering[1],1)
+                InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
 
             FocIJK=np.ones((4,1))
             FocIJK[:3,0]=np.array(np.where(self._FinalMask[self._TrajectoryNumber]==5)).flatten()
@@ -1182,9 +1185,13 @@ class BabelBrain(QWidget):
 
             #The difference in RAS is converted to the Localite convention and added to the pose translation vector
             LocTraj[self._TrajectoryNumber].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
-            LocTraj[self._TrajectoryNumber].steering[0]=AcWidget.ZSteeringSpinBox.value()
-            LocTraj[self._TrajectoryNumber].steering[1]=-AcWidget.YSteeringSpinBox.value()
-            LocTraj[self._TrajectoryNumber].steering[2]=-AcWidget.XSteeringSpinBox.value()
+
+            if hasattr(AcWidget,'ZSteeringSpinBox'):
+                LocTraj[self._TrajectoryNumber].steering[0]=AcWidget.ZSteeringSpinBox.value()
+            if hasattr(AcWidget,'YSteeringSpinBox'):
+                LocTraj[self._TrajectoryNumber].steering[1]=-AcWidget.YSteeringSpinBox.value()
+            if hasattr(AcWidget,'XSteeringSpinBox'):
+                LocTraj[self._TrajectoryNumber].steering[2]=-AcWidget.XSteeringSpinBox.value()
             LocTraj.to_file(newFName)
         return newFName
 
