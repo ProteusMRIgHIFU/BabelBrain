@@ -1753,8 +1753,8 @@ class BabelFTD_Simulations_BASE(object):
             SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocus_Sub__'])
             ResaveNormalized(FILENAMES['FullElasticSolutionRefocus_Sub'],self._SkullMask)
             nii=nibabel.Nifti1Image(FullSolutionPhaseRefocus[mx[0]:mx[-1],my[0]:my[-1],mz[0]:mz[-1]].astype(np.float32),affine=affineSub)
-            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionResfocusPhase_Sub__'])
-            ResaveNormalized(FILENAMES['FullElasticSolutionResfocusPhase_Sub'],self._SkullMask,bApplyOnlyMask=True)
+            SaveNiftiEnforcedISO(nii,FILENAMES['FullElasticSolutionRefocusPhase_Sub__'])
+            ResaveNormalized(FILENAMES['FullElasticSolutionRefocusPhase_Sub'],self._SkullMask,bApplyOnlyMask=True)
 
                 
         nii=nibabel.Nifti1Image(FullSolutionPressure[::ss,::ss,::ss].astype(np.float32),affine=affine)
