@@ -20,10 +20,6 @@
 #     dist/selector/BabelBrain-Version-Selector.app/Contents/MacOS/BabelBrain-Version-Selector
 #     dist/launcher/BabelBrain.app/Contents/MacOS/BabelBrain
 #
-rm *.pkg
-rm *.dmg
-rm -rf dist
-rm -rf build
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
