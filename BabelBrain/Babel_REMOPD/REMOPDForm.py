@@ -9,6 +9,7 @@ from GUIComponents.TxPanelBase import (
     make_dspin,
     make_combo,
     make_label,
+    make_button,
     form_row,
 )
 from PySide6.QtWidgets import QCheckBox
@@ -63,4 +64,13 @@ class REMOPDForm(TxPanelBase):
         self._build_mech_and_actions(
             lay, xy_mech=(-40.0, 40.0), skin_distance=(-90.0, 90.0),
             tissue_warning="Tissue layers\nwill be removed!")
+        # remopd/feasible-traj: Sam's SOP — park the array on a Brainsight
+        # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
+        # Shown only when launched from Brainsight (wired in Babel_REMOPD).
+        self.ApplyFeasibleTraj = make_button(
+            "ApplyFeasibleTraj", "Apply feasible trajectory...",
+            bold=True, min_height=40)
+        # _build_mech_and_actions ends with a stretch; keep this with the
+        # Calculate Fields / Mechanical Adjustments buttons.
+        lay.insertWidget(lay.count() - 1, self.ApplyFeasibleTraj)
         return frame
