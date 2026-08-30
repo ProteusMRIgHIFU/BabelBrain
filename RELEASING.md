@@ -42,8 +42,9 @@ produces:
 
 ## How a build identifies itself in the UI
 
-A non-stable build says so in the main window title, so a tester never has to
-guess which build they are looking at:
+A non-stable build says so in the title of both the file-selection dialog (the
+first screen users see) and the main window, so a tester never has to guess
+which build they are looking at:
 
 | Built from | `channel` | Window title |
 | --- | --- | --- |
@@ -53,7 +54,9 @@ guess which build they are looking at:
 | `create_unsigned_dmg.sh` | `dev` | `BabelBrain V0.8.8 [dev-c0cf1e6 · 2026-08-30] - …` |
 | **running from source** | — | `BabelBrain V0.8.8 - …` (never labelled) |
 
-`BabelBrain.py:GetBuildLabel()` reads the `build_info.json` inside the *running*
+`BuildInfo.py` holds this logic — its own module because `SelFiles` is imported
+*by* `BabelBrain.py`, so importing back the other way would be circular.
+`GetBuildLabel()` reads the `build_info.json` inside the *running*
 bundle — the app's own identity, not the Hub's idea of what it launched, so the
 label is right even when a version is started directly out of the store. It is
 gated on `sys.frozen`: a source checkout carries a git-tracked `build_info.json`

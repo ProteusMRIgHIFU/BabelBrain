@@ -7,7 +7,6 @@ ABOUT:
     last update   - July 16, 2022
 '''
 import argparse
-import json
 import multiprocessing
 import logging
 # logging.basicConfig(level=logging.INFO,
@@ -58,6 +57,7 @@ from GUIComponents.AppStyle import style_nav_toolbar
 from nibabel import processing
 from superqt import QLabeledDoubleRangeSlider
 
+from BuildInfo import GetBuildLabel, TitleSuffix
 from CalculateMaskProcess import CalculateMaskProcess
 from CTZTEProcessing import ConfirmPseudoCT
 from ConvMatTransform import (
@@ -113,72 +113,6 @@ def resource_path():  # needed for bundling
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
-
-def _read_build_info():
-    """``build_info.json`` of the *running frozen build*, or None.
-
-    The file is stamped by ``Hub/gen_build_info.py`` just before PyInstaller
-    runs and copied into the bundle afterwards, so it identifies this exact
-    build by ``(version, git_commit, channel, built)``.
-
-    Only consulted when frozen. A source checkout also has a git-tracked
-    ``build_info.json`` in this directory, and it describes whatever build was
-    packaged last, not the working tree — labelling a source run with it would
-    be actively misleading.
-
-    Several candidate locations because the file is copied in after PyInstaller
-    rather than bundled as a data file: on macOS ``_MEIPASS`` is
-    ``Contents/Frameworks`` while the copy lands in ``Contents/Resources``
-    (with no symlink, unlike the spec-declared datas); on Windows onedir it
-    sits next to the .exe.
-    """
-    if not getattr(sys, 'frozen', False):
-        return None
-    meipass = getattr(sys, '_MEIPASS', None)
-    candidates = []
-    if meipass:
-        candidates += [Path(meipass) / 'build_info.json',
-                       Path(meipass).parent / 'Resources' / 'build_info.json']
-    exe = Path(sys.executable).resolve()
-    candidates += [exe.parent / 'build_info.json',
-                   exe.parents[1] / 'Resources' / 'build_info.json']
-    for c in candidates:
-        try:
-            if c.is_file():
-                with open(c) as f:
-                    info = json.load(f)
-                if isinstance(info, dict):
-                    return info
-        except (OSError, ValueError, IndexError):
-            continue
-    return None
-
-
-def GetBuildLabel():
-    """Short "which build is this?" tag, e.g. ``dev-c0cf1e6 · 2026-08-30``.
-
-    Empty string for a plain version number, which is reserved for the two
-    cases where the version alone is unambiguous:
-
-    * **running from source** - the developer already knows what they checked
-      out, and the title should look exactly as it always has;
-    * **a stable release** (built from a ``v*`` tag, ``channel == 'stable'``).
-
-    Everything else - a ``test-*`` pre-release tag, a manual CI dispatch, or a
-    local ``create_unsigned_dmg.sh`` build - gets the commit and build date, so
-    a tester can say which build they are looking at without digging.
-    """
-    info = _read_build_info()
-    if info is None:
-        return ''
-    channel = str(info.get('channel') or 'stable')
-    if channel == 'stable':
-        return ''
-    commit = str(info.get('git_commit') or '')[:7]
-    built = str(info.get('built') or '')[:10]          # YYYY-MM-DD
-    prefix = 'dev' if channel == 'dev' else str(info.get('tag') or 'test')
-    label = prefix if not commit else f'{prefix}-{commit}'
-    return f'{label} · {built}' if built else label
 
 def get_text_values(initial_texts, parent=None, title="", label=""):
     '''
@@ -925,12 +859,9 @@ class BabelBrain(QWidget):
 
     def UpdateWindowTitle(self):
         IDTitle='+'.join(self.Config['ID'])
-        # Bracketed, and separated with '·' rather than the ' - ' used between
-        # the other fields, so a dev/test build is obvious at a glance without
-        # reading as just another title field. Empty for source runs and for
-        # stable releases, where the plain version number is the signal.
-        BuildLabel=self.Config.get('BuildLabel','')
-        BuildTitle=(' ['+BuildLabel+']') if BuildLabel else ''
+        # Same annotation as the file-selection dialog; empty for source runs
+        # and stable releases, where the plain version number is the signal.
+        BuildTitle=TitleSuffix(self.Config.get('BuildLabel',''))
         self.setWindowTitle('BabelBrain V'+
                             self.Config['version'].rstrip() + BuildTitle +' - ' + 
                             IDTitle + ' - ' + 
