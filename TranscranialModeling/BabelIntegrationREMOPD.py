@@ -94,8 +94,10 @@ def GenerateREMOPDTx(subsetLimit=128,RotationZ=0.0,Frequency=300e3):
 
     transLoc = computeREMOPDGeometry()
 
-    rotateMatrixZ = np.array([[-np.cos(RotationZ),np.sin(RotationZ),0],
-                              [-np.sin(RotationZ),-np.cos(RotationZ),0],[0,0,1]])
+    phi = np.deg2rad(RotationZ)
+    rotateMatrixZ = np.array([[np.cos(phi),-np.sin(phi),0],
+                              [np.sin(phi), np.cos(phi),0],
+                              [0,0,1]])
             
 
     ALLConfigs={'Total':{},'Sector1':{},'Sector2':{}}
