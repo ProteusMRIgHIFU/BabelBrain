@@ -298,18 +298,29 @@ jobs:
           /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" \
             "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID/BabelBrain.app"
           # postinstall records the seeded build as the default version, so a
-          # fresh install actually runs the version it just installed.
+          # fresh install actually runs the version it just installed. It must
+          # be attached to the COMPONENT via pkgbuild: productbuild's --scripts
+          # adds distribution-level scripts, which a --root synthesized product
+          # never executes. verify_pkg_scripts.sh fails the build if that
+          # wiring is ever lost again.
           SCRIPTS="$RUNNER_TEMP/pkg_scripts"
           rm -rf "$SCRIPTS"
           BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
+          pkgbuild \
+            --root "$STAGE" \
+            --scripts "$SCRIPTS" \
+            --identifier com.ucalgary.babelbrain.pkg \
+            --version "$VERSION" \
+            --install-location / \
+            "$RUNNER_TEMP/component.pkg"
           productbuild \
             --identifier com.ucalgary.babelbrain.pkg \
             --version "$VERSION" \
             --sign "$INSTALLER_IDENTITY" \
             --timestamp \
-            --scripts "$SCRIPTS" \
-            --root "$STAGE" / \
+            --package "$RUNNER_TEMP/component.pkg" \
             "artifacts/${{ matrix.artifact_name }}.pkg"
+          BabelBrain/Hub/verify_pkg_scripts.sh "artifacts/${{ matrix.artifact_name }}.pkg"
 
       - name: Notarize and staple PKG (macOS)
         if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
@@ -392,8 +403,15 @@ jobs:
           SCRIPTS="$RUNNER_TEMP/pkg_scripts_unsigned"
           rm -rf "$SCRIPTS"
           BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
+          # pkgbuild attaches the postinstall to the component; productbuild
+          # only wraps it. See the signed step above.
+          pkgbuild --root "$STAGE" --scripts "$SCRIPTS" \
+            --identifier com.ucalgary.babelbrain.pkg --version "$VERSION" \
+            --install-location / "$RUNNER_TEMP/component_unsigned.pkg"
           productbuild --identifier com.ucalgary.babelbrain.pkg \
-            --version "$VERSION" --scripts "$SCRIPTS" --root "$STAGE" / "$PKG"
+            --version "$VERSION" \
+            --package "$RUNNER_TEMP/component_unsigned.pkg" "$PKG"
+          BabelBrain/Hub/verify_pkg_scripts.sh "$PKG"
           DSTAGE="$RUNNER_TEMP/dmg_stage_unsigned"
           rm -rf "$DSTAGE" && mkdir -p "$DSTAGE"
           cp "$PKG" "$DSTAGE/BabelBrain.pkg"

@@ -107,6 +107,14 @@ Notes:
   particular — actually runs instead of leaving the previous selection in place.
   A selection the user makes afterwards is never overwritten until the next
   install.
+- **macOS packaging detail that bites:** the postinstall only runs if it is
+  attached to the *component* package (`pkgbuild --scripts`, which puts a
+  `<scripts>` element in the component's `PackageInfo`). `productbuild --root
+  --scripts` puts the script at the *distribution* level instead, where it is
+  embedded in the archive and never executed — the PKG looks correct and
+  silently does nothing. Both build paths therefore do `pkgbuild` →
+  `productbuild --package`, and `BabelBrain/Hub/verify_pkg_scripts.sh` fails the
+  build if the declaration goes missing again.
 - **Small state** (the current selection, cached manifest) lives separately in
   `~/.config/BabelBrain/` (`hub.yaml`, `manifest_cache.json`) on all platforms —
   never in the versions store.

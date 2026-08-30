@@ -39,6 +39,15 @@ for arg in "$@"; do
   esac
 done
 
+# Clean previous outputs. This has to run AFTER argument parsing: it used to be
+# the first thing in the script, which wiped dist/ before --skip-version-build
+# was even read, silently making that flag a no-op that rebuilt everything.
+rm -f ./*.pkg ./*.dmg
+rm -rf dist/selector dist/launcher build/selector build/launcher
+if [[ "$SKIP_VERSION_BUILD" != "yes" ]]; then
+  rm -rf dist/version build/version
+fi
+
 command -v pyinstaller >/dev/null || { echo "pyinstaller not found — activate the babelbrain conda env first." >&2; exit 1; }
 
 case "$(uname -m)" in
@@ -91,7 +100,7 @@ pyinstaller BabelBrainLauncher.spec --noconfirm --clean \
 echo ">> Staging PKG payload"
 STAGE="$(mktemp -d -t bbpkg)"
 # ${var:-} so the trap is safe under `set -u` before the later dirs are created.
-trap 'rm -rf "$STAGE" "${STAGE_DMG:-}" "${PKG_SCRIPTS:-}" 2>/dev/null || true' EXIT
+trap 'rm -rf "$STAGE" "${STAGE_DMG:-}" "${PKG_SCRIPTS:-}" "${PKG_COMPONENT_DIR:-}" 2>/dev/null || true' EXIT
 mkdir -p "$STAGE/Applications" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID"
 /usr/bin/ditto "$LAUNCHER_APP" "$STAGE/Applications/BabelBrain.app"
 /usr/bin/ditto "$SELECTOR_APP" "$STAGE/Applications/BabelBrain-Version-Selector.app"
@@ -105,14 +114,32 @@ VERSION_STR="$(cat version.txt)"
 [[ -f "$PKG" ]] && rm -f "$PKG"
 # postinstall records the seeded build so the Hub adopts it as the default;
 # without it the new version installs but the previous selection keeps running.
+#
+# It MUST be attached to the *component* package via pkgbuild. productbuild's
+# own --scripts only adds distribution-level scripts, which are never executed
+# for a --root synthesized product: the component's PackageInfo comes out with
+# no <scripts> element at all, so the postinstall ships but never runs.
+# pkgbuild also gives the component a stable identifier, instead of the random
+# per-build "bbpkg.XXXXXXXX" productbuild --root invents.
 PKG_SCRIPTS="$(mktemp -d -t bbscripts)"
 ./Hub/make_pkg_scripts.sh "$BUILD_ID" "$PKG_SCRIPTS"
+PKG_COMPONENT_DIR="$(mktemp -d -t bbcomp)"
+pkgbuild \
+  --root "$STAGE" \
+  --scripts "$PKG_SCRIPTS" \
+  --identifier com.ucalgary.babelbrain.pkg \
+  --version "$VERSION_STR" \
+  --install-location / \
+  "$PKG_COMPONENT_DIR/component.pkg"
 productbuild \
   --identifier com.ucalgary.babelbrain.pkg \
   --version "$VERSION_STR" \
-  --scripts "$PKG_SCRIPTS" \
-  --root "$STAGE" / \
+  --package "$PKG_COMPONENT_DIR/component.pkg" \
   "$PKG"
+
+# Fail loudly rather than ship a PKG that seeds a version without making it the
+# default: that regression is invisible until someone runs the installer.
+./Hub/verify_pkg_scripts.sh "$PKG"
 
 # ---------------------------------------------------------------------------
 # 5. Wrap the PKG in a DMG (unsigned).
