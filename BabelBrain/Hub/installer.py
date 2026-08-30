@@ -14,6 +14,12 @@ Only step 3 can require elevation (installing to a shared/all-users root). If it
 does and elevation is denied or fails, we raise — the caller shows the real
 error and returns the user to the local/global choice. Nothing is ever silently
 redirected to the user root.
+
+Removal follows the same rule. The macOS PKG seeds the shared store as root, so
+its bundles are root-owned and an unprivileged ``rmtree`` fails; both platforms
+therefore have an elevated path (macOS: an authorization prompt via
+``osascript``; Windows: a UAC-elevated worker process), and a declined prompt
+raises :class:`ElevationDenied` rather than reporting a bare failure.
 '''
 from __future__ import annotations
 
@@ -21,6 +27,7 @@ import hashlib
 import json
 import os
 import platform
+import shlex
 import shutil
 import stat
 import subprocess
@@ -61,9 +68,9 @@ class ElevationRequired(InstallError):
 
 class ElevationDenied(InstallError):
     '''An elevation prompt was shown and cancelled/denied by the user.'''
-    def __init__(self, target: Path):
+    def __init__(self, target: Path, action: str = 'installed'):
         super().__init__(f'The request for administrator privileges was declined; '
-                         f'nothing was installed at {target}.')
+                         f'nothing was {action} at {target}.')
         self.target = target
 
 
@@ -199,15 +206,57 @@ def _hub_relaunch_argv() -> list[str]:
     return [sys.executable, str(hub_py)]
 
 
-def _place_elevated_windows(bundle_root: Path, target_dir: Path):
-    '''Windows: perform the final move under a UAC elevation prompt by
-    relaunching the Hub with a hidden worker subcommand.'''
-    import ctypes
+def _applescript_string(value: str) -> str:
+    '''Quote a Python string as an AppleScript string literal.'''
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
-    spec = {'src': str(bundle_root), 'dst': str(target_dir)}
+
+def _run_elevated_macos(shell_cmd: str, prompt: str, target: Path, action: str):
+    '''Run one shell command as root behind the macOS authorization dialog.
+
+    ``osascript`` is used rather than a helper tool because the Hub ships as a
+    plain signed app with no privileged helper installed: this gives the user
+    the standard system prompt, and a cancelled prompt (AppleScript error -128)
+    is reported as :class:`ElevationDenied` instead of a generic failure.
+    '''
+    script = (f'do shell script {_applescript_string(shell_cmd)} '
+              f'with prompt {_applescript_string(prompt)} '
+              f'with administrator privileges')
+    result = subprocess.run(['/usr/bin/osascript', '-e', script],
+                            capture_output=True, text=True)
+    if result.returncode == 0:
+        return
+    err = (result.stderr or '').strip()
+    if 'User canceled' in err or 'User cancelled' in err or '(-128)' in err:
+        raise ElevationDenied(target, action)
+    raise InstallError(err or 'The elevated operation failed.')
+
+
+def _place_elevated_macos(bundle_root: Path, target_dir: Path):
+    '''macOS: move the staged bundle into a root-owned shared store.
+
+    The bundle is left owned by root and world-readable, matching what the PKG
+    installer produces, so every user on the machine can run it.
+    '''
+    src = shlex.quote(str(bundle_root))
+    dst = shlex.quote(str(target_dir))
+    parent = shlex.quote(str(target_dir.parent))
+    _run_elevated_macos(
+        f'/bin/rm -rf {dst} && /bin/mkdir -p {parent} && /bin/mv {src} {dst} && '
+        f'/usr/sbin/chown -R root:wheel {dst} && /bin/chmod -R go+rX {dst}',
+        'BabelBrain needs administrator privileges to install this version for all users.',
+        target_dir, 'installed')
+
+
+def _run_elevated_windows(spec: dict, target: Path, action: str):
+    '''Windows: run one privileged job by relaunching the Hub under a UAC prompt
+    with a hidden worker subcommand. ``spec['action']`` selects the job.'''
+    import ctypes
+    import time
+
     spec_file = Path(tempfile.mkdtemp(prefix='bbhub_')) / 'install_job.json'
     result_file = spec_file.with_suffix('.result')
-    spec['result'] = str(result_file)
+    spec = dict(spec, result=str(result_file))
     spec_file.write_text(json.dumps(spec))
 
     argv = _hub_relaunch_argv()
@@ -218,28 +267,45 @@ def _place_elevated_windows(bundle_root: Path, target_dir: Path):
     # user cancels the UAC prompt.
     rc = ctypes.windll.shell32.ShellExecuteW(None, 'runas', file, params, None, 0)
     if rc <= 32:
-        raise ElevationDenied(target_dir)
+        raise ElevationDenied(target, action)
 
     # Wait for the elevated worker to finish and report through result_file.
-    import time
     for _ in range(600):            # up to ~60s
         if result_file.is_file():
             break
         time.sleep(0.1)
     if not result_file.is_file():
-        raise InstallError('The elevated install did not report completion.')
+        raise InstallError('The elevated operation did not report completion.')
     status = json.loads(result_file.read_text())
     if not status.get('ok'):
-        raise InstallError(status.get('error', 'The elevated install failed.'))
+        raise InstallError(status.get('error', 'The elevated operation failed.'))
+
+
+def _place_elevated_windows(bundle_root: Path, target_dir: Path):
+    _run_elevated_windows({'action': 'place', 'src': str(bundle_root),
+                           'dst': str(target_dir)}, target_dir, 'installed')
+
+
+def _remove_elevated_windows(location: Path):
+    _run_elevated_windows({'action': 'remove', 'path': str(location)},
+                          location, 'removed')
 
 
 def run_install_worker(spec_file: str) -> int:
     '''Entry point for the elevated worker process (invoked via
-    ``--install-worker``). Performs only the privileged move and reports back.'''
+    ``--install-worker``). Performs only the privileged filesystem change and
+    reports back through the result file named in the spec.'''
     spec = json.loads(Path(spec_file).read_text())
     result_file = Path(spec['result'])
     try:
-        _place(Path(spec['src']), Path(spec['dst']))
+        if spec.get('action') == 'remove':
+            location = Path(spec['path'])
+            if not _is_managed_bundle(location):
+                raise InstallError(f'Refusing to remove {location}: not a '
+                                   f'BabelBrain version bundle.')
+            shutil.rmtree(location)
+        else:
+            _place(Path(spec['src']), Path(spec['dst']))
         result_file.write_text(json.dumps({'ok': True}))
         return 0
     except Exception as e:                       # report any failure to the parent
@@ -292,18 +358,72 @@ def install(entry: CatalogEntry, scope: str, progress: ProgressCb | None = None,
         if paths.IS_WINDOWS:
             _place_elevated_windows(container, target_dir)
             return target_dir
-        # macOS /Users/Shared is normally writable (so we should not get here);
-        # Linux /opt would need root. We do not silently fall back.
+        if paths.IS_MAC:
+            # A shared store seeded by the PKG is root-owned, so this is the
+            # normal path for an all-users install, not an edge case.
+            _place_elevated_macos(container, target_dir)
+            return target_dir
+        # Linux /opt would need root; we have no prompt there, and we do not
+        # silently fall back to the user root.
         raise ElevationRequired(scope, target_root)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def uninstall(location: Path) -> bool:
-    '''Remove an installed bundle. Returns False on permission failure so the
-    caller can surface it (e.g. a shared bundle needing elevation).'''
+# ---------------------------------------------------------------------------
+# Removal
+# ---------------------------------------------------------------------------
+
+def _is_managed_bundle(location: Path) -> bool:
+    '''True only for a direct child of one of the version roots, so an elevated
+    ``rm -rf`` can never be pointed at an arbitrary path.'''
+    try:
+        loc = Path(location).resolve()
+    except OSError:
+        return False
+    for root, _ in paths.versions_roots():
+        try:
+            if loc.parent == root.resolve() and loc != root.resolve():
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def uninstall(location: Path, allow_elevation: bool = True) -> bool:
+    '''Remove an installed bundle, elevating if the store is not user-writable.
+
+    Bundles seeded by the macOS PKG (and by a system-wide Windows install) are
+    owned by root/Administrators, so a plain ``rmtree`` raises ``PermissionError``;
+    we then re-run just the removal behind the platform's authorization prompt.
+
+    Returns True when the bundle is gone. Raises :class:`ElevationDenied` if the
+    user declines the prompt, and returns False for a removal that failed for
+    any other reason (so the caller can distinguish "you said no" from "it did
+    not work").
+    '''
+    if not Path(location).exists():
+        return True
     try:
         shutil.rmtree(location)
         return True
     except (OSError, PermissionError):
+        pass
+
+    if not allow_elevation or not _is_managed_bundle(location):
         return False
+    try:
+        if paths.IS_WINDOWS:
+            _remove_elevated_windows(Path(location))
+        elif paths.IS_MAC:
+            _run_elevated_macos(
+                f'/bin/rm -rf {shlex.quote(str(location))}',
+                'BabelBrain needs administrator privileges to remove this version.',
+                Path(location), 'removed')
+        else:
+            return False
+    except ElevationDenied:
+        raise
+    except InstallError:
+        return False
+    return not Path(location).exists()

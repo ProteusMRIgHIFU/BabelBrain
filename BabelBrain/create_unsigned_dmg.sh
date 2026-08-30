@@ -9,7 +9,8 @@
 #   * /Applications/BabelBrain-Version-Selector.app   (the picker)
 # and seeds a default BabelBrain version into the shared versions store
 #   * /Users/Shared/BabelBrain/versions/<build_id>/BabelBrain.app
-# so the app works offline right after install.
+# so the app works offline right after install, and records it as the default
+# version (PKG postinstall -> /Users/Shared/BabelBrain/default_build.json).
 #
 # Run from anywhere with the babelbrain conda env active:
 #     ./create_unsigned_dmg.sh                        # full build
@@ -89,7 +90,8 @@ pyinstaller BabelBrainLauncher.spec --noconfirm --clean \
 # ---------------------------------------------------------------------------
 echo ">> Staging PKG payload"
 STAGE="$(mktemp -d -t bbpkg)"
-trap 'rm -rf "$STAGE" "$STAGE_DMG" 2>/dev/null || true' EXIT
+# ${var:-} so the trap is safe under `set -u` before the later dirs are created.
+trap 'rm -rf "$STAGE" "${STAGE_DMG:-}" "${PKG_SCRIPTS:-}" 2>/dev/null || true' EXIT
 mkdir -p "$STAGE/Applications" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID"
 /usr/bin/ditto "$LAUNCHER_APP" "$STAGE/Applications/BabelBrain.app"
 /usr/bin/ditto "$SELECTOR_APP" "$STAGE/Applications/BabelBrain-Version-Selector.app"
@@ -101,9 +103,14 @@ mkdir -p "$STAGE/Applications" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_I
 echo ">> Building unsigned PKG: $PKG"
 VERSION_STR="$(cat version.txt)"
 [[ -f "$PKG" ]] && rm -f "$PKG"
+# postinstall records the seeded build so the Hub adopts it as the default;
+# without it the new version installs but the previous selection keeps running.
+PKG_SCRIPTS="$(mktemp -d -t bbscripts)"
+./Hub/make_pkg_scripts.sh "$BUILD_ID" "$PKG_SCRIPTS"
 productbuild \
   --identifier com.ucalgary.babelbrain.pkg \
   --version "$VERSION_STR" \
+  --scripts "$PKG_SCRIPTS" \
   --root "$STAGE" / \
   "$PKG"
 

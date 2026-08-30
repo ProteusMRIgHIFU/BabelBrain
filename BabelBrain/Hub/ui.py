@@ -344,13 +344,24 @@ class HubWindow(QDialog):
             return
         if QMessageBox.question(
                 self, 'Remove version',
-                f'Remove {vi.display_name} ({vi.scope_label})?') != QMessageBox.Yes:
+                f'Remove {vi.display_name} ({vi.scope_label})?\n\n{vi.location}') \
+                != QMessageBox.Yes:
             return
-        if not installer.uninstall(vi.location):
+        # A shared bundle is root-owned (that is how the installer seeds it), so
+        # removal prompts for administrator privileges; a declined prompt is the
+        # user's choice, not an error.
+        try:
+            removed = installer.uninstall(vi.location)
+        except installer.ElevationDenied:
+            return
+        if not removed:
             QMessageBox.warning(
                 self, 'Could not remove',
-                'This version could not be removed — it may be installed for all '
-                'users and require administrator privileges.')
+                f'{vi.display_name} could not be removed.\n\n{vi.location}')
+        elif self._state.current_build_id == vi.build_id:
+            # Do not leave the selection pointing at a version that is gone.
+            self._state.current_build_id = None
+            state_mod.save(self._state)
         self._populate()
 
     # -- result -------------------------------------------------------------

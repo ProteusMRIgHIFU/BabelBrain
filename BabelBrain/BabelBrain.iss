@@ -6,6 +6,8 @@
 ;   {app}\VersionSelector\BabelBrain-Version-Selector.exe - the version picker
 ; and seeds a default BabelBrain version into the per-user store:
 ;   {localappdata}\BabelBrain\versions\<BuildId>\BabelBrain.exe
+; recording it as the default version for the Version Selector in:
+;   {localappdata}\BabelBrain\default_build.json
 ; Expects PyInstaller onedir output at .\dist\launcher\, .\dist\selector\,
 ; .\dist\version\ .
 
@@ -78,3 +80,31 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+// Record the build this installer just seeded so the Version Selector adopts it
+// as the default. Without it the new version installs but the Hub keeps running
+// whatever was selected before. Mirrors the macOS PKG postinstall written by
+// Hub/make_pkg_scripts.sh; read by Hub/state.py:adopt_installer_default.
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  MarkerDir, Marker, Content: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    MarkerDir := ExpandConstant('{localappdata}\BabelBrain');
+    if ForceDirectories(MarkerDir) then
+    begin
+      Marker := MarkerDir + '\default_build.json';
+      Content := '{' + #13#10 +
+                 '  "build_id": "{#BuildId}",' + #13#10 +
+                 '  "installed_at": "' +
+                     GetDateTimeString('yyyy-mm-dd hh:nn:ss', '-', ':') +
+                     '",' + #13#10 +
+                 '  "source": "inno"' + #13#10 +
+                 '}' + #13#10;
+      // A failed marker write is not worth failing the install over.
+      SaveStringToFile(Marker, Content, False);
+    end;
+  end;
+end;

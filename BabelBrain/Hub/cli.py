@@ -19,7 +19,12 @@ and anything after a ``--`` separator) to the version it launches::
     --version SELECTOR     run this version (build id or version string) directly
     --list-versions        print installed versions and exit
     --show-prereleases     include pre-releases when the picker opens
-    --install-worker FILE  internal: elevated helper that finishes a shared install
+    --install-worker FILE  internal: elevated helper that finishes a shared
+                           install or removal (Windows)
+
+On every start (both modes) the Hub adopts a build a platform installer has just
+seeded, so a freshly installed version becomes the one that runs — see
+``state.adopt_installer_default``.
 '''
 from __future__ import annotations
 
@@ -51,6 +56,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument('--install-worker', dest='install_worker', default=None,
                    help=argparse.SUPPRESS)   # internal elevated helper
     return p
+
+
+def _load_state_and_versions() -> tuple[state_mod.HubState, list[versions_mod.VersionInfo]]:
+    '''Load preferences and discover versions, adopting a just-installed build
+    as the current selection so a fresh install actually becomes the default.'''
+    st = state_mod.load()
+    versions = versions_mod.discover()
+    state_mod.adopt_installer_default(st, [vi.build_id for vi in versions])
+    return st, versions
 
 
 def _default_version(versions: list[versions_mod.VersionInfo],
@@ -101,8 +115,7 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
     # EVERY argument to it, intercepting nothing — so it behaves exactly like
     # launching BabelBrain.py directly (--help, --serve, -bInUseWithBrainsight …).
     if mode == 'launcher':
-        st = state_mod.load()
-        versions = versions_mod.discover()
+        st, versions = _load_state_and_versions()
         vi = _default_version(versions, st)
         if vi is None:
             _no_version_dialog()
@@ -121,10 +134,9 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
     # Unknown hub args + everything after '--' are forwarded to BabelBrain.
     forwarded = unknown + after_sep
 
-    st = state_mod.load()
+    st, versions = _load_state_and_versions()
     if args.show_prereleases:
         st.show_prereleases = True
-    versions = versions_mod.discover()
 
     if args.list_versions:
         _print_versions(versions)

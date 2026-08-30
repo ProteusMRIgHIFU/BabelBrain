@@ -297,11 +297,17 @@ jobs:
             "$STAGE/Applications/BabelBrain-Version-Selector.app"
           /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" \
             "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID/BabelBrain.app"
+          # postinstall records the seeded build as the default version, so a
+          # fresh install actually runs the version it just installed.
+          SCRIPTS="$RUNNER_TEMP/pkg_scripts"
+          rm -rf "$SCRIPTS"
+          BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
           productbuild \
             --identifier com.ucalgary.babelbrain.pkg \
             --version "$VERSION" \
             --sign "$INSTALLER_IDENTITY" \
             --timestamp \
+            --scripts "$SCRIPTS" \
             --root "$STAGE" / \
             "artifacts/${{ matrix.artifact_name }}.pkg"
 
@@ -383,8 +389,11 @@ jobs:
           /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" \
             "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID/BabelBrain.app"
           PKG="artifacts/${{ matrix.artifact_name }}.pkg"
+          SCRIPTS="$RUNNER_TEMP/pkg_scripts_unsigned"
+          rm -rf "$SCRIPTS"
+          BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
           productbuild --identifier com.ucalgary.babelbrain.pkg \
-            --version "$VERSION" --root "$STAGE" / "$PKG"
+            --version "$VERSION" --scripts "$SCRIPTS" --root "$STAGE" / "$PKG"
           DSTAGE="$RUNNER_TEMP/dmg_stage_unsigned"
           rm -rf "$DSTAGE" && mkdir -p "$DSTAGE"
           cp "$PKG" "$DSTAGE/BabelBrain.pkg"

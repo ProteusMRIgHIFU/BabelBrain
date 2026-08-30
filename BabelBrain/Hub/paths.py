@@ -61,8 +61,10 @@ def user_versions_root() -> Path:
 
 def shared_versions_root() -> Path:
     '''Shared, all-users location. Writing here may require elevation
-    (Windows %ProgramData%, Linux /opt); on macOS /Users/Shared is writable
-    without admin.'''
+    (Windows %ProgramData%, Linux /opt). On macOS /Users/Shared itself is
+    writable without admin, but the PKG installer seeds versions there as root,
+    so an existing store is root-owned and both installing and removing need
+    elevation — see installer._place_elevated_macos / uninstall().'''
     if IS_MAC:
         return Path('/Users/Shared/BabelBrain/versions')
     if IS_WINDOWS:
@@ -74,6 +76,22 @@ def shared_versions_root() -> Path:
 def versions_roots() -> list[tuple[Path, str]]:
     '''(root, scope) pairs to scan, scope in {"user", "shared"}.'''
     return [(user_versions_root(), 'user'), (shared_versions_root(), 'shared')]
+
+
+def default_build_markers() -> list[Path]:
+    '''Marker files a platform installer writes to name the build it just
+    seeded, so the Hub can adopt it as the default version.
+
+    One marker per bundle root, stored *beside* the root (not inside it, which
+    would be scanned as a bundle):
+
+        macOS  : /Users/Shared/BabelBrain/default_build.json      (PKG)
+        Windows: %LOCALAPPDATA%\\BabelBrain\\default_build.json     (Inno Setup)
+
+    Written by the installer running with whatever privileges it has; read by
+    every user, each of whom adopts a given marker at most once.
+    '''
+    return [root.parent / 'default_build.json' for root, _ in versions_roots()]
 
 
 def root_for_scope(scope: str) -> Path:
