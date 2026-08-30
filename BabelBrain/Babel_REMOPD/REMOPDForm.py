@@ -68,7 +68,7 @@ class REMOPDForm(TxPanelBase):
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
         # Shown only when launched from Brainsight (wired in Babel_REMOPD).
         self.ApplyFeasibleTraj = make_button(
-            "ApplyFeasibleTraj", "Apply feasible trajectory...",
+            "ApplyFeasibleTraj", "Apply feasible trajectory",
             bold=True, min_height=40)
         # _build_mech_and_actions ends with a stretch; keep this with the
         # Calculate Fields / Mechanical Adjustments buttons.
