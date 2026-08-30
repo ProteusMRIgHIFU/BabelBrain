@@ -115,15 +115,21 @@ def main():
     parser.add_argument("ras_y", type=float, help="RAS Y (mm)")
     parser.add_argument("ras_z", type=float, help="RAS Z (mm)")
     parser.add_argument("-o", "--output", help="Output NIfTI path (default: <input>_mask.nii.gz)")
+    parser.add_argument("-r", "--radius",type=float, default=3.0, help="radius mask in mm (default: 3.0)")
+        
     args = parser.parse_args()
 
     in_path = args.input_nifti
     
     ras = np.array([args.ras_x, args.ras_y, args.ras_z], dtype=float)
 
+    inb = nib.load(in_path)
+    zooms=np.array(inb.header.get_zooms())
+    radii=np.round(args.radius/zooms)
+
     out_path = default_output_path(in_path, args.output)
 
-    create_target_mask(in_path, ras, out_path)
+    create_target_mask(in_path, ras, out_path,radii)
 
 if __name__ == "__main__":
     main()
