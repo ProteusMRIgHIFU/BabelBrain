@@ -40,6 +40,33 @@ produces:
 
 ---
 
+## How a build identifies itself in the UI
+
+A non-stable build says so in the main window title, so a tester never has to
+guess which build they are looking at:
+
+| Built from | `channel` | Window title |
+| --- | --- | --- |
+| `v*` tag (release) | `stable` | `BabelBrain V0.8.8 - …` |
+| `test-*` tag | `prerelease` | `BabelBrain V0.8.8 [test-0.8.8b2-c0cf1e6 · 2026-08-30] - …` |
+| manual dispatch | `dev` | `BabelBrain V0.8.8 [dev-c0cf1e6 · 2026-08-30] - …` |
+| `create_unsigned_dmg.sh` | `dev` | `BabelBrain V0.8.8 [dev-c0cf1e6 · 2026-08-30] - …` |
+| **running from source** | — | `BabelBrain V0.8.8 - …` (never labelled) |
+
+`BabelBrain.py:GetBuildLabel()` reads the `build_info.json` inside the *running*
+bundle — the app's own identity, not the Hub's idea of what it launched, so the
+label is right even when a version is started directly out of the store. It is
+gated on `sys.frozen`: a source checkout carries a git-tracked `build_info.json`
+describing whatever was packaged last, which would mislabel the working tree.
+
+The same label is appended to the telemetry `APP_VERSION` (`0.8.8 [dev-c0cf1e6 ·
+2026-08-30]`), so dev builds are distinguishable from the release of the same
+version in the logs. It is deliberately **not** added to the Brainsight
+`# Created by: BabelBrain <version>` header, which stays a bare version number
+that Brainsight can match against its approved list.
+
+---
+
 ## Where versions are stored on the user's machine
 
 Both apps read the same **versions store**. Each version lives in its own
