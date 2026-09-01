@@ -8,23 +8,27 @@ ABOUT:
 
 '''
 
-import numpy as np
-import matplotlib.pyplot as plt
-from  scipy.io import loadmat,savemat
-from BabelViscoFDTD.tools.RayleighAndBHTE import BHTE,BHTEMultiplePressureFields
-from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
-from scipy.io import loadmat,savemat
-from platform import platform
-from os.path import isfile
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal, InitMLX
-from multiprocessing import Process,Queue
-from queue import Empty
-import sys
-import time
 import gc
+import sys
 import traceback
-from scipy.ndimage import median_filter
+from multiprocessing import Process, Queue
+from os.path import isfile
+from queue import Empty
+
+import numpy as np
+from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.tools.RayleighAndBHTE import (
+    BHTE,
+    BHTEMultiplePressureFields,
+    InitCuda,
+    InitMetal,
+    InitMLX,
+    InitOpenCL,
+)
 from linetimer import CodeTimer
+from scipy.io import savemat
+from scipy.ndimage import median_filter
+
 
 def GetProcessResult(process,queueResult):
     """Wait for a subprocess result and re-raise any reported error."""
@@ -372,6 +376,7 @@ def RunBHTECycles(nCurrent,
     else:
         p0=PMaps[0,:,:,:]*0
     for nCurrent in range(nCurrent,TotalIterations):
+        ResTempMax = None
         if nCurrent >0 :
             initT0=FinalTemp
             initDose=FinalDose
@@ -381,6 +386,8 @@ def RunBHTECycles(nCurrent,
                 initT0=PreviousData['FinalTemp']
                 initDose=PreviousData['FinalDose']
                 print('MaxT0',initT0.max())
+                if 'ResTempMax' in PreviousData:
+                    ResTempMax = PreviousData['ResTempMax']
             else:
                 initT0=None
                 initDose=None
@@ -420,10 +427,7 @@ def RunBHTECycles(nCurrent,
 
         gc.collect(1)
 
-        if nCurrent==0:
-            ResTempMax=ResTemp
-        else:
-            ResTempMax=np.maximum(ResTempMax,ResTemp)
+        ResTempMax = ResTemp if ResTempMax is None else np.maximum(ResTempMax, ResTemp)
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
