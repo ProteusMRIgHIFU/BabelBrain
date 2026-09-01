@@ -105,8 +105,9 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
-        # Sam: Y-flip and this action only when BabelBrain is called from Brainsight.
-        b_brainsight = bool(self._MainApp.Config.get('bInUseWithBrainsight'))
+        # Y-flip and Apply feasible when TrajectoryType is Brainsight (not only
+        # when launched via -bInUseWithBrainsight).
+        b_brainsight = self._MainApp.Config.get('TrajectoryType') == 'brainsight'
         self.Widget.ApplyFeasibleTraj.setVisible(b_brainsight)
         if b_brainsight:
             self.Widget.ApplyFeasibleTraj.clicked.connect(self.ApplyFeasibleTrajectory)
@@ -146,7 +147,7 @@ class REMOPD(BabelBasePhaseArray):
         electronic focus stays on intended. DeviceFrameSteering is an involution,
         so the same map fills the GUI when Brainsight Y is flipped in the solver.
         '''
-        if not bool(self._MainApp.Config.get('bInUseWithBrainsight')):
+        if self._MainApp.Config.get('TrajectoryType') != 'brainsight':
             return
         start = ''
         mat4 = self._MainApp.Config.get('Mat4Trajectory') or ''
@@ -342,8 +343,8 @@ class RunAcousticSim(QObject):
         kargs['ZSteering']=ZSteering
         kargs['RotationZ']=RotationZ
         kargs['TxSet']=TxSet
-        # GUI Y stays as typed; the solver flips Y only in Brainsight mode.
-        kargs['bFlipSteeringY']=bool(self._mainApp.Config.get('bInUseWithBrainsight'))
+        # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
+        kargs['bFlipSteeringY']=self._mainApp.Config.get('TrajectoryType') == 'brainsight'
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus

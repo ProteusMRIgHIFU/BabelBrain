@@ -66,7 +66,7 @@ class REMOPDForm(TxPanelBase):
             tissue_warning="Tissue layers\nwill be removed!")
         # remopd/feasible-traj: Sam's SOP — park the array on a Brainsight
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
-        # Shown only when launched from Brainsight (wired in Babel_REMOPD).
+        # Shown when TrajectoryType is Brainsight (wired in Babel_REMOPD).
         self.ApplyFeasibleTraj = make_button(
             "ApplyFeasibleTraj", "Apply feasible trajectory",
             bold=True, min_height=40)
