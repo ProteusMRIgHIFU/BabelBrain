@@ -2128,6 +2128,9 @@ def main():
                         action='store_false', default=True,
                         help='Do not seed scripted inputs from the last GUI selection '
                              '(seeding is the default; explicit launch() inputs override it).')
+    # Add special handling for TSUS - TransSpine Ultrasound Stimulation 
+    parser.add_argument('-bSpineOperation', action='store_true')
+    
     # Server mode (v0): expose the pipeline over a small HTTP/JSON job API.
     parser.add_argument('--serve', action='store_true',
                         help='Run BabelBrain as a job server (HTTP/JSON). See server.py.')
@@ -2295,6 +2298,11 @@ def main():
         selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
         selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(0)
         AltOutputFilesPath=Brainsight['outputfiles_path']
+
+    if args.bSpineOperation:
+        bTSUS_OPERATION = True
+        selwidget.ui.SelSimbNIBSpushButton.setText('Select final_tissues dir...')
+        selwidget.ui.SelT1WpushButton.setText('Select CT planning...')
 
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)
