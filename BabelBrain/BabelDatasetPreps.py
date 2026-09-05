@@ -402,7 +402,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 bSaveCTMaximized=False,
                                 bExtractAirRegions=True,
                                 TrajectoryNumber=0,
-                                RegionAirCT=[-1200,-400]): #created reduced FOV
+                                RegionAirCT=[-1200,-400],#created reduced FOV
+                                bTSUS_OPERATION=False):  #enable TSUS pre-processing mode
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -456,6 +457,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     skull_stl=outputfilenames['Skull_STL']
     csf_stl=outputfilenames['CSF_STL']
     skin_stl=outputfilenames['Skin_STL']
+
+    if bTSUS_OPERATION:
+        print('CTS:L3:S1: Running TSUS (Trans Spine Ultrasound Stimulation) pre-processing mode')
     
     if bForceFullRecalculation==False:
         with CodeTimer("CTS:L3:S1: Checking if previously generated files can be reused", unit="s"):
@@ -918,12 +922,14 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             ndataCTForAir=ndataCT.copy()
             ndataCT[nfct==False]=0
 
+        
         with CodeTimer("CTS:L3:S1: CT/Density binary_dilation",unit='s'):
             BinMaskConformalCSFRot= ndimage.binary_dilation(BinMaskConformalCSFRot,iterations=6)
             gc.collect()
-        
-        FinalMask[BinMaskConformalCSFRot]=4  
-        FinalMask[BinMaskConformalSkullRot==1]=4
+    
+        FinalMask[BinMaskConformalCSFRot]=4
+        if not bTSUS_OPERATION:
+            FinalMask[BinMaskConformalSkullRot==1]=4
         #brain
         FinalMask[nfct]=2  #bone
         #we do a cleanup of islands of skin that are isolated between the skull region and brain region, we assume all except the largest one are brain tissue
@@ -1067,7 +1073,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             S1_file_manager.save_file(file_data=nCT,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
 
-        if bExtractAirRegions:
+        if bExtractAirRegions and not bTSUS_OPERATION:
             with CodeTimer("CTS:L3:S1: Extracting air regions",unit='s'):
                 AirRegions=(ndataCTForAir >= RegionAirCT[0]) & (ndataCTForAir <= RegionAirCT[1])
                 if MedianFilter is None:
@@ -1141,7 +1147,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     
     FinalMask[LocFocalPoint[0],LocFocalPoint[1],LocFocalPoint[2]]=5 #focal point location
 
-    if CT_or_ZTE_input is not None:
+    if CT_or_ZTE_input is not None and not bTSUS_OPERATION:
         with CodeTimer("CTS:L3:S1: Final cleanup of prefocal region",unit='s'):
             FinalMask=np.flip(FinalMask,axis=2)
             Rloc = np.array(np.where(FinalMask==5)).flatten()
@@ -1156,7 +1162,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             
             FinalMask=np.flip(FinalMask,axis=2)
 
-    if bSegmentBrainTissue:
+    if bSegmentBrainTissue and not bTSUS_OPERATION:
 
         # we just need an empty file to pass matrx size and affine
         emptyNifti =   nibabel.Nifti1Image(FinalMask*0, affine=baseaffineRot)

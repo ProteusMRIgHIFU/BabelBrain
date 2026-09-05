@@ -407,7 +407,7 @@ class BabelBrain(QWidget):
 
     '''
 
-    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None):
+    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,bTSUS_OPERATION=False):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
@@ -521,6 +521,8 @@ class BabelBrain(QWidget):
         if widget.ui.MultiPointTypecomboBox.currentIndex()==1:
             self.Config['EnableMultiPoint']=True    
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
+
+        self.Config['bTSUS_OPERATION']=bTSUS_OPERATION
             
         #default values for advanced features 
 
@@ -862,7 +864,11 @@ class BabelBrain(QWidget):
         # Same annotation as the file-selection dialog; empty for source runs
         # and stable releases, where the plain version number is the signal.
         BuildTitle=TitleSuffix(self.Config.get('BuildLabel',''))
-        self.setWindowTitle('BabelBrain V'+
+        if self.Config['bTSUS_OPERATION']:
+            root_title = 'BabelBrain-TSUS mode'
+        else:
+            root_title='BabelBrain'
+        self.setWindowTitle(root_title+' V'+
                             self.Config['version'].rstrip() + BuildTitle +' - ' + 
                             IDTitle + ' - ' + 
                             self.Config['TxSystem'] + ' - ' + 
@@ -1953,6 +1959,8 @@ class RunMaskGeneration(QObject):
                 assert(kargs['CTType']==4)
                 kargs['DensityThreshold']=Widget.HUTreshold.value()
                 kargs['RegionAirCT']=[0.01, 10] # air density values
+
+        kargs['bTSUS_OPERATION']=self._mainApp.Config['bTSUS_OPERATION']
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
@@ -2211,7 +2219,9 @@ def main():
     except AttributeError:
         pass
 
-    selwidget = SelFiles()
+    bTSUS_OPERATION=args.bSpineOperation
+
+    selwidget = SelFiles(bTSUS_OPERATION=bTSUS_OPERATION)
 
     prevConfig=GetLatestSelection()
 
@@ -2299,8 +2309,7 @@ def main():
         selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(0)
         AltOutputFilesPath=Brainsight['outputfiles_path']
 
-    if args.bSpineOperation:
-        bTSUS_OPERATION = True
+    if bTSUS_OPERATION:
         selwidget.ui.SelSimbNIBSpushButton.setText('Select final_tissues dir...')
         selwidget.ui.SelT1WpushButton.setText('Select CT planning...')
 
@@ -2314,7 +2323,8 @@ def main():
     
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight,
-                        AltOutputFilesPath=AltOutputFilesPath)
+                        AltOutputFilesPath=AltOutputFilesPath,
+                        bTSUS_OPERATION=bTSUS_OPERATION)
     widget.show()
     retcode=app.exec()
     if (retcode==0):
