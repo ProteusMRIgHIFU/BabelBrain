@@ -5,7 +5,7 @@ transducer panels (different control set, two-row bottom strip with Loc
 buttons), so this class extends QWidget directly rather than TxPanelBase.
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import (
     QWidget,
     QFrame,
@@ -269,9 +269,12 @@ class ThermalForm(QWidget):
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
 
-        self.LocMTB = make_button("LocMTB", "Max. Temp. Brain")
-        self.LocMTS = make_button("LocMTS", "Max. Temp. Skin")
-        self.LocMTC = make_button("LocMTC", "Max. Temp. Skull")
+        self.LocMTB = make_button(
+            "LocMTB", QCoreApplication.translate("BabelBrain", "Max. Temp. Brain"))
+        self.LocMTS = make_button(
+            "LocMTS", QCoreApplication.translate("BabelBrain", "Max. Temp. Skin"))
+        self.LocMTC = make_button(
+            "LocMTC", QCoreApplication.translate("BabelBrain", "Max. Temp. Skull"))
         self.LocTargets =  make_button("LocTargets", "Target")
         if self._bMergedResults:
             self.SelTarget = make_combo("SelTarget",items=self.parent()._MainApp.Config['ID'],width=60)

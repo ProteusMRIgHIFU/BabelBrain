@@ -31,7 +31,7 @@ import nibabel
 import numpy as np
 import importlib
 import yaml
-from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
+from PySide6.QtCore import QCoreApplication, QFile, QObject, QThread, Qt, Signal, Slot, QTimer
 from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPalette, QTextCursor, QMovie, QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -75,6 +75,7 @@ from Options.Options import AdvancedOptions, OptionalParams, ApplyAdvancedConfig
 from ClockDialog import ClockDialog
 from GUIComponents.nifti_viewer import NiftiViewerWindow
 
+import Localization
 from Telemetry.Telemetry import send_telemetry
 from datetime import datetime, timezone
 
@@ -113,6 +114,29 @@ def resource_path():  # needed for bundling
         bundle_dir = Path(__file__).parent
 
     return bundle_dir
+
+def _TissueLegendNames():
+    """Display names for the tissue-mask legend, translated at call time.
+
+    The dict keys are stable internal identifiers and are never shown; only the
+    values reach the user. Marking them up is what lets the TVUS overlay
+    catalogue rename the cranial terms to their vertebral equivalents without a
+    single mode test in the plotting code below.
+
+    Must be called rather than cached at import time: the translators are
+    installed in main(), after this module is imported.
+    """
+    return {
+        'scalp':     QCoreApplication.translate("BabelBrain", "scalp"),
+        'cort.':     QCoreApplication.translate("BabelBrain", "cort."),
+        'trab.':     QCoreApplication.translate("BabelBrain", "trab."),
+        'brain':     QCoreApplication.translate("BabelBrain", "brain"),
+        'brain-n.s': QCoreApplication.translate("BabelBrain", "brain-n.s"),
+        'white m.':  QCoreApplication.translate("BabelBrain", "white m."),
+        'gray m.':   QCoreApplication.translate("BabelBrain", "gray m."),
+        'CSF':       QCoreApplication.translate("BabelBrain", "CSF"),
+        'Air':       QCoreApplication.translate("BabelBrain", "Air"),
+    }
 
 def get_text_values(initial_texts, parent=None, title="", label=""):
     '''
@@ -1435,10 +1459,11 @@ class BabelBrain(QWidget):
             self._imT1W.append(static_ax.imshow(T1WMap,extent=extent,aspect='equal')) 
             self._markers.append(static_ax.plot(vec1[c1],vec2[c2],'+y',markersize=14)[0])
         im = self._imMasks[-1]
+        _tissue = _TissueLegendNames()
         if self.Config['bUseCT']:
             if self._bSegmentedBrain :
                 values =[1,4,6,7,8]
-                legends  = ['scalp','brain-n.s','white m.','gray m.','CSF']
+                legends  = [_tissue[k] for k in ('scalp','brain-n.s','white m.','gray m.','CSF')]
                 colors =[(0.0, 0.3, 1.0, 1.0), 
                         (0.4863,  1.0,  0.4745,   1.0),
                         (1.0,  0.5804,   0.0,  1.0),
@@ -1446,7 +1471,7 @@ class BabelBrain(QWidget):
                         (0.4980, 0.0,   0.0,    1.0)]
             else:
                 values =[1,4]
-                legends  = ['scalp','brain']
+                legends  = [_tissue[k] for k in ('scalp','brain')]
                 colors =[(0.0, 0.3, 1.0, 1.0), 
                      (1.0, 0.40740740740740755,0.0, 1.0)]
             #we use manual color asignation 
@@ -1454,7 +1479,7 @@ class BabelBrain(QWidget):
         else:
             if self._bSegmentedBrain :
                 values =[1,2,3,4,6,7,8]
-                legends  = ['scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF']
+                legends  = [_tissue[k] for k in ('scalp','cort.','trab.','brain-n.s','white m.','gray m.','CSF')]
                 colors = [(0.0, 0.3, 1.0, 1.0), 
                         (0.0, 0.5020, 1.0, 1.0),
                         (0.0824,  1.0,  0.8824, 1.0),
@@ -1465,7 +1490,7 @@ class BabelBrain(QWidget):
                 
             else:
                 values =[1,2,3,4]
-                legends  = ['scalp','cort.','trab.','brain']
+                legends  = [_tissue[k] for k in ('scalp','cort.','trab.','brain')]
                 colors = [(0.0, 0.0, 1.0, 1.0), 
                       (0.16129032258064513, 1.0, 0.8064516129032259, 1.0), 
                       (0.8064516129032256, 1.0, 0.16129032258064513, 1.0), 
@@ -1473,7 +1498,7 @@ class BabelBrain(QWidget):
                 
         if AirMask is not None:
             values.append(values[-1]+1)
-            legends.append('Air')
+            legends.append(_tissue['Air'])
             colors.append((223/255,199/255,224/255,1.0))
             		
             #we use manual color asignation 
@@ -1629,7 +1654,9 @@ class BabelBrain(QWidget):
             if n>=0:
                 viewer._on_remove_requested(n)
         
-        viewer.add_overlay(self._NiftiSkull[NTraj],'Skull',id='Skull')
+        viewer.add_overlay(self._NiftiSkull[NTraj],
+                           QCoreApplication.translate("BabelBrain", "Skull"),
+                           id='Skull')
         n,row=self._FindViewerRow(viewer,'Skull')
         row._opacity_slider.setValue(100)
         row._cmap_combo.setCurrentIndex(5)
@@ -2193,6 +2220,16 @@ def main():
 
     app = QApplication([])
     _apply_color_scheme(app)
+
+    # Install the UI string catalogues before ANY widget is built: Qt resolves a
+    # translation when the string is used, and the forms set their text once, at
+    # construction time. This has to sit above the --print-GPUs-available,
+    # scripting and server branches below, since each of those builds widgets.
+    _installed = Localization.install_translators(
+        app, language='en',
+        mode=Localization.mode_for_config(args.bTVUSOperation))
+    if _installed:
+        print('Localization: ' + ', '.join(_installed))
 
     # List the GPUs the server could schedule onto, then exit. Needs the
     # QApplication above (GPU discovery goes through the SelFiles widget).

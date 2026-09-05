@@ -13,7 +13,7 @@ Subclasses must override `_build_left_panel()` to return a QWidget holding
 the transducer-specific controls (typically built via `_make_left_panel`).
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import (
     QWidget,
     QFrame,
@@ -308,7 +308,9 @@ class TxPanelBase(QWidget):
             slo, shi = skin_distance
             self.SkinDistanceSpinBox = make_dspin(
                 "SkinDistanceSpinBox", minimum=slo, maximum=shi)
-            sel=[make_label("Distance Tx outplane\nto skin (mm)"),self.SkinDistanceSpinBox]
+            sel=[make_label(QCoreApplication.translate(
+                     "BabelBrain", "Distance Tx outplane\nto skin (mm)")),
+                 self.SkinDistanceSpinBox]
 
         if tissue_warning is not None:
             self.LabelTissueRemoved = make_label(
@@ -377,7 +379,7 @@ class TxPanelBase(QWidget):
 
         if self.parent()._MainApp.Config['CTType']>0:
             self.SDRText = make_label(
-                "SDR:", name="SDRText")
+                QCoreApplication.translate("BabelBrain", "SDR:"), name="SDRText")
             self.SDRLabel = make_label(
                 "-", name="SDRLabel", bold=True, color=LABEL_BLUE)
             # Reserve a fixed slot for the SDR value so the row never reflows: a
@@ -469,7 +471,8 @@ class MergedResultsForm(QWidget):
         row.addWidget(self.ShowWaterResultscheckBox)
 
         if self._MainApp.Config['CTType'] > 0:
-            self.SDRText = make_label("SDR:", name="SDRText")
+            self.SDRText = make_label(
+                QCoreApplication.translate("BabelBrain", "SDR:"), name="SDRText")
             self.SDRLabel = make_label("-", name="SDRLabel", bold=True, color=LABEL_BLUE)
             self.SDRLabel.setMinimumWidth(40)
             row.addStretch(1)

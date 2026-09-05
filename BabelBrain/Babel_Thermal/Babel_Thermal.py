@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,QFrame,
                 QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem,
                 QTabWidget)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
+from PySide6.QtCore import QCoreApplication,QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor,QColor
@@ -235,22 +235,25 @@ class Babel_Thermal(QWidget):
         self._SetupResultsTable(w,bMergedResults)
 
     def _SetupResultsTable(self, w,bMergedResults):
-        Ids=['Isppa at target (W/cm2):']
+        # Row captions are display-only. The near-identical wording used for the
+        # CSV/Brainsight export in _ExportSummary is deliberately NOT translated:
+        # those headers are consumed by downstream tools and stay English.
+        Ids=[QCoreApplication.translate("BabelBrain", 'Isppa at target (W/cm2):')]
         if bMergedResults:
-            Ids+=['Max. Isppa (W/cm2):',
-                 'Max. Ispta (W/cm2):']
+            Ids+=[QCoreApplication.translate("BabelBrain", 'Max. Isppa (W/cm2):'),
+                 QCoreApplication.translate("BabelBrain", 'Max. Ispta (W/cm2):')]
         else:
-            Ids+=['Req. Isppa water (W/cm2):',
-                  'Ispta (W/cm2):']
-        Ids+=['Ispta at target (W/cm2):',
-             'Adjustment in RAS T1W space:',
-             'Max. temp. target (\u2103) - CEM43:',
-             'Max. temp. brain (\u2103) - CEM43:',
-             'Max. temp. skin (\u2103) - CEM43:',
-             'Max. temp. skull (\u2103) - CEM43:',
-             'Mechanical index:']
+            Ids+=[QCoreApplication.translate("BabelBrain", 'Req. Isppa water (W/cm2):'),
+                  QCoreApplication.translate("BabelBrain", 'Ispta (W/cm2):')]
+        Ids+=[QCoreApplication.translate("BabelBrain", 'Ispta at target (W/cm2):'),
+             QCoreApplication.translate("BabelBrain", 'Adjustment in RAS T1W space:'),
+             QCoreApplication.translate("BabelBrain", 'Max. temp. target (\u2103) - CEM43:'),
+             QCoreApplication.translate("BabelBrain", 'Max. temp. brain (\u2103) - CEM43:'),
+             QCoreApplication.translate("BabelBrain", 'Max. temp. skin (\u2103) - CEM43:'),
+             QCoreApplication.translate("BabelBrain", 'Max. temp. skull (\u2103) - CEM43:'),
+             QCoreApplication.translate("BabelBrain", 'Mechanical index:')]
         if not bMergedResults:
-             Ids+=['Distance from MTB to MTT (mm):']
+             Ids+=[QCoreApplication.translate("BabelBrain", 'Distance from MTB to MTT (mm):')]
         bg_color = w.tableWidget.parent().palette().color(w.backgroundRole())
         text_color = w.tableWidget.parent().palette().color(w.foregroundRole())
         table_palette = w.tableWidget.palette()
@@ -1167,11 +1170,13 @@ class Babel_Thermal(QWidget):
                         self._TempPlot=static_ax1.plot(timevec,AdjustedTemp.T)
                     static_ax1.set_xlabel('time (s)')
                     static_ax1.set_ylabel('temperature (degrees C)')
-                    leg=['Skin','Brain','Skull']
+                    leg=[QCoreApplication.translate("BabelBrain", 'Skin'),
+                         QCoreApplication.translate("BabelBrain", 'Brain'),
+                         QCoreApplication.translate("BabelBrain", 'Skull')]
                     if bShowingMerged:
                         leg+=self._MainApp.Config['ID']
                     else:
-                        leg.append('Target')
+                        leg.append(QCoreApplication.translate("BabelBrain", 'Target'))
                     leg=static_ax1.legend(leg, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
                     self._static_ax1=static_ax1
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
@@ -1197,7 +1202,11 @@ class Babel_Thermal(QWidget):
                                 self._ListMarkers.append(self._static_ax1.plot(hvec[tl[haxis]],vvec[tl[vaxis]],'k+',markersize=18)[0])
                                 self._ListMarkers.append(self._static_ax2.plot(hvec[tl[haxis]],vvec[tl[vaxis]],'k+',markersize=18,)[0])
 
-                    for k,kl in zip(['mSkin','mBrain','mSkull'],['MTS','MTB','MTC']):
+                    # keys are internal; the acronyms are drawn on the plot
+                    for k,kl in zip(['mSkin','mBrain','mSkull'],
+                                    [QCoreApplication.translate("BabelBrain", 'MTS'),
+                                     QCoreApplication.translate("BabelBrain", 'MTB'),
+                                     QCoreApplication.translate("BabelBrain", 'MTC')]):
                         if SelY == DataThermal[k][axis]:
                             self._ListMarkers.append(self._static_ax2.plot(hvec[DataThermal[k][haxis]],
                                             vvec[DataThermal[k][vaxis]],'wx',markersize=12)[0])

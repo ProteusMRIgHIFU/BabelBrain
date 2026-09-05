@@ -158,6 +158,11 @@ commonDatas = [
     ("GPUFunctions/GPUVoxelize/helper_math.h", "./GPUFunctions/GPUVoxelize"),
 ]
 
+# Compiled UI string catalogues (see Localization.py and i18n/README.md). Only
+# the .qm files are needed at run time; the .ts sources stay out of the bundle.
+# glob so that new languages/modes are picked up without touching this list.
+commonDatas += [(f, "./i18n") for f in sorted(glob("i18n" + os.sep + "*.qm"))]
+
 datas += commonDatas
 print("\nCommon Data Files:\n" + "\n".join(map(str, commonDatas)))  # print list of common data files
 
