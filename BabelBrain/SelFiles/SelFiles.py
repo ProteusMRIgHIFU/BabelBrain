@@ -1,8 +1,10 @@
 # This Python file uses the following encoding: utf-8
 import sys
 
-from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QStyle
-from PySide6.QtCore import Slot, Qt,QAbstractTableModel
+from PySide6.QtWidgets import (QApplication, QDialog,QFileDialog,QMessageBox,QStyle,
+                               QComboBox,QLabel,QLineEdit,QCheckBox,QAbstractSpinBox)
+from PySide6.QtCore import Slot, Qt,QAbstractTableModel,QRect
+import Localization
 from Localization import TR
 
 # Important:
@@ -162,12 +164,10 @@ class SelFiles(QDialog):
         # here too - same annotation as the main window. Empty for source runs
         # and stable releases. rstrip() because readlines()[0] keeps the file's
         # trailing newline, which would otherwise sit in the middle of the title.
-        if bTVUS_OPERATION:
-            root_title = 'BabelBrain-TVUS mode'
-        else:
-            root_title='BabelBrain'
-        self.setWindowTitle(root_title+" V"+version.rstrip() + TitleSuffix() +
-                            TR(" - Select input files ..."))
+        self._bTVUS_OPERATION = bTVUS_OPERATION
+        self._version = version.rstrip()
+        self._ApplyWindowTitle()
+        self._BuildLanguagePicker()
         self.ui.SelTrajectorypushButton.clicked.connect(self.SelectTrajectory)
         self.ui.SelT1WpushButton.clicked.connect(self.SelectT1W)
         self.ui.SelCTpushButton.clicked.connect(self.SelectCT)
@@ -231,6 +231,115 @@ class SelFiles(QDialog):
         self.setWindowFlags(self.windowFlags() | Qt.CustomizeWindowHint)
         # disable (but not hide) close button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
+
+    def _ApplyWindowTitle(self):
+        """(Re)build the window title. Called again after a language change,
+        because the title is assembled here rather than by retranslateUi()."""
+        # This is the first screen users see, so a dev/test build has to say so
+        # here too - same annotation as the main window. Empty for source runs
+        # and stable releases.
+        if self._bTVUS_OPERATION:
+            root_title = 'BabelBrain-TVUS mode'
+        else:
+            root_title = 'BabelBrain'
+        self.setWindowTitle(root_title + " V" + self._version + TitleSuffix() +
+                            TR(" - Select input files ..."))
+
+    def _BuildLanguagePicker(self):
+        """Language selector, bottom-left of the dialog.
+
+        This screen is the right home for it: everything else in the app - the
+        main window, the transducer and thermal panels, Advanced Options, the
+        viewer - is constructed only after this dialog closes, so a change here
+        applies to the whole session with no restart. This dialog itself is
+        refreshed in place by retranslateUi().
+
+        Added programmatically (the .ui uses absolute geometry, so there is no
+        layout to fit into) to keep form.ui and its generated module untouched.
+        """
+        self.LanguageLabel = QLabel(TR("Language"), self)
+        self.LanguageLabel.setObjectName("LanguageLabel")
+        self.LanguageLabel.setGeometry(QRect(12, 396, 74, 22))
+
+        self.LanguagecomboBox = QComboBox(self)
+        self.LanguagecomboBox.setObjectName("LanguagecomboBox")
+        self.LanguagecomboBox.setGeometry(QRect(88, 392, 180, 30))
+        # The language code lives in the item DATA. The visible names are
+        # localized; the codes must never be, and nothing may look them up by
+        # display text.
+        self.LanguagecomboBox.addItem(TR("Follow system language"),
+                                      Localization.LANG_SYSTEM)
+        for code, name in Localization.available_languages():
+            self.LanguagecomboBox.addItem(name, code)
+        idx = self.LanguagecomboBox.findData(Localization.get_ui_language())
+        self.LanguagecomboBox.setCurrentIndex(idx if idx >= 0 else 1)
+        self.LanguagecomboBox.currentIndexChanged.connect(self.SelectLanguage)
+
+    def _SnapshotFormState(self):
+        """Everything the user has entered or chosen in this dialog.
+
+        retranslateUi() re-applies every property the .ui file declares, and in
+        this form that includes the *text* of the path fields - which is the
+        "..." placeholder. Left alone it would wipe the paths the user just
+        picked, so the values are saved across the call and put back.
+        """
+        state = {'text': {}, 'index': {}, 'checked': {}, 'value': {}}
+        for w in self.findChildren(QLineEdit):
+            state['text'][w.objectName()] = w.text()
+        for w in self.findChildren(QComboBox):
+            state['index'][w.objectName()] = w.currentIndex()
+        for w in self.findChildren(QCheckBox):
+            state['checked'][w.objectName()] = w.isChecked()
+        for w in self.findChildren(QAbstractSpinBox):
+            if hasattr(w, 'value'):
+                state['value'][w.objectName()] = w.value()
+        return state
+
+    def _RestoreFormState(self, state):
+        """Put back what _SnapshotFormState() captured.
+
+        Signals are blocked while restoring: the values are identical to what
+        the user had, so the handlers have nothing to react to, and firing
+        SelectCTType/SelectMultiPoint here would re-run their side effects.
+        """
+        groups = ((QLineEdit, 'text', 'setText'),
+                  (QComboBox, 'index', 'setCurrentIndex'),
+                  (QCheckBox, 'checked', 'setChecked'),
+                  (QAbstractSpinBox, 'value', 'setValue'))
+        for cls, key, setter in groups:
+            for w in self.findChildren(cls):
+                name = w.objectName()
+                if name not in state[key] or not hasattr(w, setter):
+                    continue
+                blocked = w.blockSignals(True)
+                getattr(w, setter)(state[key][name])
+                w.blockSignals(blocked)
+
+    @Slot()
+    def SelectLanguage(self):
+        """Switch language immediately and remember the choice.
+
+        Installing a translator does not rewrite widgets that already exist, so
+        this dialog is re-translated explicitly; every other window is built
+        later and picks up the new catalogue on its own.
+        """
+        code = self.LanguagecomboBox.currentData()
+        if not code:
+            return
+        Localization.set_ui_language(code)
+        Localization.install_translators(
+            QApplication.instance(),
+            Localization.resolve_language(code),
+            Localization.mode_for_config(self._bTVUS_OPERATION))
+
+        state = self._SnapshotFormState()
+        self.ui.retranslateUi(self)
+        self._RestoreFormState(state)
+
+        # Not part of the form, so retranslateUi() does not cover these.
+        self._ApplyWindowTitle()
+        self.LanguageLabel.setText(TR("Language"))
+        self.LanguagecomboBox.setItemText(0, TR("Follow system language"))
 
     def GetAllTransducers(self):
         """

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="en_US">
+<TS version="2.1" language="fr_FR">
 <context>
     <name>OptionsDialog</name>
     <message>
@@ -119,8 +119,8 @@ PlanTUS</source>
     <message>
         <source>Distance Tx outplane
 to skin (mm)</source>
-        <translation>Distance Tx outplane
-to soft tis. (mm)</translation>
+        <translation type="unfinished">Distance plan du Tx
+aux tissus mous (mm)</translation>
     </message>
     <message>
         <source>Vol. ROI (optional)</source>
@@ -132,7 +132,7 @@ to soft tis. (mm)</translation>
     </message>
     <message>
         <source>Transcranial Ultrasound</source>
-        <translation>Transvertebral Ultrasound</translation>
+        <translation type="unfinished">Ultrasons transvertébraux</translation>
     </message>
     <message>
         <source>Save stress data  </source>
@@ -227,7 +227,7 @@ for large thermal simulation</source>
     </message>
     <message>
         <source>Force no absorption in skull and scalp</source>
-        <translation>Force no absorption in vertebra and soft tis.</translation>
+        <translation type="unfinished">Forcer l’absence d’absorption dans la vertèbre et les tissus mous</translation>
     </message>
 </context>
 <context>
@@ -250,7 +250,7 @@ for large thermal simulation</source>
     </message>
     <message>
         <source>Select T1W ...</source>
-        <translation>Select CT planning...</translation>
+        <translation type="unfinished">Choisir le CT de planification ...</translation>
     </message>
     <message>
         <source>Select</source>
@@ -266,7 +266,7 @@ for large thermal simulation</source>
     </message>
     <message>
         <source>Select SimbNIBS ...</source>
-        <translation>Select final_tissues dir...</translation>
+        <translation type="unfinished">Choisir le dossier final_tissues ...</translation>
     </message>
     <message>
         <source>Use CT, ZTE,
@@ -324,7 +324,7 @@ PETRA, Density?</source>
 </context>
 <context><name>BabelBrain</name><message>
         <source>scalp</source>
-        <translation>soft tis.</translation>
+        <translation type="unfinished">tissus mous</translation>
     </message>
     <message>
         <source>cort.</source>
@@ -336,11 +336,11 @@ PETRA, Density?</source>
     </message>
     <message>
         <source>brain</source>
-        <translation>sp. cord.</translation>
+        <translation type="unfinished">moelle ép.</translation>
     </message>
     <message>
         <source>brain-n.s</source>
-        <translation>sp. cord-n.s</translation>
+        <translation type="unfinished">moelle ép.-n.s</translation>
     </message>
     <message>
         <source>white m.</source>
@@ -356,108 +356,6 @@ PETRA, Density?</source>
     </message>
     <message>
         <source>Air</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Skull</source>
-        <translation>Vertebra</translation>
-    </message>
-    <message>
-        <source>Isppa at target (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Max. Isppa (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Max. Ispta (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Req. Isppa water (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Ispta (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Ispta at target (W/cm2):</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Adjustment in RAS T1W space:</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Max. temp. target (℃) - CEM43:</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Max. temp. brain (℃) - CEM43:</source>
-        <translation>Max. temp. sp. cord. (℃) - CEM43:</translation>
-    </message>
-    <message>
-        <source>Max. temp. skin (℃) - CEM43:</source>
-        <translation>Max. temp. soft tis. (℃) - CEM43:</translation>
-    </message>
-    <message>
-        <source>Max. temp. skull (℃) - CEM43:</source>
-        <translation>Max. temp. vertebra (℃) - CEM43:</translation>
-    </message>
-    <message>
-        <source>Mechanical index:</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Distance from MTB to MTT (mm):</source>
-        <translation>Distance from MTSC to MTT (mm):</translation>
-    </message>
-    <message>
-        <source>Skin</source>
-        <translation>Soft tis.</translation>
-    </message>
-    <message>
-        <source>Brain</source>
-        <translation>Sp. cord.</translation>
-    </message>
-    <message>
-        <source>Target</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>MTS</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>MTB</source>
-        <translation>MTSC</translation>
-    </message>
-    <message>
-        <source>MTC</source>
-        <translation>MTV</translation>
-    </message>
-    <message>
-        <source>Max. Temp. Brain</source>
-        <translation>Max. Temp. Sp. Cord.</translation>
-    </message>
-    <message>
-        <source>Max. Temp. Skin</source>
-        <translation>Max. Temp. Soft Tis.</translation>
-    </message>
-    <message>
-        <source>Max. Temp. Skull</source>
-        <translation>Max. Temp. Vertebra</translation>
-    </message>
-    <message>
-        <source>Distance Tx outplane
-to skin (mm)</source>
-        <translation>Distance Tx outplane
-to soft tis. (mm)</translation>
-    </message>
-    <message>
-        <source>SDR:</source>
         <translation type="unfinished" />
     </message>
     <message>
@@ -518,6 +416,10 @@ consult log window for details</source>
     <message>
         <source>VTK NIfTI Viewer — Multi-Volume</source>
         <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Skull</source>
+        <translation type="unfinished">Vertèbre</translation>
     </message>
     <message>
         <source>VTK visualization</source>
@@ -617,12 +519,72 @@ does not match the current transducer in BabelBrain:%s.</source>
         <translation type="unfinished" />
     </message>
     <message>
+        <source>Language</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Follow system language</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
         <source>Z mm</source>
         <translation type="unfinished" />
     </message>
     <message>
         <source>Merged</source>
         <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Isppa at target (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Max. Isppa (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Max. Ispta (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Req. Isppa water (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Ispta (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Ispta at target (W/cm2):</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Adjustment in RAS T1W space:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Max. temp. target (℃) - CEM43:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Max. temp. brain (℃) - CEM43:</source>
+        <translation type="unfinished">Temp. max. moelle ép. (℃) - CEM43 :</translation>
+    </message>
+    <message>
+        <source>Max. temp. skin (℃) - CEM43:</source>
+        <translation type="unfinished">Temp. max. tissus mous (℃) - CEM43 :</translation>
+    </message>
+    <message>
+        <source>Max. temp. skull (℃) - CEM43:</source>
+        <translation type="unfinished">Temp. max. vertèbre (℃) - CEM43 :</translation>
+    </message>
+    <message>
+        <source>Mechanical index:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Distance from MTB to MTT (mm):</source>
+        <translation type="unfinished">Distance de MTSC à MTT (mm) :</translation>
     </message>
     <message>
         <source>Isppa (W/cm$^2$)</source>
@@ -639,6 +601,30 @@ does not match the current transducer in BabelBrain:%s.</source>
     <message>
         <source>temperature (degrees C)</source>
         <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Skin</source>
+        <translation type="unfinished">Tissus mous</translation>
+    </message>
+    <message>
+        <source>Brain</source>
+        <translation type="unfinished">Moelle ép.</translation>
+    </message>
+    <message>
+        <source>Target</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>MTS</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>MTB</source>
+        <translation type="unfinished">MTSC</translation>
+    </message>
+    <message>
+        <source>MTC</source>
+        <translation type="unfinished">MTV</translation>
     </message>
     <message>
         <source>%s = %3.2f mm</source>
@@ -687,6 +673,18 @@ does not match the current transducer in BabelBrain:%s.</source>
         <translation type="unfinished" />
     </message>
     <message>
+        <source>Max. Temp. Brain</source>
+        <translation type="unfinished">Temp. max. moelle ép.</translation>
+    </message>
+    <message>
+        <source>Max. Temp. Skin</source>
+        <translation type="unfinished">Temp. max. tissus mous</translation>
+    </message>
+    <message>
+        <source>Max. Temp. Skull</source>
+        <translation type="unfinished">Temp. max. vertèbre</translation>
+    </message>
+    <message>
         <source>Combine Trajectoriess</source>
         <translation type="unfinished" />
     </message>
@@ -697,6 +695,12 @@ does not match the current transducer in BabelBrain:%s.</source>
     <message>
         <source>Mechanical adj. Z (mm)</source>
         <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Distance Tx outplane
+to skin (mm)</source>
+        <translation type="unfinished">Distance plan du Tx
+aux tissus mous (mm)</translation>
     </message>
     <message>
         <source>Max. depth beyond
@@ -718,6 +722,10 @@ center [X, Y, Z] (mm):</source>
     </message>
     <message>
         <source>Show water only</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>SDR:</source>
         <translation type="unfinished" />
     </message>
     <message>
@@ -992,8 +1000,8 @@ Type a value and press Enter (or click away) to navigate there.</source>
     <message>
         <source>Distance skin
 to target (mm) :</source>
-        <translation>Distance soft tis.
-to target (mm) :</translation>
+        <translation type="unfinished">Distance tissus mous –
+cible (mm) :</translation>
     </message>
     <message>
         <source>Multi-focus</source>
@@ -1019,14 +1027,6 @@ to target (mm) :</source>
     <message>
         <source>Distance from Tx's
 outplane to focus</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Language</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <source>Follow system language</source>
         <translation type="unfinished" />
     </message>
 </context></TS>

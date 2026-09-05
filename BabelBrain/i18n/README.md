@@ -8,8 +8,13 @@ the rules for marking a string up in the source.
 
 | File | Role |
 |---|---|
-| `babelbrain_tvus_en.ts` | Editable source catalogue: the **TVUS overlay**. Open it in Qt Linguist. |
-| `babelbrain_tvus_en.qm` | Compiled form, loaded at run time. Committed so a build needs no Qt tools. |
+| `babelbrain_<lang>.ts` | Editable source catalogue for a language (`fr`, `es`). Open it in Qt Linguist. |
+| `babelbrain_tvus_<lang>.ts` | The **TVUS overlay** for that language: only the terms that differ from transcranial use. |
+| `*.qm` | Compiled form, loaded at run time. Committed so a build needs no Qt tools. |
+
+Shipped today: `en` (the source language, no catalogue needed), `fr` and `es`.
+The French and Spanish catalogues are **machine-drafted and marked unfinished** -
+they are a starting point for review in Qt Linguist, not verified translations.
 | `update_translations.sh` | Rescans the sources (`lupdate`) and recompiles (`lrelease`). |
 | `normalize_context.py` | Called by that script; keeps the context of `TR()` strings consistent across an `lupdate` run. |
 
@@ -121,22 +126,67 @@ Commit both the `.ts` and the `.qm`. The `.qm` is committed deliberately so that
 a PyInstaller build needs no Qt tools, and `BabelBrain.spec` globs `i18n/*.qm`,
 so a new language is bundled with no change to the spec.
 
-### 4. Selecting the language at run time — NOT IMPLEMENTED YET
+### 4. How a user selects the language
 
-`install_translators()` accepts any language code and the stacking works, but
-`main()` currently hardcodes `language='en'`:
+**The picker is on the SelFiles dialog**, bottom-left — the first screen of the
+app. It is built programmatically (`SelFiles.py::_BuildLanguagePicker`; the form
+uses absolute geometry, so there is no layout to fit into) and lists every
+language that has a `.qm` in this directory, discovered at run time by
+`Localization.available_languages()` — dropping a new catalogue in is enough, no
+code change.
 
-```python
-_installed = Localization.install_translators(
-    app, language='en',
-    mode=Localization.mode_for_config(args.bTVUSOperation))
+**Changing it takes effect immediately, with no restart.** That is why the picker
+lives here rather than in Advanced Options: every other window — the main
+window, the transducer and thermal panels, Advanced Options itself, the viewer —
+is constructed only after this dialog closes, so it is built in the newly chosen
+language. The dialog itself is refreshed in place by `ui.retranslateUi(self)`,
+which works because SelFiles is one of the two Qt Designer forms and `uic`
+generates that method for exactly this purpose.
+
+Two details that make the live switch correct, both worth preserving if this code
+is touched:
+
+* `install_translators()` removes any catalogue it installed previously, so
+  switching repeatedly does not stack translators.
+* Installing a translator does **not** rewrite widgets that already exist. Qt
+  only re-reads a string when something asks for it again, so `retranslateUi()`
+  has to be called explicitly; the window title is rebuilt separately by
+  `_ApplyWindowTitle()` because it is assembled in code, not by the form.
+* `retranslateUi()` re-applies **every** property the `.ui` declares, not just
+  the ones that changed language. In this form the path fields declare a `"..."`
+  placeholder as their *text*, so a bare call wipes whatever the user had typed
+  or browsed to. `_SnapshotFormState()` / `_RestoreFormState()` save and restore
+  the line edits, combo indices, checkboxes and spin boxes around the call, with
+  signals blocked so the restore does not re-fire handlers such as
+  `SelectCTType`. Keep that bracket if you add a live retranslate anywhere else.
+
+The choice is a **per-user, per-machine preference**, so it is stored in
+`~/.config/BabelBrain/lastselection.yaml` under `UILanguage`, next to the
+telemetry consent — not in the per-dataset `.ini`, which would tie a person's
+reading language to a subject's data.
+
+For a single run, `-language` overrides the stored preference:
+
+```bash
+python BabelBrain.py -language fr
+python BabelBrain.py -language en      # escape hatch if the UI is unreadable
 ```
 
-So a translated catalogue can be built and bundled today, but a user has no way
-to ask for it. Before a localized build is useful, add one of: a CLI flag
-(mirroring `-bTVUSOperation`), a dropdown in Advanced Options persisted to the
-config, or auto-detection from `QLocale.system()`. The choice takes effect at the
-next launch either way — the forms set their text once, at construction.
+Two deliberate choices:
+
+* **English is the default, not the OS language.** Qt never auto-loads a
+  translator — a catalogue is only installed because we ask for it — so the
+  default is entirely ours to pick. Teams are often mixed, and a member who does
+  not read the local language should not be handed a UI they cannot use.
+  Following the OS is available as an explicit *Follow system language* entry.
+* **The change takes effect at the next launch.** The programmatic forms set
+  their text once, at construction, so there is nothing to re-translate in place.
+  The Interface tab says so.
+
+In the picker, each language is written in its own language (`Français`,
+`Español`) — the usual convention, so people find their own language even when
+the surrounding UI is in another one. The language *code* lives in the combo
+item's `userData`, never in its visible text, per the rule in the next section.
 
 ## What must NOT be translatable
 

@@ -61,6 +61,10 @@ FORMS=(
 # on top of the base language and only overrides the anatomy terms.
 CATALOGUES=(
     babelbrain_tvus_en
+    babelbrain_fr
+    babelbrain_tvus_fr
+    babelbrain_es
+    babelbrain_tvus_es
 )
 
 # Hand-written markup uses the short helper TR("...") from Localization.py.
@@ -74,7 +78,8 @@ CATALOGUES=(
 if [ "$1" != "--release" ]; then
     for cat in "${CATALOGUES[@]}"; do
         echo "== lupdate -> $cat.ts"
-        python3 normalize_context.py --denormalize "$cat.ts"
+        # ...only if it exists: a brand-new language has nothing to convert yet.
+        [ -f "$cat.ts" ] && python3 normalize_context.py --denormalize "$cat.ts"
         "$LUPDATE" -locations none -tr-function-alias tr+=TR \
             "${SOURCES[@]}" "${FORMS[@]}" -ts "$cat.ts"
         python3 normalize_context.py "$cat.ts"

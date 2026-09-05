@@ -2166,6 +2166,11 @@ def main():
                              '(seeding is the default; explicit launch() inputs override it).')
     # Add special handling for TVUS - TransSpine Ultrasound Stimulation 
     parser.add_argument('-bTVUSOperation', action='store_true')
+    parser.add_argument('-language', default=None,
+                        help="UI language for this run ('en', 'fr', ..., or "
+                             "'system' to follow the OS). Overrides the stored "
+                             "preference set in Advanced Options; useful when "
+                             "the UI is in a language you cannot read.")
     
     # Server mode (v0): expose the pipeline over a small HTTP/JSON job API.
     parser.add_argument('--serve', action='store_true',
@@ -2226,8 +2231,14 @@ def main():
     # translation when the string is used, and the forms set their text once, at
     # construction time. This has to sit above the --print-GPUs-available,
     # scripting and server branches below, since each of those builds widgets.
+    # The CLI flag is a one-off override; otherwise use the stored per-user
+    # preference (Advanced Options -> Interface). Both go through
+    # resolve_language(), which maps 'system' onto the OS locale and falls back
+    # to English when the requested catalogue is not present.
+    _language = Localization.resolve_language(
+        args.language if args.language else Localization.get_ui_language())
     _installed = Localization.install_translators(
-        app, language='en',
+        app, language=_language,
         mode=Localization.mode_for_config(args.bTVUSOperation))
     if _installed:
         print('Localization: ' + ', '.join(_installed))

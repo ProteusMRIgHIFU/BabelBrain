@@ -67,11 +67,13 @@ ship with the app. Both live in the Qt bin directory of the conda environment,
 e.g. ``$CONDA_PREFIX/lib/qt6/bin``. See ``i18n/README.md``.
 """
 
+import glob
 import os
 import platform
 import sys
 from pathlib import Path
 
+import yaml
 from PySide6.QtCore import QCoreApplication, QLocale, QTranslator
 
 # Context used by every hand-written markup call. Designer-generated forms use
@@ -82,6 +84,36 @@ TRANSLATION_CONTEXT = "BabelBrain"
 # source language itself, so it has no overlay.
 MODE_TU = None
 MODE_TVUS = 'tvus'
+
+# The UI language is a per-user, per-machine preference, not a property of the
+# dataset, so it lives in the same file as the telemetry consent rather than in
+# the per-dataset .ini. Kept here (not in BabelBrain.py) so that the Options
+# dialog can read and write it without importing the main module.
+USER_CONFIG = os.path.join(str(Path.home()), '.config', 'BabelBrain',
+                           'lastselection.yaml')
+CONFIG_KEY = 'UILanguage'
+
+# Explicitly follow the operating system's language. NOT the default: teams are
+# often mixed, and a member who does not read the local language would suddenly
+# get a UI they cannot use. English is the default; this is opt-in.
+LANG_SYSTEM = 'system'
+DEFAULT_LANGUAGE = 'en'
+
+# Display names are written in the language itself, which is the convention for
+# language pickers - someone looking for their own language recognises it even
+# when the surrounding UI is in another one. Add an entry when adding a
+# catalogue; a language with no entry here falls back to showing its code.
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'fr': 'Fran\u00e7ais',
+    'es': 'Espa\u00f1ol',
+    'de': 'Deutsch',
+    'it': 'Italiano',
+    'pt': 'Portugu\u00eas',
+    'ja': '\u65e5\u672c\u8a9e',
+    'zh': '\u4e2d\u6587',
+    'ko': '\ud55c\uad6d\uc5b4',
+}
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -136,7 +168,16 @@ def install_translators(app, language='en', mode=MODE_TU):
     MODE_TVUS. Missing catalogues are skipped silently, so an untranslated build
     simply shows the English source text. Returns the list of names installed,
     which is useful for the log line in main().
+
+    Safe to call again to switch language: any catalogue installed by a previous
+    call is removed first, so the translators do not stack. Widgets that already
+    exist keep their old text until something calls ``retranslateUi()`` on them -
+    Qt does not rewrite live widgets on its own.
     """
+    for tr in _INSTALLED:
+        app.removeTranslator(tr)
+    _INSTALLED.clear()
+
     installed = []
 
     # Base language. 'en' is the source language, so it normally has no
@@ -167,6 +208,74 @@ def install_translators(app, language='en', mode=MODE_TU):
     QLocale.setDefault(QLocale(QLocale.English, QLocale.UnitedStates))
 
     return installed
+
+
+def available_languages():
+    """Language codes that actually have a catalogue, English first.
+
+    Discovered from the .qm files present, so shipping a new translation is a
+    matter of dropping the file in - no code change. Returns a list of
+    ``(code, display_name)`` pairs; English is always offered because it is the
+    source language and needs no catalogue.
+    """
+    codes = set()
+    for path in glob.glob(os.path.join(i18n_dir(), 'babelbrain_*.qm')):
+        stem = os.path.basename(path)[len('babelbrain_'):-len('.qm')]
+        # Skip mode overlays (babelbrain_tvus_fr.qm): they are not standalone
+        # languages, they ride on top of one.
+        parts = stem.split('_')
+        if len(parts) == 1:
+            codes.add(parts[0])
+    codes.discard(DEFAULT_LANGUAGE)
+    ordered = [DEFAULT_LANGUAGE] + sorted(codes)
+    return [(c, LANGUAGE_NAMES.get(c, c)) for c in ordered]
+
+
+def resolve_language(code):
+    """Turn a stored preference into a language code with a catalogue.
+
+    ``LANG_SYSTEM`` consults the OS locale - Qt never does this on its own, a
+    translator is only ever loaded because we ask for it. Anything unavailable
+    falls back to English rather than to a half-missing catalogue.
+    """
+    have = {c for c, _ in available_languages()}
+    if code == LANG_SYSTEM:
+        code = QLocale.system().name().split('_')[0]
+    if code not in have:
+        return DEFAULT_LANGUAGE
+    return code
+
+
+def get_ui_language():
+    """The stored preference, verbatim ('system', 'fr', ...). Never raises."""
+    try:
+        if os.path.isfile(USER_CONFIG):
+            with open(USER_CONFIG, 'r') as f:
+                cfg = yaml.safe_load(f) or {}
+            return cfg.get(CONFIG_KEY, DEFAULT_LANGUAGE)
+    except BaseException as e:
+        print('Localization: unable to read the UI language preference')
+        print(e)
+    return DEFAULT_LANGUAGE
+
+
+def set_ui_language(code):
+    """Persist the preference. Mirrors SaveTelemetryLevelToConfig in
+    BabelBrain.py: read-modify-write so the other keys in the file survive."""
+    try:
+        os.makedirs(os.path.dirname(USER_CONFIG), exist_ok=True)
+        cfg = {}
+        if os.path.isfile(USER_CONFIG):
+            with open(USER_CONFIG, 'r') as f:
+                cfg = yaml.safe_load(f) or {}
+        cfg[CONFIG_KEY] = code
+        with open(USER_CONFIG, 'w') as f:
+            yaml.safe_dump(cfg, f)
+        return True
+    except BaseException as e:
+        print('Localization: unable to save the UI language preference')
+        print(e)
+        return False
 
 
 def mode_for_config(bTVUS_OPERATION):
