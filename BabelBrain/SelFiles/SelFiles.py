@@ -8,7 +8,7 @@ from PySide6.QtCore import Slot, Qt,QAbstractTableModel
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
-from .ui_form import Ui_Dialog
+from .ui_form import Ui_SelFilesDialog
 import platform
 import os
 from pathlib import Path
@@ -149,7 +149,7 @@ class SelFiles(QDialog):
                     defaultCTMap=ORIGINAL_BABELBRAIN_SELECTION['real CT'],
                     bTVUS_OPERATION=False):
         super().__init__(parent)
-        self.ui = Ui_Dialog()
+        self.ui = Ui_SelFilesDialog()
         self.ui.setupUi(self)
         # Apply the shared compact app style on top of the .ui layout.
         from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style

@@ -244,10 +244,10 @@ class Babel_Thermal(QWidget):
                   'Ispta (W/cm2):']
         Ids+=['Ispta at target (W/cm2):',
              'Adjustment in RAS T1W space:',
-             'Max. temp. target ('+"\u2103"+') - CEM43:',
-             'Max. temp. brain ('+"\u2103"+') - CEM43:',
-             'Max. temp. skin ('+"\u2103"+') - CEM43:',
-             'Max. temp. skull ('+"\u2103"+') - CEM43:',
+             'Max. temp. target (\u2103) - CEM43:',
+             'Max. temp. brain (\u2103) - CEM43:',
+             'Max. temp. skin (\u2103) - CEM43:',
+             'Max. temp. skull (\u2103) - CEM43:',
              'Mechanical index:']
         if not bMergedResults:
              Ids+=['Distance from MTB to MTT (mm):']
