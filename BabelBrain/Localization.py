@@ -174,11 +174,21 @@ def mode_for_config(bTVUS_OPERATION):
     return MODE_TVUS if bTVUS_OPERATION else MODE_TU
 
 
-def TR(text):
+def TR(text, disambiguation=None):
     """Translate *text* in the shared "BabelBrain" context.
 
     The standard way to mark a user-visible string. Pass a plain string literal
     so that lupdate can extract it - see the module docstring for the rules and
     for how the build script is told about this function.
+
+    *disambiguation* gives a second English string that is otherwise identical a
+    catalogue entry of its own, so the two can be translated differently::
+
+        TR("Range", "ZTE normalized")     # -> its own entry
+        TR("Range", "HU threshold")       # -> a separate entry
+
+    It is never shown to the user; it only appears in Qt Linguist as a note to
+    the translator, so make it describe where the string is used. It must also
+    be a plain literal.
     """
-    return QCoreApplication.translate(TRANSLATION_CONTEXT, text)
+    return QCoreApplication.translate(TRANSLATION_CONTEXT, text, disambiguation)

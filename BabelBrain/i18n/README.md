@@ -40,6 +40,104 @@ A `.ts` therefore lists **every** marked-up string in the app (246 today), most
 of them empty. That is expected — it is the translator's worklist, and it is
 what a future full catalogue such as `babelbrain_fr.ts` will fill in completely.
 
+## Adding a new language
+
+Nothing translates anything automatically. A `.ts` file is a table of rows, one
+per user-visible string, and a person who speaks the language types the right
+hand side. The steps below are just how that table gets created and shipped.
+
+### 1. Generate the empty catalogue (maintainer, once per language)
+
+A new language has no home in the repo until you make one. Add it to
+`CATALOGUES` in `update_translations.sh` — the full catalogue, and optionally a
+TVUS overlay for the same language:
+
+```bash
+CATALOGUES=(
+    babelbrain_tvus_en
+    babelbrain_fr          # full French
+    babelbrain_tvus_fr     # French vertebral terms only (optional)
+)
+```
+
+Then run it:
+
+```bash
+export QTBIN=$CONDA_PREFIX/lib/qt6/bin
+./update_translations.sh
+```
+
+That creates `babelbrain_fr.ts` holding every marked-up string in the app, each
+one with an empty translation:
+
+```xml
+<message>
+    <source>Hide marks</source>
+    <translation type="unfinished"/>
+</message>
+```
+
+Commit the generated `.ts`. No code change is needed: `Localization.py` finds a
+catalogue by filename, so `babelbrain_fr.qm` and `babelbrain_tvus_fr.qm` are
+picked up as soon as they exist.
+
+Nobody ever writes a `.ts` by hand, and nobody edits the `<source>` side — that
+half is regenerated from the code on every run.
+
+### 2. Fill it in (translator)
+
+Send the translator that **one file**. They need Qt Linguist and nothing else —
+not the repo, not Python, not a conda environment. Linguist is a standalone
+download, or `$CONDA_PREFIX/lib/qt6/bin/Linguist.app` on macOS.
+
+They open `babelbrain_fr.ts`, see the source strings on the left and an empty box
+on the right, type, and `Ctrl+Enter` to confirm each one and move on. Then they
+save and send the file back.
+
+Worth telling them explicitly:
+
+* **Leave anything you are unsure of empty.** An empty row falls back to English,
+  which is always safe; a wrong translation is worse than none. A 30 %-translated
+  build ships perfectly well — 30 % translated, 70 % English, nothing broken.
+* **Keep the placeholders.** `%s`, `%3.2f`, `%1` and `\n` must survive into the
+  translation. Linguist warns when they do not match.
+* The `<comment>` shown on some entries is a disambiguation note explaining where
+  the string is used. It is never displayed to the user.
+
+For a TVUS overlay (`babelbrain_tvus_fr.ts`) ask for **only** the anatomy terms —
+about twenty rows — and to leave the rest empty; those fall through to the full
+language catalogue. That is a much smaller job, and it is usually a different
+person: it needs the clinical vocabulary rather than general fluency.
+
+### 3. Integrate and ship (maintainer)
+
+```bash
+cp ~/Downloads/babelbrain_fr.ts .
+./update_translations.sh          # merges the new text, recompiles the .qm
+```
+
+Check the report — `Generated N translation(s)` should match what they filled in.
+Commit both the `.ts` and the `.qm`. The `.qm` is committed deliberately so that
+a PyInstaller build needs no Qt tools, and `BabelBrain.spec` globs `i18n/*.qm`,
+so a new language is bundled with no change to the spec.
+
+### 4. Selecting the language at run time — NOT IMPLEMENTED YET
+
+`install_translators()` accepts any language code and the stacking works, but
+`main()` currently hardcodes `language='en'`:
+
+```python
+_installed = Localization.install_translators(
+    app, language='en',
+    mode=Localization.mode_for_config(args.bTVUSOperation))
+```
+
+So a translated catalogue can be built and bundled today, but a user has no way
+to ask for it. Before a localized build is useful, add one of: a CLI flag
+(mirroring `-bTVUSOperation`), a dropdown in Advanced Options persisted to the
+config, or auto-detection from `QLocale.system()`. The choice takes effect at the
+next launch either way — the forms set their text once, at construction.
+
 ## What must NOT be translatable
 
 Combo-box entries in the two Designer forms are device names, algorithm names,
@@ -95,6 +193,18 @@ TR("Y pos = %3.2f mm") % ycoord          # good
 TR(f"Y pos = {ycoord:3.2f} mm")          # NOT extracted — silently untranslatable
 ```
 
+When the same English word needs different translations in different places,
+pass a disambiguation tag as a second argument. It is a note to the translator,
+never shown to the user, and it gives each occurrence its own catalogue row:
+
+```python
+TR("Range", "ZTE normalized")            # its own row
+TR("Range", "HU threshold")              # a separate row
+```
+
+Strings in different contexts (`BabelBrain` vs `SelFilesDialog` vs
+`OptionsDialog`) are already separate rows and need no tag.
+
 `lupdate` learns about `TR` from `-tr-function-alias tr+=TR`. Because `TR` takes
 no context argument, lupdate files those messages under an **empty** context,
 while the catalogue stores them under `BabelBrain`. `normalize_context.py`
@@ -134,10 +244,17 @@ When the markup sweep widens, add the newly marked files to `SOURCES` in
 
 ## Editing translations
 
-Use Qt Linguist (`$CONDA_PREFIX/lib/qt6/bin/Linguist.app` on macOS, `linguist`
-elsewhere), or edit the `<translation>` elements by hand. Leave an entry empty to
-inherit the English wording. After editing, run `./update_translations.sh
---release` to regenerate the `.qm` and commit both files.
+See **Adding a new language** above for the full round trip. For a quick edit to
+an existing catalogue: open the `.ts` in Qt Linguist
+(`$CONDA_PREFIX/lib/qt6/bin/Linguist.app` on macOS, `linguist` elsewhere) or edit
+the `<translation>` elements by hand, leave an entry empty to inherit the English
+wording, then run `./update_translations.sh --release` to regenerate the `.qm`
+and commit both files.
+
+`lrelease` ships a translation that has text even when it is still marked
+`unfinished`; only genuinely empty entries are dropped. So a translator who
+forgets to confirm an entry still gets their text into the build — the finished
+flag tracks progress, it does not gate the output.
 
 ## Gotcha to watch for
 
