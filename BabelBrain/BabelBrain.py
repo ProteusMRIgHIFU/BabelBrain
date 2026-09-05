@@ -407,7 +407,7 @@ class BabelBrain(QWidget):
 
     '''
 
-    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,bTSUS_OPERATION=False):
+    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,bTVUS_OPERATION=False):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
@@ -522,7 +522,7 @@ class BabelBrain(QWidget):
             self.Config['EnableMultiPoint']=True    
             self.Config['MultiPoint']=widget.ui.MultiPointlineEdit.text()
 
-        self.Config['bTSUS_OPERATION']=bTSUS_OPERATION
+        self.Config['bTVUS_OPERATION']=bTVUS_OPERATION
             
         #default values for advanced features 
 
@@ -864,8 +864,8 @@ class BabelBrain(QWidget):
         # Same annotation as the file-selection dialog; empty for source runs
         # and stable releases, where the plain version number is the signal.
         BuildTitle=TitleSuffix(self.Config.get('BuildLabel',''))
-        if self.Config['bTSUS_OPERATION']:
-            root_title = 'BabelBrain-TSUS mode'
+        if self.Config['bTVUS_OPERATION']:
+            root_title = 'BabelBrain-TVUS mode'
         else:
             root_title='BabelBrain'
         self.setWindowTitle(root_title+' V'+
@@ -1960,7 +1960,7 @@ class RunMaskGeneration(QObject):
                 kargs['DensityThreshold']=Widget.HUTreshold.value()
                 kargs['RegionAirCT']=[0.01, 10] # air density values
 
-        kargs['bTSUS_OPERATION']=self._mainApp.Config['bTSUS_OPERATION']
+        kargs['bTVUS_OPERATION']=self._mainApp.Config['bTVUS_OPERATION']
             
         def ValidParam(k):
             #here we screen out parameters that are irrelevant for Step 1
@@ -2136,8 +2136,8 @@ def main():
                         action='store_false', default=True,
                         help='Do not seed scripted inputs from the last GUI selection '
                              '(seeding is the default; explicit launch() inputs override it).')
-    # Add special handling for TSUS - TransSpine Ultrasound Stimulation 
-    parser.add_argument('-bSpineOperation', action='store_true')
+    # Add special handling for TVUS - TransSpine Ultrasound Stimulation 
+    parser.add_argument('-bTVUSOperation', action='store_true')
     
     # Server mode (v0): expose the pipeline over a small HTTP/JSON job API.
     parser.add_argument('--serve', action='store_true',
@@ -2219,9 +2219,9 @@ def main():
     except AttributeError:
         pass
 
-    bTSUS_OPERATION=args.bSpineOperation
+    bTVUS_OPERATION=args.bTVUSOperation
 
-    selwidget = SelFiles(bTSUS_OPERATION=bTSUS_OPERATION)
+    selwidget = SelFiles(bTVUS_OPERATION=bTVUS_OPERATION)
 
     prevConfig=GetLatestSelection()
 
@@ -2309,7 +2309,7 @@ def main():
         selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(0)
         AltOutputFilesPath=Brainsight['outputfiles_path']
 
-    if bTSUS_OPERATION:
+    if bTVUS_OPERATION:
         selwidget.ui.SelSimbNIBSpushButton.setText('Select final_tissues dir...')
         selwidget.ui.SelT1WpushButton.setText('Select CT planning...')
 
@@ -2324,7 +2324,7 @@ def main():
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight,
                         AltOutputFilesPath=AltOutputFilesPath,
-                        bTSUS_OPERATION=bTSUS_OPERATION)
+                        bTVUS_OPERATION=bTVUS_OPERATION)
     widget.show()
     retcode=app.exec()
     if (retcode==0):

@@ -147,7 +147,7 @@ class SelFiles(QDialog):
                     GPU='CPU',
                     Backend='Metal',
                     defaultCTMap=ORIGINAL_BABELBRAIN_SELECTION['real CT'],
-                    bTSUS_OPERATION=False):
+                    bTVUS_OPERATION=False):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -161,8 +161,8 @@ class SelFiles(QDialog):
         # here too - same annotation as the main window. Empty for source runs
         # and stable releases. rstrip() because readlines()[0] keeps the file's
         # trailing newline, which would otherwise sit in the middle of the title.
-        if bTSUS_OPERATION:
-            root_title = 'BabelBrain-TSUS mode'
+        if bTVUS_OPERATION:
+            root_title = 'BabelBrain-TVUS mode'
         else:
             root_title='BabelBrain'
         self.setWindowTitle(root_title+" V"+version.rstrip() + TitleSuffix() +
