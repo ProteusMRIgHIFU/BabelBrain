@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
                 QErrorMessage, QMessageBox)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,QCoreApplication
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor
 
