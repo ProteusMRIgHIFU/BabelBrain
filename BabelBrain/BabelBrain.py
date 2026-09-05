@@ -306,7 +306,7 @@ def GetInputFromBrainsight():
             if header['Version'] not in ['14','15']:
                 msgBox = QMessageBox(_styled_dialog_parent())
                 msgBox.setIcon(QMessageBox.Warning)
-                msgBox.setText("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur")
+                msgBox.setText(QCoreApplication.translate("BabelBrain", "Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur"))
                 msgBox.exec()
             if 'NIfTI' not in header['Coordinate system']:
                 EndWithError("BabelBrain only supports Nifti convention for trajectory")
@@ -750,7 +750,7 @@ class BabelBrain(QWidget):
         grid_tab.setSpacing(1)
         new_tab.setLayout(grid_tab)
         new_tab.tab_name_private = "AcSim"
-        self.Widget.tabWidget.addTab(new_tab, "Step 2 - Ac Sim")
+        self.Widget.tabWidget.addTab(new_tab, QCoreApplication.translate("BabelBrain", "Step 2 - Ac Sim"))
         new_tab.setEnabled(False)
         self.AcSim=new_tab
 
@@ -759,7 +759,7 @@ class BabelBrain(QWidget):
         grid_tab.setSpacing(1)
         new_tab.setLayout(grid_tab)
         new_tab.tab_name_private = "ThermalSim"
-        self.Widget.tabWidget.addTab(new_tab, "Step 3 - Thermal Sim")
+        self.Widget.tabWidget.addTab(new_tab, QCoreApplication.translate("BabelBrain", "Step 3 - Thermal Sim"))
         new_tab.setEnabled(False)
         self.ThermalSim=new_tab
 
@@ -782,11 +782,11 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         if self.Config['CTType']==3: #PETRA, we change the label
             print('doing density selection')
-            self.Widget.CTZTETabs.setTabText(0,"PETRA")
-            ZTE.findChild(QLabel,"RangeLabel").setText("Normalized PETRA Range")
+            self.Widget.CTZTETabs.setTabText(0,QCoreApplication.translate("BabelBrain", "PETRA"))
+            ZTE.findChild(QLabel,"RangeLabel").setText(QCoreApplication.translate("BabelBrain", "Normalized PETRA Range"))
         elif self.Config['CTType']==4: #Density, we change a little labels and limits
-            self.Widget.CTZTETabs.setTabText(1,"Density")
-            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText("Density threshold")
+            self.Widget.CTZTETabs.setTabText(1,QCoreApplication.translate("BabelBrain", "Density"))
+            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText(QCoreApplication.translate("BabelBrain", "Density threshold"))
             self.Widget.HUThresholdSpinBox.setMinimum(1050)
             self.Widget.HUThresholdSpinBox.setMaximum(3000)
             self.Widget.HUThresholdSpinBox.setValue(1200)
@@ -906,7 +906,7 @@ class BabelBrain(QWidget):
         if not bValid:
             print('bValid,msg',bValid,msg)
             msgBox = QMessageBox(self.Widget)
-            msgBox.setText("Please indicate valid entries in the profile")
+            msgBox.setText(QCoreApplication.translate("BabelBrain", "Please indicate valid entries in the profile"))
             msgBox.setDetailedText(msg)
             msgBox.exec()
             return False
@@ -1009,17 +1009,18 @@ class BabelBrain(QWidget):
         srv=(self.Config.get('RemoteServer') or {}).get('name','the remote server')
         msgBox = QMessageBox(self.Widget)
         msgBox.setIcon(QMessageBox.Information)
-        msgBox.setText("Remote execution on '%s' is being set up and is not available "
+        msgBox.setText(QCoreApplication.translate("BabelBrain",
+                       "Remote execution on '%s' is being set up and is not available "
                        "yet in this build.\n\nSelect a local GPU in the computing-engine "
-                       "dropdown to run now." % srv)
+                       "dropdown to run now.") % srv)
         msgBox.exec()
 
     def _NotifyRemoteMultiTrajUnsupported(self):
         msgBox = QMessageBox(self.Widget)
         msgBox.setIcon(QMessageBox.Information)
-        msgBox.setText("Remote execution currently supports a single trajectory.\n\n"
+        msgBox.setText(QCoreApplication.translate("BabelBrain", "Remote execution currently supports a single trajectory.\n\n"
                        "Use a single-trajectory input for remote offload, or select a "
-                       "local GPU for multi-trajectory runs.")
+                       "local GPU for multi-trajectory runs."))
         msgBox.exec()
 
     def ExecuteTrajectory(self):
@@ -1031,7 +1032,8 @@ class BabelBrain(QWidget):
             except:
                 msgBox = QMessageBox(self.Widget)
                 msgBox.setIcon(QMessageBox.Critical)
-                msgBox.setText("Unable to create directory to save results at:\n" + basedir)
+                msgBox.setText(QCoreApplication.translate("BabelBrain",
+                    "Unable to create directory to save results at:\n") + basedir)
                 msgBox.exec()
                 raise
 
@@ -1255,7 +1257,7 @@ class BabelBrain(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox(self.Widget)
             msgBox.setIcon(QMessageBox.Critical)
-            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.setText(QCoreApplication.translate("BabelBrain", "There was an error in execution -\nconsult log window for details"))
             msgBox.exec()
         else:
             #this will unblock for PyTest
@@ -1574,7 +1576,7 @@ class BabelBrain(QWidget):
             self._vtk_visualization = NiftiViewerWindow(trajectories=self.Config['ID'])
             self._vtk_visualization.resize(1580, 500)
             self._vtk_visualization.show()
-            self._vtk_visualization.setWindowTitle("VTK NIfTI Viewer — Multi-Volume")
+            self._vtk_visualization.setWindowTitle(QCoreApplication.translate("BabelBrain", "VTK NIfTI Viewer — Multi-Volume"))
             self._vtk_visualization.closed.connect(self._closingVtkVisualization)
             self._UpdateVTKDomain(bFullyPopulate=True)
         else:
@@ -2345,10 +2347,6 @@ def main():
         selwidget.ui.TrajectorylineEdit.setText(Brainsight['Mat4Trajectory'])
         selwidget.ui.TrajectoryTypecomboBox.setCurrentIndex(0)
         AltOutputFilesPath=Brainsight['outputfiles_path']
-
-    if bTVUS_OPERATION:
-        selwidget.ui.SelSimbNIBSpushButton.setText('Select final_tissues dir...')
-        selwidget.ui.SelT1WpushButton.setText('Select CT planning...')
 
     icon = QIcon(os.path.join(resource_path(),'Proteus-Alciato-logo.png'))
     app.setWindowIcon(icon)

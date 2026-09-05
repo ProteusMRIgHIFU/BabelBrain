@@ -108,8 +108,10 @@ class ScrollBars(QWidget):
         self.Widget.IsppaScrollBar2.blockSignals(False)
 
     def update_labels(self,xind,yind):
-        self.Widget.SliceLabel1.setText("Y pos = %3.2f mm" %(self.ycoords[yind]))
-        self.Widget.SliceLabel2.setText("X pos = %3.2f mm" %(self.xcoords[xind]))
+        self.Widget.SliceLabel1.setText(
+            QCoreApplication.translate("BabelBrain", "Y pos = %3.2f mm") %(self.ycoords[yind]))
+        self.Widget.SliceLabel2.setText(
+            QCoreApplication.translate("BabelBrain", "X pos = %3.2f mm") %(self.xcoords[xind]))
 
     def get_scroll_values(self):
         selectedY = self.Widget.IsppaScrollBar1.value()

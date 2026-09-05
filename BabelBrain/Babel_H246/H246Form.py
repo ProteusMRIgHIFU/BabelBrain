@@ -3,6 +3,8 @@
 The common bottom half is built by TxPanelBase._build_mech_and_actions().
 """
 
+from PySide6.QtCore import QCoreApplication
+
 from GUIComponents.TxPanelBase import (
     TxPanelBase,
     LABEL_BLUE,
@@ -33,7 +35,7 @@ class H246Form(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label("Distance device\nto target (mm) :"),
+            make_label(QCoreApplication.translate("BabelBrain", "Distance device\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)

@@ -213,27 +213,27 @@
     </property>
     <item>
      <property name="text">
-      <string>NO</string>
+      <string notr="true">NO</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>real CT</string>
+      <string notr="true">real CT</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>ZTE</string>
+      <string notr="true">ZTE</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>PETRA</string>
+      <string notr="true">PETRA</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Density</string>
+      <string notr="true">Density</string>
      </property>
     </item>
    </widget>
@@ -322,17 +322,17 @@ PETRA, Density?</string>
     </property>
     <item>
      <property name="text">
-      <string>Brainsight</string>
+      <string notr="true">Brainsight</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Slicer</string>
+      <string notr="true">Slicer</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Localite</string>
+      <string notr="true">Localite</string>
      </property>
     </item>
    </widget>
@@ -353,12 +353,12 @@ PETRA, Density?</string>
     </property>
     <item>
      <property name="text">
-      <string>NO</string>
+      <string notr="true">NO</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>CT to MRI</string>
+      <string notr="true">CT to MRI</string>
      </property>
     </item>
    </widget>
@@ -376,12 +376,12 @@ PETRA, Density?</string>
     </property>
     <item>
      <property name="text">
-      <string>charm</string>
+      <string notr="true">charm</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>headreco</string>
+      <string notr="true">headreco</string>
      </property>
     </item>
    </widget>
@@ -508,97 +508,97 @@ PETRA, Density?</string>
     </property>
     <item>
      <property name="text">
-      <string>Single</string>
+      <string notr="true">Single</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>CTX_500</string>
+      <string notr="true">CTX_500</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>CTX_250</string>
+      <string notr="true">CTX_250</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>CTX_250_2ch</string>
+      <string notr="true">CTX_250_2ch</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>DPX_500</string>
+      <string notr="true">DPX_500</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>DPXPC_300</string>
+      <string notr="true">DPXPC_300</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>H317</string>
+      <string notr="true">H317</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>H246</string>
+      <string notr="true">H246</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>BSonix</string>
+      <string notr="true">BSonix</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>REMOPD</string>
+      <string notr="true">REMOPD</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>I12378</string>
+      <string notr="true">I12378</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>ATAC</string>
+      <string notr="true">ATAC</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>R15148</string>
+      <string notr="true">R15148</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>R15287</string>
+      <string notr="true">R15287</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>R15473</string>
+      <string notr="true">R15473</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>R15646</string>
+      <string notr="true">R15646</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>IGT64_500</string>
+      <string notr="true">IGT64_500</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>H301</string>
+      <string notr="true">H301</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>DomeTx</string>
+      <string notr="true">DomeTx</string>
      </property>
     </item>
    </widget>
@@ -658,12 +658,12 @@ PETRA, Density?</string>
     </property>
     <item>
      <property name="text">
-      <string>NO</string>
+      <string notr="true">NO</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>YES</string>
+      <string notr="true">YES</string>
      </property>
     </item>
    </widget>

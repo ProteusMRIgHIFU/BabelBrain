@@ -30,14 +30,34 @@ and falls through when one has no entry for a string, so:
    -> English source text     -> "CSF"
 ```
 
-That fall-through is the whole point: the overlay only carries the ~19 anatomy
+That fall-through is the whole point: the overlay only carries the 22 anatomy
 terms that actually differ between transcranial and transvertebral use, and the
 GUI code contains no mode test at all. `lrelease` drops untranslated entries
 from the `.qm`, so an entry left empty in the `.ts` costs nothing.
 
-A `.ts` therefore lists **every** marked-up string in the app (145 today), most
+A `.ts` therefore lists **every** marked-up string in the app (246 today), most
 of them empty. That is expected — it is the translator's worklist, and it is
 what a future full catalogue such as `babelbrain_fr.ts` will fill in completely.
+
+## What must NOT be translatable
+
+Combo-box entries in the two Designer forms are device names, algorithm names,
+tool names and `NO`/`YES` flags. The code reads them back with `currentText()` /
+`findText()`, persists them to the `.ini` and YAML, and the scripting, server and
+pytest interfaces address them by those exact strings. `uic` used to wrap them in
+`QCoreApplication.translate`, which meant a translator could have broken all of
+that from a `.ts` file. They are now marked in the `.ui` as
+
+```xml
+<string notr="true">real CT</string>
+```
+
+so `uic` emits a plain literal and they never reach a catalogue. Keep it that way
+for any new combo entry, and apply the same rule in code: never mark up a string
+that is written to a file, compared against, or used as a key. The CSV /
+Brainsight export headers in `Babel_Thermal.py` are the other example - their
+wording deliberately duplicates translated on-screen labels and must stay
+English.
 
 ## Contexts
 

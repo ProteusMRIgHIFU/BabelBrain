@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QListWidget,
                                QListWidgetItem, QPushButton, QLabel, QLineEdit,
                                QSpinBox, QFormLayout, QMessageBox, QDialogButtonBox,
                                QCheckBox, QFileDialog, QWidget)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 
 import RemoteServers
 
@@ -29,7 +29,7 @@ def _file_row(edit):
     h = QHBoxLayout(row)
     h.setContentsMargins(0, 0, 0, 0)
     h.addWidget(edit)
-    browse = QPushButton("Browse…")
+    browse = QPushButton(QCoreApplication.translate("BabelBrain", "Browse…"))
 
     def _pick():
         path, _ = QFileDialog.getOpenFileName(
@@ -49,7 +49,7 @@ class RemoteServerEditDialog(QDialog):
 
     def __init__(self, parent=None, server=None):
         super().__init__(parent)
-        self.setWindowTitle("Remote server")
+        self.setWindowTitle(QCoreApplication.translate("BabelBrain", "Remote server"))
         server = server or {}
         form = QFormLayout()
         self.nameEdit = QLineEdit(server.get('name', ''))
@@ -59,22 +59,22 @@ class RemoteServerEditDialog(QDialog):
         self.portSpin.setValue(int(server.get('port', 8760) or 8760))
         self.tokenEdit = QLineEdit(server.get('token') or '')
         self.tokenEdit.setEchoMode(QLineEdit.Password)
-        self.tokenEdit.setPlaceholderText("(leave empty if the server needs no token)")
+        self.tokenEdit.setPlaceholderText(QCoreApplication.translate("BabelBrain", "(leave empty if the server needs no token)"))
         form.addRow("Name:", self.nameEdit)
         form.addRow("Host / IP:", self.hostEdit)
         form.addRow("Port:", self.portSpin)
         form.addRow("Token:", self.tokenEdit)
 
         # -- TLS / HTTPS --
-        self.httpsCheck = QCheckBox("Use HTTPS (TLS)")
+        self.httpsCheck = QCheckBox(QCoreApplication.translate("BabelBrain", "Use HTTPS (TLS)"))
         self.httpsCheck.setChecked(bool(server.get('https', False)))
         self.cafileEdit = QLineEdit(server.get('cafile') or '')
-        self.cafileEdit.setPlaceholderText("(CA bundle — only for a private / self-signed cert)")
+        self.cafileEdit.setPlaceholderText(QCoreApplication.translate("BabelBrain", "(CA bundle — only for a private / self-signed cert)"))
         self.clientCertEdit = QLineEdit(server.get('client_cert') or '')
-        self.clientCertEdit.setPlaceholderText("(client cert PEM — only for mutual TLS)")
+        self.clientCertEdit.setPlaceholderText(QCoreApplication.translate("BabelBrain", "(client cert PEM — only for mutual TLS)"))
         self.clientKeyEdit = QLineEdit(server.get('client_key') or '')
-        self.clientKeyEdit.setPlaceholderText("(client key PEM — only for mutual TLS)")
-        self.insecureCheck = QCheckBox("Skip certificate verification (testing only — unsafe)")
+        self.clientKeyEdit.setPlaceholderText(QCoreApplication.translate("BabelBrain", "(client key PEM — only for mutual TLS)"))
+        self.insecureCheck = QCheckBox(QCoreApplication.translate("BabelBrain", "Skip certificate verification (testing only — unsafe)"))
         self.insecureCheck.setChecked(bool(server.get('insecure', False)))
         form.addRow(self.httpsCheck)
         form.addRow("CA file:", _file_row(self.cafileEdit))
@@ -133,16 +133,16 @@ class RemoteServerManagerDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Add / remove remote server")
+        self.setWindowTitle(QCoreApplication.translate("BabelBrain", "Add / remove remote server"))
         self.resize(460, 320)
 
         self.listWidget = QListWidget()
         self.listWidget.itemDoubleClicked.connect(lambda *_: self._edit())
 
-        addBtn = QPushButton("Add…")
-        editBtn = QPushButton("Edit…")
-        removeBtn = QPushButton("Remove")
-        testBtn = QPushButton("Test")
+        addBtn = QPushButton(QCoreApplication.translate("BabelBrain", "Add…"))
+        editBtn = QPushButton(QCoreApplication.translate("BabelBrain", "Edit…"))
+        removeBtn = QPushButton(QCoreApplication.translate("BabelBrain", "Remove"))
+        testBtn = QPushButton(QCoreApplication.translate("BabelBrain", "Test"))
         addBtn.clicked.connect(self._add)
         editBtn.clicked.connect(self._edit)
         removeBtn.clicked.connect(self._remove)
@@ -162,7 +162,7 @@ class RemoteServerManagerDialog(QDialog):
         closeBox.accepted.connect(self.accept)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Servers that can run BabelBrain simulations for this client:"))
+        layout.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "Servers that can run BabelBrain simulations for this client:")))
         layout.addLayout(row)
         layout.addWidget(closeBox)
         _style(self)

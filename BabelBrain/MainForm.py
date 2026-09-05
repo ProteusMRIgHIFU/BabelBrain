@@ -7,7 +7,7 @@
     (HUThresholdSpinBox).
 """
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -206,11 +206,11 @@ class BabelBrainMainForm(QWidget):
 
         lay.addStretch(1)
 
-        self.vtkVisualizationqPushButton = QPushButton("VTK visualization")
+        self.vtkVisualizationqPushButton = QPushButton(QCoreApplication.translate("BabelBrain", "VTK visualization"))
         self.vtkVisualizationqPushButton.setObjectName("vtkVisualizationqPushButton")
         lay.addWidget(self.vtkVisualizationqPushButton)
 
-        self.AdvancedOptions = QPushButton("Advanced Options")
+        self.AdvancedOptions = QPushButton(QCoreApplication.translate("BabelBrain", "Advanced Options"))
         self.AdvancedOptions.setObjectName("AdvancedOptions")
         lay.addWidget(self.AdvancedOptions)
 
@@ -226,7 +226,7 @@ class BabelBrainMainForm(QWidget):
         self.tabWidget.tabBar().setElideMode(Qt.ElideNone)
         # Step 1 is owned by this form; Step 2 / Step 3 are added at runtime
         # by BabelBrain.load_ui via tabWidget.addTab(...).
-        self.tabWidget.addTab(self._build_step1_tab(), "Step 1 - Calculate Mask")
+        self.tabWidget.addTab(self._build_step1_tab(), QCoreApplication.translate("BabelBrain", "Step 1 - Calculate Mask"))
         return self.tabWidget
 
     # Step 1 ------------------------------------------------------------------
@@ -249,7 +249,7 @@ class BabelBrainMainForm(QWidget):
 
         # US Frequency row
         freq_row = QHBoxLayout()
-        freq_row.addWidget(QLabel("US Frequency (kHz)"))
+        freq_row.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "US Frequency (kHz)")))
         freq_row.addStretch(1)
         self.USMaskkHzDropDown = QComboBox()
         self.USMaskkHzDropDown.setObjectName("USMaskkHzDropDown")
@@ -260,7 +260,7 @@ class BabelBrainMainForm(QWidget):
 
         # PPW row
         ppw_row = QHBoxLayout()
-        ppw_row.addWidget(QLabel("PPW"))
+        ppw_row.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "PPW")))
         ppw_row.addStretch(1)
         self.USPPWSpinBox = QDoubleSpinBox()
         self.USPPWSpinBox.setObjectName("USPPWSpinBox")
@@ -279,8 +279,8 @@ class BabelBrainMainForm(QWidget):
         self.CTZTETabs.setObjectName("CTZTETabs")
         self.CTZTETabs.setMinimumSize(240, 160)
         self.CTZTETabs.tabBar().setElideMode(Qt.ElideNone)
-        self.CTZTETabs.addTab(self._build_zte_tab(), "ZTE")
-        self.CTZTETabs.addTab(self._build_ct_tab(),  "CT")
+        self.CTZTETabs.addTab(self._build_zte_tab(), QCoreApplication.translate("BabelBrain", "ZTE"))
+        self.CTZTETabs.addTab(self._build_ct_tab(),  QCoreApplication.translate("BabelBrain", "CT"))
         self.CTZTETabs.setCurrentIndex(1)
         left_l.addWidget(self.CTZTETabs)
 
@@ -289,7 +289,7 @@ class BabelBrainMainForm(QWidget):
         left_l.addStretch(2)
 
         # Calculate planning mask button
-        self.CalculatePlanningMask = QPushButton("Calculate planning\nmask")
+        self.CalculatePlanningMask = QPushButton(QCoreApplication.translate("BabelBrain", "Calculate planning\nmask"))
         self.CalculatePlanningMask.setObjectName("CalculatePlanningMask")
         self.CalculatePlanningMask.setMinimumHeight(64)
         _bold(self.CalculatePlanningMask)
@@ -308,13 +308,13 @@ class BabelBrainMainForm(QWidget):
         bottom = QHBoxLayout()
         bottom.setSpacing(8)
 
-        self.HideMarkscheckBox = QCheckBox("Hide marks")
+        self.HideMarkscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Hide marks"))
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
         bottom.addWidget(self.HideMarkscheckBox)
         bottom.addStretch(1)
 
-        bottom.addWidget(QLabel("T1W transparency"))
+        bottom.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "T1W transparency")))
         self.TransparencyScrollBar = QScrollBar(Qt.Horizontal)
         self.TransparencyScrollBar.setObjectName("TransparencyScrollBar")
         self.TransparencyScrollBar.setMaximum(100)
@@ -345,7 +345,7 @@ class BabelBrainMainForm(QWidget):
         page_l.setContentsMargins(8, 8, 8, 8)
         page_l.setSpacing(8)
 
-        range_lbl = QLabel("Normalized ZTE Range")
+        range_lbl = QLabel(QCoreApplication.translate("BabelBrain", "Normalized ZTE Range"))
         range_lbl.setObjectName("RangeLabel")
         range_lbl.setAlignment(Qt.AlignCenter)
         page_l.addWidget(range_lbl)
@@ -358,7 +358,7 @@ class BabelBrainMainForm(QWidget):
         page_l.setContentsMargins(8, 8, 8, 8)
         page_l.setSpacing(8)
 
-        hu_lbl = QLabel("HU threshold")
+        hu_lbl = QLabel(QCoreApplication.translate("BabelBrain", "HU threshold"))
         hu_lbl.setObjectName("HULabel")
         hu_lbl.setAlignment(Qt.AlignCenter)
         page_l.addWidget(hu_lbl)
@@ -376,7 +376,7 @@ class BabelBrainMainForm(QWidget):
 
     # Log section -------------------------------------------------------------
     def _build_log_header(self):
-        return _bold(QLabel("Terminal output"))
+        return _bold(QLabel(QCoreApplication.translate("BabelBrain", "Terminal output")))
 
     def _build_log_view(self):
         self.outputTerminal = QTextBrowser()

@@ -11,6 +11,7 @@ from GUIComponents.TxPanelBase import (
     make_label,
     form_row,
 )
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QCheckBox
 
 
@@ -19,7 +20,7 @@ class REMOPDForm(TxPanelBase):
         frame, lay = self._make_left_frame()
 
         # Tx element set
-        self.MultifocusLabel = make_label("Tx Elements Set",
+        self.MultifocusLabel = make_label(QCoreApplication.translate("BabelBrain", "Tx Elements Set"),
                                           name="MultifocusLabel")
         self.SelTxSetDropDown = make_combo(
             "SelTxSetDropDown", items=["Total", "Sector1", "Sector2"])
@@ -55,7 +56,7 @@ class REMOPDForm(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label("Distance device\nto target (mm) :"),
+            make_label(QCoreApplication.translate("BabelBrain", "Distance device\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)

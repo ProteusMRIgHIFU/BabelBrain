@@ -2,7 +2,7 @@
 import sys
 
 from PySide6.QtWidgets import QApplication, QDialog,QFileDialog,QMessageBox,QStyle
-from PySide6.QtCore import Slot, Qt,QAbstractTableModel
+from PySide6.QtCore import QCoreApplication, Slot, Qt,QAbstractTableModel
 
 # Important:
 # You need to run the following command to generate the ui_form.py file
@@ -166,7 +166,8 @@ class SelFiles(QDialog):
         else:
             root_title='BabelBrain'
         self.setWindowTitle(root_title+" V"+version.rstrip() + TitleSuffix() +
-                            " - Select input files ...")
+                            QCoreApplication.translate("BabelBrain",
+                                " - Select input files ..."))
         self.ui.SelTrajectorypushButton.clicked.connect(self.SelectTrajectory)
         self.ui.SelT1WpushButton.clicked.connect(self.SelectT1W)
         self.ui.SelCTpushButton.clicked.connect(self.SelectCT)
@@ -216,9 +217,9 @@ class SelFiles(QDialog):
 
         if len(self._GPUs)==0 and not any(it['kind']=='remote' for it in self._computeItems):
             msgBox = QMessageBox()
-            msgBox.setText("No GPUs were detected on this machine.\n\nTo run simulations, "
+            msgBox.setText(QCoreApplication.translate("BabelBrain", "No GPUs were detected on this machine.\n\nTo run simulations, "
                            "add a remote BabelBrain server via the computing-engine "
-                           "dropdown ('Add / remove remote server…').")
+                           "dropdown ('Add / remove remote server…')."))
             msgBox.exec()
 
         df = SpeedofSoundWebbDataset()
@@ -629,7 +630,7 @@ class SelFiles(QDialog):
            not os.path.isfile(self.ui.T1WlineEdit.text()) or\
            (self.ui.CTTypecomboBox.currentIndex()>0 and not os.path.isfile(self.ui.CTlineEdit.text())):
             msgBox = QMessageBox()
-            msgBox.setText("Please indicate valid entries")
+            msgBox.setText(QCoreApplication.translate("BabelBrain", "Please indicate valid entries"))
             print(self.msgDetails)
             msgBox.setDetailedText(self.msgDetails)
             msgBox.exec()

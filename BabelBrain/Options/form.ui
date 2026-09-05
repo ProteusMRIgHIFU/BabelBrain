@@ -98,17 +98,17 @@
      </property>
      <item>
       <property name="text">
-       <string>AdaptiveStochasticGradientDescent</string>
+       <string notr="true">AdaptiveStochasticGradientDescent</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>FiniteDifferenceGradientDescent</string>
+       <string notr="true">FiniteDifferenceGradientDescent</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>QuasiNewtonLBFGS</string>
+       <string notr="true">QuasiNewtonLBFGS</string>
       </property>
      </item>
     </widget>

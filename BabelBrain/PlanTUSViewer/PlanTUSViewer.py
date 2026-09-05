@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QToolBar, QFileDialog, QSlider, QLabel, QComboBox, QHBoxLayout,QPushButton,QSizePolicy
 )
 from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 import numpy as np
 from vtk.util import numpy_support
 
@@ -38,7 +38,7 @@ class GiftiViewer(QWidget):
         layout.addWidget(self.titleLabel,alignment=Qt.AlignCenter)
         layout.addWidget(self.vtkWidget)
 
-        self.valueLabel = QLabel("Value: N/A")
+        self.valueLabel = QLabel(QCoreApplication.translate("BabelBrain", "Value: N/A"))
         layout.addWidget(self.valueLabel)
 
         self.renderer = vtk.vtkRenderer()
@@ -275,7 +275,7 @@ class GiftiViewer(QWidget):
         value = np.mean(values)
         if np.isnan(value):
             return  # skip if value is NaN
-        self.valueLabel.setText(f"Value: {value:.2f}")
+        self.valueLabel.setText(QCoreApplication.translate("BabelBrain", "Value: %.2f") % value)
 
         self.sphere_source.SetCenter(*pick_pos)
         self.sphere_actor.SetVisibility(True)
@@ -365,32 +365,32 @@ class MultiGiftiViewerWidget(QWidget):
             v.interactor.AddObserver("InteractionEvent", sync_cameras)
 
         # Toolbar buttons
-        self.selection_button = QCheckBox("Selection Mode")
+        self.selection_button = QCheckBox(QCoreApplication.translate("BabelBrain", "Selection Mode"))
         self.selection_button.toggled.connect(self.toggle_selection)
         self.toolbar.addWidget(self.selection_button)
 
-        self.heatmap_checkbox = QCheckBox("Show masked")
+        self.heatmap_checkbox = QCheckBox(QCoreApplication.translate("BabelBrain", "Show masked"))
         self.heatmap_checkbox.setChecked(True)  # default ON
         self.heatmap_checkbox.toggled.connect(self.toggle_heatmap)
         self.toolbar.addWidget(self.heatmap_checkbox)
 
-        axial_action = QAction("Top", self)
+        axial_action = QAction(QCoreApplication.translate("BabelBrain", "Top"), self)
         axial_action.triggered.connect(lambda: self.set_preset_view("top"))
         self.toolbar.addAction(axial_action)
 
-        coronal_action = QAction("Front", self)
+        coronal_action = QAction(QCoreApplication.translate("BabelBrain", "Front"), self)
         coronal_action.triggered.connect(lambda: self.set_preset_view("front"))
         self.toolbar.addAction(coronal_action)
 
-        sagittal_action = QAction("Lateral", self)
+        sagittal_action = QAction(QCoreApplication.translate("BabelBrain", "Lateral"), self)
         sagittal_action.triggered.connect(lambda: self.set_preset_view("lateral"))
         self.toolbar.addAction(sagittal_action)
 
-        oblique_action = QAction("3D", self)
+        oblique_action = QAction(QCoreApplication.translate("BabelBrain", "3D"), self)
         oblique_action.triggered.connect(lambda: self.set_preset_view("oblique"))
         self.toolbar.addAction(oblique_action)
 
-        screenshot_action = QAction("Screenshot", self)
+        screenshot_action = QAction(QCoreApplication.translate("BabelBrain", "Screenshot"), self)
         for v in self.viewers:
             screenshot_action.triggered.connect(v.save_screenshot)
         self.toolbar.addAction(screenshot_action)
@@ -409,7 +409,7 @@ class MultiGiftiViewerWidget(QWidget):
 
         self.select_vortex = None
 
-        button = QPushButton("Generate Trajectory", self)
+        button = QPushButton(QCoreApplication.translate("BabelBrain", "Generate Trajectory"), self)
         button.clicked.connect(self.GenerateTrajectory)
         button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # only as wide as needed
         button.setStyleSheet("padding: 8px 36px;")

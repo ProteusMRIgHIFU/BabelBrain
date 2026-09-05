@@ -17,7 +17,7 @@ Two independent axes are supported, and they stack:
 
 Qt searches installed translators in *reverse* order of installation and falls
 through to the next one when a translator has no entry for a string. So the
-overlay is installed last and only needs to carry the ~25 strings it actually
+overlay is installed last and only needs to carry the ~20 strings it actually
 changes; everything else falls through to the language catalogue, and then to
 the English source text. This is why TVUS labelling needs no ``if/else`` at all
 in the GUI code.
@@ -44,7 +44,9 @@ already wrapped by ``pyside6-uic`` under the contexts ``SelFilesDialog`` and
 Only mark strings that reach a widget or a plot. Do not mark strings that are
 written to a file or compared against - notably the CSV/Brainsight export
 headers in ``Babel_Thermal.py`` and any combo-box entry read back with
-``currentText()``.
+``currentText()``. Combo entries defined in the Designer forms carry
+``notr="true"`` so that ``uic`` emits a plain literal for them; keep that on any
+entry you add.
 
 --------------------------------------------------------------------------
 REBUILDING THE CATALOGUES

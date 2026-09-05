@@ -138,13 +138,13 @@ class ThermalForm(QWidget):
             actions = QHBoxLayout()
             actions.setSpacing(6)
             self.CalculateThermal = make_button(
-                "CalculateThermal", "Calculate Thermal Fields",
+                "CalculateThermal", QCoreApplication.translate("BabelBrain", "Calculate Thermal Fields"),
                 bold=True, min_height=40)
             self.CalculateThermal.setStyleSheet("color: #e03030;")
             actions.addWidget(self.CalculateThermal, stretch=1)
 
             self.SelectProfile = make_button(
-                "SelectProfile", "Update Profile and Calculate",
+                "SelectProfile", QCoreApplication.translate("BabelBrain", "Update Profile and Calculate"),
                 bold=True, min_height=40)
             self.SelectProfile.setStyleSheet("color: #2db52d;")
             actions.addWidget(self.SelectProfile, stretch=1)
@@ -153,21 +153,21 @@ class ThermalForm(QWidget):
         # Combination timing + duration/DC/PRF triplet
         comb_row = QHBoxLayout()
         comb_row.setSpacing(8)
-        comb_row.addWidget(QLabel("Combination timing"))
+        comb_row.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "Combination timing")))
         comb_row.addStretch(1)
         self.SelCombinationDropDown = make_combo(
             "SelCombinationDropDown", items=None, width=140)
         comb_row.addWidget(self.SelCombinationDropDown)
         lay.addLayout(comb_row)
 
-        triplet_lbl = QLabel("[Duration, DC, PRF]")
+        triplet_lbl = QLabel(QCoreApplication.translate("BabelBrain", "[Duration, DC, PRF]"))
         triplet_lbl.setAlignment(Qt.AlignRight)
         lay.addWidget(triplet_lbl)
 
 
         # Isppa
         isppa_row = QHBoxLayout()
-        isppa_row.addWidget(QLabel("Isppa (W/cm²)"))
+        isppa_row.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "Isppa (W/cm²)")))
         isppa_row.addStretch(1)
         self.IsppaSpinBox = make_dspin(
             "IsppaSpinBox", value=5.0, minimum=0.1, maximum=60.0,
@@ -177,7 +177,7 @@ class ThermalForm(QWidget):
 
         # Isppa in Water
         isppaw_row = QHBoxLayout()
-        isppaw_row.addWidget(QLabel("Isppa in Water (W/cm²)"))
+        isppaw_row.addWidget(QLabel(QCoreApplication.translate("BabelBrain", "Isppa in Water (W/cm²)")))
         isppaw_row.addStretch(1)
         self.IsppaWaterSpinBox = make_dspin(
             "IsppaWaterSpinBox", value=5.0, minimum=0.1, maximum=1000.0,
@@ -237,20 +237,20 @@ class ThermalForm(QWidget):
         # Height comes from the QSS #ExportSummary/#ExportMaps rule (two-line
         # labels); the value below is a no-op floor kept for clarity.
         self.ExportSummary = make_button(
-            "ExportSummary", "Export summary\n(CSV)", min_height=40)
+            "ExportSummary", QCoreApplication.translate("BabelBrain", "Export summary\n(CSV)"), min_height=40)
         self.ExportSummary.setEnabled(False)
 
         self.ExportMaps = make_button(
-            "ExportMaps", "Export maps\n(.nii.gz)", min_height=40)
+            "ExportMaps", QCoreApplication.translate("BabelBrain", "Export maps\n(.nii.gz)"), min_height=40)
         self.ExportMaps.setEnabled(False)
 
-        self.label_22 = make_label("Show", name="label_22")
+        self.label_22 = make_label(QCoreApplication.translate("BabelBrain", "Show"), name="label_22")
 
         self.DisplayDropDown = make_combo(
             "DisplayDropDown", items=["Maps", "Profiles"])
 
         # Orthogonal plane to display (drives which axis IsppaScrollBar scrolls).
-        self.label_view = make_label("View", name="label_view")
+        self.label_view = make_label(QCoreApplication.translate("BabelBrain", "View"), name="label_view")
         self.SelViewDropDown = make_combo(
             "SelViewDropDown", items=["XZ", "YZ", "XY"])
 
@@ -265,7 +265,7 @@ class ThermalForm(QWidget):
                                      bold=True, color=LABEL_BLUE)
         self.SliceLabel.setMinimumWidth(80)
 
-        self.HideMarkscheckBox = QCheckBox("Hide marks")
+        self.HideMarkscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Hide marks"))
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
 
@@ -275,7 +275,7 @@ class ThermalForm(QWidget):
             "LocMTS", QCoreApplication.translate("BabelBrain", "Max. Temp. Skin"))
         self.LocMTC = make_button(
             "LocMTC", QCoreApplication.translate("BabelBrain", "Max. Temp. Skull"))
-        self.LocTargets =  make_button("LocTargets", "Target")
+        self.LocTargets =  make_button("LocTargets", QCoreApplication.translate("BabelBrain", "Target"))
         if self._bMergedResults:
             self.SelTarget = make_combo("SelTarget",items=self.parent()._MainApp.Config['ID'],width=60)
 
@@ -317,14 +317,14 @@ class ThermalForm(QWidget):
             nBox.setSpacing(0)
             nBox.setContentsMargins(0, 0, 0, 0)
             self.CombineTrajectories = make_button(
-            "CombineTrajectories", "Combine Trajectoriess", color="red")
+            "CombineTrajectories", QCoreApplication.translate("BabelBrain", "Combine Trajectoriess"), color="red")
             nBox.addWidget(self.CombineTrajectories)
             self.CombineTrajectories.setEnabled(False)
             left2.setLayout(nBox)
         row2.addWidget(left2)
 
         row2.addStretch(1)
-        row2.addWidget(make_label('Go to:'))
+        row2.addWidget(make_label(QCoreApplication.translate("BabelBrain", 'Go to:')))
         row2.addWidget(self.LocMTB)
         row2.addWidget(self.LocMTS)
         row2.addWidget(self.LocMTC)

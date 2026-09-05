@@ -618,7 +618,7 @@ class Babel_Thermal(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
-            msgBox.setText("There was an error in execution -\nconsult log window for details")
+            msgBox.setText(QCoreApplication.translate("BabelBrain", "There was an error in execution -\nconsult log window for details"))
             msgBox.exec()
         else:
             #this will unblock for PyTest
@@ -1128,7 +1128,7 @@ class Babel_Thermal(QWidget):
                     _extent=[vp['hvec'].min(),vp['hvec'].max(),vp['vvec'].max(),vp['vvec'].min()]
                     self._IntensityIm=static_ax1.imshow(IntensityMap,extent=_extent,
                             cmap=plt.cm.jet)
-                    static_ax1.set_title('Isppa (W/cm$^2$)')
+                    static_ax1.set_title(QCoreApplication.translate("BabelBrain", 'Isppa (W/cm$^2$)'))
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
                         self._contour1=static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims,colors ='y',linestyles = ':')
@@ -1138,7 +1138,7 @@ class Babel_Thermal(QWidget):
 
                     self._ThermalIm=static_ax2.imshow(Tmap.T,
                             extent=_extent,cmap=plt.cm.jet,vmin=BaselineTemperature)
-                    static_ax2.set_title('Temperature ($^{\circ}$C)')
+                    static_ax2.set_title(QCoreApplication.translate("BabelBrain", 'Temperature ($^{\circ}$C)'))
                     static_ax2.set_xlabel(vp['hlabel'])
                     static_ax2.set_ylabel(vp['vlabel'])
 
@@ -1168,8 +1168,8 @@ class Babel_Thermal(QWidget):
                         
                     else:
                         self._TempPlot=static_ax1.plot(timevec,AdjustedTemp.T)
-                    static_ax1.set_xlabel('time (s)')
-                    static_ax1.set_ylabel('temperature (degrees C)')
+                    static_ax1.set_xlabel(QCoreApplication.translate("BabelBrain", 'time (s)'))
+                    static_ax1.set_ylabel(QCoreApplication.translate("BabelBrain", 'temperature (degrees C)'))
                     leg=[QCoreApplication.translate("BabelBrain", 'Skin'),
                          QCoreApplication.translate("BabelBrain", 'Brain'),
                          QCoreApplication.translate("BabelBrain", 'Skull')]
@@ -1213,7 +1213,9 @@ class Babel_Thermal(QWidget):
                             self._ListMarkers.append(self._static_ax2.text(hvec[DataThermal[k][haxis]]-5,
                                             vvec[DataThermal[k][vaxis]]+5,kl,color='w',fontsize=10))
 
-                self.Widget.SliceLabel.setText("%s = %3.2f mm" %(vp['poslabel'],posvec[self.Widget.IsppaScrollBar.value()]))
+                self.Widget.SliceLabel.setText(
+                    QCoreApplication.translate("BabelBrain", "%s = %3.2f mm")
+                    %(vp['poslabel'],posvec[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
             self._prevView=vp['view']
 
@@ -1239,7 +1241,7 @@ class Babel_Thermal(QWidget):
         '''
         if getattr(self, '_mergedTabIndex', None) is None:
             form = self._CreateForm(bMergedResults=True)
-            idx = self._txTabs.addTab(form, 'Merged')
+            idx = self._txTabs.addTab(form, QCoreApplication.translate("BabelBrain", 'Merged'))
             self._Widgets.append(form)
             self._thPanels.append(self._NewThermalPanel())
             self._mergedTabIndex = idx

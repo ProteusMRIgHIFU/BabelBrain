@@ -29,9 +29,25 @@ LRELEASE="$QTBIN/lrelease"
 # widens (Phase 2) - anything not listed is invisible to lupdate.
 SOURCES=(
     ../BabelBrain.py
+    ../MainForm.py
+    ../SelFiles/SelFiles.py
+    ../Options/Options.py
+    ../_BabelBaseTx.py
     ../Babel_Thermal/Babel_Thermal.py
     ../Babel_Thermal/ThermalForm.py
     ../GUIComponents/TxPanelBase.py
+    ../GUIComponents/ScrollBars.py
+    ../GUIComponents/nifti_viewer.py
+    ../GUIComponents/RemoteServerDialog.py
+    ../Telemetry/TelemetryConsentDialog.py
+    ../PlanTUSViewer/RunPlanTUS.py
+    ../PlanTUSViewer/PlanTUSViewer.py
+    ../_Babel_RingTx/RingTxForm.py
+    ../Babel_DomeTx/DomeTxForm.py
+    ../Babel_H246/H246Form.py
+    ../Babel_H317/H317Form.py
+    ../Babel_REMOPD/REMOPDForm.py
+    ../Babel_SingleTx/SingleTxForm.py
 )
 
 # Qt Designer forms. uic already wraps their strings; lupdate reads the .ui

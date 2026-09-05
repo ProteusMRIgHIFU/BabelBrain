@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QCoreApplication, Qt, Signal
 from PySide6.QtGui import QColor, QPalette, QDoubleValidator
 from PySide6.QtWidgets import (
     QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSlider,
@@ -1259,7 +1259,7 @@ class LayerRow(QWidget):
 
         # WL target button — clicking makes this the active WL volume
         self._wl_btn = QToolButton()
-        self._wl_btn.setText("W/L")
+        self._wl_btn.setText(QCoreApplication.translate("BabelBrain", "W/L"))
         self._wl_btn.setFixedSize(30, 22)
         self._wl_btn.clicked.connect(lambda: self.wl_select.emit(self._vol_idx))
         hrow.addWidget(self._wl_btn)
@@ -1280,7 +1280,7 @@ class LayerRow(QWidget):
 
 
         self._cutoff_edit = QLineEdit()
-        self._cutoff_edit.setPlaceholderText("cutoff")
+        self._cutoff_edit.setPlaceholderText(QCoreApplication.translate("BabelBrain", "cutoff"))
         self._cutoff_edit.setFixedWidth(56)
         self._cutoff_edit.setFixedHeight(22)
         self._cutoff_edit.setValidator(QDoubleValidator())
@@ -1293,7 +1293,7 @@ class LayerRow(QWidget):
             QLineEdit:focus {{ border-color:{color}; }}
         """)
         self._cutoff_edit.setToolTip(
-            "Mask values below this threshold (leave empty to disable)")
+            QCoreApplication.translate("BabelBrain", "Mask values below this threshold (leave empty to disable)"))
 
         self._cutoff_edit.editingFinished.connect(self._on_cutoff_changed)
         hrow.addWidget(self._cutoff_edit)
@@ -1340,15 +1340,15 @@ class LayerRow(QWidget):
         l_cap = QLabel("L"); l_cap.setStyleSheet(f"color:{TEXT_DIM}; font-size:10px;")
         self._w_edit = _wl_edit(rec.wl_window)
         self._l_edit = _wl_edit(rec.wl_level)
-        self._w_edit.setToolTip("Window width (contrast). Press Enter to apply.")
-        self._l_edit.setToolTip("Window level (brightness centre). Press Enter to apply.")
+        self._w_edit.setToolTip(QCoreApplication.translate("BabelBrain", "Window width (contrast). Press Enter to apply."))
+        self._l_edit.setToolTip(QCoreApplication.translate("BabelBrain", "Window level (brightness centre). Press Enter to apply."))
         self._w_edit.editingFinished.connect(self._on_wl_edited)
         self._l_edit.editingFinished.connect(self._on_wl_edited)
 
         self._wl_reset_btn = QToolButton()
         self._wl_reset_btn.setText("↺")
         self._wl_reset_btn.setFixedSize(20, 20)
-        self._wl_reset_btn.setToolTip("Reset this layer's window/level to default")
+        self._wl_reset_btn.setToolTip(QCoreApplication.translate("BabelBrain", "Reset this layer's window/level to default"))
         self._wl_reset_btn.setStyleSheet(f"""
             QToolButton {{ border:1px solid #444455; background:transparent;
                            color:{TEXT_DIM}; border-radius:3px; font-size:12px; }}
@@ -1379,7 +1379,7 @@ class LayerRow(QWidget):
         # ── Opacity row (overlays only) ────────────────────────────────
         # if not self._is_base:
         orow = QHBoxLayout(); orow.setSpacing(6)
-        olk = QLabel("Opacity")
+        olk = QLabel(QCoreApplication.translate("BabelBrain", "Opacity"))
         olk.setStyleSheet(f"color:{TEXT_DIM}; font-size:10px;")
         orow.addWidget(olk)
 
@@ -1408,7 +1408,7 @@ class LayerRow(QWidget):
 
         # ── Colourmap row ──────────────────────────────────────────────
         crow = QHBoxLayout(); crow.setSpacing(6)
-        clbl = QLabel("Colourmap")
+        clbl = QLabel(QCoreApplication.translate("BabelBrain", "Colourmap"))
         clbl.setStyleSheet(f"color:{TEXT_DIM}; font-size:10px;")
         crow.addWidget(clbl)
 
@@ -1479,7 +1479,7 @@ class LayerPanel(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        hdr = QLabel("  LAYERS")
+        hdr = QLabel(QCoreApplication.translate("BabelBrain", "  LAYERS"))
         hdr.setFixedHeight(32)
         hdr.setStyleSheet(
             f"background:{BG_PANEL}; color:{TEXT_DIM}; font-size:10px; "
@@ -2213,21 +2213,21 @@ class NiftiViewerTab(QWidget):
         tb_lay.setSpacing(6)
 
         if stand_alone:
-            self._btn_open = QPushButton("  Open NIfTI…")
+            self._btn_open = QPushButton(QCoreApplication.translate("BabelBrain", "  Open NIfTI…"))
             self._btn_open.clicked.connect(self._open_base)
             tb_lay.addWidget(self._btn_open)
 
-        self._btn_overlay = QPushButton("  Add overlay…")
+        self._btn_overlay = QPushButton(QCoreApplication.translate("BabelBrain", "  Add overlay…"))
         self._btn_overlay.setEnabled(False)
         self._btn_overlay.clicked.connect(self._add_overlay)
         tb_lay.addWidget(self._btn_overlay)
 
         tb_lay.addWidget(_tb_sep())
 
-        mode_box = QGroupBox("Display mode")
+        mode_box = QGroupBox(QCoreApplication.translate("BabelBrain", "Display mode"))
         ml = QHBoxLayout(mode_box); ml.setContentsMargins(6,2,6,2); ml.setSpacing(12)
-        self._rb_affine  = QRadioButton("Affine (native axes)")
-        self._rb_medical = QRadioButton("Medical (RAS)")
+        self._rb_affine  = QRadioButton(QCoreApplication.translate("BabelBrain", "Affine (native axes)"))
+        self._rb_medical = QRadioButton(QCoreApplication.translate("BabelBrain", "Medical (RAS)"))
         self._rb_affine.setChecked(True)
         grp = QButtonGroup(self)
         grp.addButton(self._rb_affine,  0)
@@ -2238,9 +2238,9 @@ class NiftiViewerTab(QWidget):
 
         tb_lay.addWidget(_tb_sep())
 
-        conv_box = QGroupBox("Convention")
+        conv_box = QGroupBox(QCoreApplication.translate("BabelBrain", "Convention"))
         cl = QHBoxLayout(conv_box); cl.setContentsMargins(6,2,6,2)
-        self._cb_radio = QCheckBox("Neurological (flip L↔R)")
+        self._cb_radio = QCheckBox(QCoreApplication.translate("BabelBrain", "Neurological (flip L↔R)"))
         self._cb_radio.setEnabled(False)
         self._cb_radio.stateChanged.connect(
             lambda s: self.viewer.set_neurological(bool(s)))
@@ -2249,9 +2249,9 @@ class NiftiViewerTab(QWidget):
 
         tb_lay.addWidget(_tb_sep())
 
-        view_box = QGroupBox("View")
+        view_box = QGroupBox(QCoreApplication.translate("BabelBrain", "View"))
         vl = QHBoxLayout(view_box); vl.setContentsMargins(6,2,6,2); vl.setSpacing(10)
-        self._cb_crosshair = QCheckBox("Crosshairs")
+        self._cb_crosshair = QCheckBox(QCoreApplication.translate("BabelBrain", "Crosshairs"))
         self._cb_crosshair.setChecked(True)
         self._cb_crosshair.stateChanged.connect(
             lambda s: self.viewer.set_crosshair_visible(bool(s)))
@@ -2260,26 +2260,26 @@ class NiftiViewerTab(QWidget):
 
         tb_lay.addWidget(_tb_sep())
 
-        self._btn_screenshot = QPushButton("  📷 Screenshot…")
+        self._btn_screenshot = QPushButton(QCoreApplication.translate("BabelBrain", "  📷 Screenshot…"))
         self._btn_screenshot.setEnabled(False)
-        self._btn_screenshot.setToolTip("Save all three views side-by-side as a PNG")
+        self._btn_screenshot.setToolTip(QCoreApplication.translate("BabelBrain", "Save all three views side-by-side as a PNG"))
         self._btn_screenshot.clicked.connect(self._take_screenshot)
         tb_lay.addWidget(self._btn_screenshot)
 
-        self._btn_reset = QPushButton("  ↺ Reset view")
+        self._btn_reset = QPushButton(QCoreApplication.translate("BabelBrain", "  ↺ Reset view"))
         self._btn_reset.setEnabled(False)
         self._btn_reset.setToolTip(
-            "Restore default zoom, pan, slice positions and window/level for all volumes")
+            QCoreApplication.translate("BabelBrain", "Restore default zoom, pan, slice positions and window/level for all volumes"))
         self._btn_reset.clicked.connect(self._reset_view)
         tb_lay.addWidget(self._btn_reset)
 
         tb_lay.addWidget(_tb_sep())
 
         # ── RAS coordinate navigator ───────────────────────────────────
-        ras_box = QGroupBox("RAS (mm)")
+        ras_box = QGroupBox(QCoreApplication.translate("BabelBrain", "RAS (mm)"))
         ras_box.setToolTip(
-            "Current crosshair position in RAS world coordinates.\n"
-            "Type a value and press Enter (or click away) to navigate there.")
+            QCoreApplication.translate("BabelBrain", "Current crosshair position in RAS world coordinates.\n"
+            "Type a value and press Enter (or click away) to navigate there."))
         rl = QHBoxLayout(ras_box)
         rl.setContentsMargins(6, 1, 6, 1)
         rl.setSpacing(4)
@@ -2303,7 +2303,8 @@ class NiftiViewerTab(QWidget):
             edit = QLineEdit("0.0")
             edit.setValidator(QDoubleValidator(-9999., 9999., 2))
             edit.setStyleSheet(_coord_edit_style)
-            edit.setToolTip(f"RAS {axis} coordinate in mm")
+            edit.setToolTip(QCoreApplication.translate("BabelBrain",
+                "RAS %s coordinate in mm") % axis)
             edit.returnPressed.connect(self._on_ras_entered)
             edit.editingFinished.connect(self._on_ras_entered)
             rl.addWidget(edit)
@@ -2489,7 +2490,7 @@ def main():
     app.setApplicationName("NIfTI Viewer")
 
     win = NiftiViewerWindow(stand_alone=True)
-    win.setWindowTitle("NIfTI Viewer — Multi-Volume")
+    win.setWindowTitle(QCoreApplication.translate("BabelBrain", "NIfTI Viewer — Multi-Volume"))
     win.resize(1580, 620)
     win.show()
 

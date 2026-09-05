@@ -1,7 +1,7 @@
 import sys
 
 from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox,QVBoxLayout,QDialogButtonBox
-from PySide6.QtCore import QTimer,QObject
+from PySide6.QtCore import QCoreApplication, QTimer,QObject
 
 import platform
 import os
@@ -521,8 +521,8 @@ class RUN_PLAN_TUS(QObject):
                     print("*"*40)
                     msg = QMessageBox(self.OptionsDlg)
                     msg.setIcon(QMessageBox.Icon.Critical)
-                    msg.setWindowTitle("Incomplete execution in PlanTUS.")
-                    msg.setText("We couldn't find any PlanTUS generated trajectory.")
+                    msg.setWindowTitle(QCoreApplication.translate("BabelBrain", "Incomplete execution in PlanTUS."))
+                    msg.setText(QCoreApplication.translate("BabelBrain", "We couldn't find any PlanTUS generated trajectory."))
                     msg.setInformativeText("Check console terminal output in main Window for details")
                     msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                     msg.exec()
@@ -532,8 +532,8 @@ class RUN_PLAN_TUS(QObject):
                 print("*"*40)
                 msg = QMessageBox(self.OptionsDlg)
                 msg.setIcon(QMessageBox.Icon.Critical)
-                msg.setWindowTitle("Error in PlanTUS.")
-                msg.setText("An error occurred during execution of PlanTUS.")
+                msg.setWindowTitle(QCoreApplication.translate("BabelBrain", "Error in PlanTUS."))
+                msg.setText(QCoreApplication.translate("BabelBrain", "An error occurred during execution of PlanTUS."))
                 msg.setInformativeText("Check console terminal output in main Window for detailed error")
                 msg.setStandardButtons(QMessageBox.StandardButton.Ok)
                 msg.exec()
@@ -541,7 +541,7 @@ class RUN_PLAN_TUS(QObject):
 
     def showFinalResults(self,TxResultSurface):
         DlgResults=QDialog(self.OptionsDlg)
-        DlgResults.setWindowTitle("Trajectory Results")
+        DlgResults.setWindowTitle(QCoreApplication.translate("BabelBrain", "Trajectory Results"))
 
         layout = QVBoxLayout()
         DlgResults.setLayout(layout)
@@ -555,7 +555,7 @@ class RUN_PLAN_TUS(QObject):
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         ok_button = buttons.button(QDialogButtonBox.Ok)
-        ok_button.setText("Confirm trajectory")
+        ok_button.setText(QCoreApplication.translate("BabelBrain", "Confirm trajectory"))
         ok_button.setStyleSheet("""
                     QPushButton {
                         font-weight: bold; 
@@ -570,7 +570,7 @@ class RUN_PLAN_TUS(QObject):
 
     def showTUSPlanViewer(self):
         DlgResults=QDialog(self.OptionsDlg)
-        DlgResults.setWindowTitle("PlanTUS Results")
+        DlgResults.setWindowTitle(QCoreApplication.translate("BabelBrain", "PlanTUS Results"))
 
         layout = QVBoxLayout()
         DlgResults.setLayout(layout)
