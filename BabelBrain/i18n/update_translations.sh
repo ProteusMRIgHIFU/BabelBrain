@@ -63,10 +63,21 @@ CATALOGUES=(
     babelbrain_tvus_en
 )
 
+# Hand-written markup uses the short helper TR("...") from Localization.py.
+# -tr-function-alias teaches lupdate that TR is another spelling of tr(); since
+# TR takes no context argument, lupdate files those strings under an EMPTY
+# context, while the catalogue stores them under "BabelBrain" (what TR() asks
+# for at run time, and what Linguist shows). normalize_context.py converts
+# between the two around the lupdate call - both directions are needed, or
+# lupdate sees mismatched contexts and discards every translation. It fails
+# loudly if lupdate ever files them somewhere else.
 if [ "$1" != "--release" ]; then
     for cat in "${CATALOGUES[@]}"; do
         echo "== lupdate -> $cat.ts"
-        "$LUPDATE" -locations none "${SOURCES[@]}" "${FORMS[@]}" -ts "$cat.ts"
+        python3 normalize_context.py --denormalize "$cat.ts"
+        "$LUPDATE" -locations none -tr-function-alias tr+=TR \
+            "${SOURCES[@]}" "${FORMS[@]}" -ts "$cat.ts"
+        python3 normalize_context.py "$cat.ts"
     done
 fi
 

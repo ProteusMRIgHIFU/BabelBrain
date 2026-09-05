@@ -13,7 +13,8 @@ Subclasses must override `_build_left_panel()` to return a QWidget holding
 the transducer-specific controls (typically built via `_make_left_panel`).
 """
 
-from PySide6.QtCore import QCoreApplication, Qt
+from PySide6.QtCore import Qt
+from Localization import TR
 from PySide6.QtWidgets import (
     QWidget,
     QFrame,
@@ -299,7 +300,7 @@ class TxPanelBase(QWidget):
 
         if z_mechanic is not None:
             zlo, zhi = z_mechanic
-            self.ZMechaniclabel = make_label(QCoreApplication.translate("BabelBrain", "Mechanical adj. Z (mm)"),
+            self.ZMechaniclabel = make_label(TR("Mechanical adj. Z (mm)"),
                                              name="ZMechaniclabel")
             self.ZMechanicSpinBox = make_dspin(
                 "ZMechanicSpinBox", minimum=zlo, maximum=zhi)
@@ -308,9 +309,7 @@ class TxPanelBase(QWidget):
             slo, shi = skin_distance
             self.SkinDistanceSpinBox = make_dspin(
                 "SkinDistanceSpinBox", minimum=slo, maximum=shi)
-            sel=[make_label(QCoreApplication.translate(
-                     "BabelBrain", "Distance Tx outplane\nto skin (mm)")),
-                 self.SkinDistanceSpinBox]
+            sel=[make_label(TR("Distance Tx outplane\nto skin (mm)")),self.SkinDistanceSpinBox]
 
         if tissue_warning is not None:
             self.LabelTissueRemoved = make_label(
@@ -324,23 +323,23 @@ class TxPanelBase(QWidget):
             "MaxDepthSpinBox", value=40.0, minimum=20.0, maximum=100.0,
             decimals=1, step=1.0)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Max. depth beyond\ntarget (mm)")), self.MaxDepthSpinBox))
+            make_label(TR("Max. depth beyond\ntarget (mm)")), self.MaxDepthSpinBox))
 
         lay.addSpacing(8)
 
         self.CalculateAcField = make_button(
-            "CalculateAcField", QCoreApplication.translate("BabelBrain", "Calculate Fields"), bold=True, min_height=40)
+            "CalculateAcField", TR("Calculate Fields"), bold=True, min_height=40)
         lay.addWidget(self.CalculateAcField)
 
         self.CalculateMechAdj = make_button(
-            "CalculateMechAdj", QCoreApplication.translate("BabelBrain", "Calculate Mechanical Adjustments"),
+            "CalculateMechAdj", TR("Calculate Mechanical Adjustments"),
             bold=True, min_height=40)
         lay.addWidget(self.CalculateMechAdj)
 
         self.DistanceTargetLabel = make_label(
             "-", name="DistanceTargetLabel", bold=True, color=LABEL_BLUE)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance target to FLHM\ncenter [X, Y, Z] (mm):")),
+            make_label(TR("Distance target to FLHM\ncenter [X, Y, Z] (mm):")),
             self.DistanceTargetLabel))
         lay.addStretch(1)
 
@@ -363,11 +362,11 @@ class TxPanelBase(QWidget):
         """HideMarks (left) / ShowWaterResults (right) sit in the bottom-left
         grid cell, on the same grid row as the scrollbar strip, so the two line
         up vertically below the plot."""
-        self.HideMarkscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Hide marks"))
+        self.HideMarkscheckBox = QCheckBox(TR("Hide marks"))
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
 
-        self.ShowWaterResultscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Show water only"))
+        self.ShowWaterResultscheckBox = QCheckBox(TR("Show water only"))
         self.ShowWaterResultscheckBox.setObjectName("ShowWaterResultscheckBox")
         self.ShowWaterResultscheckBox.setEnabled(False)
 
@@ -382,7 +381,7 @@ class TxPanelBase(QWidget):
         _cfg = self.parent()._MainApp.Config
         if _cfg['CTType']>0 and not _cfg['bTVUS_OPERATION']:
             self.SDRText = make_label(
-                QCoreApplication.translate("BabelBrain", "SDR:"), name="SDRText")
+                TR("SDR:"), name="SDRText")
             self.SDRLabel = make_label(
                 "-", name="SDRLabel", bold=True, color=LABEL_BLUE)
             # Reserve a fixed slot for the SDR value so the row never reflows: a
@@ -404,7 +403,7 @@ class TxPanelBase(QWidget):
             nBox.addLayout(row)
             nBox.addStretch(1)
             self.CombineTrajectories = make_button(
-            "CombineTrajectories", QCoreApplication.translate("BabelBrain", "Combine Trajectoriess"), min_height=20,color="red")
+            "CombineTrajectories", TR("Combine Trajectoriess"), min_height=20,color="red")
             nBox.addWidget(self.CombineTrajectories)
             self.CombineTrajectories.setEnabled(False)
             return nBox
@@ -461,11 +460,11 @@ class MergedResultsForm(QWidget):
         root.addWidget(self.IsppaScrollBars)
 
         # Bottom row: Hide-marks (left) · Show-water-only · [SDR label].
-        self.HideMarkscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Hide marks"))
+        self.HideMarkscheckBox = QCheckBox(TR("Hide marks"))
         self.HideMarkscheckBox.setObjectName("HideMarkscheckBox")
         self.HideMarkscheckBox.setEnabled(False)
 
-        self.ShowWaterResultscheckBox = QCheckBox(QCoreApplication.translate("BabelBrain", "Show water only"))
+        self.ShowWaterResultscheckBox = QCheckBox(TR("Show water only"))
         self.ShowWaterResultscheckBox.setObjectName("ShowWaterResultscheckBox")
         self.ShowWaterResultscheckBox.setEnabled(False)
 
@@ -478,7 +477,7 @@ class MergedResultsForm(QWidget):
         if (self._MainApp.Config['CTType'] > 0
                 and not self._MainApp.Config['bTVUS_OPERATION']):
             self.SDRText = make_label(
-                QCoreApplication.translate("BabelBrain", "SDR:"), name="SDRText")
+                TR("SDR:"), name="SDRText")
             self.SDRLabel = make_label("-", name="SDRLabel", bold=True, color=LABEL_BLUE)
             self.SDRLabel.setMinimumWidth(40)
             row.addStretch(1)

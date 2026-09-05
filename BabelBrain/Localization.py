@@ -25,17 +25,27 @@ in the GUI code.
 --------------------------------------------------------------------------
 MARKING UP A STRING - read this before adding one
 --------------------------------------------------------------------------
-Use the explicit call, with the literal context and the literal text::
+Wrap the literal English text in ``TR()``::
 
-    QCoreApplication.translate("BabelBrain", "Max. Temp. Brain")
+    from Localization import TR
+    ...
+    self.LocMTB = make_button("LocMTB", TR("Max. Temp. Brain"))
 
-Do **not** route it through a helper or an alias. ``lupdate`` parses the source
-text statically, and it only recognises this form and ``self.tr("...")`` (which
-takes the enclosing class name as its context). A wrapper function is extracted
-with an *empty* context, and an alias such as ``_t = QCoreApplication.translate``
-is not extracted at all - in both cases the string silently stops being
-translatable. Keeping one explicit context (``TRANSLATION_CONTEXT``) for
-hand-written markup also keeps the overlay catalogue to a single small block.
+``TR`` takes the text only; the context is always ``TRANSLATION_CONTEXT``
+("BabelBrain"), so hand-written markup all lands in one small catalogue block.
+
+The argument must be a plain string **literal**. ``lupdate`` reads the source
+statically, so a name, an f-string or a concatenation is invisible to it. For a
+message that needs values interpolated, mark up the *format* and apply the
+values afterwards::
+
+    TR("Y pos = %3.2f mm") % ycoord                        # good
+    TR(f"Y pos = {ycoord:3.2f} mm")                        # NOT extracted
+
+``update_translations.sh`` teaches ``lupdate`` about ``TR`` with
+``-tr-function-alias tr+=TR`` and then pins the extracted context; see that
+script and ``i18n/README.md``. ``QCoreApplication.translate("BabelBrain", ...)``
+still works and is still extracted - ``TR`` is simply the short spelling of it.
 
 Strings coming from the two Qt Designer forms (``SelFiles``, ``Options``) are
 already wrapped by ``pyside6-uic`` under the contexts ``SelFilesDialog`` and
@@ -164,14 +174,11 @@ def mode_for_config(bTVUS_OPERATION):
     return MODE_TVUS if bTVUS_OPERATION else MODE_TU
 
 
-def tr(text):
-    """Translate *text* in the shared context, for code that already holds a
-    dynamically built string.
+def TR(text):
+    """Translate *text* in the shared "BabelBrain" context.
 
-    NOTE: calls to this helper are **not** picked up by lupdate. Use it only for
-    strings that are already marked up elsewhere with the explicit
-    ``QCoreApplication.translate("BabelBrain", ...)`` form - for example when
-    re-translating a value that was stored in a list. Never use it as the sole
-    markup of a new string.
+    The standard way to mark a user-visible string. Pass a plain string literal
+    so that lupdate can extract it - see the module docstring for the rules and
+    for how the build script is told about this function.
     """
     return QCoreApplication.translate(TRANSLATION_CONTEXT, text)

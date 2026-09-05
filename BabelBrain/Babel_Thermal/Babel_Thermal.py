@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
                 QGridLayout, QSpacerItem, QInputDialog, QFileDialog,QFrame,
                 QErrorMessage, QMessageBox,QDialogButtonBox,QLabel,QTableWidgetItem,
                 QTabWidget)
-from PySide6.QtCore import QCoreApplication,QFile,Slot,QObject,Signal,QThread,Qt
+from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
+from Localization import TR
 from PySide6 import QtCore,QtWidgets
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPalette, QTextCursor,QColor
@@ -238,22 +239,22 @@ class Babel_Thermal(QWidget):
         # Row captions are display-only. The near-identical wording used for the
         # CSV/Brainsight export in _ExportSummary is deliberately NOT translated:
         # those headers are consumed by downstream tools and stay English.
-        Ids=[QCoreApplication.translate("BabelBrain", 'Isppa at target (W/cm2):')]
+        Ids=[TR('Isppa at target (W/cm2):')]
         if bMergedResults:
-            Ids+=[QCoreApplication.translate("BabelBrain", 'Max. Isppa (W/cm2):'),
-                 QCoreApplication.translate("BabelBrain", 'Max. Ispta (W/cm2):')]
+            Ids+=[TR('Max. Isppa (W/cm2):'),
+                 TR('Max. Ispta (W/cm2):')]
         else:
-            Ids+=[QCoreApplication.translate("BabelBrain", 'Req. Isppa water (W/cm2):'),
-                  QCoreApplication.translate("BabelBrain", 'Ispta (W/cm2):')]
-        Ids+=[QCoreApplication.translate("BabelBrain", 'Ispta at target (W/cm2):'),
-             QCoreApplication.translate("BabelBrain", 'Adjustment in RAS T1W space:'),
-             QCoreApplication.translate("BabelBrain", 'Max. temp. target (\u2103) - CEM43:'),
-             QCoreApplication.translate("BabelBrain", 'Max. temp. brain (\u2103) - CEM43:'),
-             QCoreApplication.translate("BabelBrain", 'Max. temp. skin (\u2103) - CEM43:'),
-             QCoreApplication.translate("BabelBrain", 'Max. temp. skull (\u2103) - CEM43:'),
-             QCoreApplication.translate("BabelBrain", 'Mechanical index:')]
+            Ids+=[TR('Req. Isppa water (W/cm2):'),
+                  TR('Ispta (W/cm2):')]
+        Ids+=[TR('Ispta at target (W/cm2):'),
+             TR('Adjustment in RAS T1W space:'),
+             TR('Max. temp. target (\u2103) - CEM43:'),
+             TR('Max. temp. brain (\u2103) - CEM43:'),
+             TR('Max. temp. skin (\u2103) - CEM43:'),
+             TR('Max. temp. skull (\u2103) - CEM43:'),
+             TR('Mechanical index:')]
         if not bMergedResults:
-             Ids+=[QCoreApplication.translate("BabelBrain", 'Distance from MTB to MTT (mm):')]
+             Ids+=[TR('Distance from MTB to MTT (mm):')]
         bg_color = w.tableWidget.parent().palette().color(w.backgroundRole())
         text_color = w.tableWidget.parent().palette().color(w.foregroundRole())
         table_palette = w.tableWidget.palette()
@@ -618,7 +619,7 @@ class Babel_Thermal(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "There was an error in execution -\nconsult log window for details"))
+            msgBox.setText(TR("There was an error in execution -\nconsult log window for details"))
             msgBox.exec()
         else:
             #this will unblock for PyTest
@@ -1128,7 +1129,7 @@ class Babel_Thermal(QWidget):
                     _extent=[vp['hvec'].min(),vp['hvec'].max(),vp['vvec'].max(),vp['vvec'].min()]
                     self._IntensityIm=static_ax1.imshow(IntensityMap,extent=_extent,
                             cmap=plt.cm.jet)
-                    static_ax1.set_title(QCoreApplication.translate("BabelBrain", 'Isppa (W/cm$^2$)'))
+                    static_ax1.set_title(TR('Isppa (W/cm$^2$)'))
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
                         self._contour1=static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims,colors ='y',linestyles = ':')
@@ -1138,7 +1139,7 @@ class Babel_Thermal(QWidget):
 
                     self._ThermalIm=static_ax2.imshow(Tmap.T,
                             extent=_extent,cmap=plt.cm.jet,vmin=BaselineTemperature)
-                    static_ax2.set_title(QCoreApplication.translate("BabelBrain", 'Temperature ($^{\circ}$C)'))
+                    static_ax2.set_title(TR('Temperature ($^{\circ}$C)'))
                     static_ax2.set_xlabel(vp['hlabel'])
                     static_ax2.set_ylabel(vp['vlabel'])
 
@@ -1168,15 +1169,15 @@ class Babel_Thermal(QWidget):
                         
                     else:
                         self._TempPlot=static_ax1.plot(timevec,AdjustedTemp.T)
-                    static_ax1.set_xlabel(QCoreApplication.translate("BabelBrain", 'time (s)'))
-                    static_ax1.set_ylabel(QCoreApplication.translate("BabelBrain", 'temperature (degrees C)'))
-                    leg=[QCoreApplication.translate("BabelBrain", 'Skin'),
-                         QCoreApplication.translate("BabelBrain", 'Brain'),
-                         QCoreApplication.translate("BabelBrain", 'Skull')]
+                    static_ax1.set_xlabel(TR('time (s)'))
+                    static_ax1.set_ylabel(TR('temperature (degrees C)'))
+                    leg=[TR('Skin'),
+                         TR('Brain'),
+                         TR('Skull')]
                     if bShowingMerged:
                         leg+=self._MainApp.Config['ID']
                     else:
-                        leg.append(QCoreApplication.translate("BabelBrain", 'Target'))
+                        leg.append(TR('Target'))
                     leg=static_ax1.legend(leg, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
                     self._static_ax1=static_ax1
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
@@ -1204,9 +1205,9 @@ class Babel_Thermal(QWidget):
 
                     # keys are internal; the acronyms are drawn on the plot
                     for k,kl in zip(['mSkin','mBrain','mSkull'],
-                                    [QCoreApplication.translate("BabelBrain", 'MTS'),
-                                     QCoreApplication.translate("BabelBrain", 'MTB'),
-                                     QCoreApplication.translate("BabelBrain", 'MTC')]):
+                                    [TR('MTS'),
+                                     TR('MTB'),
+                                     TR('MTC')]):
                         if SelY == DataThermal[k][axis]:
                             self._ListMarkers.append(self._static_ax2.plot(hvec[DataThermal[k][haxis]],
                                             vvec[DataThermal[k][vaxis]],'wx',markersize=12)[0])
@@ -1214,7 +1215,7 @@ class Babel_Thermal(QWidget):
                                             vvec[DataThermal[k][vaxis]]+5,kl,color='w',fontsize=10))
 
                 self.Widget.SliceLabel.setText(
-                    QCoreApplication.translate("BabelBrain", "%s = %3.2f mm")
+                    TR("%s = %3.2f mm")
                     %(vp['poslabel'],posvec[self.Widget.IsppaScrollBar.value()]))
             self._prevDisplay=WhatDisplay
             self._prevView=vp['view']
@@ -1241,7 +1242,7 @@ class Babel_Thermal(QWidget):
         '''
         if getattr(self, '_mergedTabIndex', None) is None:
             form = self._CreateForm(bMergedResults=True)
-            idx = self._txTabs.addTab(form, QCoreApplication.translate("BabelBrain", 'Merged'))
+            idx = self._txTabs.addTab(form, TR('Merged'))
             self._Widgets.append(form)
             self._thPanels.append(self._NewThermalPanel())
             self._mergedTabIndex = idx

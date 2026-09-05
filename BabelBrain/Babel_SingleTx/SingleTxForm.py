@@ -6,7 +6,7 @@ dropdown). The common bottom half (mechanical adjustments, action buttons,
 FLHM readout, warning) is built by TxPanelBase._build_mech_and_actions().
 """
 
-from PySide6.QtCore import QCoreApplication
+from Localization import TR
 
 from GUIComponents.TxPanelBase import (
     TxPanelBase,
@@ -28,14 +28,14 @@ class SingleTxForm(TxPanelBase):
         self.FocalLengthSpinBox = make_dspin(
             "FocalLengthSpinBox", value=50.0, minimum=20.0, maximum=150.0,
             decimals=1, step=0.1)
-        self.FocalLengthLabel = make_label(QCoreApplication.translate("BabelBrain", "Focal length (mm)"),
+        self.FocalLengthLabel = make_label(TR("Focal length (mm)"),
                                            name="FocalLengthLabel")
         lay.addLayout(form_row(self.FocalLengthLabel, self.FocalLengthSpinBox))
 
         self.DiameterSpinBox = make_dspin(
             "DiameterSpinBox", value=50.0, minimum=20.0, maximum=150.0,
             decimals=1, step=0.1)
-        self.DiameterLabel = make_label(QCoreApplication.translate("BabelBrain", "Diameter (mm)"), name="DiameterLabel")
+        self.DiameterLabel = make_label(TR("Diameter (mm)"), name="DiameterLabel")
         lay.addLayout(form_row(self.DiameterLabel, self.DiameterSpinBox))
 
         # Computed outplane-to-focus distance
@@ -43,7 +43,7 @@ class SingleTxForm(TxPanelBase):
             "0.0", name="DistanceOutplaneLabel", bold=True, color=LABEL_BLUE)
         self.DistanceOutplaneLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance from Tx's\noutplane to focus")),
+            make_label(TR("Distance from Tx's\noutplane to focus")),
             self.DistanceOutplaneLabel))
 
         lay.addSpacing(6)
@@ -53,7 +53,7 @@ class SingleTxForm(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance skin\nto target (mm) :")),
+            make_label(TR("Distance skin\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)
@@ -86,7 +86,7 @@ class BSonixForm(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance skin\nto target (mm) :")),
+            make_label(TR("Distance skin\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)

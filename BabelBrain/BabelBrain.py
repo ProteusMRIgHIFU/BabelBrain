@@ -31,7 +31,8 @@ import nibabel
 import numpy as np
 import importlib
 import yaml
-from PySide6.QtCore import QCoreApplication, QFile, QObject, QThread, Qt, Signal, Slot, QTimer
+from PySide6.QtCore import QFile, QObject, QThread, Qt, Signal, Slot, QTimer
+from Localization import TR
 from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPalette, QTextCursor, QMovie, QPixmap
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -127,15 +128,15 @@ def _TissueLegendNames():
     installed in main(), after this module is imported.
     """
     return {
-        'scalp':     QCoreApplication.translate("BabelBrain", "scalp"),
-        'cort.':     QCoreApplication.translate("BabelBrain", "cort."),
-        'trab.':     QCoreApplication.translate("BabelBrain", "trab."),
-        'brain':     QCoreApplication.translate("BabelBrain", "brain"),
-        'brain-n.s': QCoreApplication.translate("BabelBrain", "brain-n.s"),
-        'white m.':  QCoreApplication.translate("BabelBrain", "white m."),
-        'gray m.':   QCoreApplication.translate("BabelBrain", "gray m."),
-        'CSF':       QCoreApplication.translate("BabelBrain", "CSF"),
-        'Air':       QCoreApplication.translate("BabelBrain", "Air"),
+        'scalp':     TR("scalp"),
+        'cort.':     TR("cort."),
+        'trab.':     TR("trab."),
+        'brain':     TR("brain"),
+        'brain-n.s': TR("brain-n.s"),
+        'white m.':  TR("white m."),
+        'gray m.':   TR("gray m."),
+        'CSF':       TR("CSF"),
+        'Air':       TR("Air"),
     }
 
 def get_text_values(initial_texts, parent=None, title="", label=""):
@@ -306,7 +307,7 @@ def GetInputFromBrainsight():
             if header['Version'] not in ['14','15']:
                 msgBox = QMessageBox(_styled_dialog_parent())
                 msgBox.setIcon(QMessageBox.Warning)
-                msgBox.setText(QCoreApplication.translate("BabelBrain", "Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur"))
+                msgBox.setText(TR("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur"))
                 msgBox.exec()
             if 'NIfTI' not in header['Coordinate system']:
                 EndWithError("BabelBrain only supports Nifti convention for trajectory")
@@ -750,7 +751,7 @@ class BabelBrain(QWidget):
         grid_tab.setSpacing(1)
         new_tab.setLayout(grid_tab)
         new_tab.tab_name_private = "AcSim"
-        self.Widget.tabWidget.addTab(new_tab, QCoreApplication.translate("BabelBrain", "Step 2 - Ac Sim"))
+        self.Widget.tabWidget.addTab(new_tab, TR("Step 2 - Ac Sim"))
         new_tab.setEnabled(False)
         self.AcSim=new_tab
 
@@ -759,7 +760,7 @@ class BabelBrain(QWidget):
         grid_tab.setSpacing(1)
         new_tab.setLayout(grid_tab)
         new_tab.tab_name_private = "ThermalSim"
-        self.Widget.tabWidget.addTab(new_tab, QCoreApplication.translate("BabelBrain", "Step 3 - Thermal Sim"))
+        self.Widget.tabWidget.addTab(new_tab, TR("Step 3 - Thermal Sim"))
         new_tab.setEnabled(False)
         self.ThermalSim=new_tab
 
@@ -782,11 +783,11 @@ class BabelBrain(QWidget):
             self.Widget.CTZTETabs.setTabEnabled(0,False)
         if self.Config['CTType']==3: #PETRA, we change the label
             print('doing density selection')
-            self.Widget.CTZTETabs.setTabText(0,QCoreApplication.translate("BabelBrain", "PETRA"))
-            ZTE.findChild(QLabel,"RangeLabel").setText(QCoreApplication.translate("BabelBrain", "Normalized PETRA Range"))
+            self.Widget.CTZTETabs.setTabText(0,TR("PETRA"))
+            ZTE.findChild(QLabel,"RangeLabel").setText(TR("Normalized PETRA Range"))
         elif self.Config['CTType']==4: #Density, we change a little labels and limits
-            self.Widget.CTZTETabs.setTabText(1,QCoreApplication.translate("BabelBrain", "Density"))
-            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText(QCoreApplication.translate("BabelBrain", "Density threshold"))
+            self.Widget.CTZTETabs.setTabText(1,TR("Density"))
+            self.Widget.CTZTETabs.widget(1).findChild(QLabel,"HULabel").setText(TR("Density threshold"))
             self.Widget.HUThresholdSpinBox.setMinimum(1050)
             self.Widget.HUThresholdSpinBox.setMaximum(3000)
             self.Widget.HUThresholdSpinBox.setValue(1200)
@@ -906,7 +907,7 @@ class BabelBrain(QWidget):
         if not bValid:
             print('bValid,msg',bValid,msg)
             msgBox = QMessageBox(self.Widget)
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "Please indicate valid entries in the profile"))
+            msgBox.setText(TR("Please indicate valid entries in the profile"))
             msgBox.setDetailedText(msg)
             msgBox.exec()
             return False
@@ -1009,8 +1010,7 @@ class BabelBrain(QWidget):
         srv=(self.Config.get('RemoteServer') or {}).get('name','the remote server')
         msgBox = QMessageBox(self.Widget)
         msgBox.setIcon(QMessageBox.Information)
-        msgBox.setText(QCoreApplication.translate("BabelBrain",
-                       "Remote execution on '%s' is being set up and is not available "
+        msgBox.setText(TR("Remote execution on '%s' is being set up and is not available "
                        "yet in this build.\n\nSelect a local GPU in the computing-engine "
                        "dropdown to run now.") % srv)
         msgBox.exec()
@@ -1018,7 +1018,7 @@ class BabelBrain(QWidget):
     def _NotifyRemoteMultiTrajUnsupported(self):
         msgBox = QMessageBox(self.Widget)
         msgBox.setIcon(QMessageBox.Information)
-        msgBox.setText(QCoreApplication.translate("BabelBrain", "Remote execution currently supports a single trajectory.\n\n"
+        msgBox.setText(TR("Remote execution currently supports a single trajectory.\n\n"
                        "Use a single-trajectory input for remote offload, or select a "
                        "local GPU for multi-trajectory runs."))
         msgBox.exec()
@@ -1032,8 +1032,7 @@ class BabelBrain(QWidget):
             except:
                 msgBox = QMessageBox(self.Widget)
                 msgBox.setIcon(QMessageBox.Critical)
-                msgBox.setText(QCoreApplication.translate("BabelBrain",
-                    "Unable to create directory to save results at:\n") + basedir)
+                msgBox.setText(TR("Unable to create directory to save results at:\n") + basedir)
                 msgBox.exec()
                 raise
 
@@ -1257,7 +1256,7 @@ class BabelBrain(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox(self.Widget)
             msgBox.setIcon(QMessageBox.Critical)
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "There was an error in execution -\nconsult log window for details"))
+            msgBox.setText(TR("There was an error in execution -\nconsult log window for details"))
             msgBox.exec()
         else:
             #this will unblock for PyTest
@@ -1576,7 +1575,7 @@ class BabelBrain(QWidget):
             self._vtk_visualization = NiftiViewerWindow(trajectories=self.Config['ID'])
             self._vtk_visualization.resize(1580, 500)
             self._vtk_visualization.show()
-            self._vtk_visualization.setWindowTitle(QCoreApplication.translate("BabelBrain", "VTK NIfTI Viewer — Multi-Volume"))
+            self._vtk_visualization.setWindowTitle(TR("VTK NIfTI Viewer — Multi-Volume"))
             self._vtk_visualization.closed.connect(self._closingVtkVisualization)
             self._UpdateVTKDomain(bFullyPopulate=True)
         else:
@@ -1657,7 +1656,7 @@ class BabelBrain(QWidget):
                 viewer._on_remove_requested(n)
         
         viewer.add_overlay(self._NiftiSkull[NTraj],
-                           QCoreApplication.translate("BabelBrain", "Skull"),
+                           TR("Skull"),
                            id='Skull')
         n,row=self._FindViewerRow(viewer,'Skull')
         row._opacity_slider.setValue(100)

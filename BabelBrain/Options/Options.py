@@ -3,7 +3,8 @@ import sys
 
 from PySide6.QtWidgets import (QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout,QInputDialog,
                               QDialogButtonBox,QLabel,QComboBox)
-from PySide6.QtCore import QCoreApplication, Slot, Qt,QTimer
+from PySide6.QtCore import Slot, Qt,QTimer
+from Localization import TR
 from PySide6.QtGui import QPalette
 
 # Important:
@@ -201,7 +202,7 @@ class AdvancedOptions(QDialog):
         from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style
         self.setStyleSheet(app_qss(self))
         apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
-        self.setWindowTitle(QCoreApplication.translate("BabelBrain", "Advanced Options"))
+        self.setWindowTitle(TR("Advanced Options"))
 
         # Telemetry tab — added programmatically so the .ui file does not need
         # to be regenerated. The same widget is reused by the first-launch
@@ -213,7 +214,7 @@ class AdvancedOptions(QDialog):
         tab_layout = QVBoxLayout(tab_container)
         tab_layout.setContentsMargins(12, 12, 12, 12)
         tab_layout.addWidget(self._telemetryWidget)
-        self.ui.tabWidget.addTab(tab_container, QCoreApplication.translate("BabelBrain", "Telemetry"))
+        self.ui.tabWidget.addTab(tab_container, TR("Telemetry"))
 
         self.ui.ContinuepushButton.clicked.connect(self.Continue)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
@@ -260,7 +261,7 @@ class AdvancedOptions(QDialog):
         # Qt has no separate placeholder font, so we italicize the field only while it is
         # empty -- when only the placeholder is visible -- and revert once a path is typed.
         self.ui.PlanTUSRootlineEdit.setPlaceholderText(
-            QCoreApplication.translate("BabelBrain", "Optional: folder for a custom PlanTUS version (empty = built-in)"))
+            TR("Optional: folder for a custom PlanTUS version (empty = built-in)"))
         # Qt's default placeholder is the text colour at ~50% alpha, too faint to read
         # in macOS light mode. Bump the alpha (derived from the field's own text colour,
         # so it still adapts to light/dark themes) for a bit more contrast.
@@ -297,7 +298,7 @@ class AdvancedOptions(QDialog):
             self.ui.SkinDistanceSpinBox.setEnabled(False)
             self.ui.RUNPlanTUSpushButton.setEnabled(False)
         if 'MinimalZSteering' in BabelTxConfig and 'FocalLength' in BabelTxConfig and TxSystem not in ['DomeTx'] :
-            self.ui.DistanceTxLabel.setText(QCoreApplication.translate("BabelBrain", 'Distance Cone to\nFocus (mm)'))
+            self.ui.DistanceTxLabel.setText(TR('Distance Cone to\nFocus (mm)'))
             self.ui.SkinDistanceSpinBox.setMinimum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.minimum())
             self.ui.SkinDistanceSpinBox.setMaximum(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.maximum())
             self.ui.SkinDistanceSpinBox.setValue(self.parent().AcSim.Widget.DistanceConeToFocusSpinBox.value())
@@ -341,13 +342,13 @@ class AdvancedOptions(QDialog):
         """Execute the calibration with the current parameters"""
         if not self.ui.YAMLCalibrationLineEdit.text():
             msgBox = QMessageBox()
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "Please select the YAML file with calibration input fields."))
+            msgBox.setText(TR("Please select the YAML file with calibration input fields."))
             msgBox.exec()
             self.ui.YAMLCalibrationLineEdit.setFocus()
             return
         if not os.path.isfile(self.ui.YAMLCalibrationLineEdit.text()):
             msgBox = QMessageBox()
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "The indicated YAML file with the with calibration input fields does not exist."))
+            msgBox.setText(TR("The indicated YAML file with the with calibration input fields does not exist."))
             msgBox.exec()
             self.ui.YAMLCalibrationLineEdit.setFocus()
             return
@@ -357,8 +358,7 @@ class AdvancedOptions(QDialog):
             inputInfo=yaml.safe_load(f)
             if inputInfo['Device']!=self._TxSystem:
                 msgBox = QMessageBox()
-                msgBox.setText(QCoreApplication.translate("BabelBrain",
-                    "The Device field in the YAML file (%s)\ndoes not match "
+                msgBox.setText(TR("The Device field in the YAML file (%s)\ndoes not match "
                     "the current transducer in BabelBrain:%s.")
                     % (inputInfo['Device'], self._TxSystem))
                 msgBox.exec()
@@ -514,8 +514,7 @@ class AdvancedOptions(QDialog):
         self.ui.bForceNoAbsorptionSkullScalpcheckBox.setChecked(values.bForceNoAbsorptionSkullScalp)
         self._telemetryWidget.set_level(values.TelemetryLevel)
         if self._TxSystem in ['CTX_500', 'CTX_250', 'CTX_250_2ch', 'DPX_500', 'DPXPC_300', 'R15287', 'R15473']:
-            self.ui.TxWeightLabel.setText(QCoreApplication.translate("BabelBrain",
-                "Optimized Weights for Transducer: ") +  self._TxSystem)
+            self.ui.TxWeightLabel.setText(TR("Optimized Weights for Transducer: ") +  self._TxSystem)
         self.ui.TxOptimizedWeightsLineEdit.setText(values.TxOptimizedWeights[self._TxSystem])
         
     @Slot()

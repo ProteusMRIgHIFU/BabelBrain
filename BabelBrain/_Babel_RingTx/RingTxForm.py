@@ -6,7 +6,7 @@ etc.) — those attribute names are preserved. The common bottom half is built b
 TxPanelBase._build_mech_and_actions().
 """
 
-from PySide6.QtCore import QCoreApplication
+from Localization import TR
 
 from GUIComponents.TxPanelBase import (
     TxPanelBase,
@@ -22,13 +22,13 @@ class RingTxForm(TxPanelBase):
         frame, lay = self._make_left_frame()
 
         # Z distance / TPO
-        self.labelTPODistance = make_label(QCoreApplication.translate("BabelBrain", "Z Steering (mm)"),
+        self.labelTPODistance = make_label(TR("Z Steering (mm)"),
                                            name="labelTPODistance")
         self.TPODistanceSpinBox = make_dspin(
             "TPODistanceSpinBox", minimum=-5.0, maximum=5.0)
         lay.addLayout(form_row(self.labelTPODistance, self.TPODistanceSpinBox))
 
-        self.labelTPORange = make_label(QCoreApplication.translate("BabelBrain", "Range Z distance (mm)"),
+        self.labelTPORange = make_label(TR("Range Z distance (mm)"),
                                         name="labelTPORange")
         self.TPORangeLabel = make_label(
             "[0.0 - 0.0]", name="TPORangeLabel", bold=True, color=LABEL_BLUE)
@@ -42,7 +42,7 @@ class RingTxForm(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance skin\nto target (mm) :")),
+            make_label(TR("Distance skin\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)

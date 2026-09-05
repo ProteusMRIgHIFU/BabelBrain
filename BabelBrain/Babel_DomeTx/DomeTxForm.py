@@ -14,7 +14,7 @@ from GUIComponents.TxPanelBase import (
     make_label,
     form_row,
 )
-from PySide6.QtCore import QCoreApplication
+from Localization import TR
 from PySide6.QtWidgets import QCheckBox
 
 
@@ -23,7 +23,7 @@ class DomeTxForm(TxPanelBase):
         frame, lay = self._make_left_frame()
 
         # Multifocus combination
-        self.MultifocusLabel = make_label(QCoreApplication.translate("BabelBrain", "Multi-focus"), name="MultifocusLabel")
+        self.MultifocusLabel = make_label(TR("Multi-focus"), name="MultifocusLabel")
         self.SelCombinationDropDown = make_combo(
             "SelCombinationDropDown", items=["ALL"])
         lay.addLayout(form_row(self.MultifocusLabel, self.SelCombinationDropDown))
@@ -58,7 +58,7 @@ class DomeTxForm(TxPanelBase):
             "0.0", name="DistanceSkinLabel", bold=True, color=LABEL_BLUE)
         self.DistanceSkinLabel.setMinimumWidth(60)
         lay.addLayout(form_row(
-            make_label(QCoreApplication.translate("BabelBrain", "Distance skin\nto target (mm) :")),
+            make_label(TR("Distance skin\nto target (mm) :")),
             self.DistanceSkinLabel))
 
         lay.addSpacing(6)

@@ -11,6 +11,7 @@ the rules for marking a string up in the source.
 | `babelbrain_tvus_en.ts` | Editable source catalogue: the **TVUS overlay**. Open it in Qt Linguist. |
 | `babelbrain_tvus_en.qm` | Compiled form, loaded at run time. Committed so a build needs no Qt tools. |
 | `update_translations.sh` | Rescans the sources (`lupdate`) and recompiles (`lrelease`). |
+| `normalize_context.py` | Called by that script; keeps the context of `TR()` strings consistent across an `lupdate` run. |
 
 Naming is `babelbrain_<mode>_<language>.qm` for an overlay and
 `babelbrain_<language>.qm` for a full language catalogue.
@@ -65,7 +66,7 @@ A catalogue entry is keyed by *(context, source text)*, not by source text alone
 
 | Context | Where it comes from |
 |---|---|
-| `BabelBrain` | Hand-written markup: `QCoreApplication.translate("BabelBrain", "...")` |
+| `BabelBrain` | Hand-written markup: `TR("...")` (see below) |
 | `SelFilesDialog` | `SelFiles/form.ui`, wrapped automatically by `pyside6-uic` |
 | `OptionsDialog` | `Options/form.ui`, likewise |
 
@@ -73,6 +74,47 @@ The two dialog contexts used to both be called `Dialog`, which silently merged
 their entries; they were renamed so that identical wording in the two dialogs
 can be translated independently. Do not rename them again once translations
 exist — every entry would be orphaned.
+
+## `TR()` and the context dance
+
+Source code marks a string with the short helper from `Localization.py`:
+
+```python
+from Localization import TR
+...
+self.LocMTB = make_button("LocMTB", TR("Max. Temp. Brain"))
+```
+
+`TR(text)` is `QCoreApplication.translate("BabelBrain", text)` — one context for
+all hand-written markup, so the overlay stays a single small block. The argument
+must be a plain string **literal**; `lupdate` reads the source statically, so an
+f-string or a concatenation is invisible to it. Interpolate afterwards:
+
+```python
+TR("Y pos = %3.2f mm") % ycoord          # good
+TR(f"Y pos = {ycoord:3.2f} mm")          # NOT extracted — silently untranslatable
+```
+
+`lupdate` learns about `TR` from `-tr-function-alias tr+=TR`. Because `TR` takes
+no context argument, lupdate files those messages under an **empty** context,
+while the catalogue stores them under `BabelBrain`. `normalize_context.py`
+converts between the two representations around the lupdate call:
+
+```
+normalize_context.py --denormalize   "BabelBrain" -> ""     (before lupdate)
+lupdate ...                          contexts now agree, translations survive
+normalize_context.py                 ""  -> "BabelBrain"    (after lupdate)
+```
+
+Both directions are required. Without the `--denormalize` step, lupdate compares
+freshly extracted empty-context messages against stored `BabelBrain` ones,
+concludes every string vanished and every string is new, and drops the
+translations. `update_translations.sh` already does this; just use the script.
+
+The normalizer refuses to run if lupdate emits any context other than the empty
+one, `BabelBrain`, `SelFilesDialog` or `OptionsDialog` — that would mean the
+catalogue and the run-time lookup had started to disagree, which otherwise fails
+silently by falling back to the English source text.
 
 ## Rebuilding
 

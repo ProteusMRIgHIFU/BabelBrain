@@ -1,4 +1,5 @@
-from PySide6.QtCore import QCoreApplication, Qt
+from PySide6.QtCore import Qt
+from Localization import TR
 from PySide6.QtWidgets import (
     QDialog,
     QWidget,
@@ -46,7 +47,7 @@ class TelemetrySettingsWidget(QWidget):
         layout.setSpacing(10)
 
         if show_title:
-            title = QLabel(QCoreApplication.translate("BabelBrain", "Help us improve BabelBrain"))
+            title = QLabel(TR("Help us improve BabelBrain"))
             title_font = title.font()
             title_font.setPointSize(title_font.pointSize() + 2)
             title_font.setBold(True)
@@ -54,7 +55,7 @@ class TelemetrySettingsWidget(QWidget):
             layout.addWidget(title)
 
         intro = QLabel(
-            QCoreApplication.translate("BabelBrain", "BabelBrain is developed with academic funding. To help us demonstrate "
+            TR("BabelBrain is developed with academic funding. To help us demonstrate "
             "real-world use to our funding agencies, we would like to invite you to "
             "share a small amount of anonymous usage information.")
         )
@@ -62,7 +63,7 @@ class TelemetrySettingsWidget(QWidget):
         layout.addWidget(intro)
 
         disclaimer = QLabel(
-            QCoreApplication.translate("BabelBrain", "<b>Your privacy:</b> data collection is <b>opt-in</b> and is "
+            TR("<b>Your privacy:</b> data collection is <b>opt-in</b> and is "
             "<b>disabled by default</b>. No personal data, no file contents, no "
             "patient information and <b>no IP address</b> are collected or stored. "
             "The collected data is particularly useful to understand the performance "
@@ -83,7 +84,7 @@ class TelemetrySettingsWidget(QWidget):
         separator.setFrameShadow(QFrame.Sunken)
         layout.addWidget(separator)
 
-        prompt = QLabel(QCoreApplication.translate("BabelBrain", "Please choose the level of information you are comfortable sharing:"))
+        prompt = QLabel(TR("Please choose the level of information you are comfortable sharing:"))
         prompt.setWordWrap(True)
         layout.addWidget(prompt)
 
@@ -126,14 +127,14 @@ class TelemetryConsentDialog(QDialog):
         self._initUI(current_level)
 
     def _initUI(self, current_level):
-        self.setWindowTitle(QCoreApplication.translate("BabelBrain", "Help Improve BabelBrain"))
+        self.setWindowTitle(TR("Help Improve BabelBrain"))
         self.setModal(True)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 14)
         layout.setSpacing(10)
 
-        Header=QLabel(QCoreApplication.translate("BabelBrain", "ONE TIME REQUEST- promise! :)"))
+        Header=QLabel(TR("ONE TIME REQUEST- promise! :)"))
         title_font = Header.font()
         title_font.setPointSize(title_font.pointSize() + 2)
         title_font.setBold(True)
@@ -156,7 +157,7 @@ class TelemetryConsentDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
-        self._continue_btn = QPushButton(QCoreApplication.translate("BabelBrain", "Continue"))
+        self._continue_btn = QPushButton(TR("Continue"))
         self._continue_btn.setDefault(True)
         button_row.addWidget(self._continue_btn)
         layout.addLayout(button_row)

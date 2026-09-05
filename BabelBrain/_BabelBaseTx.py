@@ -3,7 +3,8 @@ Base Class for Tx GUI, not to be instantiated directly
 '''
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout,QMessageBox, QTabWidget
-from PySide6.QtCore import QCoreApplication, Slot, Signal, QObject, QThread, Qt
+from PySide6.QtCore import Slot, Signal, QObject, QThread, Qt
+from Localization import TR
 from BabelViscoFDTD.H5pySimple import ReadFromH5py,SaveToH5py
 
 # Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
@@ -241,7 +242,7 @@ class BabelBaseTx(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = QMessageBox()
             msgBox.setIcon(QMessageBox.Critical)
-            msgBox.setText(QCoreApplication.translate("BabelBrain", "There was an error in execution -\nconsult log window for details"))
+            msgBox.setText(TR("There was an error in execution -\nconsult log window for details"))
             msgBox.exec()
         else:
             #this will unblock for PyTest
@@ -477,7 +478,7 @@ class BabelBaseTx(QWidget):
         for ax, xl in ((static_ax1, 'X mm'), (static_ax2, 'Y mm')):
             ax.set_aspect('equal')
             ax.set_xlabel(xl)
-            ax.set_ylabel(QCoreApplication.translate("BabelBrain", 'Z mm'))
+            ax.set_ylabel(TR('Z mm'))
         panel['marker1'], = static_ax1.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
         panel['marker2'], = static_ax2.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
         fig.set_facecolor(self._MainApp._BackgroundColorFigures)
@@ -728,7 +729,7 @@ class BabelBaseTx(QWidget):
             # Install the real scrollbar widget over the plain host (devices do
             # this in _WirePanel, which the merged tab does not use).
             form.IsppaScrollBars = WidgetScrollBars(parent=form.IsppaScrollBars, MainApp=self)
-            idx = self._txTabs.addTab(form, QCoreApplication.translate("BabelBrain", 'Merged'))
+            idx = self._txTabs.addTab(form, TR('Merged'))
             self._Widgets.append(form)
             self._acPanels.append(None)
             self._mergedTabIndex = idx
