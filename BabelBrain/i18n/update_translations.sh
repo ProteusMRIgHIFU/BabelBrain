@@ -33,6 +33,12 @@ SOURCES=(
     ../SelFiles/SelFiles.py
     ../Options/Options.py
     ../_BabelBaseTx.py
+    ../_BabelBasePhasedArray.py
+    ../Babel_REMOPD/Babel_REMOPD.py
+    ../Babel_SingleTx/Babel_SingleTx.py
+    ../Babel_SingleTx/Babel_BSonix.py
+    ../_Babel_RingTx/Babel_RingTx.py
+    ../Babel_H246/Babel_H246.py
     ../Babel_Thermal/Babel_Thermal.py
     ../Babel_Thermal/ThermalForm.py
     ../GUIComponents/TxPanelBase.py

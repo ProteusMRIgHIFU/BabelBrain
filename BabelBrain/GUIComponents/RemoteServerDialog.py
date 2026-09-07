@@ -104,15 +104,15 @@ class RemoteServerEditDialog(QDialog):
 
     def _accept(self):
         if not self.nameEdit.text().strip():
-            QMessageBox.warning(self, "Missing name", "Please give the server a name.")
+            QMessageBox.warning(self, TR("Missing name"), TR("Please give the server a name."))
             return
         if not self.hostEdit.text().strip():
-            QMessageBox.warning(self, "Missing host", "Please provide a host or IP.")
+            QMessageBox.warning(self, TR("Missing host"), TR("Please provide a host or IP."))
             return
         if (self.httpsCheck.isChecked() and self.clientCertEdit.text().strip()
                 and not self.clientKeyEdit.text().strip()):
-            QMessageBox.warning(self, "Missing client key",
-                                "Mutual TLS needs both a client cert and a client key.")
+            QMessageBox.warning(self, TR("Missing client key"),
+                                TR("Mutual TLS needs both a client cert and a client key."))
             return
         self.accept()
 
@@ -209,8 +209,8 @@ class RemoteServerManagerDialog(QDialog):
         srv = self._selected()
         if srv is None:
             return
-        if QMessageBox.question(self, "Remove server",
-                                "Remove '%s'?" % srv['name']) == QMessageBox.Yes:
+        if QMessageBox.question(self, TR("Remove server"),
+                                TR("Remove '%s'?") % srv['name']) == QMessageBox.Yes:
             RemoteServers.remove(srv['name'])
             self._reload()
 
@@ -224,11 +224,11 @@ class RemoteServerManagerDialog(QDialog):
             txs = caps.get('transducers', [])
             feats = caps.get('features', [])
             QMessageBox.information(
-                self, "Connection OK",
-                "Connected to '%s' (%s).\n\nServer version: %s\nTransducers: %d\nFeatures: %s"
+                self, TR("Connection OK"),
+                TR("Connected to '%s' (%s).\n\nServer version: %s\nTransducers: %d\nFeatures: %s")
                 % (srv['name'], RemoteServers.base_url(srv),
                    caps.get('server_version', '?'), len(txs),
                    ", ".join(feats) or "(none)"))
         else:
-            QMessageBox.critical(self, "Connection failed",
-                                 "Could not connect to '%s':\n\n%s" % (srv['name'], info))
+            QMessageBox.critical(self, TR("Connection failed"),
+                                 TR("Could not connect to '%s':\n\n%s") % (srv['name'], info))

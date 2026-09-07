@@ -692,9 +692,13 @@ class BabelBaseTx(QWidget):
         #this calculates the required mechanical correction to center acoustic beam
         #to the target
         Total_Distance,X_correction,Y_correction,Z_correction = self.CalculateDistancesTarget()
-        ret = QMessageBox.question(self,'', "The focal spot's center of mass (-6dB) "+
-                                   'is [%3.1f,%3.1f]' % (X_correction,Y_correction) + " mm-off in [X,Y] relative to the target.\n"+
-                                    "Do you want to apply a mechanical correction?",
+        # One format string rather than three concatenated fragments: word order
+        # around the numbers differs between languages.
+        ret = QMessageBox.question(self,'',
+                TR("The focal spot's center of mass (-6dB) is [%3.1f,%3.1f] mm-off "
+                   "in [X,Y] relative to the target.\n"
+                   "Do you want to apply a mechanical correction?")
+                % (X_correction, Y_correction),
                 QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
             curX=self.Widget.XMechanicSpinBox.value()
@@ -855,7 +859,7 @@ class BabelBaseTx(QWidget):
         # the previous default reloaded a non-existent file on a fresh combine.)
         bCalcMerge=True
         if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
-            ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            ret = QMessageBox.question(self.Widget,'', TR("Combined results exists.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
 
             if ret == QMessageBox.No:
                 bCalcMerge=False

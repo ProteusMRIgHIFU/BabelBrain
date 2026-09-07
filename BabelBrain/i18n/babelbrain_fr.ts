@@ -933,11 +933,11 @@ Saisissez une valeur et appuyez sur Entrée (ou cliquez ailleurs) pour y aller.<
     </message>
     <message>
         <source>BabelBrain is developed with academic funding. To help us demonstrate real-world use to our funding agencies, we would like to invite you to share a small amount of anonymous usage information.</source>
-        <translation type="unfinished" />
+        <translation type="unfinished">BabelBrain est développé grâce à des financements universitaires. Afin de nous aider à démontrer son utilisation réelle auprès de nos organismes de financement, nous vous invitons à partager une petite quantité d’informations d’usage anonymes.</translation>
     </message>
     <message>
         <source>&lt;b&gt;Your privacy:&lt;/b&gt; data collection is &lt;b&gt;opt-in&lt;/b&gt; and is &lt;b&gt;disabled by default&lt;/b&gt;. No personal data, no file contents, no patient information and &lt;b&gt;no IP address&lt;/b&gt; are collected or stored. The collected data is particularly useful to understand the performance of the tool.Depending on the level of data collection, this can include from basic hardware information, anonymous execution times, to the selected device and total duration (no details of timing are sent). This data is tagged with a random install identifier that cannot be tied back to you. You can change or revoke this choice at any time from &lt;b&gt;Advanced Options&lt;/b&gt;.</source>
-        <translation type="unfinished" />
+        <translation type="unfinished">&lt;b&gt;Votre vie privée :&lt;/b&gt; la collecte de données est &lt;b&gt;facultative&lt;/b&gt; et &lt;b&gt;désactivée par défaut&lt;/b&gt;. Aucune donnée personnelle, aucun contenu de fichier, aucune information de patient et &lt;b&gt;aucune adresse IP&lt;/b&gt; ne sont collectés ni conservés. Les données recueillies servent surtout à comprendre les performances de l’outil. Selon le niveau de collecte, cela peut aller des informations matérielles de base et des temps d’exécution anonymes jusqu’au dispositif sélectionné et à la durée totale (aucun détail de chronométrage n’est envoyé). Ces données sont associées à un identifiant d’installation aléatoire qui ne peut pas remonter jusqu’à vous. Vous pouvez modifier ou révoquer ce choix à tout moment depuis les &lt;b&gt;Options avancées&lt;/b&gt;.</translation>
     </message>
     <message>
         <source>Please choose the level of information you are comfortable sharing:</source>
@@ -1064,5 +1064,145 @@ cible (mm) :</translation>
 outplane to focus</source>
         <translation type="unfinished">Distance du plan du Tx
 au foyer</translation>
+    </message>
+    <message>
+        <source>Invalid Input</source>
+        <translation type="unfinished">Entrée invalide</translation>
+    </message>
+    <message>
+        <source>Please enter a valid frequency in kHz.</source>
+        <translation type="unfinished">Veuillez saisir une fréquence valide en kHz.</translation>
+    </message>
+    <message>
+        <source>Mask file already exists.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished">Le fichier de masque existe déjà.
+Voulez-vous le recalculer ?
+Choisissez Non pour le recharger</translation>
+    </message>
+    <message>
+        <source>The focal spot's center of mass (-6dB) is [%3.1f,%3.1f] mm-off in [X,Y] relative to the target.
+Do you want to apply a mechanical correction?</source>
+        <translation type="unfinished">Le centre de masse du foyer (-6 dB) est décalé de [%3.1f,%3.1f] mm en [X,Y] par rapport à la cible.
+Voulez-vous appliquer une correction mécanique ?</translation>
+    </message>
+    <message>
+        <source>Combined results exists.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished">Les résultats combinés existent déjà.
+Voulez-vous les recalculer ?
+Choisissez Non pour les recharger</translation>
+    </message>
+    <message>
+        <source>Acoustic sim files already exist with:.
+</source>
+        <translation type="unfinished">Des fichiers de simulation acoustique existent déjà avec :
+</translation>
+    </message>
+    <message>
+        <source>Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished">Voulez-vous recalculer ?
+Choisissez Non pour recharger</translation>
+    </message>
+    <message>
+        <source>Thermal sim files already exist
+</source>
+        <translation type="unfinished">Des fichiers de simulation thermique existent déjà
+</translation>
+    </message>
+    <message>
+        <source>Missing name</source>
+        <translation type="unfinished">Nom manquant</translation>
+    </message>
+    <message>
+        <source>Please give the server a name.</source>
+        <translation type="unfinished">Veuillez donner un nom au serveur.</translation>
+    </message>
+    <message>
+        <source>Missing host</source>
+        <translation type="unfinished">Hôte manquant</translation>
+    </message>
+    <message>
+        <source>Please provide a host or IP.</source>
+        <translation type="unfinished">Veuillez indiquer un hôte ou une adresse IP.</translation>
+    </message>
+    <message>
+        <source>Missing client key</source>
+        <translation type="unfinished">Clé client manquante</translation>
+    </message>
+    <message>
+        <source>Mutual TLS needs both a client cert and a client key.</source>
+        <translation type="unfinished">Le TLS mutuel nécessite à la fois un certificat client et une clé client.</translation>
+    </message>
+    <message>
+        <source>Remove server</source>
+        <translation type="unfinished">Supprimer le serveur</translation>
+    </message>
+    <message>
+        <source>Remove '%s'?</source>
+        <translation type="unfinished">Supprimer « %s » ?</translation>
+    </message>
+    <message>
+        <source>Connection OK</source>
+        <translation type="unfinished">Connexion réussie</translation>
+    </message>
+    <message>
+        <source>Connected to '%s' (%s).
+
+Server version: %s
+Transducers: %d
+Features: %s</source>
+        <translation type="unfinished">Connecté à « %s » (%s).
+
+Version du serveur : %s
+Transducteurs : %d
+Fonctionnalités : %s</translation>
+    </message>
+    <message>
+        <source>Connection failed</source>
+        <translation type="unfinished">Échec de la connexion</translation>
+    </message>
+    <message>
+        <source>Could not connect to '%s':
+
+%s</source>
+        <translation type="unfinished">Impossible de se connecter à « %s » :
+
+%s</translation>
+    </message>
+    <message>
+        <source>PlanTUS results already exist for this target.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished">Des résultats PlanTUS existent déjà pour cette cible.
+Voulez-vous les recalculer ?
+Choisissez Non pour les recharger</translation>
+    </message>
+    <message>
+        <source>Be sure of running Step 1 to update simulation state</source>
+        <translation type="unfinished">Pensez à exécuter l’étape 1 pour mettre à jour l’état de la simulation</translation>
+    </message>
+    <message>
+        <source>L0: No telemetry (default)</source>
+        <translation type="unfinished">L0 : aucune télémétrie (par défaut)</translation>
+    </message>
+    <message>
+        <source>L1: Basic — notify that the app ran, CPU, OS, main memory, GPU model and errors</source>
+        <translation type="unfinished">L1 : de base — signaler que l’application a été exécutée, processeur, système d’exploitation, mémoire vive, modèle de GPU et erreurs</translation>
+    </message>
+    <message>
+        <source>L2: L1  + execution times of the 3 main simulation steps</source>
+        <translation type="unfinished">L2 : L1 + temps d’exécution des 3 étapes principales de simulation</translation>
+    </message>
+    <message>
+        <source>L3: L2 + Frequency, PPW, domain size and granular timings of the most demanding sections</source>
+        <translation type="unfinished">L3 : L2 + fréquence, PPW, taille du domaine et temps détaillés des sections les plus exigeantes</translation>
+    </message>
+    <message>
+        <source>L4: L3 + Tx model, total duration (with no details of timing)</source>
+        <translation type="unfinished">L4 : L3 + modèle de transducteur, durée totale (sans détail des temps)</translation>
     </message>
 </context></TS>

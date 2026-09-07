@@ -20,13 +20,21 @@ TELEMETRY_STEP_TIMINGS = 2
 TELEMETRY_DETAILED = 3      
 TELEMETRY_HIGHLY_DETAILED = 4      
 
-LEVEL_LABELS = {
-    TELEMETRY_OFF: "L0: No telemetry (default)",
-    TELEMETRY_BASIC: "L1: Basic — notify that the app ran, CPU, OS, main memory, GPU model and errors",
-    TELEMETRY_STEP_TIMINGS: "L2: L1  + execution times of the 3 main simulation steps",
-    TELEMETRY_DETAILED: "L3: L2 + Frequency, PPW, domain size and granular timings of the most demanding sections",
-    TELEMETRY_HIGHLY_DETAILED: "L4: L3 + Tx model, total duration (with no details of timing)",
-}
+def LevelLabels():
+    """Radio-button captions for the telemetry levels, translated at call time.
+
+    A function rather than a module-level dict: this module is imported long
+    before main() installs the translators, so a dict built at import time would
+    capture the English wording and keep it for the life of the process. Same
+    pattern as _TissueLegendNames() in BabelBrain.py.
+    """
+    return {
+        TELEMETRY_OFF: TR("L0: No telemetry (default)"),
+        TELEMETRY_BASIC: TR("L1: Basic — notify that the app ran, CPU, OS, main memory, GPU model and errors"),
+        TELEMETRY_STEP_TIMINGS: TR("L2: L1  + execution times of the 3 main simulation steps"),
+        TELEMETRY_DETAILED: TR("L3: L2 + Frequency, PPW, domain size and granular timings of the most demanding sections"),
+        TELEMETRY_HIGHLY_DETAILED: TR("L4: L3 + Tx model, total duration (with no details of timing)"),
+    }
 
 
 class TelemetrySettingsWidget(QWidget):
@@ -90,8 +98,9 @@ class TelemetrySettingsWidget(QWidget):
 
         self._group = QButtonGroup(self)
         self._buttons = {}
+        labels = LevelLabels()
         for level in (TELEMETRY_OFF, TELEMETRY_BASIC, TELEMETRY_STEP_TIMINGS, TELEMETRY_DETAILED,TELEMETRY_HIGHLY_DETAILED):
-            rb = QRadioButton(LEVEL_LABELS[level])
+            rb = QRadioButton(labels[level])
             rb.setStyleSheet("QRadioButton { padding: 2px 0px; }")
             self._group.addButton(rb, level)
             self._buttons[level] = rb

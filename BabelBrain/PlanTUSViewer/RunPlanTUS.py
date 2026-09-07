@@ -349,7 +349,7 @@ class RUN_PLAN_TUS(QObject):
         #we check if files are already generated, in case the user may just want to refine the location
 
         if os.path.isfile(self.PlanOutputPath+os.sep+'distances_skin.func.gii'):
-            ret = QMessageBox.question(self.OptionsDlg,'', "PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            ret = QMessageBox.question(self.OptionsDlg,'', TR("PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
             if ret == QMessageBox.No:
                 if not self.showTUSPlanViewer():
                     return #we stop here
@@ -513,7 +513,7 @@ class RUN_PLAN_TUS(QObject):
                         self.MainApp.Config['Mat4Trajectory'] = finalfname
                         self.MainApp.Config['ID'][self.IDIndex] = id
                         self.MainApp.UpdateWindowTitle()
-                        QMessageBox.information(self.OptionsDlg,'', "Be sure of running Step 1 to update simulation state")
+                        QMessageBox.information(self.OptionsDlg,'', TR("Be sure of running Step 1 to update simulation state"))
                                             
                                             
                 else:

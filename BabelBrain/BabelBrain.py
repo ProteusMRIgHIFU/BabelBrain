@@ -822,12 +822,12 @@ class BabelBrain(QWidget):
         try:
             value = float(self.Widget.USMaskkHzDropDown.currentText())
             if value <200 or value > 1000:
-                QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+                QMessageBox.warning(self, TR("Invalid Input"), TR("Please enter a valid frequency in kHz."))
                 return
             self.UpdateMaskParameters()
             self.Widget.CalculatePlanningMask.setEnabled(True)
         except ValueError:
-            QMessageBox.warning(self, "Invalid Input", "Please enter a valid frequency in kHz.")
+            QMessageBox.warning(self, TR("Invalid Input"), TR("Please enter a valid frequency in kHz."))
             self.Widget.USMaskkHzDropDown.setFocus()
 
     @Slot()
@@ -1050,7 +1050,7 @@ class BabelBrain(QWidget):
             if self._TrajectoryNumber == 0:
                 self._bRemotePlanningComplete = False
                 if os.path.isfile(self._outnameMask[0]) and os.path.isfile(self._T1W_resampled_fname[0]):
-                    ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+                    ret = QMessageBox.question(self.Widget,'', TR("Mask file already exists.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
                     bCalcMask = (ret == QMessageBox.Yes)
                 else:
                     bCalcMask = True
@@ -1062,7 +1062,7 @@ class BabelBrain(QWidget):
             # Parent to self.Widget (the styled MainForm) so the dialog inherits
             # the compact _FORM_QSS; self is the top-level app and carries no
             # stylesheet of its own.
-            ret = QMessageBox.question(self.Widget,'', "Mask file already exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            ret = QMessageBox.question(self.Widget,'', TR("Mask file already exists.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
 
             if ret == QMessageBox.Yes:
                 bCalcMask=True

@@ -6,6 +6,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
+from Localization import TR
 from PySide6.QtUiTools import QUiLoader
 
 
@@ -118,7 +119,7 @@ class REMOPD(BabelBasePhaseArray):
 
         DistanceSkin =  -Skull['TxMechanicalAdjustmentZ']*1e3
 
-        ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
+        ret = QMessageBox.question(self,'', TR("Acoustic sim files already exist with:.\n")+
                                 "XSteering=%3.2f\n" %(XSteering*1e3)+
                                 "YSteering=%3.2f\n" %(YSteering*1e3)+
                                 "ZSteering=%3.2f\n" %(ZSteering*1e3)+
@@ -126,7 +127,7 @@ class REMOPD(BabelBasePhaseArray):
                                 "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+
                                 "TxMechanicalAdjustmentY=%3.2f\n" %(Skull['TxMechanicalAdjustmentY']*1e3)+
                                 "DistanceSkin=%3.2f\n" %(DistanceSkin)+
-                                "Do you want to recalculate?\nSelect No to reload",
+                                TR("Do you want to recalculate?\nSelect No to reload"),
             QMessageBox.Yes | QMessageBox.No)
 
         if ret == QMessageBox.Yes:

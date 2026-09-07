@@ -1029,4 +1029,128 @@ outplane to focus</source>
         <source>Follow system language</source>
         <translation type="unfinished" />
     </message>
+    <message>
+        <source>Invalid Input</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Please enter a valid frequency in kHz.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Mask file already exists.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>The focal spot's center of mass (-6dB) is [%3.1f,%3.1f] mm-off in [X,Y] relative to the target.
+Do you want to apply a mechanical correction?</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Combined results exists.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Acoustic sim files already exist with:.
+</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Thermal sim files already exist
+</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Missing name</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Please give the server a name.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Missing host</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Please provide a host or IP.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Missing client key</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Mutual TLS needs both a client cert and a client key.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Remove server</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Remove '%s'?</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Connection OK</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Connected to '%s' (%s).
+
+Server version: %s
+Transducers: %d
+Features: %s</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Connection failed</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Could not connect to '%s':
+
+%s</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>PlanTUS results already exist for this target.
+Do you want to recalculate?
+Select No to reload</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Be sure of running Step 1 to update simulation state</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>L0: No telemetry (default)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>L1: Basic — notify that the app ran, CPU, OS, main memory, GPU model and errors</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>L2: L1  + execution times of the 3 main simulation steps</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>L3: L2 + Frequency, PPW, domain size and granular timings of the most demanding sections</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>L4: L3 + Tx model, total duration (with no details of timing)</source>
+        <translation type="unfinished" />
+    </message>
 </context></TS>
