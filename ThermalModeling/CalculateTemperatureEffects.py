@@ -8,21 +8,50 @@ ABOUT:
 
 '''
 
-import numpy as np
-import matplotlib.pyplot as plt
-from  scipy.io import loadmat,savemat
-from BabelViscoFDTD.tools.RayleighAndBHTE import BHTE,BHTEMultiplePressureFields
-from BabelViscoFDTD.H5pySimple import SaveToH5py,ReadFromH5py
-from scipy.io import loadmat,savemat
-from platform import platform
-from os.path import isfile
-from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal, InitMLX
-from multiprocessing import Process,Queue
-import sys
-import time
 import gc
-from scipy.ndimage import median_filter
+import sys
+import traceback
+from multiprocessing import Process, Queue
+from os.path import isfile
+from queue import Empty
+
+import numpy as np
+from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.tools.RayleighAndBHTE import (
+    BHTE,
+    BHTEMultiplePressureFields,
+    InitCuda,
+    InitMetal,
+    InitMLX,
+    InitOpenCL,
+)
 from linetimer import CodeTimer
+from scipy.io import savemat
+from scipy.ndimage import median_filter
+
+
+def GetProcessResult(process,queueResult):
+    """Wait for a subprocess result and re-raise any reported error."""
+    while True:
+        try:
+            status,result=queueResult.get(timeout=0.1)
+            break
+        except Empty:
+            if not process.is_alive():
+                process.join()
+                try:
+                    status,result=queueResult.get(timeout=0.5)
+                    break
+                except Empty:
+                    raise RuntimeError(
+                        f"Subprocess exited unexpectedly (exit code {process.exitcode})"
+                    )
+
+    process.join()
+    if status=='error':
+        raise RuntimeError(result)
+    return result
+
 
 class InOutputWrapper(object):
     '''
@@ -347,6 +376,7 @@ def RunBHTECycles(nCurrent,
     else:
         p0=PMaps[0,:,:,:]*0
     for nCurrent in range(nCurrent,TotalIterations):
+        ResTempMax = None
         if nCurrent >0 :
             initT0=FinalTemp
             initDose=FinalDose
@@ -356,6 +386,8 @@ def RunBHTECycles(nCurrent,
                 initT0=PreviousData['FinalTemp']
                 initDose=PreviousData['FinalDose']
                 print('MaxT0',initT0.max())
+                if 'ResTempMax' in PreviousData:
+                    ResTempMax = PreviousData['ResTempMax']
             else:
                 initT0=None
                 initDose=None
@@ -395,10 +427,7 @@ def RunBHTECycles(nCurrent,
 
         gc.collect(1)
 
-        if nCurrent==0:
-            ResTempMax=ResTemp
-        else:
-            ResTempMax=np.maximum(ResTempMax,ResTemp)
+        ResTempMax = ResTemp if ResTempMax is None else np.maximum(ResTempMax, ResTemp)
         
         #for cooling off, we do not need to do steering, just running with no energy
         if TotalDurationStepsOff>0:
@@ -531,45 +560,49 @@ def RunInProcess(queueResult,Backend,deviceName,queueMsg,
         Duration between groups (steps).
     '''
     stdout = InOutputWrapper(queueMsg,True)
-    
-    if Backend=='CUDA':
-        InitCuda(deviceName)
-    elif Backend=='OpenCL':
-        InitOpenCL(deviceName)
-    elif Backend=='Metal':
-        InitMetal(deviceName)
-    elif Backend=='MLX':
-        InitMLX(deviceName)
 
-    TotalIterations=NumberGroupedSonications*Repetitions
+    try:
+        if Backend=='CUDA':
+            InitCuda(deviceName)
+        elif Backend=='OpenCL':
+            InitOpenCL(deviceName)
+        elif Backend=='Metal':
+            InitMetal(deviceName)
+        elif Backend=='MLX':
+            InitMLX(deviceName)
 
-    Res=RunBHTECycles(nCurrent,
-                    Repetitions,
-                    TotalIterations,
-                    TotalDurationBetweenGroups,
-                    TotalDurationStepsOff,
-                    LimitBHTEIterationsPerProcess,
-                    InputPData,
-                    PMaps,
-                    MaterialMap,
-                    MaterialList,
-                    dx,
-                    TotalDurationSteps,
-                    nStepsOn,
-                    cy,
-                    nFactorMonitoring,
-                    dt,
-                    DutyCycle,
-                    Backend,
-                    MonitoringPointsMap,
-                    stableTemp,
-                    TemperaturePoints,
-                    FinalTemp,
-                    FinalDose,
-                    PreviousData,
-                    bRunInSubProcess=True,
-                    )
-    queueResult.put(Res)
+        TotalIterations=NumberGroupedSonications*Repetitions
+
+        Res=RunBHTECycles(nCurrent,
+                        Repetitions,
+                        TotalIterations,
+                        TotalDurationBetweenGroups,
+                        TotalDurationStepsOff,
+                        LimitBHTEIterationsPerProcess,
+                        InputPData,
+                        PMaps,
+                        MaterialMap,
+                        MaterialList,
+                        dx,
+                        TotalDurationSteps,
+                        nStepsOn,
+                        cy,
+                        nFactorMonitoring,
+                        dt,
+                        DutyCycle,
+                        Backend,
+                        MonitoringPointsMap,
+                        stableTemp,
+                        TemperaturePoints,
+                        FinalTemp,
+                        FinalDose,
+                        PreviousData,
+                        bRunInSubProcess=True,
+                        )
+        queueResult.put(('result',Res))
+    except BaseException:
+        queueResult.put(('error',traceback.format_exc()))
+        raise
     
 
 def CalculateTemperatureEffects(InputPData,
@@ -1087,11 +1120,7 @@ def CalculateTemperatureEffects(InputPData,
                                                 TotalDurationBetweenGroups))
 
             fieldWorkerProcess.start()
-            while(True):
-                time.sleep(0.1)
-                if not queueResult.empty():
-                    break
-            ProcResults=queueResult.get()
+            ProcResults=GetProcessResult(fieldWorkerProcess,queueResult)
             if nCurrent==0:
                 ResTemp=ProcResults[0]
             else:
@@ -1101,8 +1130,7 @@ def CalculateTemperatureEffects(InputPData,
             FinalDose=ProcResults[3]
             TemperaturePoints=ProcResults[4]
             nCurrent=ProcResults[5]
-            fieldWorkerProcess.terminate()
-            print('process terminated')
+            print('process finished')
 
     if len(prevSimulationResultsFile)>0:
         ResTemp=np.maximum(ResTemp,PreviousData['TempEndFUS'])

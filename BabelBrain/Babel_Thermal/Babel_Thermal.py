@@ -930,6 +930,8 @@ class RunThermalSim(QObject):
                     self.logTelemetry.emit("CTS:L1:S3: "+cMsg)
                     bNoError=False  
         fieldWorkerProcess.join()
+        if fieldWorkerProcess.exitcode != 0:
+            bNoError=False
         while queue.empty() == False:
             cMsg=queue.get()
             if 'CTS:' in cMsg:

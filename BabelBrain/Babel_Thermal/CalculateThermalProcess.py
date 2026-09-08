@@ -6,7 +6,7 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
 from scipy.io import savemat
 import numpy as np
 
-from ThermalModeling.CalculateTemperatureEffects import CalculateTemperatureEffects
+from ThermalModeling.CalculateTemperatureEffects import CalculateTemperatureEffects, GetProcessResult
 from multiprocessing import Process,Queue
 
 
@@ -39,16 +39,20 @@ class InOutputWrapper(object):
 #subprocess , useful to deal with large number of cases
 def SubProcess(queueMsg,queueResult,case,deviceName,**kargs):
     stdout = InOutputWrapper(queueMsg,True)
-    if kargs['Backend']=='CUDA':
-        InitCuda(deviceName)
-    elif kargs['Backend']=='OpenCL':
-        InitOpenCL(deviceName)
-    elif kargs['Backend']=='Metal':
-        InitMetal(deviceName)
-    elif kargs['Backend']=='MLX':
-        InitMLX(deviceName)
-    fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
-    queueResult.put(fname)
+    try:
+        if kargs['Backend']=='CUDA':
+            InitCuda(deviceName)
+        elif kargs['Backend']=='OpenCL':
+            InitOpenCL(deviceName)
+        elif kargs['Backend']=='Metal':
+            InitMetal(deviceName)
+        elif kargs['Backend']=='MLX':
+            InitMLX(deviceName)
+        fname=CalculateTemperatureEffects(case,deviceName,queueMsg,**kargs)
+        queueResult.put(('result',fname))
+    except BaseException:
+        queueResult.put(('error',traceback.format_exc()))
+        raise
     
 
 def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
@@ -93,8 +97,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
                                     kwargs=kargsSub)
 
             fieldWorkerProcess.start()
-            fieldWorkerProcess.join()
-            fname=queueResult.get()
+            fname=GetProcessResult(fieldWorkerProcess,queueResult)
             Data=ReadFromH5py(fname+'.h5')
             for f in lf:
                 if 'p_map_central'==f:
@@ -118,7 +121,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
         savemat(ConsolodidateName+'.mat',Data)
         SaveToH5py(Data,ConsolodidateName+'.h5')
 
-    except BaseException as e:
-        print('--Babel-Brain-Low-Error')
-        print(traceback.format_exc())
-        print(str(e))
+    except BaseException:
+        queueMsg.put('--Babel-Brain-Low-Error\n')
+        queueMsg.put(traceback.format_exc())
+        raise
