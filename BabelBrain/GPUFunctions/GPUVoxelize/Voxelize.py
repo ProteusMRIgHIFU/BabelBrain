@@ -264,32 +264,41 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
     Points=np.zeros((totalPoints,3),np.float32)
 
     # Extract points
-    totalGrid=gx*gy*gz
+    totalGrid = gx * gy * gz
     logger.info(f"TotalGrid: {totalGrid}")
-    step = get_step_size(sel_device,num_large_buffers=2,data_type=Points.dtype,GPUBackend=GPUBackend)
+
+    # Note the large buffer in this case is the Points array and will be 3 times the size of the totalGrid 
+    # since each point in the grid will have an i,j,k value
+    step = get_step_size(
+        sel_device,
+        num_large_buffers=1,
+        bytes_per_point=Points.dtype.itemsize*3,
+        GPUBackend=GPUBackend
+    )
     points_section_size = min(step,totalPoints)
-    globalcount=np.zeros(2,np.uint32)
-    int_params = np.zeros(4,np.uint32)
+    globalcount = np.zeros(2, np.uint32)
+    int_params = np.zeros(4, np.uint32)
     prev_start_ind = 0
-    for point in range(0,totalGrid,step):
-        ntotal = min((totalGrid-point),step)
-        logger.info(f"\nWorking on points {point} to {point+ntotal} out of {totalGrid}")
+
+    for point in range(0, totalGrid, step):
+        num_points = min((totalGrid - point), step)
+        logger.info(f"\nWorking on points {point} to {point + num_points} out of {totalGrid}")
 
         # Grab sections of data
-        points_section = np.zeros((points_section_size,3),np.float32)
+        points_section = np.zeros((points_section_size,3), np.float32)
 
-        # Since we run into issues sending numbers larger than 32 bits due to buffer size restrictions, 
-        # we check the size here, send info to kernel, and create number there as workaround
+        # Since we run into issues sending numbers larger than 32 bits due to buffer size restrictions,
+        # we check the size here, send info to kernel, and create number there as workaround.
         current_position = point
         base_32 = current_position // (2**32)
         current_position = current_position - (base_32 * (2**32))
 
-        int_params[0]=ntotal
-        int_params[1]=current_position
-        int_params[2]=base_32
-        int_params[3]=prev_start_ind
+        int_params[0] = num_points
+        int_params[1] = current_position
+        int_params[2] = base_32
+        int_params[3] = prev_start_ind
 
-        if GPUBackend=='CUDA':
+        if GPUBackend == 'CUDA':
             with ctx:
                 # Move input data from host to device memory
                 points_section_gpu = clp.asarray(points_section)
@@ -297,97 +306,126 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
                 int_params_gpu = clp.asarray(int_params)
 
                 # Define block and grid sizes
-                block_size = (64,1,1)
-                grid_size=(int(ntotal//Block[0]+1),1,1)
-                
+                block_size = (64, 1, 1)
+                grid_size = (int(num_points // block_size[0] + 1), 1, 1)
+
                 # Deploy kernel
-                prgcl.get_function("ExtractPoints")(grid_size,block_size,
-                                                    (vtable_gpu,
-                                                    globalcount_gpu,
-                                                    points_section_gpu,
-                                                    int_params_gpu,
-                                                    np.uint32(gx),
-                                                    np.uint32(gy),
-                                                    np.uint32(gz)))
+                prgcl.get_function("ExtractPoints")(
+                    grid_size,
+                    block_size,
+                    (
+                        vtable_gpu,
+                        globalcount_gpu,
+                        points_section_gpu,
+                        int_params_gpu,
+                        np.uint32(gx),
+                        np.uint32(gy),
+                        np.uint32(gz),
+                    )
+                )
 
                 # Move kernel output data back to host memory
-                points_section=points_section_gpu.get()
-                globalcount=globalcount_gpu.get()
+                points_section = points_section_gpu.get()
+                globalcount = globalcount_gpu.get()
 
-        elif GPUBackend=='OpenCL':
+                # Delete array references but keep the memory allocated in CuPy's pool for 
+                # next chunk to save time.
+                del points_section_gpu
+                del globalcount_gpu
+                del int_params_gpu
+
+        elif GPUBackend == 'OpenCL':
             # Move input data from host to device memory
-            points_section_gpu=clp.Buffer(ctx, mf.WRITE_ONLY, points_section.nbytes)
-            globalcount_gpu=clp.Buffer(ctx, mf.READ_WRITE| mf.COPY_HOST_PTR, hostbuf=globalcount )
+            points_section_gpu = clp.Buffer(ctx, mf.WRITE_ONLY, points_section.nbytes)
+            globalcount_gpu = clp.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=globalcount)
             int_params_gpu = clp.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=int_params)
-        
+
             # Deploy kernel
-            clExtractPoints(queue,[ntotal],None,vtable_gpu,
-                                                globalcount_gpu,
-                                                points_section_gpu,
-                                                int_params_gpu,
-                                                np.uint32(gx),
-                                                np.uint32(gy),
-                                                np.uint32(gz))
+            clExtractPoints(
+                queue,
+                [num_points],
+                None,
+                vtable_gpu,
+                globalcount_gpu,
+                points_section_gpu,
+                int_params_gpu,
+                np.uint32(gx),
+                np.uint32(gy),
+                np.uint32(gz)
+            )
             queue.finish()
 
             # Move kernel output data back to host memory
-            clp.enqueue_copy(queue, points_section,points_section_gpu)
+            clp.enqueue_copy(queue, points_section, points_section_gpu)
             queue.finish()
-            clp.enqueue_copy(queue, globalcount,globalcount_gpu)
+            clp.enqueue_copy(queue, globalcount, globalcount_gpu)
             queue.finish()
 
-        elif GPUBackend=='Metal' :
+        elif GPUBackend == 'Metal':
             # Move input data from host to device memory
-            points_section_gpu=ctx.buffer(points_section.nbytes)
-            globalcount_gpu=ctx.buffer(globalcount)
+            points_section_gpu = ctx.buffer(points_section.nbytes)
+            globalcount_gpu = ctx.buffer(globalcount)
             int_params_gpu = ctx.buffer(int_params)
 
             # Deploy kernel
             ctx.init_command_buffer()
-            handle = prg.function('ExtractPoints')(ntotal,vtable_gpu,globalcount_gpu,int_params_gpu,points_section_gpu)
+            handle = prg.function('ExtractPoints')(
+                num_points,
+                vtable_gpu,
+                globalcount_gpu,
+                int_params_gpu,
+                points_section_gpu
+            )
             ctx.commit_command_buffer()
             ctx.wait_command_buffer()
             del handle
+
             if 'arm64' not in platform.platform():
-                ctx.sync_buffers((points_section_gpu,globalcount_gpu))
+                ctx.sync_buffers((points_section_gpu, globalcount_gpu))
 
             # Move kernel output data back to host memory
-            points_section=np.frombuffer(points_section_gpu,dtype=np.float32).reshape(points_section.shape)
-            globalcount=np.frombuffer(globalcount_gpu,dtype=np.uint32)
+            points_section = np.frombuffer(points_section_gpu, dtype=np.float32).reshape(points_section.shape)
+            globalcount = np.frombuffer(globalcount_gpu, dtype=np.uint32)
             logger.info(f"globalcount: {globalcount}")
-        elif GPUBackend=='MLX' :
+
+        elif GPUBackend == 'MLX':
             # Move input data from host to device memory
-            points_section_gpu=ctx.zeros(points_section.size)
-            # globalcount_gpu=ctx.array(globalcount)
+            points_section_gpu = ctx.zeros(points_section.size)
             int_params_gpu = ctx.array(int_params)
 
-            globalcount_gpu=prg_ExtractPoints(inputs=[vtable_gpu,int_params_gpu,points_section_gpu],
-                       grid=[ntotal,1,1],
-                       threadgroup=[1024,1,1],
-                       output_shapes=[[globalcount.size]], 
-                       output_dtypes=[ctx.uint32],
-                       use_optimal_threadgroups=True,
-                       init_value=0,
-                        )[0]
+            globalcount_gpu = prg_ExtractPoints(
+                inputs=[vtable_gpu, int_params_gpu, points_section_gpu],
+                grid=[num_points, 1, 1],
+                threadgroup=[1024, 1, 1],
+                output_shapes=[[globalcount.size]],
+                output_dtypes=[ctx.uint32],
+                use_optimal_threadgroups=True,
+                init_value=0,
+            )[0]
 
             ctx.eval(globalcount_gpu)
-            
+
             # Move kernel output data back to host memory
-            points_section=np.array(points_section_gpu).reshape(points_section.shape)
-            globalcount+=np.array(globalcount_gpu)
+            points_section = np.array(points_section_gpu).reshape(points_section.shape)
+            globalcount += np.array(globalcount_gpu)
 
             logger.info(f"globalcount: {globalcount}")
 
         try:
-            Points[prev_start_ind:int(globalcount[0]),:]=points_section[:int(globalcount[0])-prev_start_ind,:]
+            n_new_points = int(globalcount[0]) - prev_start_ind
+            Points[prev_start_ind:int(globalcount[0]), :] = points_section[:n_new_points, :]
         except Exception as e:
             print(e)
             raise ValueError("Error running voxelization for specified parameters, suggest lowering PPW")
-        prev_start_ind=int(globalcount[0])
-        print('prev_start_ind', prev_start_ind)
 
-    print('globalcount',globalcount)
- 
+        prev_start_ind = int(globalcount[0])
+        print('prev_start_ind', prev_start_ind)
+    print('globalcount', globalcount)
+    if int(globalcount[0]) != int(totalPoints):
+        raise RuntimeError(
+            f"Point extraction incomplete: "
+            f"expected {totalPoints}, extracted {globalcount[0]}"
+        )
     Points[:,0]+=0.5
     Points[:,1]+=0.5
     Points[:,2]+=0.5

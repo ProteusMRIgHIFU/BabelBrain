@@ -347,7 +347,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
     assert(np.isfortran(filtered)==False)
 
     totalPoints = output.size
-    step = get_step_size(sel_device,num_large_buffers=1,data_type=output.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=1,bytes_per_point=output.dtype.itemsize,GPUBackend=GPUBackend)
     logger.info(f"Total points: {totalPoints}")
     for point in range(0,totalPoints,step):
 
