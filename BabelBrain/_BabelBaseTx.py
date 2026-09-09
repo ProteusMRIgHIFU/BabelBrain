@@ -137,6 +137,11 @@ class BabelBaseTx(QWidget):
         self._txTabs.setCurrentIndex(0)
         self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
 
+    @property
+    def FlipSteeringY(self):
+        # This property is used in Phased arrays where we need to swap Y axis
+        return False #default for most devices
+
     @Slot(int)
     def _OnTrajectoryTabChanged(self, idx):
         if not hasattr(self, '_Widgets') or idx < 0 or idx >= len(self._Widgets):
@@ -517,13 +522,21 @@ class BabelBaseTx(QWidget):
                 AirMap = np.ma.masked_where(AirMap == 0, AirMap)
                 panel['airmask1'] = ax1.contourf(XX, ZZX, AirMap, [0, 1], cmap=plt.cm.gray_r)
 
-        panel['imContourf2'] = ax2.contourf(YY, ZZY, Field[SelX, :, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
+        if self.FlipSteeringY:
+            ySign=-1
+        else:
+            ySign=1
+
+        panel['imContourf2'] = ax2.contourf(YY*ySign, ZZY, Field[SelX, :, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
         if not homog:
-            panel['contour2'] = ax2.contour(YY, ZZY, Skull['MaterialMap'][SelX, :, :].T, [0, 1, 2], colors='k', linestyles=':')
+            panel['contour2'] = ax2.contour(YY*ySign, ZZY, Skull['MaterialMap'][SelX, :, :].T, [0, 1, 2], colors='k', linestyles=':')
             if 'AirMask' in Skull:
                 AirMap = Skull['AirMask'][SelX, :, :].T
                 AirMap = np.ma.masked_where(AirMap == 0, AirMap)
-                panel['airmask2'] = ax2.contourf(YY, ZZY, AirMap, [0, 1], cmap=plt.cm.gray_r)
+                panel['airmask2'] = ax2.contourf(YY*ySign, ZZY, AirMap, [0, 1], cmap=plt.cm.gray_r)
+        if self.FlipSteeringY:
+            ax2.xaxis.set_inverted(True) 
+            
 
         # Colourbars and the y-axis flip are set once, with the first contourf.
         if not panel.get('cbDone'):

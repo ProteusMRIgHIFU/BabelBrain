@@ -136,10 +136,6 @@ class BabelBasePhaseArray(BabelBaseTx):
             R = R[:, :, 0]
         return np.asarray(R[:3, 3], dtype=float)
 
-    @property
-    def FlipSteeringY(self):
-        return False #default for most devices
-
     def DeviceFrameSteering(self,XSteering, YSteering):
         '''Map GUI electronic steering into simulation-domain axes.
 

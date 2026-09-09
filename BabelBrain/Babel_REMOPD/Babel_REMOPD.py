@@ -51,8 +51,6 @@ class REMOPD(BabelBasePhaseArray):
     @property
     def FlipSteeringY(self):
         yflip = self._MainApp.Config.get('TrajectoryType') == 'brainsight'
-        if yflip:
-            print('Flipping Y Steering for brainsight operation for REMOPD')
         return yflip
 
     def _CreateForm(self):
@@ -248,6 +246,8 @@ class RunAcousticSim(QObject):
         kargs['TxSet']=TxSet
         # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
         kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
+        if kargs['bFlipSteeringY']:
+            print('Flipping Y Steering for brainsight operation for REMOPD')
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus

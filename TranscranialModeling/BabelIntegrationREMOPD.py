@@ -234,9 +234,9 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
 
             TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+            TxVert[0,:]+=LocSpot[0]+(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep)
+            TxVert[1,:]+=LocSpot[1]+(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep)
+            TxVert[2,:]+=LocSpot[2]+(self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep
 
             TxVert=np.dot(affine,TxVert)
 

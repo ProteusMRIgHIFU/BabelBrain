@@ -1054,6 +1054,10 @@ class Babel_Thermal(QWidget):
                 delattr(self,'_figIntThermalFields')
                 # self._layout.deleteLater()
                 
+            xSign=1
+            if vp['view']=='YZ':
+                if self._MainApp.AcSim.FlipSteeringY:
+                    xSign=-1
 
             if hasattr(self,'_figIntThermalFields'):
                 if WhatDisplay==0:
@@ -1077,15 +1081,15 @@ class Babel_Thermal(QWidget):
                             if 'AirMask' in DataThermal:
                                 del self._airmask1
                                 del self._airmask2
-                            
-                            self._contour1=self._static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
-                            self._contour2=self._static_ax2.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
+
+                            self._contour1=self._static_ax1.contour(self._XX*xSign,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
+                            self._contour2=self._static_ax2.contour(self._XX*xSign,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
 
                             if 'AirMask' in DataThermal:
                                 AirMap=self._SlicePlane(DataThermal['AirMask'],SelY,axis).T
                                 AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                                self._airmask1 = self._static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
-                                self._airmask2 = self._static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                                self._airmask1 = self._static_ax1.contourf(self._XX*xSign,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                                self._airmask2 = self._static_ax2.contourf(self._XX*xSign,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
 
                     while len(self._ListMarkers)>0:
                         obj= self._ListMarkers.pop()
@@ -1122,13 +1126,13 @@ class Babel_Thermal(QWidget):
                     self._static_ax1=static_ax1
                     self._static_ax2=static_ax2
 
-                    _extent=[vp['hvec'].min(),vp['hvec'].max(),vp['vvec'].max(),vp['vvec'].min()]
+                    _extent=[xSign*vp['hvec'].min(),xSign*vp['hvec'].max(),vp['vvec'].max(),vp['vvec'].min()]
                     self._IntensityIm=static_ax1.imshow(IntensityMap,extent=_extent,
                             cmap=plt.cm.jet)
                     static_ax1.set_title('Isppa (W/cm$^2$)')
                     plt.colorbar(self._IntensityIm,ax=static_ax1)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
-                        self._contour1=static_ax1.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims,colors ='y',linestyles = ':')
+                        self._contour1=static_ax1.contour(self._XX*xSign,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims,colors ='y',linestyles = ':')
 
                     static_ax1.set_xlabel(vp['hlabel'])
                     static_ax1.set_ylabel(vp['vlabel'])
@@ -1141,13 +1145,13 @@ class Babel_Thermal(QWidget):
 
                     plt.colorbar(self._ThermalIm,ax=static_ax2)
                     if not self._MainApp.Config['bForceHomogenousMedium']:
-                        self._contour2=static_ax2.contour(self._XX,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
+                        self._contour2=static_ax2.contour(self._XX*xSign,self._ZZ,self._SlicePlane(AcSimMask,SelY,axis).T,crlims, colors ='y',linestyles = ':')
 
                     if 'AirMask' in DataThermal:
                         AirMap=self._SlicePlane(DataThermal['AirMask'],SelY,axis).T
                         AirMap=np.ma.masked_where(AirMap==0 , AirMap)
-                        self._airmask1 = static_ax1.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
-                        self._airmask2 = static_ax2.contourf(self._XX,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                        self._airmask1 = static_ax1.contourf(self._XX*xSign,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
+                        self._airmask2 = static_ax2.contourf(self._XX*xSign,self._ZZ,AirMap,[0,1],cmap=plt.cm.gray_r)
 
                     self._figIntThermalFields.set_facecolor(self._MainApp._BackgroundColorFigures)
                 else:

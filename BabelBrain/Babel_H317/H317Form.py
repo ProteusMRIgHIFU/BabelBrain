@@ -70,7 +70,7 @@ class H317Form(TxPanelBase):
         lay.addSpacing(6)
 
         self._build_mech_and_actions(
-            lay, xy_mech=(-10.0, 10.0), z_mechanic=(-90.0, 90.0),
+            lay, xy_mech=(-40.0, 40.0), z_mechanic=(-90.0, 90.0),
             tissue_warning=None)
         # feasible-traj: Sam's SOP — park the array on a Brainsight
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
