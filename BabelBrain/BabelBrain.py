@@ -1085,15 +1085,22 @@ class BabelBrain(QWidget):
                 self._TrajectoryNumber+=1
                 self.ExecuteTrajectory()
 
-    def ReadTrajectory(self,bGetID=False):
-         if self.Config['TrajectoryType']=='brainsight':
-             return ReadTrajectoryBrainsight(self.Config['Mat4Trajectory'],bGetID=bGetID)
-         elif self.Config['TrajectoryType']=='slicer':
-             return read_converted_itk_affine_transform(self.Config['Mat4Trajectory'],bGetID=bGetID)
-         elif self.Config['TrajectoryType']=='localite':
-             return LocaliteTargeting.from_file(self.Config['Mat4Trajectory']).ReturnBabelBrainTrajectories(bGetID=bGetID)
-         else:
-             raise ValueError("trajectory type not supported yet: "+self.Config['TrajectoryType'])
+    def ReadTrajectory(self,bGetID=False,sel_fname=''):
+        if len(sel_fname)>0:
+            if not os.path.isfile(sel_fname):
+                raise ValueError(f'sel_fname should point to a valid file: {sel_fname}')
+            input_fname = sel_fname
+        else:
+            input_fname = self.Config['Mat4Trajectory']
+             
+        if self.Config['TrajectoryType']=='brainsight':
+            return ReadTrajectoryBrainsight(input_fname,bGetID=bGetID)
+        elif self.Config['TrajectoryType']=='slicer':
+            return read_converted_itk_affine_transform(input_fname,bGetID=bGetID)
+        elif self.Config['TrajectoryType']=='localite':
+            return LocaliteTargeting.from_file(input_fname).ReturnBabelBrainTrajectories(bGetID=bGetID)
+        else:
+            raise ValueError("trajectory type not supported yet: "+self.Config['TrajectoryType'])
          
 
     #this will modify the coordinates of the trajectory

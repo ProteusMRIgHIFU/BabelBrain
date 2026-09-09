@@ -26,8 +26,7 @@ import nibabel
 from CalculateFieldProcess import CalculateFieldProcess
 
 from _BabelBasePhasedArray import BabelBasePhaseArray
-from ConvMatTransform import ReadTrajectoryBrainsight
-from TranscranialModeling.BabelIntegrationREMOPD import DeviceFrameSteering
+from ConvMatTransform import ReadTrajectoryBrainsight, read_converted_itk_affine_transform
 
 _IS_MAC = platform.system() == 'Darwin'
 def resource_path():  # needed for bundling
@@ -42,44 +41,20 @@ def resource_path():  # needed for bundling
 
     return bundle_dir
 
-def _brainsight_origin_ras_mm(path):
-    '''Origin (Loc X/Y/Z) of a Brainsight trajectory export, in NIfTI RAS mm.'''
-    R = ReadTrajectoryBrainsight(path)
-    if getattr(R, 'ndim', 2) == 3:
-        R = R[:, :, 0]
-    return np.asarray(R[:3, 3], dtype=float)
-
-def mechanical_xy_from_feasible_ras_mm(mask_path, ras_mm):
-    '''Raw domain X/Y (mm) from a feasible RAS point to the intended target.
-
-    Same math as Sam's CalcRayXYDistance.py: intended = label 5 in the
-    Step 1 *BabelViscoInput.nii.gz (the trajectory BabelBrain was launched
-    with). Keeps that intended point at the center of Step 2/3.
-    '''
-    if not mask_path or 'BabelViscoInput.nii.gz' not in os.path.basename(mask_path):
-        raise ValueError('Step 1 mask (*BabelViscoInput.nii.gz) is not available.')
-    if not os.path.isfile(mask_path):
-        raise ValueError('Run Step 1 first so the simulation mask exists.')
-
-    # Sam's CalcRayXYDistance.py, verbatim (label 5 = intended target).
-    ras = np.array([float(ras_mm[0]), float(ras_mm[1]), float(ras_mm[2]), 1], dtype=float).reshape((4, 1))
-    inb = nibabel.load(mask_path)
-    zoom = inb.header.get_zooms()
-    data = inb.get_fdata().astype(int)
-    TargetIJK = np.array(np.where(data == 5)).flatten()
-    if TargetIJK.size < 3:
-        raise ValueError('Intended target (label 5) was not found in the Step 1 mask.')
-    inv_affine = np.linalg.inv(inb.affine)
-    AffIJK = np.round(np.dot(inv_affine, ras)).flatten()[:3]
-    DiffIJK = AffIJK - TargetIJK
-    return float(DiffIJK[0] * zoom[0]), float(DiffIJK[1] * zoom[1])
-
 class REMOPD(BabelBasePhaseArray): 
     def __init__(self,parent=None,MainApp=None):
         super().__init__(parent=parent,MainApp=MainApp,formtype=os.path.join(resource_path(), "."))
 
     # Inherits BabelBasePhaseArray.load_ui (-> _setupTrajectoryTabs); only the
     # form and its wiring differ.
+
+    @property
+    def FlipSteeringY(self):
+        yflip = self._MainApp.Config.get('TrajectoryType') == 'brainsight'
+        if yflip:
+            print('Flipping Y Steering for brainsight operation for REMOPD')
+        return yflip
+
     def _CreateForm(self):
         from Babel_REMOPD.REMOPDForm import REMOPDForm
         return REMOPDForm(self)
@@ -105,12 +80,7 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
-        # Y-flip and Apply feasible when TrajectoryType is Brainsight (not only
-        # when launched via -bInUseWithBrainsight).
-        b_brainsight = self._MainApp.Config.get('TrajectoryType') == 'brainsight'
-        self.Widget.ApplyFeasibleTraj.setVisible(b_brainsight)
-        if b_brainsight:
-            self.Widget.ApplyFeasibleTraj.clicked.connect(self.ApplyFeasibleTrajectory)
+        self.Widget.ApplyFeasibleTraj.clicked.connect(self.ApplyFeasibleTrajectory)
         self.up_load_ui()
         
     @Slot()
@@ -136,73 +106,6 @@ class REMOPD(BabelBasePhaseArray):
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
-
-    @Slot()
-    def ApplyFeasibleTrajectory(self):
-        '''Park the array on a Brainsight feasible pose; steer back to intended.
-
-        remopd/feasible-traj: intended trajectory (already loaded) stays label 5.
-        The user picks the feasible Brainsight .txt (no retyped RAS). Mechanical
-        X/Y slide the array to that pose; steering is the opposite offset so the
-        electronic focus stays on intended. DeviceFrameSteering is an involution,
-        so the same map fills the GUI when Brainsight Y is flipped in the solver.
-        '''
-        if self._MainApp.Config.get('TrajectoryType') != 'brainsight':
-            return
-        start = ''
-        mat4 = self._MainApp.Config.get('Mat4Trajectory') or ''
-        if mat4 and os.path.isfile(mat4):
-            start = os.path.dirname(mat4)
-        elif self._MainApp.Config.get('OutputFilesPath'):
-            start = self._MainApp.Config['OutputFilesPath']
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            'Select Brainsight feasible trajectory',
-            start,
-            'Brainsight trajectory (*.txt);;All files (*)')
-        if not path:
-            return
-        try:
-            masks = getattr(self._MainApp, '_outnameMask', None)
-            idx = getattr(self, '_TrajectoryNumber', 0)
-            if not masks:
-                raise ValueError('Run Step 1 first so the simulation mask exists.')
-            mask_path = masks[idx]
-            ras = _brainsight_origin_ras_mm(path)
-            mech_x, mech_y = mechanical_xy_from_feasible_ras_mm(mask_path, ras)
-            # Domain steer that keeps the focus on label 5 after the array slides.
-            gui_x, gui_y = DeviceFrameSteering(-mech_x, -mech_y, flip_y=True)
-        except Exception as e:
-            QMessageBox.critical(self, 'Apply feasible trajectory', str(e))
-            return
-
-        self.Widget.XMechanicSpinBox.setValue(np.round(mech_x, 1))
-        self.Widget.YMechanicSpinBox.setValue(np.round(mech_y, 1))
-        self.Widget.XSteeringSpinBox.setValue(np.round(gui_x, 1))
-        self.Widget.YSteeringSpinBox.setValue(np.round(gui_y, 1))
-
-        xmin = self.Widget.XSteeringSpinBox.minimum()
-        xmax = self.Widget.XSteeringSpinBox.maximum()
-        ymin = self.Widget.YSteeringSpinBox.minimum()
-        ymax = self.Widget.YSteeringSpinBox.maximum()
-        warn = []
-        if not (xmin <= gui_x <= xmax) or not (ymin <= gui_y <= ymax):
-            warn.append('Steering is outside the allowed range and was clamped.')
-        mxmin = self.Widget.XMechanicSpinBox.minimum()
-        mxmax = self.Widget.XMechanicSpinBox.maximum()
-        mymin = self.Widget.YMechanicSpinBox.minimum()
-        mymax = self.Widget.YMechanicSpinBox.maximum()
-        if not (mxmin <= mech_x <= mxmax) or not (mymin <= mech_y <= mymax):
-            warn.append('Mechanical X/Y are outside the allowed range and were clamped.')
-        extra = ('\n\n' + ' '.join(warn)) if warn else ''
-        QMessageBox.information(
-            self,
-            'Apply feasible trajectory',
-            'Mechanical X, Y (mm): %0.1f, %0.1f\n'
-            'Steering X, Y (mm): %0.1f, %0.1f\n\n'
-            'Mechanical slides the array to the feasible pose. '
-            'Steering is the opposite offset so the focus stays on the intended target.'
-            '%s' % (mech_x, mech_y, gui_x, gui_y, extra))
 
     @Slot()
     def _ResolveSimulationFilenames(self):
@@ -344,7 +247,7 @@ class RunAcousticSim(QObject):
         kargs['RotationZ']=RotationZ
         kargs['TxSet']=TxSet
         # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
-        kargs['bFlipSteeringY']=self._mainApp.Config.get('TrajectoryType') == 'brainsight'
+        kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
