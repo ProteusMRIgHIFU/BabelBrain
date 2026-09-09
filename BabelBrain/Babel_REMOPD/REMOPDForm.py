@@ -18,6 +18,11 @@ from PySide6.QtWidgets import QCheckBox
 class REMOPDForm(TxPanelBase):
     def _build_left_panel(self):
         frame, lay = self._make_left_frame()
+        # Densest of the Step-2 columns (6 geometry rows + 3 action buttons):
+        # shave a pixel off the row spacing so the extra ApplyFeasibleTraj
+        # button below fits without making this panel drive the window's
+        # minimum height.
+        lay.setSpacing(3)
 
         # Tx element set
         self.MultifocusLabel = make_label("Tx Elements Set",
@@ -49,7 +54,7 @@ class REMOPDForm(TxPanelBase):
             decimals=1, step=5.0)
         lay.addLayout(form_row("Z Rotation (degrees)", self.ZRotationSpinBox))
 
-        lay.addSpacing(6)
+        lay.addSpacing(2)
 
         # Device → target display
         self.DistanceSkinLabel = make_label(
@@ -59,7 +64,7 @@ class REMOPDForm(TxPanelBase):
             make_label("Distance device\nto target (mm) :"),
             self.DistanceSkinLabel))
 
-        lay.addSpacing(6)
+        lay.addSpacing(2)
 
         self._build_mech_and_actions(
             lay, xy_mech=(-40.0, 40.0), skin_distance=(-90.0, 90.0),
@@ -70,7 +75,8 @@ class REMOPDForm(TxPanelBase):
         self.ApplyFeasibleTraj = make_button(
             "ApplyFeasibleTraj", "Apply feasible trajectory",
             bold=True, min_height=40)
-        # _build_mech_and_actions ends with a stretch; keep this with the
-        # Calculate Fields / Mechanical Adjustments buttons.
-        lay.insertWidget(lay.count() - 1, self.ApplyFeasibleTraj)
+        # Sit right under Calculate Mechanical Adjustments so the three action
+        # buttons stay grouped and the FLHM readout keeps the last row.
+        lay.insertWidget(lay.indexOf(self.CalculateMechAdj) + 1,
+                         self.ApplyFeasibleTraj)
         return frame
