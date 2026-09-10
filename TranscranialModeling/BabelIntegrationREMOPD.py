@@ -38,6 +38,19 @@ def computeREMOPDGeometry():
     TxPos=loadmat(os.path.join(os.path.dirname(os.path.realpath(__file__)),'REMOPD_ElementPosition.mat'))['REMOPD_ElementPosition']
     return TxPos
 
+def DeviceFrameSteering(XSteering, YSteering, flip_y=False):
+    '''Map GUI electronic steering into REMOPD simulation-domain axes.
+
+    Changed on remopd/feasible-traj (TW / Brainsight): hydrophone checks showed
+    GUI +Y is opposite the device/domain +Y. Sam asked that this swap apply
+    only when BabelBrain is launched from Brainsight, so Slicer and Localite
+    keep the identity map until a shared convention exists. Mechanical X/Y
+    are already domain coordinates and are not mapped here.
+    '''
+    if flip_y:
+        return XSteering, -YSteering
+    return XSteering, YSteering
+
 def GenerateSingleElem(FREQ=300e3,PPW=12.0):
     #60.08 PPW produces close to integer steps for both pitch and kerf
     
@@ -157,6 +170,7 @@ class RUN_SIM(RUN_SIM_BASE):
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
                                     TxSet=self._TxSet,
+                                    bFlipSteeringY=self._bFlipSteeringY,
                                     **kargs)
     def RunCases(self,
                     XSteering=0.0,
@@ -164,12 +178,15 @@ class RUN_SIM(RUN_SIM_BASE):
                     ZSteering=60.0e-3,
                     RotationZ=0.0,
                     TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
+                    bFlipSteeringY=False,
                     **kargs):
         self._RotationZ=RotationZ
         self._XSteering=XSteering
         self._YSteering=YSteering
         self._ZSteering=ZSteering
         self._TxSet=TxSet
+        # Popped here so BASE CreateSimObject does not see an unknown kwarg.
+        self._bFlipSteeringY=bFlipSteeringY
         
         return super().RunCases(**kargs)
         
@@ -183,6 +200,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                  ZSteering=0.0,
                  RotationZ=0.0,
                  TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
+                 bFlipSteeringY=False,
                  **kargs):
         
         self._XSteering=XSteering
@@ -190,6 +208,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._ZSteering=ZSteering
         self._RotationZ=RotationZ
         self._TxSet=TxSet
+        self._bFlipSteeringY=bFlipSteeringY
         super().__init__(**kargs)
 
     def CreateSimConditions(self,**kargs):
@@ -198,6 +217,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
                                     ZSteering=self._ZSteering,
                                     RotationZ=self._RotationZ,
                                     TxSet=self._TxSet,
+                                    bFlipSteeringY=self._bFlipSteeringY,
                                     FocalLength=0.0,
                                     Aperture=APERTURE, # m, aperture of the Tx, used tof calculated cross section area entering the domain
                                     **kargs)
@@ -214,9 +234,9 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
 
             TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]+int(np.round(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep))
-            TxVert[1,:]+=LocSpot[1]+int(np.round(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep))
-            TxVert[2,:]+=LocSpot[2]+int(np.round((self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep))
+            TxVert[0,:]+=LocSpot[0]+(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep)
+            TxVert[1,:]+=LocSpot[1]+(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep)
+            TxVert[2,:]+=LocSpot[2]+(self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep
 
             TxVert=np.dot(affine,TxVert)
 
@@ -266,6 +286,7 @@ class SimulationConditions(SimulationConditionsBASE):
                       ZSteering=0.0,
                       RotationZ=0.0,#rotation of Tx over Z axis
                       TxSet='Total', #Total selects all the 256 elements, Sector1 the central 128 elements, and Sector2 the external 128
+                      bFlipSteeringY=False,
                       **kargs):
         super().__init__(Aperture=Aperture,FocalLength=FocalLength,
                          ZTxCorrecton=-ZDistance, #this will put the required water space in the simulation domain
@@ -275,6 +296,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._ZSteering=ZSteering
         self._RotationZ=RotationZ
         self._TxSet = TxSet
+        self._bFlipSteeringY = bFlipSteeringY
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
@@ -328,11 +350,15 @@ class SimulationConditions(SimulationConditionsBASE):
             u0=np.zeros((1),np.complex64)
             u0[0]=1+0j
             center=np.zeros((1,3),np.float32)
-            center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX+self._XSteering
-            center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+self._YSteering
+            # GUI Y is stored unchanged in the H5; flip only the focus used
+            # for phasing, and only when launched from Brainsight.
+            steerX, steerY = DeviceFrameSteering(
+                self._XSteering, self._YSteering, flip_y=self._bFlipSteeringY)
+            center[0,0]=self._XDim[self._FocalSpotLocation[0]]+self._TxMechanicalAdjustmentX+steerX
+            center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+steerY
             center[0,2]=self._ZDim[self._ZSourceLocation]+self._ZSteering+zCorrec
 
-            print('center',center,np.mean(self._TxREMOPD['elemcenter'][:,2]))
+            print('center',center,'device-frame XY',(steerX, steerY),np.mean(self._TxREMOPD['elemcenter'][:,2]))
             
             u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
             u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)

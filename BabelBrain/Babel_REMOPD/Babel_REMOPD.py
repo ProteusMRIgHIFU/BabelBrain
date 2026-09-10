@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 
-from PySide6.QtWidgets import QApplication, QMessageBox, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QMessageBox, QVBoxLayout, QFileDialog
 from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread,Qt
 from PySide6.QtUiTools import QUiLoader
 
@@ -21,9 +21,12 @@ import yaml
 from BabelViscoFDTD.H5pySimple import ReadFromH5py
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 
+import nibabel
+
 from CalculateFieldProcess import CalculateFieldProcess
 
 from _BabelBasePhasedArray import BabelBasePhaseArray
+from ConvMatTransform import ReadTrajectoryBrainsight, read_converted_itk_affine_transform
 
 _IS_MAC = platform.system() == 'Darwin'
 def resource_path():  # needed for bundling
@@ -44,6 +47,12 @@ class REMOPD(BabelBasePhaseArray):
 
     # Inherits BabelBasePhaseArray.load_ui (-> _setupTrajectoryTabs); only the
     # form and its wiring differ.
+
+    @property
+    def FlipSteeringY(self):
+        yflip = self._MainApp.Config.get('TrajectoryType') == 'brainsight'
+        return yflip
+
     def _CreateForm(self):
         from Babel_REMOPD.REMOPDForm import REMOPDForm
         return REMOPDForm(self)
@@ -69,6 +78,7 @@ class REMOPD(BabelBasePhaseArray):
         self.Widget.LabelTissueRemoved.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.ApplyFeasibleTraj.clicked.connect(self.ApplyFeasibleTrajectory)
         self.up_load_ui()
         
     @Slot()
@@ -94,7 +104,6 @@ class REMOPD(BabelBasePhaseArray):
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
-
 
     @Slot()
     def _ResolveSimulationFilenames(self):
@@ -234,8 +243,11 @@ class RunAcousticSim(QObject):
         kargs['YSteering']=YSteering
         kargs['ZSteering']=ZSteering
         kargs['RotationZ']=RotationZ
-        kargs['RotationZ']=RotationZ
         kargs['TxSet']=TxSet
+        # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
+        kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
+        if kargs['bFlipSteeringY']:
+            print('Flipping Y Steering for brainsight operation for REMOPD')
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus

@@ -12,6 +12,7 @@ from GUIComponents.TxPanelBase import (
     make_dspin,
     make_combo,
     make_label,
+    make_button,
     form_row,
 )
 from PySide6.QtWidgets import QCheckBox
@@ -69,6 +70,17 @@ class H317Form(TxPanelBase):
         lay.addSpacing(6)
 
         self._build_mech_and_actions(
-            lay, xy_mech=(-10.0, 10.0), z_mechanic=(-90.0, 90.0),
+            lay, xy_mech=(-40.0, 40.0), z_mechanic=(-90.0, 90.0),
             tissue_warning=None)
+        # feasible-traj: Sam's SOP — park the array on a Brainsight
+        # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
+        # Shown when TrajectoryType is Brainsight (wired in Babel_REMOPD).
+        self.ApplyFeasibleTraj = make_button(
+            "ApplyFeasibleTraj", "Apply feasible trajectory",
+            bold=True, min_height=40)
+        # Sit right under Calculate Mechanical Adjustments so the three action
+        # buttons stay grouped and the FLHM readout keeps the last row.
+        lay.insertWidget(lay.indexOf(self.CalculateMechAdj) + 1,
+                         self.ApplyFeasibleTraj)
+   
         return frame

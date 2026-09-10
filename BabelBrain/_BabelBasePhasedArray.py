@@ -52,7 +52,6 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.DefaultConfig()
         self.load_ui(formtype)
 
-
     def load_ui(self,formtype):
         # the concrete form class is passed in via `formtype` (a class, or a
         # legacy path resolved by suffix); stash it for _CreateForm and build the
@@ -105,8 +104,119 @@ class BabelBasePhaseArray(BabelBaseTx):
             self.Widget.ZMechaniclabel.setVisible(False)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
+        self.Widget.ApplyFeasibleTraj.clicked.connect(self.ApplyFeasibleTrajectory)
         self.up_load_ui()
-        
+
+
+    def  mechanical_xy_from_feasible_ras_mm(self, ras_mm):
+        '''Raw domain X/Y (mm) from a feasible RAS point to the intended target.
+
+        Same math as Sam's CalcRayXYDistance.py: intended = label 5 in the
+        Step 1 *BabelViscoInput.nii.gz (the trajectory BabelBrain was launched
+        with). Keeps that intended point at the center of Step 2/3.
+        '''
+
+        # Sam's CalcRayXYDistance.py, verbatim (label 5 = intended target).
+        ras = np.array([float(ras_mm[0]), float(ras_mm[1]), float(ras_mm[2]), 1], dtype=float).reshape((4, 1))
+        inb = self._MainApp._MaskNib[self._TrajectoryNumber]
+        zoom = inb.header.get_zooms()
+        data = self._MainApp.FinalMaskRaw[self._TrajectoryNumber].astype(int)
+        TargetIJK = np.array(np.where(data == 5)).flatten()
+        if TargetIJK.size < 3:
+            raise ValueError('Intended target (label 5) was not found in the Step 1 mask.')
+        inv_affine = np.linalg.inv(inb.affine)
+        AffIJK = np.round(np.dot(inv_affine, ras)).flatten()[:3]
+        DiffIJK = AffIJK - TargetIJK
+        return float(DiffIJK[0] * zoom[0]), float(DiffIJK[1] * zoom[1])
+
+    def _origin_feasible_ras_mm(self,path):
+        '''Origin (Loc X/Y/Z) of a Brainsight trajectory export, in NIfTI RAS mm.'''
+        R = self._MainApp.ReadTrajectory(bGetID=False,sel_fname=path)
+        if getattr(R, 'ndim', 2) == 3:
+            R = R[:, :, 0]
+        return np.asarray(R[:3, 3], dtype=float)
+
+    def DeviceFrameSteering(self,XSteering, YSteering):
+        '''Map GUI electronic steering into simulation-domain axes.
+
+        Changed on remopd/feasible-traj (TW / Brainsight): hydrophone checks showed
+        GUI +Y is opposite the device/domain +Y. Sam asked that this swap apply
+        only when BabelBrain is launched from Brainsight, so Slicer and Localite
+        keep the identity map until a shared convention exists. Mechanical X/Y
+        are already domain coordinates and are not mapped here.
+        '''
+        if self.FlipSteeringY:
+            return XSteering, -YSteering
+        return XSteering, YSteering
+
+    @Slot()
+    def ApplyFeasibleTrajectory(self):
+        '''Park the array on a Brainsight feasible pose; steer back to intended.
+
+        remopd/feasible-traj: intended trajectory (already loaded) stays label 5.
+        The user picks the feasible Brainsight .txt (no retyped RAS). Mechanical
+        X/Y slide the array to that pose; steering is the opposite offset so the
+        electronic focus stays on intended. DeviceFrameSteering is an involution,
+        so the same map fills the GUI when Brainsight Y is flipped in the solver.
+        '''
+        start = ''
+        mat4 = self._MainApp.Config.get('Mat4Trajectory') or ''
+        if mat4 and os.path.isfile(mat4):
+            start = os.path.dirname(mat4)
+        elif self._MainApp.Config.get('OutputFilesPath'):
+            start = self._MainApp.Config['OutputFilesPath']
+        if self._MainApp.Config['TrajectoryType']=='localite':
+            fileext = 'trajectory (*.xml *.XML)'
+        else:
+            fileext = 'trajectory (*.txt)'
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            'Select feasible trajectory',
+            start,
+            fileext)
+        if not path:
+            return
+        try:
+            masks = getattr(self._MainApp, '_outnameMask', None)
+            idx = getattr(self, '_TrajectoryNumber', 0)
+            if not masks:
+                raise ValueError('Run Step 1 first so the simulation mask exists.')
+            mask_path = masks[idx]
+            ras = self._origin_feasible_ras_mm(path)
+            mech_x, mech_y = self.mechanical_xy_from_feasible_ras_mm(ras)
+            # Domain steer that keeps the focus on label 5 after the array slides.
+            gui_x, gui_y = self.DeviceFrameSteering(-mech_x, -mech_y)
+        except Exception as e:
+            QMessageBox.critical(self, 'Apply feasible trajectory', str(e))
+            return
+
+        self.Widget.XMechanicSpinBox.setValue(np.round(mech_x, 1))
+        self.Widget.YMechanicSpinBox.setValue(np.round(mech_y, 1))
+        self.Widget.XSteeringSpinBox.setValue(np.round(gui_x, 1))
+        self.Widget.YSteeringSpinBox.setValue(np.round(gui_y, 1))
+
+        xmin = self.Widget.XSteeringSpinBox.minimum()
+        xmax = self.Widget.XSteeringSpinBox.maximum()
+        ymin = self.Widget.YSteeringSpinBox.minimum()
+        ymax = self.Widget.YSteeringSpinBox.maximum()
+        warn = []
+        if not (xmin <= gui_x <= xmax) or not (ymin <= gui_y <= ymax):
+            warn.append('Steering is outside the allowed range and was clamped.')
+        mxmin = self.Widget.XMechanicSpinBox.minimum()
+        mxmax = self.Widget.XMechanicSpinBox.maximum()
+        mymin = self.Widget.YMechanicSpinBox.minimum()
+        mymax = self.Widget.YMechanicSpinBox.maximum()
+        if not (mxmin <= mech_x <= mxmax) or not (mymin <= mech_y <= mymax):
+            warn.append('Mechanical X/Y are outside the allowed range and were clamped.')
+        extra = ('\n\n' + ' '.join(warn)) if warn else ''
+        QMessageBox.information(
+            self,
+            'Apply feasible trajectory',
+            'Mechanical X, Y (mm): %0.1f, %0.1f\n'
+            'Steering X, Y (mm): %0.1f, %0.1f\n\n'
+            'Mechanical slides the array to the feasible pose. '
+            'Steering is the opposite offset so the focus stays on the intended target.'
+            '%s' % (mech_x, mech_y, gui_x, gui_y, extra))    
        
     @Slot()
     def ZSteeringUpdate(self,value):
