@@ -778,6 +778,29 @@ class BabelBrain(QWidget):
             USMaskkHzDropDown.lineEdit().textChanged.connect(self.StartManualMaskFrequency)
             USMaskkHzDropDown.lineEdit().editingFinished.connect(self.UpdateManualMaskFrequency)
 
+        # Status bar cue — only meaningful once AcSim exists, as the steering
+        # flips are properties of the transducer class.
+        self.UpdateOrientationCue()
+
+    def UpdateOrientationCue(self):
+        '''
+        Refresh the bottom status-bar glyph showing which way the device's +X /
+        +Y steering axes point on screen (see _BabelBaseTx.FlipSteeringX/Y).
+        '''
+        if not hasattr(self,'AcSim'):
+            return
+        try:
+            self.Widget.StatusBar.SetOrientation(self.AcSim.FlipSteeringX,
+                                                 self.AcSim.FlipSteeringY,
+                                                 DeviceName=self.Config['TxSystem'])
+        except BaseException as e:
+            print('Unable to update orientation cue')
+            print(e)
+
+    def SetStatusMessage(self,msg):
+        '''Right-hand message area of the bottom status bar.'''
+        self.Widget.StatusBar.SetMessage(msg)
+
 
     @Slot()
     def StartManualMaskFrequency(self,txt):

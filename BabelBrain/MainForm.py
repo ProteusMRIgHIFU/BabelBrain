@@ -181,6 +181,7 @@ class BabelBrainMainForm(QWidget):
         root.addWidget(self._build_tab_widget(), stretch=1)
         root.addWidget(self._build_log_header())
         root.addWidget(self._build_log_view())
+        root.addWidget(self._build_status_bar())
 
         self.setMinimumSize(1200, 720)
 
@@ -377,6 +378,15 @@ class BabelBrainMainForm(QWidget):
     # Log section -------------------------------------------------------------
     def _build_log_header(self):
         return _bold(QLabel("Terminal output"))
+
+    # Status bar -------------------------------------------------------------
+    def _build_status_bar(self):
+        """Bottom status bar. Holds the transducer-orientation cue (see
+        GUIComponents/OrientationCue.py) and a right-aligned message area;
+        BabelBrain.py reaches it as `self.Widget.StatusBar`."""
+        from GUIComponents.OrientationCue import StatusBar
+        self.StatusBar = StatusBar()
+        return self.StatusBar
 
     def _build_log_view(self):
         self.outputTerminal = QTextBrowser()
