@@ -1055,9 +1055,9 @@ class Babel_Thermal(QWidget):
                 # self._layout.deleteLater()
                 
             xSign=1
-            if vp['view']=='YZ':
-                if self._MainApp.AcSim.FlipSteeringY:
-                    xSign=-1
+            # if vp['view']=='YZ':
+            #     if self._MainApp.AcSim.FlipSteeringY:
+            #         xSign=-1
 
             if hasattr(self,'_figIntThermalFields'):
                 if WhatDisplay==0:

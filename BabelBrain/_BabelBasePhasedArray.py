@@ -145,8 +145,8 @@ class BabelBasePhaseArray(BabelBaseTx):
         keep the identity map until a shared convention exists. Mechanical X/Y
         are already domain coordinates and are not mapped here.
         '''
-        if self.FlipSteeringY:
-            return XSteering, -YSteering
+        # if self.FlipSteeringY:
+        #     return XSteering, -YSteering
         return XSteering, YSteering
 
     @Slot()

@@ -402,7 +402,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                                 bSaveCTMaximized=False,
                                 bExtractAirRegions=True,
                                 TrajectoryNumber=0,
-                                RegionAirCT=[-1200,-400]): #created reduced FOV
+                                RegionAirCT=[-1200,-400],
+                                bFlipINifti=False,
+                                bFlipJNifti=False): #created reduced FOV
     '''
     Generate masks for acoustic/viscoelastic simulations. 
     It creates an Nifti file that is in subject space using as main inputs the output files of the headreco tool and location of coordinates where focal point is desired
@@ -1178,10 +1180,35 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             if n!=4:
                 FinalMask2[FinalMask==n]=n
 
-        mask_nifti2 = nibabel.Nifti1Image(FinalMask2, affine=baseaffineRot) 
+        MaskData=FinalMask2
     else:
-        mask_nifti2 = nibabel.Nifti1Image(FinalMask, affine=baseaffineRot)
+        MaskData=FinalMask
 
+
+    if bFlipINifti:
+        print('Flipping I Direction of raw matrix in Nifti file')
+        N_I = MaskData.shape[0]
+        MaskData = np.ascontiguousarray(MaskData[::-1,:, :])
+        F = np.array([
+            [-1,  0, 0, N_I - 1],
+             [0,  1, 0, 0],
+             [0,  0, 1, 0],
+             [0,  0, 0, 1],
+        ])
+        baseaffineRot = baseaffineRot @ F
+    if bFlipJNifti:
+        print('Flipping J Direction of raw matrix in Nifti file')
+        N_J = MaskData.shape[1]
+        MaskData = np.ascontiguousarray(MaskData[:, ::-1, :])
+        F = np.array([
+            [1,  0, 0, 0],
+            [0, -1, 0, N_J - 1],
+            [0,  0, 1, 0],
+            [0,  0, 0, 1],
+        ])
+        baseaffineRot = baseaffineRot @ F
+    mask_nifti2 = nibabel.Nifti1Image(MaskData, affine=baseaffineRot)
+    
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
     S1_file_manager.save_file(file_data=mask_nifti2,filename=outname)
     

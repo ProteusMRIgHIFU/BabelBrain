@@ -245,9 +245,9 @@ class RunAcousticSim(QObject):
         kargs['RotationZ']=RotationZ
         kargs['TxSet']=TxSet
         # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
-        kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
-        if kargs['bFlipSteeringY']:
-            print('Flipping Y Steering for brainsight operation for REMOPD')
+        # kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
+        # if kargs['bFlipSteeringY']:
+        #     print('Flipping Y Steering for brainsight operation for REMOPD')
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus

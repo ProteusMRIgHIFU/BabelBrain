@@ -138,6 +138,11 @@ class BabelBaseTx(QWidget):
         self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
 
     @property
+    def FlipSteeringX(self):
+        # This property is used in Phased arrays where we need to swap X axis
+        return False #default for most devices
+
+    @property
     def FlipSteeringY(self):
         # This property is used in Phased arrays where we need to swap Y axis
         return False #default for most devices
@@ -522,11 +527,10 @@ class BabelBaseTx(QWidget):
                 AirMap = np.ma.masked_where(AirMap == 0, AirMap)
                 panel['airmask1'] = ax1.contourf(XX, ZZX, AirMap, [0, 1], cmap=plt.cm.gray_r)
 
-        if self.FlipSteeringY:
-            ySign=-1
-        else:
-            ySign=1
-
+        ySign=1
+        # if self.FlipSteeringY:
+        #     ySign=-1
+        
         panel['imContourf2'] = ax2.contourf(YY*ySign, ZZY, Field[SelX, :, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
         if not homog:
             panel['contour2'] = ax2.contour(YY*ySign, ZZY, Skull['MaterialMap'][SelX, :, :].T, [0, 1, 2], colors='k', linestyles=':')
@@ -534,8 +538,8 @@ class BabelBaseTx(QWidget):
                 AirMap = Skull['AirMask'][SelX, :, :].T
                 AirMap = np.ma.masked_where(AirMap == 0, AirMap)
                 panel['airmask2'] = ax2.contourf(YY*ySign, ZZY, AirMap, [0, 1], cmap=plt.cm.gray_r)
-        if self.FlipSteeringY:
-            ax2.xaxis.set_inverted(True) 
+        # if self.FlipSteeringY:
+        #     ax2.xaxis.set_inverted(True) 
             
 
         # Colourbars and the y-axis flip are set once, with the first contourf.

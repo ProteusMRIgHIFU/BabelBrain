@@ -1948,6 +1948,8 @@ class RunMaskGeneration(QObject):
         kargs['Location']=[0,0,0] #This coordinate will be ignored
         kargs['prefix']=prefix
         kargs['TrajectoryNumber']=TrajectoryNumber
+        kargs['bFlipINifti']=self._mainApp.AcSim.FlipSteeringX
+        kargs['bFlipJNifti']=self._mainApp.AcSim.FlipSteeringY
         kargs['bPlot']=False
         if self._mainApp.Config['bUseCT']:
             kargs['CT_or_ZTE_input']=self._mainApp.Config['CT_or_ZTE_input']
