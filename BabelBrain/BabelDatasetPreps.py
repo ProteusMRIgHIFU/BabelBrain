@@ -355,6 +355,31 @@ def RunMeshConv(reference,mesh,finalname,SimbNINBSRoot=''):
         print("stderr:", result.stderr)
         result=result.returncode 
     print("MeshConv Finished")
+
+def ApplyFlipping(data,affine,bFlipINifti,bFlipJNifti):
+    if bFlipINifti:
+        print('Flipping I Direction of raw matrix in Nifti file')
+        N_I = data.shape[0]
+        data = np.ascontiguousarray(data[::-1,:, :])
+        F = np.array([
+            [-1,  0, 0, N_I - 1],
+                [0,  1, 0, 0],
+                [0,  0, 1, 0],
+                [0,  0, 0, 1],
+        ])
+        affine = affine @ F
+    if bFlipJNifti:
+        print('Flipping J Direction of raw matrix in Nifti file')
+        N_J = data.shape[1]
+        data = np.ascontiguousarray(data[:, ::-1, :])
+        F = np.array([
+            [1,  0, 0, 0],
+            [0, -1, 0, N_J - 1],
+            [0,  0, 1, 0],
+            [0,  0, 0, 1],
+        ])
+        affine = affine @ F
+    return data,affine
     
         
 #process first with SimbNIBS
@@ -955,92 +980,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         CTBone[CTBone<TypeThresold]=TypeThresold #we cut off to avoid problems in acoustic sim
         ndataCT[nfct]=CTBone
 
-        if bMaximizeBoneRim:
-            with CodeTimer("CTS:L3:S1: Fixing partial volume artifacts edge",unit='s'):
-                interior_high_th=800.0
-                max_boost = 1000.0
-                nPixelsErode=RatioCTVoxels.copy()
-                print('nPixelsErode',nPixelsErode)
-                #we scan 1mm around the edge
-                for ntr in range(len(RatioCTVoxels)):
-                    if RatioCTVoxels[ntr]%2==0:
-                        RatioCTVoxels[ntr]+=1
-                    if RatioCTVoxels[ntr]==1:
-                        RatioCTVoxels[ntr]=3 #minimum 3 voxels
-    
-                interior_mask=nfct.copy().astype(np.uint8)
-
-                # # # Create conservative interior bone mask (higher threshold + erosion)
-                interior_mask_val = (ndataCT >= interior_high_th)#.astype(np.uint8)
-                with CodeTimer("CTS:L3:S1: binary erosion",unit='s'):
-                    interior_mask = ndimage.binary_erosion(interior_mask,structure=np.ones(RatioCTVoxels),iterations=1)
-
-
-                # # Precompute interior bone mean (global or local)
-                global_interior_mean = ndataCT[interior_mask_val].mean()
-                print("Global interior bone mean HU:", global_interior_mean)
-
-                # distance transform from interior mask: for each voxel inside coarse mask,
-                # compute distance to nearest interior voxel (in voxels)
-                # We'll compute distance only within the nfct to save time
-                # distance_to_interior: inside nfct -> distance to nearest interior voxel (0 if interior)
-                inv_interior = 1 - interior_mask  # interior==1 => inv_interior==0; else 1
-                # compute distance from every voxel to nearest interior voxel (Euclidean)
-                with CodeTimer("CTS:L3:S1: distance_transform_edt",unit='s'):
-                    dist_to_interior = ndimage.distance_transform_edt(inv_interior)  # voxels
-
-                # # Identify edge voxels: in nfct but not in interior_mask
-                edge_voxels = (nfct == 1) & (interior_mask == 0)
-
-                # # For each edge voxel, compute weight based on distance (close -> high weight)
-                # # weight = exp(-dist / distance_scale)  (so dist=0 => weight=1 ; dist large => ~0)
-                distance_scale=float(RatioCTVoxels[0])/2.0
-                dist = dist_to_interior[edge_voxels]
-                weights = np.exp(-dist / distance_scale)
-
-                # # Local approach: get a local interior mean per edge voxel by sampling interior voxels
-                # # We'll compute a gaussian-blurred interior mean image for locality:
-                interior_f = ndataCT * interior_mask_val  # interior intensity, zero elsewhere
-                # # To get local mean of interior bone near each voxel, convolve with small gaussian and normalize by blurred mask
-                sigma_local = RatioCTVoxels[0]  # small locality window in voxels (tune)
-                with CodeTimer("CTS:L3:S1: interior_f gaussian_filter",unit='s'):
-                    blur_interior = ndimage.gaussian_filter(interior_f, sigma=sigma_local)
-                with CodeTimer("CTS:L3:S1: blur_mask gaussian_filter",unit='s'):
-                    blur_mask = ndimage.gaussian_filter(interior_mask_val.astype(np.float32), sigma=sigma_local)
-                # # avoid division by zero
-                local_interior_mean_img = np.where(blur_mask > 1e-6, blur_interior / blur_mask, global_interior_mean)
-
-                # # Now get local interior mean for each edge voxel
-                local_means = local_interior_mean_img[edge_voxels]
-
-                # # Compute corrected HU: blend original toward local interior mean using weight
-                orig_vals = ndataCT[edge_voxels]
-                correct_vals = orig_vals + weights * (local_means - orig_vals)
-
-                # # Optionally clamp boost to avoid unrealistically large jumps
-                delta = correct_vals - orig_vals
-                delta_clipped = np.clip(delta, a_min=None, a_max=max_boost)  # only upper clamp
-                correct_vals = orig_vals + delta_clipped
-
-                CTnamefiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_filtered.nii.gz'
-                CTnamenonfiltered=os.path.dirname(T1Conformal_nii)+os.sep+'CT_nonfiltered.nii.gz'
-                if bSaveCTMaximized:
-                    with CodeTimer("CTS:L3:S1: saving CTnamenonfiltered",unit='s'):
-                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
-                        nCTNifti.to_filename(CTnamenonfiltered)
-                        _rec_artifact(CTnamenonfiltered)
-
-                # ndataCT[nfct_rim]=CTBoneMaxFilter[nfct_rim]
-                ndataCT[edge_voxels] = correct_vals
-
-                if bSaveCTMaximized:
-                    with CodeTimer("CTS:L3:S1: saving CTnamefiltered",unit='s'):
-                        nCTNifti=nibabel.Nifti1Image(ndataCT, nCT.affine, nCT.header)
-                        nCTNifti.to_filename(CTnamefiltered)
-                        _rec_artifact(CTnamefiltered)
-
-                gc.collect()
-
         maxData=ndataCT[nfct].max()
         minData=ndataCT[nfct].min()
         
@@ -1065,9 +1004,11 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             gc.collect()
 
-            nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine, nCT.header)
+            nCT=nibabel.Nifti1Image(ndataCTMap, nCT.affine)
 
-            S1_file_manager.save_file(file_data=nCT,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
+            ndataCTMap,finalCTaffine=ApplyFlipping(ndataCTMap, nCT.affine,bFlipINifti,bFlipJNifti)
+            nCTFinal=nibabel.Nifti1Image(ndataCTMap, finalCTaffine)
+            S1_file_manager.save_file(file_data=nCTFinal,filename=outputfilenames['CTfname'],precursor_files=outputfilenames['ReuseMask'])
 
         if bExtractAirRegions:
             with CodeTimer("CTS:L3:S1: Extracting air regions",unit='s'):
@@ -1084,8 +1025,10 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 regions= regionprops(label_img)
                 regions=sorted(regions,key=lambda d: d.area)
                 AirRegions[label_img==regions[-1].label]=0 #we turn off air around head
-                AirRegions=nibabel.Nifti1Image(AirRegions, nCT.affine, nCT.header)
+                AirRegions,affineair=ApplyFlipping(AirRegions,nCT.affine,bFlipINifti,bFlipJNifti)
+                AirRegions=nibabel.Nifti1Image(AirRegions, affineair)
                 outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
+
                 AirRegions.to_filename(outname)
                 _rec_artifact(outname)
 
@@ -1184,29 +1127,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     else:
         MaskData=FinalMask
 
+    MaskData,baseaffineRot=ApplyFlipping(MaskData,baseaffineRot,bFlipINifti,bFlipJNifti)
 
-    if bFlipINifti:
-        print('Flipping I Direction of raw matrix in Nifti file')
-        N_I = MaskData.shape[0]
-        MaskData = np.ascontiguousarray(MaskData[::-1,:, :])
-        F = np.array([
-            [-1,  0, 0, N_I - 1],
-             [0,  1, 0, 0],
-             [0,  0, 1, 0],
-             [0,  0, 0, 1],
-        ])
-        baseaffineRot = baseaffineRot @ F
-    if bFlipJNifti:
-        print('Flipping J Direction of raw matrix in Nifti file')
-        N_J = MaskData.shape[1]
-        MaskData = np.ascontiguousarray(MaskData[:, ::-1, :])
-        F = np.array([
-            [1,  0, 0, 0],
-            [0, -1, 0, N_J - 1],
-            [0,  0, 1, 0],
-            [0,  0, 0, 1],
-        ])
-        baseaffineRot = baseaffineRot @ F
     mask_nifti2 = nibabel.Nifti1Image(MaskData, affine=baseaffineRot)
     
     outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'BabelViscoInput.nii.gz'
@@ -1220,11 +1142,6 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         T1W_resampled_fname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'T1W_Resampled.nii.gz'
         S1_file_manager.save_file(file_data=T1Conformal,filename=T1W_resampled_fname)
     
-    if bPlot:
-        plt.figure()
-        plt.imshow(FinalMask[:,LocFocalPoint[1],:],cmap=plt.cm.jet)
-        plt.gca().set_aspect(1.0)
-        plt.colorbar()
     
     # Ensure all files have been saved before moving on
     S1_file_manager.shutdown()
