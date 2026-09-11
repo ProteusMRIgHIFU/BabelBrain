@@ -244,6 +244,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         #we save the final cone profile
         Cone.export(bdir+os.sep+prefix+'_Cone.stl')
         _rec_artifact(bdir+os.sep+prefix+'_Cone.stl')
+        self._TxElemCenters=np.array(TxElemCenters)
 
     def AddSaveDataSim(self,DataForSim):
         super().AddSaveDataSim(DataForSim)

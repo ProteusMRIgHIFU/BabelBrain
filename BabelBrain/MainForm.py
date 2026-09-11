@@ -181,7 +181,6 @@ class BabelBrainMainForm(QWidget):
         root.addWidget(self._build_tab_widget(), stretch=1)
         root.addWidget(self._build_log_header())
         root.addWidget(self._build_log_view())
-        root.addWidget(self._build_status_bar())
 
         self.setMinimumSize(1200, 720)
 
@@ -206,6 +205,13 @@ class BabelBrainMainForm(QWidget):
         lay.addWidget(self.ThermalProfileLabel)
 
         lay.addStretch(1)
+
+        # Steering-axes cue (see GUIComponents/OrientationCue.py); BabelBrain.py
+        # reaches it as `self.Widget.OrientationCue`.
+        from GUIComponents.OrientationCue import OrientationCue
+        self.OrientationCue = OrientationCue()
+        lay.addWidget(self.OrientationCue)
+        lay.addSpacing(12)
 
         self.vtkVisualizationqPushButton = QPushButton("VTK visualization")
         self.vtkVisualizationqPushButton.setObjectName("vtkVisualizationqPushButton")
@@ -378,15 +384,6 @@ class BabelBrainMainForm(QWidget):
     # Log section -------------------------------------------------------------
     def _build_log_header(self):
         return _bold(QLabel("Terminal output"))
-
-    # Status bar -------------------------------------------------------------
-    def _build_status_bar(self):
-        """Bottom status bar. Holds the transducer-orientation cue (see
-        GUIComponents/OrientationCue.py) and a right-aligned message area;
-        BabelBrain.py reaches it as `self.Widget.StatusBar`."""
-        from GUIComponents.OrientationCue import StatusBar
-        self.StatusBar = StatusBar()
-        return self.StatusBar
 
     def _build_log_view(self):
         self.outputTerminal = QTextBrowser()

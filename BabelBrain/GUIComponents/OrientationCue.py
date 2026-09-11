@@ -4,7 +4,7 @@ Phased-array vendors do not agree on the sign of the steering axes, so
 `_BabelBaseTx.FlipSteeringX` / `.FlipSteeringY` tell BabelBrain whether the
 device's +X / +Y steering directions run opposite to the on-screen convention
 (+X to the right, +Y to the top).  Those flips are easy to miss, hence this
-small axes glyph shown in the status bar at the bottom of the main window.
+small axes glyph shown in the top bar of the main window.
 
 The glyph is drawn with QPainter (palette-aware, crisp on HiDPI), but a PNG
 drop-in is supported as well: place files named
@@ -22,7 +22,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QSize, QPointF
 from PySide6.QtGui import QPainter, QPen, QPolygonF, QPixmap, QFont, QColor
-from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QFrame, QSizePolicy
+from PySide6.QtWidgets import QWidget, QLabel, QHBoxLayout, QSizePolicy
 
 from GUIComponents.AppStyle import palette_is_dark
 
@@ -54,7 +54,7 @@ def orientation_text(bFlipX, bFlipY):
 class OrientationGlyph(QWidget):
     """Small axes cross showing where +X and +Y point for the active device."""
 
-    _SIZE = QSize(70, 50)
+    _SIZE = QSize(58, 38)
 
     def __init__(self, parent=None, bFlipX=False, bFlipY=False):
         super().__init__(parent)
@@ -99,7 +99,7 @@ class OrientationGlyph(QWidget):
         # Both axes get the same arm length so neither reads as "longer"; the
         # limit is whichever side has less room once the +X / +Y captions at
         # the arrow tips are accounted for.
-        arm = min(w / 2.0 - 20.0, h / 2.0 - 11.0)
+        arm = min(w / 2.0 - 15.0, h / 2.0 - 9.0)
         armx = army = arm
 
         # Axis directions in widget coordinates (y grows downwards on screen,
@@ -167,7 +167,7 @@ class OrientationGlyph(QWidget):
 
 
 class OrientationCue(QWidget):
-    """`OrientationGlyph` plus its caption — the status-bar building block."""
+    """`OrientationGlyph` plus its caption — sits in the main form top bar."""
 
     def __init__(self, parent=None, bFlipX=False, bFlipY=False):
         super().__init__(parent)
@@ -175,7 +175,7 @@ class OrientationCue(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(6)
 
-        self._title = QLabel('Transducer orientation convention')
+        self._title = QLabel('Tx. orientation')
         f = self._title.font()
         f.setBold(True)
         self._title.setFont(f)
@@ -197,36 +197,3 @@ class OrientationCue(QWidget):
                     'convention (+X right, +Y top).' %
                     (' and '.join([n for n, f in (('X', bFlipX), ('Y', bFlipY)) if f])))
         self.setToolTip(tip)
-
-
-class StatusBar(QFrame):
-    """Bottom status bar: orientation cue on the left, message on the right."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName('StatusBar')
-        self.setFrameShape(QFrame.NoFrame)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        # Hairline above the bar so it reads as a separate strip from the
-        # terminal output sitting right on top of it.
-        self.setStyleSheet('QFrame#StatusBar { border-top: 1px solid palette(mid); }')
-
-        lay = QHBoxLayout(self)
-        lay.setContentsMargins(4, 2, 4, 2)
-        lay.setSpacing(10)
-
-        self.OrientationCue = OrientationCue(self)
-        lay.addWidget(self.OrientationCue)
-
-        lay.addStretch(1)
-
-        self.StatusLabel = QLabel('')
-        self.StatusLabel.setObjectName('StatusLabel')
-        self.StatusLabel.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        lay.addWidget(self.StatusLabel)
-
-    def SetOrientation(self, bFlipX, bFlipY, DeviceName=None):
-        self.OrientationCue.SetOrientation(bFlipX, bFlipY, DeviceName=DeviceName)
-
-    def SetMessage(self, msg):
-        self.StatusLabel.setText(msg if msg else '')
