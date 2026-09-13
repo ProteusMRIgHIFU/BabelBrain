@@ -205,15 +205,13 @@ class RunAcousticSim(QObject):
 
         bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
         #we can use mechanical adjustments in other directions for final tuning
+        TxMechanicalAdjustmentZ= -self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value()/1e3  #in m
         if not bRefocus:
             TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
             TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-            TxMechanicalAdjustmentZ= -self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value()/1e3  #in m
-
         else:
             TxMechanicalAdjustmentX=0
             TxMechanicalAdjustmentY=0
-            TxMechanicalAdjustmentZ=0
         ###############
         XSteering=self._mainApp.AcSim.Widget.XSteeringSpinBox.value()/1e3 
         YSteering=self._mainApp.AcSim.Widget.YSteeringSpinBox.value()/1e3  

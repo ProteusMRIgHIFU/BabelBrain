@@ -227,8 +227,6 @@ class BabelBasePhaseArray(BabelBaseTx):
         bRefocus =self.Widget.RefocusingcheckBox.isChecked()
         self.Widget.XMechanicSpinBox.setEnabled(not bRefocus)
         self.Widget.YMechanicSpinBox.setEnabled(not bRefocus)
-        if hasattr( self.Widget,'ZMechanicSpinBox'):
-            self.Widget.ZMechanicSpinBox.setEnabled(not bRefocus)
 
     def DefaultConfig(self):
         #Specific parameters for the Tx - to be configured later via a yaml
