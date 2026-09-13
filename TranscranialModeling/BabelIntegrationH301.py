@@ -46,5 +46,4 @@ class SimulationConditions(BabelIntegrationCONCAVE_PHASEDARRAY.SimulationConditi
         
     def GenTransducerGeom(self):
         self._Tx=GenerateH301Tx(Frequency=self._Frequency,RotationZ=self._RotationZ,FactorEnlarge=self._FactorEnlarge)
-        self._TxOrig=GenerateH301Tx(Frequency=self._Frequency,RotationZ=self._RotationZ)
         

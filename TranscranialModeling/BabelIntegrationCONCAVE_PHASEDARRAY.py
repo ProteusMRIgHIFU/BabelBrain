@@ -158,21 +158,23 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
         
         for nt,st in enumerate(['VertDisplay','elemcenter']):
-            TxVert=self._SIM_SETTINGS._TxOrig[st].T.copy()
-            TxVert/=self._SIM_SETTINGS.SpatialStep
-            TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
+            TxVert=self._SIM_SETTINGS._Tx[st].T.copy()
+            TxVert[2,:]-=self._SIM_SETTINGS._ZDim[self._SIM_SETTINGS._PMLThickness]
             TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]+(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep)
-            TxVert[1,:]+=LocSpot[1]+(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep)
-            TxVert[2,:]+=LocSpot[2]+self._SIM_SETTINGS._OrigFocalLength/self._SIM_SETTINGS.SpatialStep - self._SIM_SETTINGS._TxMechanicalAdjustmentZ/self._SIM_SETTINGS.SpatialStep
+            TxVert/=self._SIM_SETTINGS.SpatialStep
+            TxVert[2,:]+=self._SkullMask.shape[2]-1
+            TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
+
+            TxVert[0,:]+=LocSpot[0]
+            TxVert[1,:]+=LocSpot[1]
 
             TxVert=np.dot(affine,TxVert)
 
             TxVert=TxVert.T[:,:3]
 
             if nt ==0:
-                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxOrig['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
-                for i, f in enumerate(self._SIM_SETTINGS._TxOrig['FaceDisplay']):
+                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._Tx['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+                for i, f in enumerate(self._SIM_SETTINGS._Tx['FaceDisplay']):
                     TxStl.vectors[i*2][0] = TxVert[f[0],:]
                     TxStl.vectors[i*2][1] = TxVert[f[1],:]
                     TxStl.vectors[i*2][2] = TxVert[f[3],:]
@@ -250,24 +252,6 @@ class SimulationConditions(SimulationConditionsBASE):
         #first we generate the high res source of the tx elements
         self.GenTransducerGeom()
         ZDomainStart = self.CalculateDomainZReference()
-
-        if self._bDisplay:
-            from mpl_toolkits.mplot3d import Axes3D
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-            import matplotlib.pyplot as plt
-
-            fig = plt.figure()
-            ax = Axes3D(fig)
-
-            ax.add_collection3d(Poly3DCollection(self._Tx['VertDisplay'][self._Tx['FaceDisplay']]*1e3)) #we plot the units in mm
-            #3D display are not so smart as regular 2D, so we have to adjust manually the limits so we can see the figure correctly
-            ax.set_xlim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
-            ax.set_ylim(-self._Tx['Aperture']/2*1e3-5,self._Tx['Aperture']/2*1e3+5)
-            ax.set_zlim(0,135)
-            ax.set_xlabel('x (mm)')
-            ax.set_ylabel('y (mm)')
-            ax.set_zlabel('z (mm)')
-            plt.show()
         
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX

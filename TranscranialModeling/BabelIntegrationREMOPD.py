@@ -228,25 +228,25 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         affine=self._SkullMask.affine
         LocSpot=np.array(np.where(self._SkullMask.get_fdata(dtype=np.float32)==5.0)).flatten()
 
+
         for nt,st in enumerate(['VertDisplay','elemcenter']):
-            TxVert=self._SIM_SETTINGS._TxREMOPD[st].T.copy()
+            TxVert=self._SIM_SETTINGS._Tx[st].T.copy()
+            TxVert[2,:]-=self._SIM_SETTINGS._ZDim[self._SIM_SETTINGS._PMLThickness]
+            TxVert[2,:]=-TxVert[2,:]
             TxVert/=self._SIM_SETTINGS.SpatialStep
+            TxVert[2,:]+=self._SkullMask.shape[2]-1
             TxVert=np.vstack([TxVert,np.ones((1,TxVert.shape[1]))])
 
-            TxVert[2,:]=-TxVert[2,:]
-            TxVert[0,:]+=LocSpot[0]+(self._TxMechanicalAdjustmentX/self._SIM_SETTINGS.SpatialStep)
-            TxVert[1,:]+=LocSpot[1]+(self._TxMechanicalAdjustmentY/self._SIM_SETTINGS.SpatialStep)
-            TxVert[2,:]+=LocSpot[2]+(self._ZSteering-self._TxMechanicalAdjustmentZ)/self._SIM_SETTINGS.SpatialStep
-
+            TxVert[0,:]+=LocSpot[0]
+            TxVert[1,:]+=LocSpot[1]
+              
             TxVert=np.dot(affine,TxVert)
 
             TxVert=TxVert.T[:,:3]
 
             if nt ==0:
-
-                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._TxREMOPD['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
-
-                for i, f in enumerate(self._SIM_SETTINGS._TxREMOPD['FaceDisplay']):
+                TxStl = mesh.Mesh(np.zeros(self._SIM_SETTINGS._Tx['FaceDisplay'].shape[0]*2, dtype=mesh.Mesh.dtype))
+                for i, f in enumerate(self._SIM_SETTINGS._Tx['FaceDisplay']):
                     TxStl.vectors[i*2][0] = TxVert[f[0],:]
                     TxStl.vectors[i*2][1] = TxVert[f[1],:]
                     TxStl.vectors[i*2][2] = TxVert[f[3],:]
@@ -302,7 +302,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._TxREMOPD=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
+        self._Tx=GenerateREMOPDTx(RotationZ=self._RotationZ,Frequency=self._Frequency)[self._TxSet]
         
         if self._TxMechanicalAdjustmentZ <0:
             zCorrec= self._TxMechanicalAdjustmentZ
@@ -310,27 +310,27 @@ class SimulationConditions(SimulationConditionsBASE):
             zCorrec=0.0
         
         for k in ['center','elemcenter','VertDisplay']:
-            self._TxREMOPD[k][:,0]+=self._TxMechanicalAdjustmentX
-            self._TxREMOPD[k][:,1]+=self._TxMechanicalAdjustmentY
-            self._TxREMOPD[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3+zCorrec
+            self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX
+            self._Tx[k][:,1]+=self._TxMechanicalAdjustmentY
+            self._Tx[k][:,2]=self._ZDim[self._ZSourceLocation]-self._SkullMaskNii.header.get_zooms()[2]/1e3+zCorrec
             
         Correction=0.0
-        while np.max(self._TxREMOPD['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
+        while np.max(self._Tx['center'][:,2])>=self._ZDim[self._ZSourceLocation]:
             #at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
-            for Tx in [self._TxREMOPD]:
+            for Tx in [self._Tx]:
                 for k in ['center','VertDisplay','elemcenter']:
                     Tx[k][:,2]-=self._SkullMaskNii.header.get_zooms()[2]/1e3
             Correction+=self._SkullMaskNii.header.get_zooms()[2]/1e3
         if Correction>0:
             print('Warning: Need to apply correction to reposition Tx for',Correction)
         #if yet we are not there, we need to stop
-        if np.max(self._TxREMOPD['center'][:,2])>self._ZDim[self._ZSourceLocation]:
-            print("np.max(self._TxREMOPD['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._TxREMOPD['center'][:,2]),self._ZDim[self._ZSourceLocation])
+        if np.max(self._Tx['center'][:,2])>self._ZDim[self._ZSourceLocation]:
+            print("np.max(self._Tx['center'][:,2]),self._ZDim[self._ZSourceLocation]",np.max(self._Tx['center'][:,2]),self._ZDim[self._ZSourceLocation])
             raise RuntimeError("The Tx limit in Z is below the location of the layer for source location for forward propagation.")
       
         
-        print("self._TxREMOPD['center'].min(axis=0)",self._TxREMOPD['center'].min(axis=0))
-        print("self._TxREMOPD['elemcenter'].min(axis=0)",self._TxREMOPD['elemcenter'].min(axis=0))
+        print("self._Tx['center'].min(axis=0)",self._Tx['center'].min(axis=0))
+        print("self._Tx['elemcenter'].min(axis=0)",self._Tx['elemcenter'].min(axis=0))
       
         #we apply an homogeneous pressure 
        
@@ -338,8 +338,8 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
         
         #we store the phase to reprogram the Tx in water only conditions, required later for real experiments
-        self.BasePhasedArrayProgramming=np.zeros(self._TxREMOPD['NumberElems'],np.complex64)
-        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._TxREMOPD['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgramming=np.zeros(self._Tx['NumberElems'],np.complex64)
+        self.BasePhasedArrayProgrammingRefocusing=np.zeros(self._Tx['NumberElems'],np.complex64)
         
         if self._XSteering!=0.0 or self._YSteering!=0.0 or self._ZSteering!=0.0:
             print('Running Steering')
@@ -358,20 +358,20 @@ class SimulationConditions(SimulationConditionsBASE):
             center[0,1]=self._YDim[self._FocalSpotLocation[1]]+self._TxMechanicalAdjustmentY+steerY
             center[0,2]=self._ZDim[self._ZSourceLocation]+self._ZSteering+zCorrec
 
-            print('center',center,'device-frame XY',(steerX, steerY),np.mean(self._TxREMOPD['elemcenter'][:,2]))
+            print('center',center,'device-frame XY',(steerX, steerY),np.mean(self._Tx['elemcenter'][:,2]))
             
-            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
-            u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
+            u2back=ForwardSimple(cwvnb_extlay,center,ds.astype(np.float32),u0,self._Tx['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+            u0=np.zeros((self._Tx['center'].shape[0],1),np.complex64)
             nBase=0
-            for n in range(self._TxREMOPD['NumberElems']):
+            for n in range(self._Tx['NumberElems']):
                 phi=np.angle(np.conjugate(u2back[n]))
                 self.BasePhasedArrayProgramming[n]=np.conjugate(u2back[n])
-                u0[nBase:nBase+self._TxREMOPD['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-                nBase+=self._TxREMOPD['elemdims']
+                u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+                nBase+=self._Tx['elemdims']
 
             
         else:
-             u0=(np.ones((self._TxREMOPD['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._TxREMOPD['center'].shape[0],1),np.float32))*self._SourceAmpPa
+             u0=(np.ones((self._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((self._Tx['center'].shape[0],1),np.float32))*self._SourceAmpPa
              
         nxf=len(self._XDim)
         nyf=len(self._YDim)
@@ -384,8 +384,8 @@ class SimulationConditions(SimulationConditionsBASE):
         
         u0*=self.AdjustWeightAmplitudes()
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),
-                         self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),
+                         self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         
         self._u2RayleighField=u2
@@ -480,17 +480,17 @@ class SimulationConditions(SimulationConditionsBASE):
         cwvnb_extlay=np.array(2*np.pi*self._Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
         u2back=ForwardSimple(cwvnb_extlay,center.astype(np.float32),ds.astype(np.float32),
-                             u0,self._TxREMOPD['elemcenter'].astype(np.float32),deviceMetal=deviceName)
+                             u0,self._Tx['elemcenter'].astype(np.float32),deviceMetal=deviceName)
         
         #now we calculate forward back
         
-        u0=np.zeros((self._TxREMOPD['center'].shape[0],1),np.complex64)
+        u0=np.zeros((self._Tx['center'].shape[0],1),np.complex64)
         nBase=0
-        for n in range(self._TxREMOPD['NumberElems']):
+        for n in range(self._Tx['NumberElems']):
             phi=np.angle(np.conjugate(u2back[n]))
             self.BasePhasedArrayProgrammingRefocusing[n]=np.conjugate(u2back[n])
-            u0[nBase:nBase+self._TxREMOPD['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
-            nBase+=self._TxREMOPD['elemdims']
+            u0[nBase:nBase+self._Tx['elemdims']]=(self._SourceAmpPa*np.exp(1j*phi)).astype(np.complex64)
+            nBase+=self._Tx['elemdims']
 
         nxf=len(self._XDim)
         nyf=len(self._YDim)
@@ -501,7 +501,7 @@ class SimulationConditions(SimulationConditionsBASE):
         
         rf=np.hstack((np.reshape(xp,(nxf*nyf*nzf,1)),np.reshape(yp,(nxf*nyf*nzf,1)), np.reshape(zp,(nxf*nyf*nzf,1)))).astype(np.float32)
         
-        u2=ForwardSimple(cwvnb_extlay,self._TxREMOPD['center'].astype(np.float32),self._TxREMOPD['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
+        u2=ForwardSimple(cwvnb_extlay,self._Tx['center'].astype(np.float32),self._Tx['ds'].astype(np.float32),u0,rf,deviceMetal=deviceName)
         u2=np.reshape(u2,xp.shape)
         self._SourceMapRayleighRefocus=u2[:,:,self._ZSourceLocation].copy()
         self._SourceMapRayleighRefocus[:self._PMLThickness,:]=0

@@ -2458,9 +2458,9 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         '''
         if self._OptimizedWeights is not None:
             print('Using optimized weights from file %s' %(self._OptimizedWeightsFile))
-            if self._OptimizedWeights.size != self._TxRC['center'].shape[0]:
-                raise ValueError("OptimizedWeightsFile %s has %i subelements, but the Tx has %i elements." %(self._OptimizedWeightsFile,self._OptimizedWeights.size,self._TxRC['center'].shape[0]))
-            return self._OptimizedWeights.reshape((self._TxRC['center'].shape[0],1)).astype(np.complex64)
+            if self._OptimizedWeights.size != self._Tx['center'].shape[0]:
+                raise ValueError("OptimizedWeightsFile %s has %i subelements, but the Tx has %i elements." %(self._OptimizedWeightsFile,self._OptimizedWeights.size,self._Tx['center'].shape[0]))
+            return self._OptimizedWeights.reshape((self._Tx['center'].shape[0],1)).astype(np.complex64)
         else:
             return 1.0
 
