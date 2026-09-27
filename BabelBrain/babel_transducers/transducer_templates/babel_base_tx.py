@@ -131,6 +131,7 @@ class BabelBaseTx(QWidget):
             self.Widget = form
             self._TrajectoryNumber = i
             self._WirePanel()
+            self._wire_common_panel()
 
         # Activate the first tab; only now listen for user tab switches so the
         # addTab loop above doesn't fire the handler prematurely.
@@ -243,12 +244,14 @@ class BabelBaseTx(QWidget):
     def load_ui(self):
         self._setupTrajectoryTabs()
                 
+    def _wire_common_panel(self):
+        # Wires common functionality between all transducer step 2 panels
         self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
         self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
         self.Widget.HideMarkscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
         if hasattr(self.Widget,'CombineTrajectories'):
             self.Widget.CombineTrajectories.clicked.connect(self.CombineTrajectories)
-
+    
     def DefaultConfig(self,tx_config_file):
         with open(tx_config_file) as file:
             config = yaml.safe_load(file)
