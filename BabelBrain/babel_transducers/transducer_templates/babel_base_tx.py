@@ -989,6 +989,7 @@ class RunCombineTrajectories(QObject):
             transformed_refocus=[]
             transformed_water=[]
             target_locations=[]
+            tx_element_locations=[]
             s=MergedNifti.shape
             combined_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
             combined_water_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
@@ -1011,6 +1012,7 @@ class RunCombineTrajectories(QObject):
                         WLoc=np.where(TargetMap==TargetMap.max())
                         print(os.path.split(subt)[1],'WLoc',WLoc)
                         target_locations.append(np.array([WLoc[0][0],WLoc[1][0],WLoc[2][0]],dtype=int).flatten())
+                    tx_element_locations.append(data['TxElemCenters'])
 
                     for td in [['p_amp','p_complex'],['p_amp_refocus','p_complex_refocus']]:
                         if td[0] in data:
@@ -1104,6 +1106,7 @@ class RunCombineTrajectories(QObject):
             DataForSim['z_vec']=np.arange(N3)*zs[2]
             DataForSim['SpatialStep']=np.mean(zs)
             DataForSim['TargetLocation']=TargetLocation
+            DataForSim['TxElemCenters']=tx_element_locations
             #DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
             DataForSim['bDoRefocusing']=False
             DataForSim['affine']=MergedNifti.affine
