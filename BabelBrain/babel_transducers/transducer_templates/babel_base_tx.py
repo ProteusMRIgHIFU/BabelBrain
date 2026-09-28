@@ -949,7 +949,7 @@ class RunCombineTrajectories(QObject):
         from MergeNifti.MergeNiftiComplexAligned import do_complex_merge
         from pathlib import Path
         from nibabel import processing
-        from TranscranialModeling.BabelIntegrationBASE import CalculateCTDerivedInfo, CreateMaterialMaps
+        from TranscranialModeling.babel_integration.babel_integration_helpers import CalculateCTDerivedInfo, CreateMaterialMaps
 
         try:
             print('*'*40)
