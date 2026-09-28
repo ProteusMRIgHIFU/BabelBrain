@@ -20,14 +20,14 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGroupBox,
     QLabel, QLineEdit, QMenu, QPushButton,
     QSizePolicy, QToolButton, QWidget)
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        if not Dialog.objectName():
-            Dialog.setObjectName(u"Dialog")
-        Dialog.resize(1025, 431)
-        self.ManageCustomTransducersAction = QAction(Dialog)
+class Ui_SelFilesDialog(object):
+    def setupUi(self, SelFilesDialog):
+        if not SelFilesDialog.objectName():
+            SelFilesDialog.setObjectName(u"SelFilesDialog")
+        SelFilesDialog.resize(1025, 431)
+        self.ManageCustomTransducersAction = QAction(SelFilesDialog)
         self.ManageCustomTransducersAction.setObjectName(u"ManageCustomTransducersAction")
-        self.SettingsToolButton = QToolButton(Dialog)
+        self.SettingsToolButton = QToolButton(SelFilesDialog)
         self.SettingsToolButton.setObjectName(u"SettingsToolButton")
         self.SettingsToolButton.setGeometry(QRect(985, 2, 30, 24))
         self.SettingsToolButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -39,7 +39,7 @@ class Ui_Dialog(object):
         self.SettingsToolButton.setAutoRaise(True)
         self.SettingsMenu = QMenu(self.SettingsToolButton)
         self.SettingsMenu.setObjectName(u"SettingsMenu")
-        self.ContinuepushButton = QPushButton(Dialog)
+        self.ContinuepushButton = QPushButton(SelFilesDialog)
         self.ContinuepushButton.setObjectName(u"ContinuepushButton")
         self.ContinuepushButton.setGeometry(QRect(378, 391, 239, 32))
         self.groupBox = QGroupBox(SelFilesDialog)
@@ -207,34 +207,29 @@ class Ui_Dialog(object):
         self.SettingsToolButton.addAction(self.SettingsMenu.menuAction())
         self.SettingsMenu.addAction(self.ManageCustomTransducersAction)
 
-        self.retranslateUi(Dialog)
+        self.retranslateUi(SelFilesDialog)
 
         QMetaObject.connectSlotsByName(SelFilesDialog)
     # setupUi
 
-    def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.ManageCustomTransducersAction.setText(QCoreApplication.translate("Dialog", u"Manage Custom Transducers", None))
+    def retranslateUi(self, SelFilesDialog):
+        SelFilesDialog.setWindowTitle(QCoreApplication.translate("SelFilesDialog", u"Dialog", None))
+        self.ManageCustomTransducersAction.setText(QCoreApplication.translate("SelFilesDialog", u"Manage Custom Transducers", None))
 #if QT_CONFIG(tooltip)
-        self.SettingsToolButton.setToolTip(QCoreApplication.translate("Dialog", u"Settings", None))
+        self.SettingsToolButton.setToolTip(QCoreApplication.translate("SelFilesDialog", u"Settings", None))
 #endif // QT_CONFIG(tooltip)
-        self.SettingsToolButton.setText(QCoreApplication.translate("Dialog", u"\u2699", None))
+        self.SettingsToolButton.setText(QCoreApplication.translate("SelFilesDialog", u"\u2699", None))
         self.SettingsMenu.setTitle("")
-        self.ContinuepushButton.setText(QCoreApplication.translate("Dialog", u"CONTINUE", None))
-        self.groupBox.setTitle(QCoreApplication.translate("Dialog", u"Imaging input", None))
-        self.CoregCTlabel.setText(QCoreApplication.translate("Dialog", u"Correg.?", None))
-        self.SelT1WpushButton.setText(QCoreApplication.translate("Dialog", u"Select T1W ...", None))
-        self.SelCTpushButton.setText(QCoreApplication.translate("Dialog", u"Select", None))
-        self.SimbNIBSlineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.SelTProfilepushButton.setText(QCoreApplication.translate("Dialog", u"Select Thermal Profile ...", None))
-        self.ThermalProfilelineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.CTlineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.T1WlineEdit.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.CTTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"NO", None))
-        self.CTTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"real CT", None))
-        self.CTTypecomboBox.setItemText(2, QCoreApplication.translate("Dialog", u"ZTE", None))
-        self.CTTypecomboBox.setItemText(3, QCoreApplication.translate("Dialog", u"PETRA", None))
-        self.CTTypecomboBox.setItemText(4, QCoreApplication.translate("Dialog", u"Density", None))
+        self.ContinuepushButton.setText(QCoreApplication.translate("SelFilesDialog", u"CONTINUE", None))
+        self.groupBox.setTitle(QCoreApplication.translate("SelFilesDialog", u"Imaging input", None))
+        self.CoregCTlabel.setText(QCoreApplication.translate("SelFilesDialog", u"Correg.?", None))
+        self.SelT1WpushButton.setText(QCoreApplication.translate("SelFilesDialog", u"Select T1W ...", None))
+        self.SelCTpushButton.setText(QCoreApplication.translate("SelFilesDialog", u"Select", None))
+        self.SimbNIBSlineEdit.setText(QCoreApplication.translate("SelFilesDialog", u"...", None))
+        self.SelTProfilepushButton.setText(QCoreApplication.translate("SelFilesDialog", u"Select Thermal Profile ...", None))
+        self.ThermalProfilelineEdit.setText(QCoreApplication.translate("SelFilesDialog", u"...", None))
+        self.CTlineEdit.setText(QCoreApplication.translate("SelFilesDialog", u"...", None))
+        self.T1WlineEdit.setText(QCoreApplication.translate("SelFilesDialog", u"...", None))
 
         self.SelSimbNIBSpushButton.setText(QCoreApplication.translate("SelFilesDialog", u"Select SimbNIBS ...", None))
         self.label.setText(QCoreApplication.translate("SelFilesDialog", u"Use CT, ZTE,\n"
@@ -244,16 +239,14 @@ class Ui_Dialog(object):
 
 
 
-        self.CoregCTlabel_2.setText(QCoreApplication.translate("Dialog", u"CT Mapping", None))
-        self.CoregCTlabel_3.setText(QCoreApplication.translate("Dialog", u"Scanner ,Energy, Kernel, Other, Resolution", None))
-        self.ResetCTMapOriginalpushButton.setText(QCoreApplication.translate("Dialog", u"Reset to original", None))
-        self.label_5.setText(QCoreApplication.translate("Dialog", u"Trajectory type", None))
-        self.label_6.setText(QCoreApplication.translate("Dialog", u"SimNIBS type", None))
-        self.groupBox_2.setTitle(QCoreApplication.translate("Dialog", u"Transducer and Computing engine", None))
-        self.label_2.setText(QCoreApplication.translate("Dialog", u"Transducer", None))
-        self.label_3.setText(QCoreApplication.translate("Dialog", u"Computing backend", None))
-        self.MultiPointTypecomboBox.setItemText(0, QCoreApplication.translate("Dialog", u"NO", None))
-        self.MultiPointTypecomboBox.setItemText(1, QCoreApplication.translate("Dialog", u"YES", None))
+        self.CoregCTlabel_2.setText(QCoreApplication.translate("SelFilesDialog", u"CT Mapping", None))
+        self.CoregCTlabel_3.setText(QCoreApplication.translate("SelFilesDialog", u"Scanner ,Energy, Kernel, Other, Resolution", None))
+        self.ResetCTMapOriginalpushButton.setText(QCoreApplication.translate("SelFilesDialog", u"Reset to original", None))
+        self.label_5.setText(QCoreApplication.translate("SelFilesDialog", u"Trajectory type", None))
+        self.label_6.setText(QCoreApplication.translate("SelFilesDialog", u"SimNIBS type", None))
+        self.groupBox_2.setTitle(QCoreApplication.translate("SelFilesDialog", u"Transducer and Computing engine", None))
+        self.label_2.setText(QCoreApplication.translate("SelFilesDialog", u"Transducer", None))
+        self.label_3.setText(QCoreApplication.translate("SelFilesDialog", u"Computing backend", None))
 
         self.label_4.setText(QCoreApplication.translate("SelFilesDialog", u"Use Mulltipoint?", None))
         self.MultiPointlineEdit.setText(QCoreApplication.translate("SelFilesDialog", u"...", None))

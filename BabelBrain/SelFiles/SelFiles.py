@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 import yaml
-from PySide6.QtCore import QAbstractTableModel, Qt, Slot
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QMenu,
+from PySide6.QtCore import QAbstractTableModel, Qt, Slot, QRect
+from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QMenu,QLabel,QComboBox,QLineEdit,QCheckBox,
+                               QAbstractSpinBox,
                                QMessageBox, QStyle, QWidget)
 import Localization
 from Localization import TR
@@ -26,7 +27,7 @@ from TranscranialModeling.babel_integration.babel_integration_helpers import Spe
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
-from .ui_form import Ui_Dialog
+from .ui_form import Ui_SelFilesDialog
 from Utils.paths import resource_path
 from Utils.transducer_registry import DEFAULT_TRANSDUCERS
 
