@@ -883,11 +883,11 @@ class CustomTransducer:
     
     def _set_tx_file_paths(self):
         tx_parent_folder = CUSTOM_TRANSDUCERS_FOLDER
-        tx_folder = tx_parent_folder / f"Babel_{self.class_name}"
+        tx_folder = tx_parent_folder / f"babel_{self.class_name}"
         tx_default_yaml = tx_folder / "default.yaml"
-        tx_main_file = tx_folder / f"Babel_{self.class_name}.py"
-        tx_form_file = tx_folder / f"{self.class_name}Form.py"
-        tx_integration_file = tx_folder / f"BabelIntegration{self.class_name}.py"
+        tx_main_file = tx_folder / f"babel_{self.class_name}.py"
+        tx_form_file = tx_folder / f"{self.class_name}_form.py"
+        tx_integration_file = tx_folder / f"babel_integration_{self.class_name}.py"
         
         # Overwrite existing files dialog
         if os.path.exists(tx_folder):
@@ -928,7 +928,7 @@ class CustomTransducer:
         self.tx_folder.mkdir(parents=True, exist_ok=True)
         
     def _create_tx_main_file(self):
-        tx_main_file_template = self.env.get_template("Babel_Tx.py.jinja")
+        tx_main_file_template = self.env.get_template("babel_tx.py.jinja")
         
         # Argument formating
         transducer_template = self.geometry_type + "_tx"
@@ -939,7 +939,7 @@ class CustomTransducer:
         tx_main_file_output = tx_main_file_template.render(
             babelbrain_version=self.bb_version,
             template_version=self.template_version,
-            transducer_template=transducer_template,
+            transducer_template= "babel_" +transducer_template,
             transducer_template_class_name=transducer_template_class_name,
             transducer_class_name=self.class_name,
             default_yaml=self.tx_default_yaml
@@ -961,7 +961,7 @@ class CustomTransducer:
             )
         
     def _create_tx_gui_file(self):
-        tx_form_template = self.env.get_template("TxForm.py.jinja")
+        tx_form_template = self.env.get_template("tx_form.py.jinja")
 
         # Argument formating
         if len(self.steering_axes) == 3:
@@ -1028,7 +1028,7 @@ class CustomTransducer:
             f.write(tx_form_output)
     
     def _create_tx_integration_file(self):
-        tx_integration_file_template = self.env.get_template("BabelIntegrationTx.py.jinja")
+        tx_integration_file_template = self.env.get_template("babel_integration_tx.py.jinja")
         
         # Argument formating
         transducer_integration_template = "babel_integration_" + self.geometry_type
@@ -1122,7 +1122,7 @@ class CustomTransducer:
     def _validate_tx(self):
 
         sys.path.insert(0, str(CUSTOM_TRANSDUCERS_FOLDER))
-        self.TxIntegration = importlib.import_module(f"Babel_{self.class_name}.BabelIntegration{self.class_name}")
+        self.TxIntegration = importlib.import_module(f"babel_{self.class_name}.babel_integration_{self.class_name}")
 
         # Acoustic Water Sims for PlanTUS
         if not self.PlanTUS[self.frequencies[0]]['FHMLs']:
@@ -1194,6 +1194,7 @@ class CustomTransducer:
             args['RotationZ'] = 0.0
         if self.geometry_type in ['focused_array']:
             args['DistanceConeToFocus'] = self.focal_length - self.distance_outplane
+            args['coordinate_system'] = self.coordinate_system
         if self.geometry_type in ['focused_array','flat_array_2D']:
             args['elements'] = self.elements
             args['num_elements'] = self.num_elements
@@ -1373,6 +1374,7 @@ class CustomTransducer:
             args['RotationZ'] = 0.0
         if self.geometry_type in ['focused_array']:
             args['DistanceConeToFocus'] = self.focal_length # - self.distance_outplane
+            args['coordinate_system'] = self.coordinate_system
         if self.geometry_type in ['focused_array','flat_array_2D']:
             args['elements'] = self.elements
             args['num_elements'] = self.num_elements

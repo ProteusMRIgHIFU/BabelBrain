@@ -20,7 +20,7 @@ from GUIComponents.custom_transducer_dialog import (CUSTOM_TRANSDUCER_OPTION,
                                                     custom_transducer_display_name)
 from GUIComponents.custom_transducer_manager_dialog import CustomTransducerManagerDialog
 import RemoteServers
-from TranscranialModeling.babel_integration_templates.babel_integration_helpers import SpeedofSoundWebbDataset
+from TranscranialModeling.babel_integration.babel_integration_helpers import SpeedofSoundWebbDataset
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
@@ -315,7 +315,7 @@ class SelFiles(QDialog):
             # Loop through each custom transducer and add to list
             tx_folders = [f.name for f in Path(CUSTOM_TRANSDUCERS_FOLDER).iterdir() if f.is_dir()]
             for tx_folder in tx_folders:
-                tx_folder_found = re.search("(?<=Babel_).*", str(tx_folder))
+                tx_folder_found = re.search("(?<=babel_).*", str(tx_folder))
                 if tx_folder_found:
                     tx_name = tx_folder_found[0]
 

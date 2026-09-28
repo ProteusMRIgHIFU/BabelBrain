@@ -266,14 +266,14 @@ def generate_square_element(tx_elem_length, deadspace, frequency, sos=1500, ppw=
 
     return tx
 
-def generate_flat_array_2d_tx(element_coords, num_elements, tx_elem_width, deadspace, frequency, rotation_z=0.0, validate_elements=True, ppw_surface=12.0):
+def generate_flat_array_2d_tx(element_coords, num_elements, tx_elem_width, deadspace, frequency, rotation_z=0.0, validate_elements=True, ppw_surface=12.0, sos=1500):
     '''
     Creates an individual square tx element and performs matrix operations to copy/move to every tx element location
     in a 2D array
     '''
 
     # Individual tx element
-    tx_element = generate_square_element(tx_elem_width, deadspace, frequency, ppw=ppw_surface)
+    tx_element = generate_square_element(tx_elem_width, deadspace, frequency, sos, ppw_surface)
     
     # Validate element coords
     if validate_elements:

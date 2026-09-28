@@ -480,7 +480,7 @@ class TransducerVerificationDialog(QDialog):
             grid_info['zfmax'] * 1e3,
         )
         image = axes.imshow(
-            image_data,
+            image_data/image_data.max(),
             extent=extents,
             cmap=plt.cm.jet,
         )
@@ -491,7 +491,7 @@ class TransducerVerificationDialog(QDialog):
         figure.colorbar(
             image,
             ax=axes,
-            label="Amplitude",
+            label="Normalized Amplitude",
         )
 
         return canvas
