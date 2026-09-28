@@ -78,9 +78,16 @@ jobs:
         # in ALL branches, which on the case-insensitive macOS/Windows runners
         # triggered git's "case-insensitive filesystem" warning because the
         # remote has two branches differing only in case (MLX vs mlx).
+        #
+        # submodules: recursive is REQUIRED: PlanTUS lives at
+        # BabelBrain/ExternalBin/PlanTUS/PlanTUS as a pinned submodule and
+        # BabelBrain.spec bundles that tree into the frozen app. Without it the
+        # folder is empty, the spec's glob finds nothing, and the build SUCCEEDS
+        # while silently shipping an app with no PlanTUS.
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          submodules: recursive
 
       - name: Install Rosetta 2 (cross-arch x86_64 build on Apple Silicon)
         if: runner.os == 'macOS' && matrix.conda_subdir == 'osx-64'
@@ -117,6 +124,18 @@ jobs:
           pip --version
           which pyinstaller || true
           pyinstaller --version
+
+      - name: Ensure PlanTUS submodule is present at the pinned commit
+        # Belt and braces around `submodules: recursive` above. BabelBrain.spec
+        # skips PlanTUS silently when the folder is empty, so a failed/partial
+        # submodule fetch would otherwise produce a PlanTUS-less release with a
+        # green build. fetch_plantus.py is a no-op when the checkout already
+        # sits at PLANTUS_PIN, self-heals it otherwise, and --check exits
+        # non-zero if PlanTUS is still missing or off the pin.
+        run: |
+          python Scripts/fetch_plantus.py
+          python Scripts/fetch_plantus.py --check
+          ls BabelBrain/ExternalBin/PlanTUS/PlanTUS
 
       # --------------------------------------------------------------------
       # Build metadata: derive the channel + tag from the git ref, then stamp a
