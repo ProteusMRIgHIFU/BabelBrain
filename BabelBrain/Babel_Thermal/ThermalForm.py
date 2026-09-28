@@ -314,7 +314,7 @@ class ThermalForm(QWidget):
             nBox.setSpacing(0)
             nBox.setContentsMargins(0, 0, 0, 0)
             self.CombineTrajectories = make_button(
-            "CombineTrajectories", "Combine Trajectoriess", color="red")
+            "CombineTrajectories", "Combine Trajectories", color="red")
             nBox.addWidget(self.CombineTrajectories)
             self.CombineTrajectories.setEnabled(False)
             left2.setLayout(nBox)
