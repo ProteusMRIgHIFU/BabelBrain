@@ -207,7 +207,14 @@ class BabelBrainMainForm(QWidget):
 
         lay.addStretch(1)
 
-        self.vtkVisualizationqPushButton = QPushButton(TR("VTK visualization"))
+        # Steering-axes cue (see GUIComponents/OrientationCue.py); BabelBrain.py
+        # reaches it as `self.Widget.OrientationCue`.
+        from GUIComponents.OrientationCue import OrientationCue
+        self.OrientationCue = OrientationCue()
+        lay.addWidget(self.OrientationCue)
+        lay.addSpacing(12)
+
+        self.vtkVisualizationqPushButton = QPushButton("VTK visualization")
         self.vtkVisualizationqPushButton.setObjectName("vtkVisualizationqPushButton")
         lay.addWidget(self.vtkVisualizationqPushButton)
 

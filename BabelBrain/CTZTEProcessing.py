@@ -4,9 +4,30 @@ Miscouridou, M., Pineda-Pardo, J.A., Stagg, C.J., Treeby, B.E. and Stanziola, A.
 2022. Classical and learned MR to pseudo-CT mappings for accurate transcranial ultrasound simulation.
 IEEE Transactions on Ultrasonics, Ferroelectrics, and Frequency Control, 69(10), pp.2896-2905.
 '''
+import hashlib
+import logging
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+from operator import itemgetter
+
+import matplotlib.pyplot as plt
 import nibabel
+import numpy as np
+import scipy
+import SimpleITK as sitk
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from Calibration.ViewResults import PlotViewerCalibration
+from linetimer import CodeTimer
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from nibabel import processing
 from nibabel.spaces import vox2out_vox
+from PySide6.QtWidgets import QDialog
+from scipy import signal
+from skimage.measure import label, regionprops
 
 # Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
 try:
@@ -14,43 +35,11 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
-import SimpleITK as sitk
-import tempfile
-import logging
-import os
-import scipy
-from skimage.measure import label, regionprops
-import numpy as np
-from scipy import signal
-from operator import itemgetter
-import platform
-from pathlib import Path
-import sys
-import subprocess
-import shutil
-from linetimer import CodeTimer
-import hashlib
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
-from Calibration.ViewResults import PlotViewerCalibration
-from PySide6.QtWidgets import QDialog
+from Utils.paths import resource_path
 
 logger = logging.getLogger()
-
 _IS_MAC = platform.system() == 'Darwin'
 
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.split(Path(__file__))[0]
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS)
-    else:
-        bundle_dir = Path(__file__).parent
-
-    return bundle_dir
 
 def GetBlake2sHash(filename):
     # Create a Blake2s hash object of size 4 bytes
@@ -119,7 +108,7 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
 
 
 def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGradientDescent'):
-    template =os.path.join(resource_path(),'rigid_template.txt')
+    template = os.path.join(resource_path(__file__), 'rigid_template.txt')
     with open(template,'r') as g:
         Params=g.readlines()
     #we specify the optimizer to use
@@ -132,10 +121,10 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
         if sys.platform == 'linux' or _IS_MAC:
             if sys.platform == 'linux':
                 shell='bash'
-                path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_linux.sh")
+                path_script = os.path.join(resource_path(__file__), "ExternalBin/elastix/run_linux.sh")
             elif _IS_MAC:
                 shell='zsh'
-                path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_mac.sh")
+                path_script = os.path.join(resource_path(__file__), "ExternalBin/elastix/run_mac.sh")
             
             logger.info("Starting Elastix")
             result = subprocess.run(
@@ -149,7 +138,7 @@ def RunElastix(reference,moving,finalname,ElastixOptimizer='AdaptiveStochasticGr
             print("stderr:", result.stderr)
             result=result.returncode 
         else:
-            path_script = os.path.join(resource_path(),"ExternalBin/elastix/run_win.bat")
+            path_script = os.path.join(resource_path(__file__), "ExternalBin/elastix/run_win.bat")
             
             logger.info("Starting Elastix")
             result = subprocess.run(
@@ -485,7 +474,7 @@ def GeneratePseudoCTHistogram(pCT,CTfname,DistanceFromTop=80.0):
     axs[1].set_title('PseudoCT - HU>200')
     axs[1].plot([2000,2000],[0,axs[1].get_ylim()[1]],':')
 
-    ExampleHisto=ReadFromH5py(os.path.join(resource_path(),'ExampleHistogram.h5'))
+    ExampleHisto = ReadFromH5py(os.path.join(resource_path(__file__), 'ExampleHistogram.h5'))
     for k in ExampleHisto:
         ExampleHisto[k]=ExampleHisto[k][ExampleHisto[k]<=2300]
         axs[2].hist(ExampleHisto[k],30,density=True,alpha=0.5,label=k)

@@ -715,6 +715,66 @@ def _run_step(bb, name, actions, emit, check_cancel, gpu_pool=None):
             raise ValueError("unknown action %r in step %s" % (a, name))
 
 
+def _run_standalone(job, manager, gpu_pool):
+    """Execute an allow-listed standalone function without creating BabelBrain."""
+    import numpy as np
+    from BabelViscoFDTD.tools.RayleighAndBHTE import (ForwardSimple, InitCuda,
+                                                      InitOpenCL, InitMetal)
+
+    spec = job.spec
+    standalone = spec.get('standalone') or {}
+    name = standalone.get('name')
+    if name != 'ForwardSimple':
+        raise ValueError("unknown standalone function %r" % name)
+
+    workspace_root = spec.get('output_path')
+    if not workspace_root:
+        raise ValueError("standalone functions require a workspace")
+    input_rel = _safe_relpath(standalone.get('input'))
+    input_path = os.path.join(workspace_root, input_rel)
+    if not os.path.isfile(input_path):
+        raise ValueError("standalone input file does not exist: %s" % input_rel)
+
+    def emit(phase, message, percent=None):
+        manager.add_event(job, phase, message, percent)
+
+    device = None
+    try:
+        if gpu_pool is None:
+            raise RuntimeError("standalone ForwardSimple requires the server GPU pool")
+        device = gpu_pool.acquire(
+            on_wait=lambda: emit('standalone', 'waiting for GPU to be available', 10))
+        gpu_name, backend = device
+        emit('standalone', "ForwardSimple using %s [%s]" % (gpu_name, backend), 20)
+        _log("standalone ForwardSimple: acquired GPU %s [%s]" % (gpu_name, backend))
+
+        if backend == 'CUDA':
+            InitCuda(gpu_name)
+        elif backend == 'OpenCL':
+            InitOpenCL(gpu_name)
+        elif backend == 'Metal':
+            InitMetal(gpu_name)
+        else:
+            raise ValueError("ForwardSimple does not support server backend %r" % backend)
+
+        with np.load(input_path, allow_pickle=False) as data:
+            u2 = ForwardSimple(data['cwvnb_extlay'],
+                               data['center'].astype(np.float32, copy=False),
+                               data['ds'].astype(np.float32, copy=False),
+                               data['u0'],
+                               data['rf'].astype(np.float32, copy=False),
+                               deviceMetal="M1")
+
+        output_path = os.path.join(workspace_root, 'ForwardSimple_output.npy')
+        np.save(output_path, u2)
+        job.artifacts = [{'path': output_path, 'fmt': 'npy',
+                          'step': None, 'role': 'output'}]
+        emit('standalone', 'ForwardSimple calculation complete', 98)
+    finally:
+        if device is not None:
+            gpu_pool.release(device)
+
+
 def run_pipeline(job, manager, headless, existing_bb=None, gpu_pool=None):
     """Execute one job on the Qt main thread: open BabelBrain with the client's
     inputs (or reuse a persistent session's widget), apply the client-supplied
@@ -724,6 +784,10 @@ def run_pipeline(job, manager, headless, existing_bb=None, gpu_pool=None):
     When `existing_bb` is given the launch is skipped and that live widget is
     reused — this is how a client runs the pipeline piecewise across several jobs
     (e.g. planning first, inspect, then acoustic) while Step-1 state is retained."""
+    if job.spec.get('standalone'):
+        _run_standalone(job, manager, gpu_pool)
+        return
+
     from PySide6.QtWidgets import QMessageBox
     from scripting import (launch, launch_from_last_selection,
                            auto_answer_dialogs, restore_dialogs, reset_advanced_config)
@@ -1284,6 +1348,10 @@ def _validate_spec(spec):
     if 'steps' in spec and not isinstance(spec['steps'], dict):
         return ("'steps' must be an object mapping any of 'planning'/'acoustic'/"
                 "'thermal' to an ordered list of actions")
+    if 'standalone' in spec and not isinstance(spec['standalone'], dict):
+        return "'standalone' must be an object"
+    if 'standalone' in spec and 'steps' in spec:
+        return "a job cannot contain both 'standalone' and 'steps'"
     if 'keep_alive' in spec and not isinstance(spec['keep_alive'], bool):
         return "'keep_alive' must be a boolean"
     return None
@@ -1726,7 +1794,8 @@ def run_server(app, args):
                                  # 'persistent_session' kept for older clients
                                  # (RunServerCalculation._REQUIRED_FEATURES); the
                                  # new per-session workers provide it.
-                                 "persistent_session", "sessions", "multi_gpu"]}
+                                 "persistent_session", "sessions", "multi_gpu",
+                                 "standalone_functions"]}
     default_config = _default_config_dict(transducers)
     current_config = _current_config_dict(transducers)
 

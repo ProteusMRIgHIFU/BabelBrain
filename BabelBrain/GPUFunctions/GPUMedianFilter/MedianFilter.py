@@ -1,30 +1,20 @@
 import logging
-logger = logging.getLogger()
 import os
 import platform
-import sys
 
 import numpy as np
 
-from pathlib import Path
-
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                          get_step_size)
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                            get_step_size)
+from Utils.paths import resource_path
 
-_IS_MAC = platform.system() == 'Darwin'
 
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.split(Path(__file__))[0]
+logger = logging.getLogger()
 
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
-    else:
-        bundle_dir = Path(__file__).parent
-    return bundle_dir
 
 def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue
@@ -36,7 +26,7 @@ def InitMedianFilter(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    kernel_files = [os.path.join(resource_path(), 'median_filter.cpp')]
+    kernel_files = [os.path.join(resource_path(__file__), 'median_filter.cpp')]
 
     if GPUBackend == 'CUDA':
         import cupy as cp
@@ -96,7 +86,7 @@ def MedianFilter(data,size,GPUBackend='OpenCL'):
     output = np.zeros_like(data)
     totalPoints = output.size
     logger.info(f"Total points: {totalPoints}")
-    step = get_step_size(sel_device,num_large_buffers=2,data_type=data.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=2,bytes_per_point=data.dtype.itemsize,GPUBackend=GPUBackend)
 
     # Handle array in chunks
     for point in range(0,totalPoints,step):

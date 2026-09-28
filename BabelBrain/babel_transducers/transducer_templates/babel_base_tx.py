@@ -1,0 +1,1169 @@
+'''
+Base Class for Tx GUI, not to be instantiated directly
+'''
+
+import json
+import os
+import time
+import traceback
+
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qtagg import FigureCanvas, NavigationToolbar2QT
+import nibabel
+import numpy as np
+from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot
+from PySide6.QtWidgets import QMessageBox, QTabWidget, QVBoxLayout, QWidget
+from Localization import TR
+from skimage.measure import label, regionprops
+import yaml
+
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
+from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from GUIComponents.AppStyle import style_nav_toolbar
+
+#auxiliary functions to measure metrics in acoustic fields
+
+def ellipsoid_axis_lengths(central_moments):
+    """Compute ellipsoid major, intermediate and minor axis length.
+
+    Parameters
+    ----------
+    central_moments : ndarray
+        Array of central moments as given by ``moments_central`` with order 2.
+
+    Returns
+    -------
+    axis_lengths: tuple of float
+        The ellipsoid axis lengths in descending order.
+    """
+    m0 = central_moments[0, 0, 0]
+    sxx = central_moments[2, 0, 0] / m0
+    syy = central_moments[0, 2, 0] / m0
+    szz = central_moments[0, 0, 2] / m0
+    sxy = central_moments[1, 1, 0] / m0
+    sxz = central_moments[1, 0, 1] / m0
+    syz = central_moments[0, 1, 1] / m0
+    S = np.asarray([[sxx, sxy, sxz], [sxy, syy, syz], [sxz, syz, szz]])
+    # determine eigenvalues in descending order
+    eigvals = np.sort(np.linalg.eigvalsh(S))[::-1]
+    return tuple([np.sqrt(20.0 * e) for e in eigvals]) 
+
+def CalcVolumetricMetrics(Data,voxelsize,Threshold=0.5):
+        '''
+        Threshold=0.25 
+        '''
+        label_img=label(Data>=Threshold)
+        props = regionprops(label_img)#, properties=('centroid',   'area', 'moments_central','axis_major_length','axis_minor_length'))
+        Res={}
+        if len(props)>1:
+            Volumes=[]
+            for p in props:
+                Volumes.append(p['area'])  
+            p=props[np.argmax(Volumes)]
+        else:
+            p=props[0]
+        Res['centroid']=p['centroid']*voxelsize
+        Res['volume']=p['area']*np.prod(voxelsize)
+        Axes=ellipsoid_axis_lengths(p['moments_central'])
+        Res['long_axis']=Axes[0]*voxelsize[0]
+        Res['minor_axis_1']=Axes[1]*voxelsize[1]
+        Res['minor_axis_2']=Axes[2]*voxelsize[2]
+        # print(Res)
+        return Res
+
+#Main Tx base class
+class BabelBaseTx(QWidget):
+    def __init__(self,parent=None,MainApp=None,tx_config_file=None,step_2_form=None):
+        super().__init__(parent)
+        self._formtype = step_2_form
+        self._MainApp=MainApp
+        self.DefaultConfig(tx_config_file)
+        self.load_ui()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Step-2 layout: one tab per trajectory, each an independent transducer
+    # form (own inputs, scrollbars, plot and Calculate action).  self.Widget
+    # always points at the active tab's form, and self._TrajectoryNumber at its
+    # index; both are re-synced on tab change.  Because every tab is a distinct
+    # form instance, parameter values are preserved per tab automatically.
+    #
+    # Each device subclass provides:
+    #   _CreateForm()  – build and return a fresh transducer form (TxPanelBase).
+    #   _WirePanel()   – wire the form currently held in self.Widget (signals,
+    #                    spin-box ranges, per-form IsppaScrollBars, up_load_ui()).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _setupTrajectoryTabs(self):
+        IDs = list(self._MainApp.Config['ID'])
+        self._txTabs = QTabWidget(self)
+        self._txTabs.tabBar().setElideMode(Qt.ElideNone)
+        self._txTabs.tabBar().setExpanding(False)
+        self._txTabs.setUsesScrollButtons(True)
+        # Single trajectory (the common case): hide the tab bar and drop the pane
+        # frame entirely so Step 2 looks like the original single-panel view.
+        # Several trajectories: keep the tab bar and only a top line under the tab
+        # row (its left/right/bottom borders would double up against the Step-2
+        # frame and look weird).
+        if len(IDs) == 1:
+            self._txTabs.tabBar().setVisible(False)
+            self._txTabs.setStyleSheet("QTabWidget::pane { border: 0px; }")
+        else:
+            self._txTabs.setStyleSheet(
+                "QTabWidget::pane { border: 0px; border-top: 1px solid palette(mid); }")
+
+        _l = QVBoxLayout(self)
+        _l.setContentsMargins(0, 0, 0, 0)
+        _l.addWidget(self._txTabs)
+
+        self._Widgets = []
+        self._acPanels = [None] * len(IDs)
+        for i, tid in enumerate(IDs):
+            form = self._CreateForm()
+            self._txTabs.addTab(form, str(tid))
+            self._Widgets.append(form)
+            # Point at this form while wiring so the connections bind to *its*
+            # widgets (button -> self.RunSimulation, etc.).
+            self.Widget = form
+            self._TrajectoryNumber = i
+            self._WirePanel()
+            self._wire_common_panel()
+
+        # Activate the first tab; only now listen for user tab switches so the
+        # addTab loop above doesn't fire the handler prematurely.
+        self.Widget = self._Widgets[0]
+        self._TrajectoryNumber = 0
+        self._txTabs.setCurrentIndex(0)
+        self._txTabs.currentChanged.connect(self._OnTrajectoryTabChanged)
+
+    @property
+    def FlipSteeringX(self):
+        # This property is used in Phased arrays where we need to swap X axis
+        return False #default for most devices
+
+    @property
+    def FlipSteeringY(self):
+        # This property is used in Phased arrays where we need to swap Y axis
+        return False #default for most devices
+
+    @Slot(int)
+    def _OnTrajectoryTabChanged(self, idx):
+        if not hasattr(self, '_Widgets') or idx < 0 or idx >= len(self._Widgets):
+            return
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        # The read-only "Merged" tab (added after CombineTrajectories) renders a
+        # single combined field and must bypass the per-trajectory pipeline (its
+        # data has no per-steering columns and no per-trajectory mask).
+        if getattr(self, '_mergedTabIndex', None) == idx:
+            panel = self._acPanels[idx]
+            if panel is not None and panel.get('figure') is not None:
+                self._MergedActivatePanel(panel)
+            return
+        # Re-point the controller's active-trajectory state so Mechanical-Adjust,
+        # the distance readout and the nifti reload act on the visible tab.  The
+        # form keeps its own plot and scrollbar positions, so nothing is redrawn
+        # or reset here (this is what makes the scrollbars independent per tab).
+        panel = self._acPanels[idx]
+        if panel is not None and panel.get('figure') is not None:
+            self._ActivatePanel(panel)
+
+    def _CreateForm(self):
+        formtype = self._formtype
+        form_cls = formtype
+
+        return form_cls(self)
+
+    def _WirePanel(self):
+        raise NotImplementedError("Subclasses must wire their transducer form")
+
+    def _SyncActiveTrajectoryFromMainApp(self):
+        '''
+        Point self.Widget / _TrajectoryNumber (and the visible tab) at the
+        trajectory Step 1 just finished.  Step 1 calls NotifyGeneratedMask once
+        per trajectory (UpdateMask -> UpdateAcousticTab) with _MainApp._TrajectoryNumber
+        set, so each device's NotifyGeneratedMask calls this first to initialize
+        the matching tab's form.
+        '''
+        idx = self._MainApp._TrajectoryNumber
+        if hasattr(self, '_Widgets') and 0 <= idx < len(self._Widgets):
+            self._TrajectoryNumber = idx
+            self.Widget = self._Widgets[idx]
+            self._txTabs.setCurrentIndex(idx)
+
+    def CalculateDistanceFromSkin(self):
+        VoxelSize=self._MainApp._MaskNib[self._TrajectoryNumber].header.get_zooms()[0]
+        TargetLocation =np.array(np.where(self._MainApp._FinalMask[self._TrajectoryNumber]==5.0)).flatten()
+        LineOfSight=self._MainApp._FinalMask[self._TrajectoryNumber][TargetLocation[0],TargetLocation[1],:]
+        StartSkin=np.where(LineOfSight>0)[0].min()
+        DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
+        self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
+        self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
+        return DistanceFromSkin
+
+    def ExportStep2Results(self,Results):
+        FocIJK=np.ones((4,1))
+        FocIJK[:3,0]=np.array(np.where(self._MainApp._FinalMask[self._TrajectoryNumber]==5)).flatten()
+
+        FocXYZ=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJK
+        FocIJKAdjust=FocIJK.copy()
+        #we adjust in steps
+        FocIJKAdjust[0,0]+=self.Widget.XMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[0]
+        FocIJKAdjust[1,0]+=self.Widget.YMechanicSpinBox.value()/self._MainApp._MaskNib[0].header.get_zooms()[1]
+
+        FocRASAdjust=self._MainApp._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
+        AdjustmentInRAS=(FocXYZ-FocRASAdjust).flatten()[:3]
+
+        print('AdjustmentInRAS recalc',AdjustmentInRAS)
+        print('AdjustmentInRAS orig',Results['AdjustmentInRAS'])
+        fnameTrajectory=self._MainApp.ExportTrajectory(CorR=Results['AdjustmentInRAS'][0],
+                                                        CorA=Results['AdjustmentInRAS'][1],
+                                                        CorS=Results['AdjustmentInRAS'][2],
+                                                        Ntraj=self._TrajectoryNumber)
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
+                f.write(fnameTrajectory)
+        self.UpdateBSightOutputs()
+
+    def UpdateBSightOutputs(self):        
+        if self._MainApp.Config['bInUseWithBrainsight']:
+            with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
+                f.write('\n'.join(self._MainApp._BrainsightOutput))
+            with open(self._MainApp.Config['Brainsight-OutputJSON'],'w') as f:
+                json.dump(self._MainApp._BrainsightOutput,f)      
+
+
+    def GetExtraSuffixAcFields(self):
+        #By default, it returns empty string, useful when dealing with user-specified geometry
+        return ""
+
+    def load_ui(self):
+        self._setupTrajectoryTabs()
+                
+    def _wire_common_panel(self):
+        # Wires common functionality between all transducer step 2 panels
+        self.Widget.CalculateAcField.clicked.connect(self.RunSimulation)
+        self.Widget.ShowWaterResultscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
+        self.Widget.HideMarkscheckBox.stateChanged.connect(self._showMatplotlibVisualization)
+        if hasattr(self.Widget,'CombineTrajectories'):
+            self.Widget.CombineTrajectories.clicked.connect(self.CombineTrajectories)
+    
+    def DefaultConfig(self,tx_config_file):
+        with open(tx_config_file) as file:
+            config = yaml.safe_load(file)
+        self.Config=config
+
+    @Slot()
+    def NotifyError(self):
+        self._MainApp.SetErrorAcousticsCode()
+        self._MainApp.hideClockDialog()
+        if 'BABEL_PYTEST' not in os.environ:
+            msgBox = QMessageBox()
+            msgBox.setIcon(QMessageBox.Critical)
+            msgBox.setText(TR("There was an error in execution -\nconsult log window for details"))
+            msgBox.exec()
+        else:
+            #this will unblock for PyTest
+            self._MainApp.testing_error = True
+            self._MainApp.Widget.tabWidget.setEnabled(True)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Acoustic simulation execution (Step 2)
+    #
+    # RunSimulation is a single template method shared by every transducer.
+    # The parts that genuinely differ between devices are isolated in the
+    # hooks below; subclasses override only what they need:
+    #
+    #   _ResolveSimulationFilenames()  – set self._FullSolName / self._WaterSolName
+    #                                    (and stash any device parameters needed
+    #                                    later by _CreateAcousticWorker).
+    #   _ExistingSimulationFiles()     – True if results already on disk
+    #                                    (default: scalar single-file check;
+    #                                    phased arrays override for file lists).
+    #   _PromptReuseOrRecalc()         – when files exist, ask the user and, on
+    #                                    reload, repopulate the device widgets;
+    #                                    return True to (re)compute.
+    #   _CreateAcousticWorker()        – build the device's RunAcousticSim worker
+    #                                    with its specific parameters.
+    #   _SimulationFinishedSlot()      – slot connected to worker.finished
+    #                                    (default: UpdateAcResults).
+    #   _ReloadExistingResults()       – called when results are reused as-is
+    #                                    (default: UpdateAcResults).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def RunSimulation(self):
+        # Runs only the active trajectory (the visible tab).  The user runs each
+        # trajectory's tab one at a time, adjusting and re-running as needed;
+        # self._TrajectoryNumber tracks the active tab.
+        self._ResolveSimulationFilenames()
+        if self._ExistingSimulationFiles():
+            bCalcFields = self._PromptReuseOrRecalc()
+        else:
+            bCalcFields = True
+        self._bRecalculated = True
+        if bCalcFields:
+            if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+                # Offload Step 2 to the remote server, reusing the session Step 1
+                # opened. The worker mirrors the acoustic worker's signals; its
+                # finished slot (UpdateAcResults) reloads the downloaded results.
+                from RunServerCalculation import RunServerCalculation, STEP_ACOUSTIC
+                worker = RunServerCalculation(self._MainApp, STEP_ACOUSTIC,
+                                              trajectory=self._TrajectoryNumber)
+            else:
+                worker = self._CreateAcousticWorker()
+            self._LaunchAcousticSim(worker, self._SimulationFinishedSlot())
+        else:
+            self._ReloadExistingResults()
+
+    def _LaunchAcousticSim(self, worker, on_finished):
+        '''
+        Common worker-thread plumbing shared by every transducer.  Moves the
+        device's RunAcousticSim worker onto a QThread and wires the standard
+        finished/error/telemetry signals before starting it.
+        '''
+        self._MainApp.Widget.tabWidget.setEnabled(False)
+        self.thread = QThread()
+        self.worker = worker
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(on_finished)
+        self.worker.finished.connect(self._MainApp.SendTelemetry)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.endError.connect(self.NotifyError)
+        self.worker.endError.connect(self._MainApp.SendTelemetry)
+        self.worker.endError.connect(self.thread.quit)
+        self.worker.endError.connect(self.worker.deleteLater)
+
+        self.worker.logTelemetry.connect(self._MainApp.LogTelemetry)
+
+        self.thread.start()
+        self._MainApp.showClockDialog()
+
+    # ── Default hook implementations (overridable per device) ───────────────
+
+    def _ResolveSimulationFilenames(self):
+        raise NotImplementedError(
+            "Subclasses must set self._FullSolName / self._WaterSolName")
+
+    def _ExistingSimulationFiles(self):
+        return os.path.isfile(self._FullSolName) and \
+               os.path.isfile(self._WaterSolName)
+
+    def _PromptReuseOrRecalc(self):
+        raise NotImplementedError(
+            "Subclasses must implement the reuse/recalculate prompt")
+
+    def _CreateAcousticWorker(self):
+        raise NotImplementedError(
+            "Subclasses must build their RunAcousticSim worker")
+
+    def _SimulationFinishedSlot(self):
+        return self.UpdateAcResults
+
+    def _ReloadExistingResults(self):
+        self.UpdateAcResults()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Acoustic-result display — rendered into the active trajectory tab's own
+    # plot host (self.Widget.AcField_plot1).  Each trajectory keeps its full
+    # result/plot state in self._acPanels[i]; switching tabs re-points self._*
+    # at the visible trajectory via _ActivatePanel (the form keeps its own
+    # canvas and scrollbar positions, so nothing is rebuilt or reset).
+    #
+    # Device specifics live in three small hooks:
+    #   _LoadAcResultData(panel) – read the H5 results and stash the per-panel
+    #                              arrays (base: single field; phased: field cols).
+    #   _AcResultFigure()        – the matplotlib Figure (phased uses a larger one).
+    #   _GetActiveFields(panel)  – return (IWater, ISkull) to display for the panel
+    #                              (phased selects by the multifocus dropdown).
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _AcPanel(self, idx):
+        '''Per-trajectory Step-2 result/plot state, lazily created, keyed by tab.'''
+        if self._acPanels[idx] is None:
+            host = self._Widgets[idx].AcField_plot1
+            lay = host.layout()
+            if lay is None:
+                lay = QVBoxLayout(host)
+                lay.setContentsMargins(0, 0, 0, 0)
+            self._acPanels[idx] = {'layout': lay, 'figure': None}
+        return self._acPanels[idx]
+
+    def _showMatplotlibVisualization(self):
+        '''
+        (Re)draw the acoustic-field result for the active trajectory's tab.
+        On a fresh result (_bRecalculated) the figure is built into that tab's
+        own AcField_plot1; user interactions (slice scroll / water-skull toggle /
+        hide-marks / multifocus dropdown) re-render the same tab.
+        '''
+        panel = self._AcPanel(self._TrajectoryNumber)
+        if self._bRecalculated:
+            if self.Widget.ShowWaterResultscheckBox.isEnabled() == False:
+                self.Widget.ShowWaterResultscheckBox.setEnabled(True)
+            if self.Widget.HideMarkscheckBox.isEnabled() == False:
+                self.Widget.HideMarkscheckBox.setEnabled(True)
+            self._MainApp.Widget.tabWidget.setEnabled(True)
+
+            self._LoadAcResultData(panel)        # device-specific data load
+            self._BuildAcResultFigure(panel)     # fresh fig/canvas in this tab's plot host
+            self._ActivatePanel(panel)           # mirror data into self._* aliases
+            self._SyncScrollAndDistance(panel)   # scrollbar defaults + distance label
+            # Headless (server): the data/aliases above are functional and stay;
+            # only the heavy contour/colourbar drawing is skipped (no display).
+            if os.environ.get('BABEL_NO_PLOTS') != '1':
+                self._RenderAcResultPanel(panel)
+            self._bRecalculated = False
+        else:
+            if panel.get('figure') is None:
+                return
+            self._ActivatePanel(panel)
+            if os.environ.get('BABEL_NO_PLOTS') != '1':
+                self._RenderAcResultPanel(panel)
+
+    def _ActivatePanel(self, panel):
+        '''
+        Mirror a tab's stored result state into the self._* attributes that the
+        shared helpers (CalculateDistancesTarget / CalculateMechAdj /
+        UpdateAcResults / _RenderAcResultPanel) read, so they act on the visible
+        trajectory.
+        '''
+        self._Skull = panel['Skull']
+        self._XX, self._ZZX = panel['XX'], panel['ZZX']
+        self._YY, self._ZZY = panel['YY'], panel['ZZY']
+        self._DistanceToTarget = panel['DistanceToTarget']
+        self._figAcField = panel['figure']
+        self._static_ax1 = panel.get('static_ax1')
+        self._static_ax2 = panel.get('static_ax2')
+        self._marker1 = panel.get('marker1')
+        self._marker2 = panel.get('marker2')
+        self._FullSolName = panel['FullSolName']
+        self._WaterSolName = panel['WaterSolName']
+        if 'SDR' in panel:
+            self._SDR = panel['SDR']
+        if 'AcResults' in panel:
+            self._AcResults = panel['AcResults']
+        if 'LastDistanceConeToFocus' in panel:
+            self._LastDistanceConeToFocus = panel['LastDistanceConeToFocus']
+        if 'ISkullCol' in panel:
+            self._ISkullCol = panel['ISkullCol']
+            self._IWaterCol = panel['IWaterCol']
+        IWater, ISkull = self._GetActiveFields(panel)
+        self._IWater = IWater
+        self._ISkull = ISkull
+
+    def _SyncScrollAndDistance(self, panel):
+        '''Set this tab's slice scrollbar defaults and distance readout (build only).'''
+        self.Widget.IsppaScrollBars.set_default_values(
+            panel['LocTarget'], panel['xvec'], panel['yvec'])
+        Total_Distance, X_dist, Y_dist, Z_dist = self.CalculateDistancesTarget()
+        self.Widget.DistanceTargetLabel.setText(
+            '[%2.1f, %2.1f ,%2.1f]' % (X_dist, Y_dist, Z_dist))
+
+    def _BuildAcResultFigure(self, panel):
+        '''Create a fresh figure/canvas/axes/markers inside this tab's AcField_plot1.'''
+        # Clear any previous content (toolbar + canvas) from this tab's plot host.
+        while (child := panel['layout'].takeAt(0)) is not None:
+            w = child.widget()
+            if w is not None:
+                w.deleteLater()
+        for k in ('imContourf1', 'imContourf2', 'contour1', 'contour2',
+                  'airmask1', 'airmask2'):
+            panel[k] = None
+        panel['cbDone'] = False
+
+        fig = self._AcResultFigure()
+        panel['figure'] = fig
+        canvas = FigureCanvas(fig)
+        panel['canvas'] = canvas
+        self.static_canvas = canvas
+        toolbar = style_nav_toolbar(NavigationToolbar2QT(canvas, self))
+        panel['layout'].addWidget(toolbar)
+        panel['layout'].addWidget(canvas)
+        # Each plot box is centered on its scrollbar (left col x=0.25, right
+        # col x=0.75). A dedicated colorbar axis keeps the plot itself
+        # centered (plt.colorbar(ax=...) would shrink/shift the plot).
+        static_ax1 = fig.add_axes([0.10, 0.12, 0.30, 0.80])
+        cax1       = fig.add_axes([0.43, 0.12, 0.015, 0.80])
+        static_ax2 = fig.add_axes([0.60, 0.12, 0.30, 0.80])
+        cax2       = fig.add_axes([0.93, 0.12, 0.015, 0.80])
+        panel['static_ax1'] = static_ax1
+        panel['static_ax2'] = static_ax2
+        panel['cax1'] = cax1
+        panel['cax2'] = cax2
+        for ax, xl in ((static_ax1, 'X mm'), (static_ax2, 'Y mm')):
+            ax.set_aspect('equal')
+            ax.set_xlabel(xl)
+            ax.set_ylabel(TR('Z mm'))
+        panel['marker1'], = static_ax1.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
+        panel['marker2'], = static_ax2.plot(0, panel['DistanceToTarget'], '+k', markersize=18)
+        fig.set_facecolor(self._MainApp._BackgroundColorFigures)
+
+    def _RenderAcResultPanel(self, panel):
+        '''Draw / refresh the acoustic-field contours in a panel from self._* data.'''
+        homog = self._MainApp.Config['bForceHomogenousMedium']
+        Skull = self._Skull
+        XX, ZZX, YY, ZZY = self._XX, self._ZZX, self._YY, self._ZZY
+        ax1, ax2 = panel['static_ax1'], panel['static_ax2']
+
+        SelY, SelX = self.Widget.IsppaScrollBars.get_scroll_values()
+        if self.Widget.ShowWaterResultscheckBox.isChecked():
+            Field = self._IWater
+        else:
+            Field = self._ISkull
+
+        # Remove the previous contour/contourf artists for this panel.
+        if panel.get('imContourf1') is not None:
+            listObjects = [panel['imContourf1'], panel['imContourf2']]
+            if not homog:
+                listObjects += [panel['contour1'], panel['contour2']]
+                if 'AirMask' in Skull:
+                    listObjects += [panel['airmask1'], panel['airmask2']]
+            for c in listObjects:
+                try:  # this is for old Matplotlib
+                    for coll in c.collections:
+                        coll.remove()
+                except:
+                    c.remove()
+
+        panel['imContourf1'] = ax1.contourf(XX, ZZX, Field[:, SelY, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
+        if not homog:
+            panel['contour1'] = ax1.contour(XX, ZZX, Skull['MaterialMap'][:, SelY, :].T, [0, 1, 2], colors='k', linestyles=':')
+            if 'AirMask' in Skull:
+                AirMap = Skull['AirMask'][:, SelY, :].T
+                AirMap = np.ma.masked_where(AirMap == 0, AirMap)
+                panel['airmask1'] = ax1.contourf(XX, ZZX, AirMap, [0, 1], cmap=plt.cm.gray_r)
+
+        ySign=1
+        # if self.FlipSteeringY:
+        #     ySign=-1
+        
+        panel['imContourf2'] = ax2.contourf(YY*ySign, ZZY, Field[SelX, :, :].T, np.arange(2, 22, 2) / 20, cmap=plt.cm.jet)
+        if not homog:
+            panel['contour2'] = ax2.contour(YY*ySign, ZZY, Skull['MaterialMap'][SelX, :, :].T, [0, 1, 2], colors='k', linestyles=':')
+            if 'AirMask' in Skull:
+                AirMap = Skull['AirMask'][SelX, :, :].T
+                AirMap = np.ma.masked_where(AirMap == 0, AirMap)
+                panel['airmask2'] = ax2.contourf(YY*ySign, ZZY, AirMap, [0, 1], cmap=plt.cm.gray_r)
+        # if self.FlipSteeringY:
+        #     ax2.xaxis.set_inverted(True) 
+            
+
+        # Colourbars and the y-axis flip are set once, with the first contourf.
+        if not panel.get('cbDone'):
+            h = plt.colorbar(panel['imContourf1'], cax=panel['cax1'])
+            h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
+            h = plt.colorbar(panel['imContourf1'], cax=panel['cax2'])
+            h.set_label('$I_{\mathrm{SPPA}}$ (normalized)')
+            ax1.invert_yaxis()
+            ax2.invert_yaxis()
+            panel['cbDone'] = True
+
+        mc = [0.0, 0.0, 0.0, 1.0]
+        if self.Widget.HideMarkscheckBox.isChecked():
+            mc[3] = 0.0
+        panel['marker1'].set_markerfacecolor(mc)
+        panel['marker2'].set_markerfacecolor(mc)
+
+        panel['figure'].canvas.draw_idle()
+        self.Widget.IsppaScrollBars.update_labels(SelX, SelY)
+
+    # ── Device hooks for the acoustic-result display ────────────────────────
+
+    def _AcResultFigure(self):
+        return Figure()
+
+    def _GetActiveFields(self, panel):
+        return panel['IWater'], panel['ISkull']
+
+    def _LoadAcResultData(self, panel):
+        '''Read the (single) skull/water H5 result and stash per-panel arrays.'''
+        Water = ReadFromH5py(self._WaterSolName)
+        Skull = ReadFromH5py(self._FullSolName)
+        print('_FullSolName', self._FullSolName)
+
+        if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
+            self._SDR = Skull['SDR']
+            self.Widget.SDRLabel.setText('%0.2f' % (Skull['SDR']))
+            panel['SDR'] = Skull['SDR']
+
+        extrasuffix = self.GetExtraSuffixAcFields()
+        self._MainApp._BrainsightOutput[self._TrajectoryNumber] = self._MainApp._prefix_path[self._TrajectoryNumber] + extrasuffix + 'FullElasticSolution_Sub_NORM.nii.gz'
+
+        self.ExportStep2Results(Skull)
+
+        LocTarget = Skull['TargetLocation']
+        print('LocTarget', LocTarget)
+
+        for d in [Water, Skull]:
+            keys = ['p_amp', 'MaterialMap']
+            if 'AirMask' in d:
+                keys.append('AirMask')
+            for t in keys:
+                d[t] = np.ascontiguousarray(np.flip(d[t], axis=2))
+
+        DistanceToTarget = self.Widget.DistanceSkinLabel.property('UserData')
+
+        Water['z_vec'] *= 1e3
+        Skull['z_vec'] *= 1e3
+        Skull['x_vec'] *= 1e3
+        Skull['y_vec'] *= 1e3
+        DensityMap = Skull['Material'][:, 0][Skull['MaterialMap']]
+        SoSMap = Skull['Material'][:, 1][Skull['MaterialMap']]
+
+        Skull['MaterialMap'][Skull['MaterialMap'] == 3] = 2
+        Skull['MaterialMap'][Skull['MaterialMap'] == 4] = 3
+
+        IWater = Water['p_amp'] ** 2 / 2 / Water['Material'][0, 0] / Water['Material'][0, 1]
+        ISkull = Skull['p_amp'] ** 2 / 2 / DensityMap / SoSMap
+
+        if not self._MainApp.Config['bForceHomogenousMedium']:
+            ISkull[Skull['MaterialMap'] < 3] = 0
+
+        ISkull /= ISkull.max()
+        IWater /= IWater.max()
+
+        Zvec = Skull['z_vec'].copy()
+        Zvec -= Zvec[LocTarget[2]]
+        Zvec += DistanceToTarget
+        XX, ZZX = np.meshgrid(Skull['x_vec'], Zvec)
+        YY, ZZY = np.meshgrid(Skull['y_vec'], Zvec)
+
+        panel.update({
+            'Skull': Skull, 'Water': Water,
+            'IWater': IWater, 'ISkull': ISkull,
+            'XX': XX, 'ZZX': ZZX, 'YY': YY, 'ZZY': ZZY,
+            'DistanceToTarget': DistanceToTarget, 'LocTarget': LocTarget,
+            'xvec': Skull['x_vec'] - Skull['x_vec'][LocTarget[0]],
+            'yvec': Skull['y_vec'] - Skull['y_vec'][LocTarget[1]],
+            'FullSolName': self._FullSolName, 'WaterSolName': self._WaterSolName,
+        })
+
+    @Slot()
+    def UpdateAcResults(self):
+        '''
+        This is a common function for most Tx to show results
+        '''
+        self._MainApp.SetSuccesCode()
+        self.Widget.CalculateMechAdj.setEnabled(True)
+        if self._bRecalculated:
+            self._MainApp.ThermalSim.setEnabled(True)
+            # Enable the Step-3 tab for this trajectory now that its acoustic
+            # field exists (each thermal tab unlocks with its own Step-2 sim).
+            self._MainApp.ThermalSim.EnableTrajectoryTab(self._TrajectoryNumber)
+            self._MainApp.hideClockDialog()
+
+        self._showMatplotlibVisualization()
+        NiftiSkull=nibabel.load(self._FullSolName.replace('DataForSim.h5','FullElasticSolution_Sub_NORM.nii.gz'))
+        NiftiWater=nibabel.load(self._FullSolName.replace('DataForSim.h5','Water_FullElasticSolution_Sub_NORM.nii.gz'))
+        self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
+        if hasattr(self.Widget,'CombineTrajectories'):
+            for n in range(len(self._MainApp.Config['ID'])):
+                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllAcFieldsDone())
+        
+    def GetExport(self):
+        Export={}
+        Export['DistanceSkinToTarget']=self.Widget.DistanceSkinLabel.property('UserData')
+        if hasattr(self,'_SDR'):
+            Export['SDR']=self._SDR
+        return Export
+    
+    def GetExtraDataForThermal(self):
+        retDict={}
+        return retDict
+    
+    def EnableMultiPoint(self,MultiPoint):
+        #MuliPoint is a list of dictionaries with entries ['X':value,'Y':value,'Z':value], each indicating steering conditions for each point
+        pass #to be defined by those Tx capable of multi-point
+    
+    def CalculateDistancesTarget(self):
+        # Get voxel size
+        dx=  np.mean(np.diff(self._Skull['x_vec']))
+        voxelsize=np.array([dx,dx,dx])
+        
+        # Determine plot to use for calculating distances
+        if hasattr(self.Widget,'SelCombinationDropDown'):
+            # For phased arrays
+            if self.Widget.SelCombinationDropDown.isVisible():
+                # For multifocal sims, use the central focal spot to find mechanical adjustments
+                central_plot_index = self.Widget.SelCombinationDropDown.findText('X:0.0 Y:0.0 Z:0.0')
+            else:
+                # For single focus sims
+                central_plot_index = 0          
+            central_focal_spot_plot = self._ISkullCol[central_plot_index]
+        else:
+            # For single focus txs
+            central_focal_spot_plot = self._ISkull
+            
+        stats=CalcVolumetricMetrics(central_focal_spot_plot,voxelsize)
+        x_o=np.unique(self._XX)
+        y_o=np.unique(self._YY)
+        z_o=np.unique(self._ZZX)
+        #we get the centroid in the displayed axes convention
+        centroid=stats['centroid']+np.array([x_o.min(),y_o.min(),z_o.min()])
+        X_dist = centroid[0]-x_o[self._Skull['TargetLocation'][0]]
+        Y_dist = centroid[1]-y_o[self._Skull['TargetLocation'][1]]
+        Z_dist = centroid[2]-z_o[self._Skull['TargetLocation'][2]]
+        Total_Distance= np.round(np.sqrt(X_dist**2+Y_dist**2+Z_dist**2),1)
+        X_dist=np.round(X_dist,1)
+        Y_dist=np.round(Y_dist,1)
+        Z_dist=np.round(Z_dist,1)
+        return Total_Distance,X_dist,Y_dist,Z_dist
+    
+    @Slot()
+    def CalculateMechAdj(self):
+        #this calculates the required mechanical correction to center acoustic beam
+        #to the target
+        Total_Distance,X_correction,Y_correction,Z_correction = self.CalculateDistancesTarget()
+        # One format string rather than three concatenated fragments: word order
+        # around the numbers differs between languages.
+        ret = QMessageBox.question(self,'',
+                TR("The focal spot's center of mass (-6dB) is [%3.1f,%3.1f] mm-off "
+                   "in [X,Y] relative to the target.\n"
+                   "Do you want to apply a mechanical correction?")
+                % (X_correction, Y_correction),
+                QMessageBox.Yes | QMessageBox.No)
+        if ret == QMessageBox.Yes:
+            curX=self.Widget.XMechanicSpinBox.value()
+            curY=self.Widget.YMechanicSpinBox.value()
+            self.Widget.XMechanicSpinBox.setValue(curX-X_correction)
+            self.Widget.YMechanicSpinBox.setValue(curY-Y_correction)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Combined-results display — a read-only "Merged" tab appended after
+    # CombineTrajectories.  It shows the single combined field stored in the
+    # merged Skull/Water HDF5 files.  Because the combined data is a single
+    # field (no per-steering columns) and has no per-trajectory mask, it does
+    # not go through the per-trajectory pipeline: it uses a dedicated loader and
+    # activation that always render via the base single-field path, regardless
+    # of whether the device is a single element or a phased array.
+    # ──────────────────────────────────────────────────────────────────────
+
+    def _AddMergedResultsTab(self):
+        '''Append (or refresh) the read-only "Merged" results tab and show it.'''
+        if getattr(self, '_mergedTabIndex', None) is not None:
+            # Re-running CombineTrajectories regenerated the merged files; drop
+            # this tab's cached panel so it is rebuilt from the new data.
+            idx = self._mergedTabIndex
+            self._acPanels[idx] = None
+        else:
+            from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
+            from GUIComponents.TxPanelBase import MergedResultsForm
+            # Dedicated read-only panel: full-width plot, scrollbar strip below
+            # it and only the Hide-marks / Show-water-only toggles (+ SDR label).
+            # No left controls column and no Combine button (redundant here).
+            form = MergedResultsForm(self._MainApp)
+            # Install the real scrollbar widget over the plain host (devices do
+            # this in _WirePanel, which the merged tab does not use).
+            form.IsppaScrollBars = WidgetScrollBars(parent=form.IsppaScrollBars, MainApp=self)
+            idx = self._txTabs.addTab(form, TR('Merged'))
+            self._Widgets.append(form)
+            self._acPanels.append(None)
+            self._mergedTabIndex = idx
+            # Visualization toggles stay live and re-render the merged view.
+            form.ShowWaterResultscheckBox.setEnabled(True)
+            form.HideMarkscheckBox.setEnabled(True)
+            form.ShowWaterResultscheckBox.stateChanged.connect(self._showMergedVisualization)
+            form.HideMarkscheckBox.stateChanged.connect(self._showMergedVisualization)
+
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        # Build/refresh the panel first so switching to the tab (which fires the
+        # tab-changed handler) finds a ready panel to re-activate.
+        self._showMergedVisualization()
+        self._txTabs.setCurrentIndex(idx)
+
+    def _showMergedVisualization(self, *args):
+        '''(Re)draw the combined acoustic field in the Merged tab.'''
+        idx = self._mergedTabIndex
+        self.Widget = self._Widgets[idx]
+        self._TrajectoryNumber = idx
+        panel = self._AcPanel(idx)
+        if panel.get('figure') is None:
+            self._LoadMergedResultData(panel)   # read the merged Skull/Water H5
+            self._BuildAcResultFigure(panel)    # fresh fig/canvas in this tab
+            self._MergedActivatePanel(panel)    # mirror data into self._* aliases
+            self.Widget.IsppaScrollBars.set_default_values(
+                panel['LocTarget'], panel['xvec'], panel['yvec'])
+            self._RenderAcResultPanel(panel)
+        else:
+            self._MergedActivatePanel(panel)
+            self._RenderAcResultPanel(panel)
+
+    def _MergedActivatePanel(self, panel):
+        '''
+        Mirror the merged panel's stored state into the self._* attributes that
+        _RenderAcResultPanel reads.  Mirrors _ActivatePanel but uses the single
+        combined field directly (no _GetActiveFields, which on phased arrays
+        expects per-steering columns absent from the combined data).
+        '''
+        self._Skull = panel['Skull']
+        self._XX, self._ZZX = panel['XX'], panel['ZZX']
+        self._YY, self._ZZY = panel['YY'], panel['ZZY']
+        self._DistanceToTarget = panel['DistanceToTarget']
+        self._figAcField = panel['figure']
+        self._static_ax1 = panel.get('static_ax1')
+        self._static_ax2 = panel.get('static_ax2')
+        self._marker1 = panel.get('marker1')
+        self._marker2 = panel.get('marker2')
+        self._IWater = panel['IWater']
+        self._ISkull = panel['ISkull']
+
+    def _LoadMergedResultData(self, panel):
+        '''Read the combined Skull/Water merged H5 files and stash panel arrays.'''
+        WaterSolName = self._MainApp._merged_prefix_path + 'Water_Merged_DataForSim.h5'
+        FullSolName = self._MainApp._merged_prefix_path + 'Merged_DataForSim.h5'
+        self._MergedResultsFullSolName = FullSolName
+        Water = ReadFromH5py(WaterSolName)
+        Skull = ReadFromH5py(FullSolName)
+
+        if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
+            self.Widget.SDRLabel.setText('%0.2f' % (Skull['SDR']))
+            panel['SDR'] = Skull['SDR']
+
+        LocTarget = Skull['TargetLocation']
+
+        for d in [Water, Skull]:
+            keys = ['p_amp', 'MaterialMap']
+            if 'AirMask' in d:
+                keys.append('AirMask')
+            for t in keys:
+                d[t] = np.ascontiguousarray(np.flip(d[t], axis=2))
+
+        # The combined data is centered on the domain; there is no skin-to-target
+        # offset to apply to the display.
+        DistanceToTarget = float(Skull.get('DistanceFromSkin', 0.0))
+
+        Water['z_vec'] *= 1e3
+        Skull['z_vec'] *= 1e3
+        Skull['x_vec'] *= 1e3
+        Skull['y_vec'] *= 1e3
+        DensityMap = Skull['Material'][:, 0][Skull['MaterialMap']]
+        SoSMap = Skull['Material'][:, 1][Skull['MaterialMap']]
+
+        Skull['MaterialMap'][Skull['MaterialMap'] == 3] = 2
+        Skull['MaterialMap'][Skull['MaterialMap'] == 4] = 3
+
+        IWater = Water['p_amp'] ** 2 / 2 / Water['Material'][0, 0] / Water['Material'][0, 1]
+        ISkull = Skull['p_amp'] ** 2 / 2 / DensityMap / SoSMap
+
+        if not self._MainApp.Config['bForceHomogenousMedium']:
+            ISkull[Skull['MaterialMap'] < 3] = 0
+
+        ISkull /= ISkull.max()
+        IWater /= IWater.max()
+
+        Zvec = Skull['z_vec'].copy()
+        Zvec -= Zvec[LocTarget[2]]
+        Zvec += DistanceToTarget
+        XX, ZZX = np.meshgrid(Skull['x_vec'], Zvec)
+        YY, ZZY = np.meshgrid(Skull['y_vec'], Zvec)
+
+        panel.update({
+            'Skull': Skull, 'Water': Water,
+            'IWater': IWater, 'ISkull': ISkull,
+            'XX': XX, 'ZZX': ZZX, 'YY': YY, 'ZZY': ZZY,
+            'DistanceToTarget': DistanceToTarget, 'LocTarget': LocTarget,
+            'xvec': Skull['x_vec'] - Skull['x_vec'][LocTarget[0]],
+            'yvec': Skull['y_vec'] - Skull['y_vec'][LocTarget[1]],
+            'FullSolName': FullSolName, 'WaterSolName': WaterSolName,
+            'merged': True,
+        })
+
+    @Slot()
+    def CombineTrajectories(self):
+        # The heavy merge/compute work runs on a worker thread (it grows with
+        # frequency); the GUI updates happen in _CombineTrajectoriesFinished on
+        # the main thread.  Reuses the shared acoustic-sim thread plumbing
+        # (hourglass dialog, telemetry, error handling).
+        # Compute by default — including the first combine, when no merged file
+        # exists yet. Only reload when a merged result is already present and the
+        # user declines to recalculate. (Mirrors Step-3 thermal RunSimulation;
+        # the previous default reloaded a non-existent file on a fresh combine.)
+        bCalcMerge=True
+        if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
+            ret = QMessageBox.question(self.Widget,'', TR("Combined results exists.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
+
+            if ret == QMessageBox.No:
+                bCalcMerge=False
+
+        if bCalcMerge:
+            if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
+                # Offload the merge to the remote server: the worker ensures every
+                # trajectory's acoustic is loaded there, clicks CombineTrajectories,
+                # and downloads the merged result for _CombineTrajectoriesFinished.
+                from RunServerCalculation import RunServerCalculation, STEP_ACOUSTIC
+                worker = RunServerCalculation(self._MainApp, STEP_ACOUSTIC, combine=True)
+            else:
+                worker = RunCombineTrajectories(self._MainApp)
+            self._LaunchAcousticSim(worker, self._CombineTrajectoriesFinished)
+        else:
+            self._CombineTrajectoriesFinished()
+
+    @Slot()
+    def _CombineTrajectoriesFinished(self):
+        '''Main-thread completion of CombineTrajectories: update the merged
+        visualization and show the read-only "Merged" results tab.'''
+        self._MainApp.hideClockDialog()
+        self._MainApp.Widget.tabWidget.setEnabled(True)
+        MergedNifti = nibabel.load(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz')
+        self._MainApp.UpdateNiftiMergedAcResults(MergedNifti)
+        #show the combined Skull/Water results in a dedicated read-only tab
+        self._AddMergedResultsTab()
+        self._MainApp.ThermalSim.UpdateCombineResultsButton()
+        # the merged results will be always the last entry in the brainsight output files
+        self._MainApp._BrainsightOutput[-1]=self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'
+        self.UpdateBSightOutputs()
+
+class RunCombineTrajectories(QObject):
+    '''
+    Worker that combines the per-trajectory acoustic results into the merged
+    Skull/Water datasets.  All file I/O and array work run off the GUI thread;
+    the merged visualization update and the new "Merged" tab are created by the
+    controller's _CombineTrajectoriesFinished slot on the main thread.
+
+    Mirrors the QObject-worker pattern used by RunMaskGeneration / RunAcousticSim.
+    '''
+    finished = Signal()
+    endError = Signal()
+    logTelemetry = Signal(str)
+
+    def __init__(self, mainApp):
+        super().__init__()
+        self._MainApp = mainApp
+
+    def run(self):
+        '''
+        Combine the per-trajectory fields and save the merged Skull/Water HDF5
+        files.
+
+        Emits
+        -----
+        finished : Signal
+            Emitted when the combination completes successfully.
+        endError : Signal
+            Emitted if an error occurs during the combination.
+        '''
+        from MergeNifti.MergeNiftiComplexAligned import do_complex_merge
+        from pathlib import Path
+        from nibabel import processing
+        from TranscranialModeling.babel_integration.babel_integration_helpers import CalculateCTDerivedInfo, CreateMaterialMaps
+
+        try:
+            print('*'*40)
+            print('*'*5+' Combining trajectories.. BE PATIENT...')
+            print('*'*40)
+            T0=time.time()
+
+            AllInputs=[]
+            for p in self._MainApp._prefix_path:
+                entry={}
+                entry['Sub_Norm']=p+'FullElasticSolution_Sub_NORM.nii.gz'
+                entry['PhaseSub_Norm']=p+'FullElasticSolutionPhase_Sub_NORM.nii.gz'
+                entry['Sub']=p+'FullElasticSolution_Sub.nii.gz'
+                entry['PhaseSub']=p+'FullElasticSolutionPhase_Sub.nii.gz'
+                entry['skullh5']=p+'DataForSim.h5'
+                entry['waterh5']=p+'Water_DataForSim.h5'
+                AllInputs.append(entry)
+
+            cfgBase={}
+            cfgBase['orientation']='coronal'
+            cfgBase['interp']=1
+            #first we do for visualization
+
+            cfg=cfgBase.copy()
+            cfg['pairs']=[]
+            for e in AllInputs:
+                cfg['pairs'].append({'amp':Path(e['Sub_Norm']),'phase':Path(e['PhaseSub_Norm'])})
+            cfg['output']={'amp':Path(self._MainApp._merged_prefix_path+'Merged_NORM.nii.gz')}
+
+            do_complex_merge(cfg)
+            # do_complex_merge writes Merged_NORM.nii.gz directly; record it so
+            # the remote client downloads it (read by _CombineTrajectoriesFinished).
+            _rec_artifact(self._MainApp._merged_prefix_path+'Merged_NORM.nii.gz')
+            MergedNifti=nibabel.load(cfg['output']['amp'])
+            
+            transformed=[]
+            transformed_refocus=[]
+            transformed_water=[]
+            target_locations=[]
+            tx_element_locations=[]
+            s=MergedNifti.shape
+            combined_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
+            combined_water_p_complex=np.zeros((s[2],s[0],s[1]),np.complex64)
+            combined_p_complex_refocus=np.zeros((s[2],s[0],s[1]),np.complex64)
+
+            print('converting now hdf5 results ')
+            for entry in AllInputs:
+                inputNifti=nibabel.load(entry['Sub_Norm'])
+                for ntype,subt in enumerate([entry['skullh5'],entry['waterh5']]):
+                    data=ReadFromH5py(subt)
+                    if ntype==0:
+                        TargetMap=np.zeros_like(data['MaterialMap'],dtype=float)
+                        TargetMap[tuple(data['TargetLocation'])]=1
+                        TargetMap=np.flip(TargetMap,axis=2)
+                        NitfiMap=nibabel.Nifti1Image(TargetMap,inputNifti.affine,inputNifti.header)
+                        NitfiMap=processing.resample_from_to(NitfiMap,MergedNifti,order=1,cval=0)
+                        TargetMap=NitfiMap.get_fdata()
+                        TargetMap=np.transpose(TargetMap,[2,0,1])
+                        TargetMap=np.flip(TargetMap,axis=2)
+                        WLoc=np.where(TargetMap==TargetMap.max())
+                        print(os.path.split(subt)[1],'WLoc',WLoc)
+                        target_locations.append(np.array([WLoc[0][0],WLoc[1][0],WLoc[2][0]],dtype=int).flatten())
+                    tx_element_locations.append(data['TxElemCenters'])
+
+                    for td in [['p_amp','p_complex'],['p_amp_refocus','p_complex_refocus']]:
+                        if td[0] in data:
+                            pc=data[td[0]]
+                            ang=np.angle(data[td[1]])
+                            dNiftiReal=nibabel.Nifti1Image(pc*np.cos(ang),inputNifti.affine,inputNifti.header)
+                            dNiftiImag=nibabel.Nifti1Image(pc*np.sin(ang),inputNifti.affine,inputNifti.header)
+                            dNiftiReal=processing.resample_from_to(dNiftiReal,MergedNifti,order=1,cval=0)
+                            dNiftiImag=processing.resample_from_to(dNiftiImag,MergedNifti,order=1,cval=0)
+                            pcomplex=dNiftiReal.get_fdata()+1j*dNiftiImag.get_fdata()
+                            pcomplex=np.transpose(pcomplex.astype(np.complex64),[2,0,1])
+                            if ntype==0:
+                                if td[0]=='p_amp':
+                                    combined_p_complex+=pcomplex
+                                    transformed.append(pcomplex)
+                                else:
+                                    print('add refocus')
+                                    combined_p_complex_refocus+=pcomplex
+                                    transformed_refocus.append(pcomplex)
+                            elif ntype==1 and td[0]=='p_amp':
+                                combined_water_p_complex+=pcomplex
+                                transformed_water.append(pcomplex)
+
+            #
+            MaskInput=nibabel.load(self._MainApp._prefix_path[0]+'BabelViscoInput.nii.gz')
+            MaskMerged=processing.resample_from_to(MaskInput,MergedNifti,order=0,cval=0)
+            #we orient data to match convention used later on
+            MaskData=np.transpose(MaskMerged.get_fdata().astype(np.uint32),[2,0,1])
+            SkullMaskDataOrig=np.flip(MaskData,axis=2)
+            
+            bBrainSegmentation = np.any(MaskData>5)
+            AcOptions=self._MainApp.CommomAcOptions()
+            DensityCTMap=None
+            AirRegions=None
+            print('prepating material properties')
+            if AcOptions['bUseCT']:
+                CtData=nibabel.load(self._MainApp._prefix_path[0]+'CT.nii.gz')
+                CtData=processing.resample_from_to(CtData,MergedNifti,order=0,cval=0)
+                CtData=np.transpose(CtData.get_fdata(),[2,0,1])
+                AllBoneHU = np.load(self._MainApp._prefix_path[0]+'CT-cal.npz')['UniqueHU']
+
+                AIRMASK=None
+                if AcOptions['bExtractAirRegions']:
+                    AIRMASK=nibabel.load(self._MainApp._prefix_path[0]+'AirRegions.nii.gz')
+                    AIRMASK=processing.resample_from_to(AIRMASK,MergedNifti,order=0,cval=0)
+                    AIRMASK=np.transpose(AIRMASK.get_fdata(),[2,0,1])
+
+                DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT=CalculateCTDerivedInfo(
+                    [CtData,AllBoneHU],
+                    self._MainApp._Frequency,
+                    bBrainSegmentation,
+                    CTMapCombo=AcOptions['CTMapCombo'],
+                    bDensity=AcOptions.get('bDensity',False),
+                    bPETRA=AcOptions['bPETRA'],
+                    AIRMASK=AIRMASK)
+
+            BaseSimData=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')
+            N1,N2,N3=SkullMaskDataOrig.shape
+            MaterialMap,MaterialMapRef,MaterialMapNoCT,SubAirRegions=CreateMaterialMaps(
+                N1,N2,N3,
+                SkullMaskDataOrig,
+                0,0,0,0,0,0,
+                0,N1,0,N2,0,N3,
+                -1, #this will avoid removing any material
+                BaseSimData['Material'],
+                bWaterOnly=False,
+                bForceHomogenousMedium=False,
+                DensityCTMap=DensityCTMap,
+                AirRegions=AirRegions)
+
+            print('Saving combined HDF5 files')
+            DataForSim={}
+            if DensityCTMap is not None:
+                SMaterialMap=MaterialMapNoCT.copy()
+                DataForSim['MaterialMapCT']=MaterialMap.copy()
+            else:
+                SMaterialMap=MaterialMap.copy()
+            DataForSim['MaterialMap']=SMaterialMap
+            if SubAirRegions is not None:
+                DataForSim['AirMask']=SubAirRegions.astype(np.uint8)
+            for k in DataForSim:
+                DataForSim[k]=np.flip(DataForSim[k],axis=2)
+            #we pick center for target location, it will be only used to center visualization
+            TargetLocation =np.array((N1//2,N2//2,N3//2))
+            DataForSim['Material']=BaseSimData['Material']
+            zs=np.array(MergedNifti.header.get_zooms())/1e3 #in m
+            DataForSim['x_vec']=np.arange(N1)*zs[0]
+            DataForSim['x_vec']-=np.mean(DataForSim['x_vec'])
+            DataForSim['y_vec']=np.arange(N2)*zs[1]
+            DataForSim['y_vec']-=np.mean(DataForSim['y_vec'])
+            DataForSim['z_vec']=np.arange(N3)*zs[2]
+            DataForSim['SpatialStep']=np.mean(zs)
+            DataForSim['TargetLocation']=TargetLocation
+            DataForSim['TxElemCenters']=tx_element_locations
+            #DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
+            DataForSim['bDoRefocusing']=False
+            DataForSim['affine']=MergedNifti.affine
+            DataForSim['TxMechanicalAdjustmentX']=0.0
+            DataForSim['TxMechanicalAdjustmentY']=0.0
+            DataForSim['TxMechanicalAdjustmentZ']=0.0
+            DataForSim['ZIntoSkin']=0.0
+            DataForSim['ZIntoSkinPixels']=0
+            DataForSim['ZSteering']=0.0
+            if 'SDR' in BaseSimData:
+                SDRs=np.zeros(len(self._MainApp._prefix_path))
+                for n,p in  enumerate(self._MainApp._prefix_path):
+                    SDRs[n]=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')['SDR']
+                DataForSim['SDR']=np.mean(SDRs)
+            DataForSim['DistanceFromSkin']=0.0
+            DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])
+            DataForSim['p_amp']=np.abs(combined_p_complex)
+            DataForSim['p_complex']=combined_p_complex
+            #we add now specific entries for later combining them 
+            DataForSim['Transformed']=transformed
+            DataForSim['TransformedTargetLocations']=target_locations
+            if len(transformed_refocus)>0:
+                DataForSim['Transformed_Refocus']=transformed_refocus
+                DataForSim['p_amp_refocus']=np.abs(combined_p_complex_refocus)
+                DataForSim['p_complex_refocus']=combined_p_complex_refocus
+
+                
+            SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
+            _rec_artifact(self._MainApp._merged_prefix_path+'Merged_DataForSim.h5')
+            #Now water results
+            if len(transformed_refocus)>0:
+                for k in ['Transformed_Refocus','p_amp_refocus','p_complex_refocus']:
+                    DataForSim.pop(k)
+            DataForSim['p_amp']=np.abs(combined_water_p_complex)
+            DataForSim['p_complex']=combined_water_p_complex
+            DataForSim['Transformed']=transformed_water
+            DataForSim['MaterialMap'][:,:,:]=0
+            SaveToH5py(DataForSim,self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5')
+            _rec_artifact(self._MainApp._merged_prefix_path+'Water_Merged_DataForSim.h5')
+
+            TotalTime=time.time()-T0
+            print('Total time',TotalTime)
+            print('*'*40)
+            print('Combination of results completed')
+            print('*'*40)
+            self.finished.emit()
+        except BaseException as e:
+            print('*'*40)
+            print('*'*5+' Error in execution of CombineTrajectories.')
+            print(e)
+            traceback.print_exc()
+            print('*'*40)
+            self.endError.emit()
+
+

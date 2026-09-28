@@ -1453,7 +1453,7 @@ class LayerRow(QWidget):
             level  = float(self._l_edit.text())
         except ValueError:
             return
-        self.wl_changed.emit(self._vol_idx, max(1.0, window), level)
+        self.wl_changed.emit(self._vol_idx, max(0.1, window), level)
 
 # ── LayerPanel ─────────────────────────────────────────────────────────────
 
@@ -1982,7 +1982,7 @@ class NiftiViewer(QWidget):
         if vol_idx >= len(self._volumes):
             return
         rec = self._volumes[vol_idx]
-        rec.wl_window = max(1.0, window)
+        rec.wl_window = max(0.1, window)
         rec.wl_level  = level
         for vp in self._vps:
             vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
@@ -1995,7 +1995,7 @@ class NiftiViewer(QWidget):
         if vol_idx >= len(self._volumes):
             return
         rec = self._volumes[vol_idx]
-        rec.wl_window = rec.hi - rec.lo or 1.0
+        rec.wl_window = rec.hi - rec.lo or 0.1
         rec.wl_level  = (rec.hi + rec.lo) / 2.0
         for vp in self._vps:
             vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)

@@ -1,34 +1,24 @@
 import logging
-logger = logging.getLogger()
 import operator
 import os
-os.environ['PYOPENCL_NO_CACHE']='1'
+import platform
 
 import numpy as np
-from pathlib import Path
-import platform
-import sys
-from scipy.ndimage._morphology import generate_binary_structure, _center_is_true
+from scipy.ndimage._morphology import (_center_is_true,
+                                       generate_binary_structure)
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                          get_step_size)
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,InitMLX,get_step_size
+    from ..GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                            get_step_size)
+from Utils.paths import resource_path
 
-_IS_MAC = platform.system() == 'Darwin'
+logger = logging.getLogger()
+os.environ['PYOPENCL_NO_CACHE']='1'
 
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.split(Path(__file__))[0]
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
-    else:
-        bundle_dir = Path(__file__).parent
-
-    return bundle_dir
 
 def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
@@ -40,7 +30,7 @@ def InitBinaryClosing(DeviceName='A6000',GPUBackend='OpenCL'):
     global clp
     global cndimage
 
-    kernel_files = [os.path.join(resource_path(), 'binary_closing.cpp')
+    kernel_files = [os.path.join(resource_path(__file__), 'binary_closing.cpp')
     ]
 
     if GPUBackend == 'CUDA':
@@ -121,7 +111,7 @@ def erode_kernel(input, structure, output, offsets, border_value, center_is_true
 
     totalPoints = output.size
     logger.info(f"Total points: {totalPoints}")
-    step = get_step_size(sel_device,num_large_buffers=2,data_type=output.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=2,bytes_per_point=output.dtype.itemsize,GPUBackend=GPUBackend)
 
     for point in range(0,totalPoints,step):
 

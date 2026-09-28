@@ -40,18 +40,23 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                     sys.stderr = self._stream
             except AttributeError:
                 pass
-
-    if TxSystem in ['Single','BSonix']:
-        from TranscranialModeling.BabelIntegrationSingle import RUN_SIM 
-    elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','DPXPC_300','R15287','R15473']:
-        from TranscranialModeling.BabelIntegrationANNULAR_ARRAY import RUN_SIM 
-    elif TxSystem in ['H317','H246','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
-        module_name = f"TranscranialModeling.BabelIntegration{TxSystem}"
+    
+    geometry_type = kargs['geometry_type'] if 'geometry_type' in kargs else None
+    if 'is_custom_tx' in kargs and kargs['is_custom_tx']:
+        module_name = f"TranscranialModeling.babel_integration.integration_templates.babel_integration_{geometry_type}"
         RUN_SIM = importlib.import_module(module_name).RUN_SIM
     else:
-        raise ValueError("TX system " + TxSystem + " is not yet supported")
+        if TxSystem in ['Single','BSonix']:
+            from TranscranialModeling.babel_integration.integration_templates.babel_integration_simple_focused import RUN_SIM 
+        elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','DPXPC_300','R15287','R15473']:
+            from TranscranialModeling.babel_integration.integration_templates.babel_integration_focused_annular_array import RUN_SIM 
+        elif TxSystem in ['H317','H246','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
+            module_name = f"TranscranialModeling.babel_integration.{geometry_type}.babel_integration_{TxSystem}"
+            RUN_SIM = importlib.import_module(module_name).RUN_SIM
+        else:
+            raise ValueError("TX system " + TxSystem + " is not yet supported")
 
-    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
+    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
         if kargs['bDryRun']==False:
             stdout = InOutputWrapper(queue,True)
     else:
@@ -70,7 +75,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         if 'bDryRun' in kargs:
             bDryRun=kargs['bDryRun']
         if kargs['bUseRayleighForWater']==False or bDryRun:
-            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
+            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
@@ -81,7 +86,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bDisplay=False,
                             TxSystem=TxSystem,
                             **kargs)
-        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
+        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type == 'focused_array':
             #we need to combine ac field files for display if using multipoint
             if kargs['MultiPoint'] is not None and kargs['bDryRun'] == False: 
                 kargs['bDryRun'] = True
@@ -121,7 +126,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             combinedNifti.to_filename(finalName)
                             _rec_artifact(finalName)
 
-        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
+        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
             kargs['bDryRun'] = True
             FilesWater=R.RunCases(targets=Target, 
                             bTightNarrowBeamDomain=True,

@@ -24,6 +24,7 @@ single-trajectory case; Steps 2/3 and multi-trajectory / persistent sessions
 follow. Reuses client_functions.py (HTTP helpers) and RemoteServers.py.
 """
 import os
+import tempfile
 import time
 import traceback
 import urllib.error
@@ -38,9 +39,11 @@ import RemoteServers
 STEP_PLANNING = 'planning'
 STEP_ACOUSTIC = 'acoustic'
 STEP_THERMAL = 'thermal'
+RAYLEIGH_TEST = 'rayleigh'
 
 # Advanced-config-dict features a server must advertise for offload to work.
 _REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'persistent_session'}
+_STANDALONE_REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'standalone_functions'}
 
 
 # ── Carry-over files ─────────────────────────────────────────────────────────
@@ -117,14 +120,27 @@ class RunServerCalculation(QObject):
     endError = Signal()
     logTelemetry = Signal(str)
 
-    def __init__(self, mainApp, step, trajectory=None, combine=False):
+    def __init__(self, mainApp=None, step=None, trajectory=None, combine=False, server=None, standalone_args=None):
         super().__init__()
         self._mainApp = mainApp
         self._step = step
         self._trajectory = trajectory      # active trajectory index for Steps 2/3
         self._combine = combine            # CombineTrajectories (merged) operation
-        self._server = (mainApp.Config or {}).get('RemoteServer')
+        if server is not None:
+            self._server = server
+        elif mainApp is not None and hasattr(mainApp, 'Config'):
+            self._server = (mainApp.Config or {}).get('RemoteServer')
+        else:
+            self._server = None
+        self._standalone_args = standalone_args
         self._errorText = None
+
+        if self._step == RAYLEIGH_TEST:
+            self._param_actions = []
+            self._combine_sync_actions = []
+            self._thermal_profile = None
+            return
+
         # Capture the trajectory's user parameters NOW, on the GUI thread (the
         # worker runs off-thread and must not read live widgets). Empty for Step 1
         # and for a combine (which just clicks the CombineTrajectories button).
@@ -155,7 +171,9 @@ class RunServerCalculation(QObject):
             raise RemoteNotReady("Remote server '%s' is not available:\n%s"
                                  % (self._server.get('name', '?'), info))
         caps = info.get('capabilities', {})
-        missing = _REQUIRED_FEATURES - set(caps.get('features', []))
+        required_features = (_STANDALONE_REQUIRED_FEATURES
+                        if self._step == RAYLEIGH_TEST else _REQUIRED_FEATURES)
+        missing = required_features - set(caps.get('features', []))
         if missing:
             raise RemoteNotReady("Server '%s' is missing required features: %s"
                                  % (self._server.get('name', '?'), ", ".join(sorted(missing))))
@@ -374,6 +392,58 @@ class RunServerCalculation(QObject):
         sess['launched'] = True
         return result
 
+    def _run_forward_simple(self):
+        """Run ForwardSimple remotely without launching a BabelBrain instance."""
+        import numpy as np
+
+        if not self._standalone_args:
+            raise RemoteNotReady("ForwardSimple remote arguments were not provided.")
+
+        self.preflight()
+        self._bind()
+        ws = cf.create_workspace(mode='temp')
+        ws_id = ws['workspace_id']
+        try:
+            with tempfile.TemporaryDirectory(prefix='babel-forward-simple-') as tmpdir:
+                input_name = 'ForwardSimple_input.npz'
+                input_path = os.path.join(tmpdir, input_name)
+                np.savez(input_path,
+                         cwvnb_extlay=np.asarray(self._standalone_args['cwvnb_extlay']),
+                         center=np.asarray(self._standalone_args['center']),
+                         ds=np.asarray(self._standalone_args['ds']),
+                         u0=np.asarray(self._standalone_args['u0']),
+                         rf=np.asarray(self._standalone_args['rf']))
+
+                cf.upload(ws_id, input_path, input_name)
+                config = cf._req("GET", "/currentconfig")
+                spec = {
+                    'workspace': ws_id,
+                    'keep_alive': False,
+                    'config': config,
+                    'standalone': {
+                        'name': 'ForwardSimple',
+                        'input': input_name,
+                    },
+                }
+                job_id = cf.submit(spec)
+                print('[remote] submitted ForwardSimple job %s' % job_id)
+                result = self._follow(job_id)
+                if result['state'] != 'SUCCEEDED':
+                    raise RemoteNotReady("Remote ForwardSimple failed:\n%s"
+                                         % (result.get('error') or result['state']))
+
+                downloaded = cf.download_all(result['job_id'], result['artifacts'], tmpdir)
+                output_paths = [path for path, _ in downloaded
+                                if os.path.basename(path) == 'ForwardSimple_output.npy']
+                if len(output_paths) != 1:
+                    raise RemoteNotReady("Remote ForwardSimple did not return its output artifact.")
+                return np.load(output_paths[0], allow_pickle=False)
+        finally:
+            try:
+                cf.delete_workspace(ws_id)
+            except Exception:
+                pass
+
     def _thermal_profile_actions(self, sess):
         """Upload the client's current thermal profile YAML and return the action
         that makes the server (re)load it, so a profile the user changed in Step 3
@@ -452,7 +522,11 @@ class RunServerCalculation(QObject):
     # ── run (Qt worker slot) ──────────────────────────────────────────────
     def run(self):
         try:
-            if self._combine:
+            if self._step == RAYLEIGH_TEST:
+                result = self._run_forward_simple()
+                self.finished.emit(result)
+                return result
+            elif self._combine:
                 self._run_combine()
             elif self._step == STEP_PLANNING:
                 self._run_planning()
@@ -523,7 +597,7 @@ class RunServerCalculation(QObject):
         if self._step != STEP_ACOUSTIC:
             return {}
         try:
-            from _BabelBasePhasedArray import BabelBasePhaseArray
+            from babel_transducers.transducer_templates.base_phase_array_tx import BabelBasePhaseArray
         except Exception:
             return {}
         sim = getattr(self._mainApp, 'AcSim', None)

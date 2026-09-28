@@ -17,7 +17,6 @@ driver. Errors in a snippet print a traceback but leave the window live.
 """
 import argparse
 import os
-import sys
 import traceback
 
 # sys.path[0] is this file's dir (BabelBrain/) so the app's internal imports
@@ -30,12 +29,12 @@ from BabelBrain import (
     BabelBrain,
     GetLatestSelection,
     _apply_color_scheme,
-    resource_path,
 )
 from SelFiles.SelFiles import SelFiles
 # The event-loop / dialog helpers are shared with the frozen scripting engine
 # (BabelBrain --execute) so both behave identically.
 from scripting import wait_until, wait, auto_answer_dialogs, restore_dialogs
+from Utils.paths import resource_path
 
 
 # --------------------------------------------------------------------------
@@ -113,7 +112,7 @@ def main():
 
     app = QApplication([])
     _apply_color_scheme(app)
-    app.setWindowIcon(QIcon(os.path.join(resource_path(), 'Proteus-Alciato-logo.png')))
+    app.setWindowIcon(QIcon(os.path.join(resource_path(__file__), 'Proteus-Alciato-logo.png')))
 
     # Pick/confirm input files once per session via the normal dialog.
     selwidget = SelFiles()

@@ -272,6 +272,7 @@ dependencies:
       - python-utils==3.9.1
       - pytools==2026.1
       - pyvista==0.47.3
+      - pyvistaqt==0.12.0
       - pyyaml==6.0.3
       - qtpy==2.4.3
       - requests==2.33.1

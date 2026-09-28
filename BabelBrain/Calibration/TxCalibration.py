@@ -12,7 +12,7 @@ from openpyxl.utils import column_index_from_string
 from openpyxl import load_workbook
 from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
 
-from TranscranialModeling import BabelIntegrationANNULAR_ARRAY
+from TranscranialModeling.babel_integration.integration_templates import babel_integration_focused_annular_array
 from BabelViscoFDTD.tools.RayleighAndBHTE import InitCuda,InitOpenCL, InitMetal,ForwardSimple
 from scipy.optimize import minimize
 
@@ -302,7 +302,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     rf=np.hstack((np.reshape(xp,(xp.size,1)),np.reshape(yp,(xp.size,1)), np.reshape(zp,(xp.size,1)))).astype(np.float32)
     
     
-    Material=BabelIntegrationANNULAR_ARRAY.Material
+    Material=babel_integration_focused_annular_array.Material
     cwvnb_extlay=np.array(2*np.pi*Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
     def DoXZ(inx):
@@ -977,7 +977,7 @@ def RUN_FITTING(TxConfig,
 
     print('rings areas',(spherical_cap_area(OutDiameters,FocalLength)-spherical_cap_area(InDiameters,FocalLength))*1e6)
 
-    CB=BabelIntegrationANNULAR_ARRAY.SimulationConditions(Frequency=Frequency,
+    CB=babel_integration_focused_annular_array.SimulationConditions(Frequency=Frequency,
                                                       Aperture=Aperture, # m, aperture of the Tx, used to calculated cross section area entering the domain
                                                       FocalLength=FocalLength,
                                                       InDiameters=InDiameters, #inner diameter of rings
@@ -1000,7 +1000,7 @@ def RUN_FITTING(TxConfig,
     rf=np.hstack((np.reshape(xp,(len(ZDim),1)),np.reshape(yp,(len(ZDim),1)), np.reshape(zp,(len(ZDim),1)))).astype(np.float32)
 
 
-    Material=BabelIntegrationANNULAR_ARRAY.Material
+    Material=babel_integration_focused_annular_array.Material
     cwvnb_extlay=np.array(2*np.pi*Frequency/Material['Water'][1]+1j*0).astype(np.complex64)
 
     Locations=np.array(df.columns)

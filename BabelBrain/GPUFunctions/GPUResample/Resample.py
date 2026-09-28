@@ -1,38 +1,28 @@
 import logging
-logger = logging.getLogger()
 import os
-from pathlib import Path
 import platform
-import sys
 import warnings
 
+import numpy as np
+import numpy.linalg as npl
 from nibabel import processing
 from nibabel.affines import AffineError, to_matvec
 from nibabel.imageclasses import spatial_axes_first
 from nibabel.nifti1 import Nifti1Image
-import numpy as np
-import numpy.linalg as npl
-from scipy.ndimage._interpolation import spline_filter, _prepad_for_spline_filter
+from scipy.ndimage._interpolation import (_prepad_for_spline_filter,
+                                          spline_filter)
 from scipy.ndimage._ni_support import _get_output
 
 try:
-    from GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
+    from GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                          get_step_size)
 except:
-    from ..GPUUtils import InitCUDA,InitOpenCL,InitMetal,get_step_size,InitMLX
+    from ..GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
+                            get_step_size)
+from Utils.paths import resource_path
 
-_IS_MAC = platform.system() == 'Darwin'
+logger = logging.getLogger()
 
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.split(Path(__file__))[0]
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__)))
-    else:
-        bundle_dir = Path(__file__).parent
-
-    return bundle_dir
 
 def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
@@ -46,7 +36,7 @@ def InitResample(DeviceName='A6000',GPUBackend='OpenCL'):
     global cndimage
 
     kernel_files = [
-       os.path.join(resource_path(), 'affine_transform.cpp'),
+       os.path.join(resource_path(__file__), 'affine_transform.cpp'),
         # base_path + os.sep + 'BabelBrain' + os.sep + 'GPUFunctions' + os.sep + 'GPUResample' + os.sep + 'spline_filter.cpp'
     ]
 
@@ -347,7 +337,7 @@ def ResampleFromTo(from_img, to_vox_map,order=3,mode="constant",cval=0.0,out_cla
     assert(np.isfortran(filtered)==False)
 
     totalPoints = output.size
-    step = get_step_size(sel_device,num_large_buffers=1,data_type=output.dtype,GPUBackend=GPUBackend)
+    step = get_step_size(sel_device,num_large_buffers=1,bytes_per_point=output.dtype.itemsize,GPUBackend=GPUBackend)
     logger.info(f"Total points: {totalPoints}")
     for point in range(0,totalPoints,step):
 

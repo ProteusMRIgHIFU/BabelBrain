@@ -1,54 +1,34 @@
-import sys
-
-from PySide6.QtWidgets import QDialog,QFileDialog,QStyle,QMessageBox,QVBoxLayout,QDialogButtonBox
-from PySide6.QtCore import QTimer,QObject
-from Localization import TR
-
-import platform
+import glob
 import os
+import platform
+import shutil
+import subprocess
+import sys
+import time
+import traceback
+from multiprocessing import Process, Queue
 from pathlib import Path
 
-from multiprocessing import Process,Queue
-import time
-
-import yaml
-import glob
-import subprocess
-import traceback
-import shutil
 import nibabel
 import numpy as np
-
-from scipy.io import loadmat
+import yaml
+from PySide6.QtCore import QObject, QTimer
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QMessageBox,
+                               QVBoxLayout)
+from Localization import TR
 from scipy.signal import find_peaks
 
 from ClockDialog import ClockDialog
+from ConvMatTransform import (BSight_to_itk, ReadTrajectoryBrainsight,
+                              ReplaceTrajectoryBrainsight,
+                              read_converted_itk_affine_transform,
+                              templateSlicer)
 from CreateVoxelMask import create_target_mask
-from ConvMatTransform import (
-    ReadTrajectoryBrainsight,
-    read_converted_itk_affine_transform,
-    ReplaceTrajectoryBrainsight,
-    BSight_to_itk,
-    LocaliteTargeting,
-    templateSlicer
-)
-
-from PlanTUSViewer.PlanTUSViewer import MultiGiftiViewerWidget,FinalResultViewer
+from PlanTUSViewer.PlanTUSViewer import (FinalResultViewer,
+                                         MultiGiftiViewerWidget)
+from Utils.paths import resource_path
 
 _IS_MAC = platform.system() == 'Darwin'
-
-
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.join(os.path.split(Path(__file__))[0],'..')
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS)
-    else:
-        bundle_dir = os.path.join(Path(__file__).parent,'..')
-
-    return bundle_dir
 
 
 def AcousticAxisONeil(frequency,aperture,focal_length,c=1500.0,step=0.05):
@@ -212,7 +192,7 @@ class RUN_PLAN_TUS(QObject):
         # Fall back to the PlanTUS bundled with BabelBrain (pinned version at
         # ExternalBin/PlanTUS/PlanTUS) when the user has not set a valid folder.
         if PlanTUSRoot in ('...','') or not os.path.isfile(os.path.join(PlanTUSRoot,'PlanTUS_wrapper.py')):
-            _bundled=os.path.normpath(os.path.join(resource_path(),'ExternalBin','PlanTUS','PlanTUS'))
+            _bundled = os.path.normpath(os.path.join(resource_path(__file__).parent, 'ExternalBin', 'PlanTUS', 'PlanTUS'))
             if os.path.isfile(os.path.join(_bundled,'PlanTUS_wrapper.py')):
                 PlanTUSRoot=_bundled
             else:
@@ -333,7 +313,7 @@ class RUN_PLAN_TUS(QObject):
         else:
             create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
 
-        scriptbase=os.path.join(resource_path(),"ExternalBin"+os.sep+"PlanTUS"+os.sep)
+        scriptbase = os.path.join(resource_path(__file__).parent, "ExternalBin" + os.sep + "PlanTUS" + os.sep)
         queue=Queue()
         self.CalQueue=queue
 
@@ -671,7 +651,7 @@ def RunPlanTUSBackground(queue,
             result=result.returncode 
             
         else:
-            path_script = os.path.join(resource_path(),"ExternalBin/PlanTUS/run_win.bat")
+            path_script = os.path.join(resource_path(__file__).parent, "ExternalBin/PlanTUS/run_win.bat")
             
             print("Starting PlanTUS")
             args= [path_script,

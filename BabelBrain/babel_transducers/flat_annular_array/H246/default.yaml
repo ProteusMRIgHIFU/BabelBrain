@@ -1,0 +1,28 @@
+TxDiam:  33.60e-3    #in m
+MinimalTPODistance: 25.0e-3
+MaximalTPODistance: 95.0e-3
+USFrequencies:
+    - 500000.0
+MaxNegativeDistance:          10.0 #mm
+MaxDistanceToSkin:            50.00 #mm
+InDiameters:
+    - 0.0
+    - 24.0e-3
+OutDiameters:
+    - 23.3e-3
+    - 33.60e-3
+PlanTUS: #This information is to interface with the PlanTUS tool
+    500000.0: 
+        FocalDistanceList:
+            - 30.0
+            - 35.0
+            - 40.0
+            - 45.0
+            - 50.0
+        FHMLList: # raw estimations from report graphs, as there are no tables
+            - 18.0
+            - 30.0
+            - 38.0
+            - 50.0
+            - 60.0
+coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

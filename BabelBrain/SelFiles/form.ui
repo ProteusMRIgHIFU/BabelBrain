@@ -13,6 +13,46 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <widget class="QToolButton" name="SettingsToolButton">
+   <property name="geometry">
+    <rect>
+     <x>985</x>
+     <y>2</y>
+     <width>30</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="focusPolicy">
+    <enum>Qt::FocusPolicy::NoFocus</enum>
+   </property>
+   <property name="toolTip">
+    <string>Settings</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QToolButton { border: none; font-size: 18px; }
+QToolButton:hover { background-color: rgba(128, 128, 128, 40); border-radius: 4px; }
+QToolButton::menu-indicator { image: none; }</string>
+   </property>
+   <property name="text">
+    <string>⚙</string>
+   </property>
+   <property name="popupMode">
+    <enum>QToolButton::ToolButtonPopupMode::InstantPopup</enum>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+   </property>
+   <property name="autoRaise">
+    <bool>true</bool>
+   </property>
+   <widget class="QMenu" name="SettingsMenu">
+    <property name="title">
+     <string/>
+    </property>
+    <addaction name="ManageCustomTransducersAction"/>
+   </widget>
+   <addaction name="SettingsMenu"/>
+  </widget>
   <widget class="QPushButton" name="ContinuepushButton">
    <property name="geometry">
     <rect>
@@ -506,101 +546,6 @@ PETRA, Density?</string>
     <property name="styleSheet">
      <string notr="true"/>
     </property>
-    <item>
-     <property name="text">
-      <string notr="true">Single</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">CTX_500</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">CTX_250</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">CTX_250_2ch</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">DPX_500</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">DPXPC_300</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">H317</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">H246</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">BSonix</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">REMOPD</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">I12378</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">ATAC</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">R15148</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">R15287</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">R15473</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">R15646</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">IGT64_500</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">H301</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string notr="true">DomeTx</string>
-     </property>
-    </item>
    </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
@@ -728,6 +673,11 @@ PETRA, Density?</string>
     </property>
    </widget>
   </widget>
+  <action name="ManageCustomTransducersAction">
+   <property name="text">
+    <string>Manage Custom Transducers</string>
+   </property>
+  </action>
   <widget class="QPushButton" name="CancelpushButton">
    <property name="geometry">
     <rect>

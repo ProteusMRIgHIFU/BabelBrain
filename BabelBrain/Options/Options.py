@@ -1,61 +1,39 @@
 # This Python file uses the following encoding: utf-8
-import sys
 
-from PySide6.QtWidgets import (QDialog,QFileDialog,QStyle,QMessageBox,QWidget,QVBoxLayout,QInputDialog,
-                              QDialogButtonBox,QLabel,QComboBox)
-from PySide6.QtCore import Slot, Qt,QTimer
-from Localization import TR
+import os
+import time
+from functools import partial
+from glob import glob
+from multiprocessing import Process, Queue
+
+import yaml
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QPalette
-
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox,
+                               QFileDialog, QLabel, QMessageBox, QStyle,
+                               QVBoxLayout, QWidget)
+from Localization import TR
+from Calibration.TxCalibration import RUN_FITTING_Process
+from Calibration.ViewResults import PlotViewerCalibration
+from ClockDialog import ClockDialog
+from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
+from Telemetry.TelemetryConsentDialog import (TELEMETRY_OFF,
+                                              TelemetrySettingsWidget)
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_OptionsDialog
-import platform
-import os
-from pathlib import Path
-
-from multiprocessing import Process,Queue
-import time
-import yaml
-from glob import glob
-
-from functools import partial
-
-from Calibration.TxCalibration import RUN_FITTING_Process
-from Calibration.ViewResults import PlotViewerCalibration
-from ClockDialog import ClockDialog
-
-from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
-from BabelViscoFDTD.H5pySimple import SaveToH5py, ReadFromH5py
-
-from Telemetry.TelemetryConsentDialog import TelemetrySettingsWidget, TELEMETRY_OFF
-from ConvMatTransform import ReadTrajectoryBrainsight
-
-
-
-_IS_MAC = platform.system() == 'Darwin'
-
-
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.join(os.path.split(Path(__file__))[0],'..')
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS)
-    else:
-        bundle_dir = os.path.join(Path(__file__).parent,'..')
-
-    return bundle_dir
+from Utils.paths import resource_path
+from Localization import TR
 
 def plantus_bundled_path():
     """Absolute path to the PlanTUS tool bundled with BabelBrain.
 
     This is the submodule/checkout populated by Scripts/fetch_plantus.py at
     ExternalBin/PlanTUS/PlanTUS."""
-    return os.path.normpath(os.path.join(resource_path(),'ExternalBin','PlanTUS','PlanTUS'))
+    return os.path.normpath(os.path.join(resource_path(__file__).parent, 'ExternalBin', 'PlanTUS', 'PlanTUS'))
 
 
 def connect_folder_button(parent,button, line_edit, title):

@@ -1,30 +1,5 @@
-from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
-                QHBoxLayout,QVBoxLayout,QLineEdit,QDialog,
-                QGridLayout, QSpacerItem, QInputDialog, QFileDialog,
-                QErrorMessage, QMessageBox)
-from PySide6.QtCore import QFile,Slot,QObject,Signal,QThread
+from PySide6.QtWidgets import QGridLayout, QVBoxLayout, QWidget
 from Localization import TR
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtGui import QPalette, QTextCursor
-
-import os
-import sys
-from pathlib import Path
-
-import platform
-_IS_MAC = platform.system() == 'Darwin'
-
-def resource_path():  # needed for bundling
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    if not _IS_MAC:
-        return os.path.split(Path(__file__))[0]
-
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        bundle_dir = Path(sys._MEIPASS) / 'GUIComponents'
-    else:
-        bundle_dir = Path(__file__).parent
-
-    return bundle_dir
 
 class ScrollBars(QWidget):
     def __init__(self,parent=None,MainApp=None):
@@ -35,9 +10,9 @@ class ScrollBars(QWidget):
 
     def load_ui(self):
         # Programmatic form replaces scrollbars.ui.
+        from GUIComponents.TxPanelBase import LABEL_BLUE, make_label
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QScrollBar, QSizePolicy
-        from GUIComponents.TxPanelBase import make_label, LABEL_BLUE
 
         # Stretch to fill the IsppaScrollBars host so we match the figure width.
         # The host (passed in as our parent) has no layout of its own, so
