@@ -399,7 +399,7 @@ class TxPanelBase(QWidget):
             nBox.addLayout(row)
             nBox.addStretch(1)
             self.CombineTrajectories = make_button(
-            "CombineTrajectories", "Combine Trajectoriess", min_height=20,color="red")
+            "CombineTrajectories", "Combine Trajectories", min_height=20,color="red")
             nBox.addWidget(self.CombineTrajectories)
             self.CombineTrajectories.setEnabled(False)
             return nBox
