@@ -403,6 +403,9 @@ class BabelBaseTx(QWidget):
         own AcField_plot1; user interactions (slice scroll / water-skull toggle /
         hide-marks / multifocus dropdown) re-render the same tab.
         '''
+        if getattr(self, '_mergedTabIndex', None) == self._TrajectoryNumber:
+            self._showMergedVisualization()
+            return
         panel = self._AcPanel(self._TrajectoryNumber)
         if self._bRecalculated:
             if self.Widget.ShowWaterResultscheckBox.isEnabled() == False:
