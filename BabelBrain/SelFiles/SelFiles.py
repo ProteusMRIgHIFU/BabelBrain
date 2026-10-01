@@ -167,6 +167,12 @@ class SelFiles(QDialog):
         self.ui.ManageCustomTransducersAction.setObjectName(
             "ManageCustomTransducersAction"
         )
+        self.ui.ManageRemoteServersAction = self.ui.SettingsMenu.addAction(
+            "Manage Remote Servers"
+        )
+        self.ui.ManageRemoteServersAction.setObjectName(
+            "ManageRemoteServersAction"
+        )
         self.ui.SettingsToolButton.setMenu(self.ui.SettingsMenu)
 
         self._PopulateTransducerComboBox()   # populate from transducer_list.yaml
@@ -196,6 +202,7 @@ class SelFiles(QDialog):
         self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
         self.ui.ManageCustomTransducersAction.triggered.connect(self.ManageCustomTransducers)
+        self.ui.ManageRemoteServersAction.triggered.connect(self.ManageRemoteServers)
 
         self.ui.SelTrajectorypushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
         self.ui.SelT1WpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
@@ -394,7 +401,15 @@ class SelFiles(QDialog):
         if items[index]['kind'] != 'action':
             self._prevEngineKey = self._engineKey(items[index])
             return
+        self.ManageRemoteServers()
+
+    def ManageRemoteServers(self):
+        """Open the remote-server manager, then rebuild the computing-engine
+        dropdown, keeping the previously selected engine when it still exists."""
         from GUIComponents.RemoteServerDialog import RemoteServerManagerDialog
+        cur = self._CurrentEngineItem()
+        if cur is not None and cur['kind'] != 'action':   # opened from Settings menu
+            self._prevEngineKey = self._engineKey(cur)
         RemoteServerManagerDialog(self).exec()
         prev = getattr(self, '_prevEngineKey', None)
         self._PopulateComputeEngines()
