@@ -26,7 +26,7 @@ from TranscranialModeling.babel_integration.babel_integration_helpers import Spe
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_Dialog
-from Utils.paths import resource_path
+from Utils.paths import bundle_root
 from Utils.transducer_registry import DEFAULT_TRANSDUCERS
 
 
@@ -181,7 +181,7 @@ class SelFiles(QDialog):
         from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style
         self.setStyleSheet(app_qss(self))
         apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
-        with open(os.path.join(resource_path(__file__).parent, 'version-gui.txt'), 'r') as f:
+        with open(os.path.join(bundle_root(__file__), 'version-gui.txt'), 'r') as f:
             version = f.readlines()[0]
         self.bb_version = version.strip()
         # This is the first screen users see, so a dev/test build has to say so
@@ -284,7 +284,7 @@ class SelFiles(QDialog):
 
     def _custom_tx_item_data(self, tx_name: str) -> dict:
         """Build the item-data dict for a custom transducer by reading its default.yaml."""
-        tx_default_yaml = CUSTOM_TRANSDUCERS_FOLDER / f"Babel_{tx_name}" / "default.yaml"
+        tx_default_yaml = CUSTOM_TRANSDUCERS_FOLDER / f"babel_{tx_name}" / "default.yaml"
         try:
             with open(tx_default_yaml, "r") as f:
                 tx_params = yaml.safe_load(f)

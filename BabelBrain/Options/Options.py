@@ -25,14 +25,14 @@ from Telemetry.TelemetryConsentDialog import (TELEMETRY_OFF,
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_Dialog
-from Utils.paths import resource_path
+from Utils.paths import bundle_root
 
 def plantus_bundled_path():
     """Absolute path to the PlanTUS tool bundled with BabelBrain.
 
     This is the submodule/checkout populated by Scripts/fetch_plantus.py at
     ExternalBin/PlanTUS/PlanTUS."""
-    return os.path.normpath(os.path.join(resource_path(__file__).parent, 'ExternalBin', 'PlanTUS', 'PlanTUS'))
+    return os.path.normpath(os.path.join(bundle_root(__file__), 'ExternalBin', 'PlanTUS', 'PlanTUS'))
 
 
 def connect_folder_button(parent,button, line_edit, title):

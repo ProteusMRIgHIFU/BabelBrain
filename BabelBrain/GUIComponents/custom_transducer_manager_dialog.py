@@ -122,7 +122,7 @@ class CustomTransducerManagerDialog(QDialog):
         if response != QMessageBox.StandardButton.Yes:
             return
 
-        tx_folder = CUSTOM_TRANSDUCERS_FOLDER / f"Babel_{tx_name}"
+        tx_folder = CUSTOM_TRANSDUCERS_FOLDER / f"babel_{tx_name}"
         current_tx = self.parent_dialog.ui.TransducerTypecomboBox.currentText()
 
         try:

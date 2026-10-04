@@ -25,7 +25,7 @@ from ConvMatTransform import (BSight_to_itk, ReadTrajectoryBrainsight,
 from CreateVoxelMask import create_target_mask
 from PlanTUSViewer.PlanTUSViewer import (FinalResultViewer,
                                          MultiGiftiViewerWidget)
-from Utils.paths import resource_path
+from Utils.paths import bundle_root
 
 _IS_MAC = platform.system() == 'Darwin'
 
@@ -187,7 +187,7 @@ class RUN_PLAN_TUS(QObject):
         # Fall back to the PlanTUS bundled with BabelBrain (pinned version at
         # ExternalBin/PlanTUS/PlanTUS) when the user has not set a valid folder.
         if PlanTUSRoot in ('...','') or not os.path.isfile(os.path.join(PlanTUSRoot,'PlanTUS_wrapper.py')):
-            _bundled = os.path.normpath(os.path.join(resource_path(__file__).parent, 'ExternalBin', 'PlanTUS', 'PlanTUS'))
+            _bundled = os.path.normpath(os.path.join(bundle_root(__file__), 'ExternalBin', 'PlanTUS', 'PlanTUS'))
             if os.path.isfile(os.path.join(_bundled,'PlanTUS_wrapper.py')):
                 PlanTUSRoot=_bundled
             else:
@@ -306,7 +306,7 @@ class RUN_PLAN_TUS(QObject):
         else:
             create_target_mask(t1Path, RMat[:3,3], maskPath,raddi=raddi)
 
-        scriptbase = os.path.join(resource_path(__file__).parent, "ExternalBin" + os.sep + "PlanTUS" + os.sep)
+        scriptbase = os.path.join(bundle_root(__file__), "ExternalBin" + os.sep + "PlanTUS" + os.sep)
         queue=Queue()
         self.CalQueue=queue
 
@@ -645,7 +645,7 @@ def RunPlanTUSBackground(queue,
             result=result.returncode 
             
         else:
-            path_script = os.path.join(resource_path(__file__).parent, "ExternalBin/PlanTUS/run_win.bat")
+            path_script = os.path.join(bundle_root(__file__), "ExternalBin/PlanTUS/run_win.bat")
             
             print("Starting PlanTUS")
             args= [path_script,
