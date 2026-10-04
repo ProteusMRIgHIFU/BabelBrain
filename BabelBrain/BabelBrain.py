@@ -1967,7 +1967,6 @@ class RunMaskGeneration(QObject):
                                                     'bForceNoAbsorptionSkullScalp',
                                                     'TxOptimizedWeights',
                                                     'PlanTUSRoot',
-                                                    'ConnectomeRoot',
                                                     'TelemetryLevel',
                                                     'NumberTransducers']:
                 return True

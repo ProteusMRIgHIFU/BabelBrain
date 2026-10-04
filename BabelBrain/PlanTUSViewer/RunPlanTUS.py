@@ -100,7 +100,6 @@ class PlanTUSTxConfig(object):
                  weight_skin_skull_angles= 0.2,
                  weight_skull_thickness = 0.2,
                  IDTarget="",
-                 connectome_path="/Applications/wb_view.app/Contents/usr/bin",
                  bUseGenericTransducerModel=False):
 
         # Maximum and minimum focal depth of transducer (in mm)
@@ -128,9 +127,7 @@ class PlanTUSTxConfig(object):
         self.weight_skin_target_intersections = weight_skin_target_intersections
         self.weight_skin_skull_angles = weight_skin_skull_angles
         self.weight_skull_thickness = weight_skull_thickness
-
-        self.connectome_path = connectome_path
-
+ 
         # Focal distance and corresponding FLHM values (both in mm) according to, e.g.,
         # calibration report
         self.focal_distance_list = focal_distance_list
@@ -149,7 +146,6 @@ class PlanTUSTxConfig(object):
             "additional_offset": self.additional_offset,
             "focal_distance_list": self.focal_distance_list,
             "flhm_list": self.flhm_list,
-            "connectome_wb_path": self.connectome_path,
             "IDTarget": self.IDTarget,
             "weight_skin_target_distances":self.weight_skin_target_distances,
             "weight_skin_target_angles":self.weight_skin_target_angles,
@@ -197,7 +193,6 @@ class RUN_PLAN_TUS(QObject):
             else:
                 raise RuntimeError(f"PlanTUS_wrapper.py does not exist where is expected: {_bundled}")
         SimbNINBSRoot=self.OptionsDlg.ui.SimbNINBSRootlineEdit.text()
-        ConnectomeRoot=self.OptionsDlg.ui.ConnectomeRootlineEdit.text()
         VolumeROIPlanTUS=self.OptionsDlg.ui.VolumeROIPlanTUSlineEdit.text()
 
         if TrajectoryType =='brainsight':
@@ -286,7 +281,6 @@ class RUN_PLAN_TUS(QObject):
             focal_distance_list=focal_distance_list,
             flhm_list=flhm_list,
             IDTarget=self.ID,
-            connectome_path=ConnectomeRoot,
             bUseGenericTransducerModel=bUseGenericTransducerModel
         )
   
@@ -425,12 +419,13 @@ class RUN_PLAN_TUS(QObject):
                 print("*"*40)
                 print("*"*5+" DONE Trajectory generation.")
                 print("*"*40)
-                print('looking for trajectories')
                 
                 basepath=self.PlanOutputPath            
 
                 #we look for new trajectory files
+                print('looking for trajectories at ',basepath+os.sep+self.ID+os.sep+'*BabelBrain.txt')
                 trajFiles=glob.glob(basepath+os.sep+self.ID+os.sep+'*BabelBrain.txt')
+
                 if len(trajFiles)>0:
                     assert(len(trajFiles)==1)
                     trajFile=trajFiles[0]
@@ -459,7 +454,7 @@ class RUN_PLAN_TUS(QObject):
                         f.write(outString)
 
                     bdir,sfile = os.path.split(trajFile)
-                    tfile = sfile.replace('trajectory','transducer').replace('_BabelBrain.txt','.surf.gii')
+                    tfile = sfile.replace('trajectory','transducer').replace('_Trajectory_BabelBrain.txt','_TransducerModel.surf.gii')
                     if self.showFinalResults(bdir+os.sep+tfile):
                         TrajectoryType=self.MainApp.Config['TrajectoryType']
                         if TrajectoryType =='brainsight':
@@ -642,7 +637,7 @@ def RunPlanTUSBackground(queue,
                     TxConfigName,
                     '--overwrite']
             if runOnlyTrajectory>-1:
-                args.append('--do_only_trajectory')
+                args.append('--placement_only')
                 args.append(str(runOnlyTrajectory))
             result = subprocess.run(args, capture_output=True, text=True,check=True)
             print("stdout:", result.stdout)
@@ -662,7 +657,7 @@ def RunPlanTUSBackground(queue,
                     TxConfigName,
                     '--overwrite']
             if runOnlyTrajectory>-1:
-                    args.append('--do_only_trajectory')
+                    args.append('--placement_only')
                     args.append(str(runOnlyTrajectory))
             result = subprocess.run(args, capture_output=True, text=True,shell=True,check=True)
             print("stdout:", result.stdout)

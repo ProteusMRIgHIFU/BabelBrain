@@ -191,8 +191,8 @@ class RunServerCalculation(QObject):
         current = cf._req("GET","/currentconfig")
         cfg = dict(self._mainApp.Config or {})
         retcfg={k: (cfg[k] if k in cfg else dv) for k, dv in default.items()}
-        # we just need to recover SimNIBS path as in the server, along with PlanTUS and Connectome
-        for k in ['SimbNINBSRoot','PlanTUSRoot','ConnectomeRoot']:
+        # we just need to recover SimNIBS path as in the server, along with PlanTUS 
+        for k in ['SimbNINBSRoot','PlanTUSRoot']:
             retcfg[k]=current[k]
         return retcfg
 
