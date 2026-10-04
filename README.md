@@ -47,6 +47,8 @@ Please consult the [online manual](https://proteusmrighifu.github.io/BabelBrain/
 
 # Manual Installation for Development 
 ## Cloning the repository
+> **Temporary:** the submodule currently points at the fork [spichardo/PlanTUS](https://github.com/spichardo/PlanTUS) instead of upstream `mlueckel/PlanTUS`. It carries a fix to the BabelBrain trajectory export (upstream renamed the SimNIBS `000` target name with a global string replace, which also corrupted numeric values containing `000`, e.g. `0.0000`). It will move back to upstream once that fix is merged there. If you cloned before this change, run `git submodule sync --recursive` to pick up the new URL.
+
 BabelBrain bundles the external [PlanTUS](https://github.com/mlueckel/PlanTUS) tool as a git submodule pinned to a known-good commit (`BabelBrain/ExternalBin/PlanTUS/PlanTUS`). Clone with submodules so PlanTUS is fetched automatically:
 
 ```bash
@@ -69,7 +71,7 @@ python Scripts/fetch_plantus.py --check  # report status without changing anythi
 By default BabelBrain uses this built-in, pinned PlanTUS; the PlanTUS root field in the Advanced Options dialog is left empty. You may point that field at your own PlanTUS checkout to use a different version, at your own risk.
 
 ## Updating the PlanTUS pin
-The PlanTUS version is pinned in two places that must stay in sync: the submodule **gitlink** (used by `--recurse-submodules` clones) and `PLANTUS_PIN` in `Scripts/fetch_plantus.py` (used by zip/standalone installs). To move both to a new commit or tag (`NEWSHA` below — use the full 40-char SHA; get it from a tag with `git rev-parse <tag>^{commit}`):
+The PlanTUS version is pinned in two places that must stay in sync: the submodule **gitlink** (used by `--recurse-submodules` clones) and `PLANTUS_PIN` in `Scripts/fetch_plantus.py` (used by zip/standalone installs). The repository the pin is fetched from is likewise recorded twice — `url` in `.gitmodules` and `PLANTUS_URL` in `Scripts/fetch_plantus.py` — so switching between upstream and a fork means changing both, then running `git submodule sync --recursive` so existing checkouts follow the new URL. To move the pin to a new commit or tag (`NEWSHA` below — use the full 40-char SHA; get it from a tag with `git rev-parse <tag>^{commit}`):
 
 ```bash
 cd BabelBrain/ExternalBin/PlanTUS/PlanTUS
@@ -90,7 +92,7 @@ grep PLANTUS_PIN Scripts/fetch_plantus.py
 python Scripts/fetch_plantus.py --check  # passes only if they match
 ```
 
-Also review PlanTUS's changes between the old and new commit (`git -C BabelBrain/ExternalBin/PlanTUS/PlanTUS diff --stat OLDSHA NEWSHA`) in case the `PlanTUS_wrapper.py` call in `BabelBrain/PlanTUSViewer/RunPlanTUS.py` needs matching updates. After pulling a bump, teammates must run `git submodule update --init --recursive` to move their local checkout to the new commit.
+Also review PlanTUS's changes between the old and new commit (`git -C BabelBrain/ExternalBin/PlanTUS/PlanTUS diff --stat OLDSHA NEWSHA`) in case the `PlanTUS_wrapper.py` call in `BabelBrain/PlanTUSViewer/RunPlanTUS.py` needs matching updates. After pulling a bump, teammates must run `git submodule sync --recursive && git submodule update --init --recursive` to move their local checkout to the new URL and commit.
 
 ## Recommended settings
 * All OS: create a conda environment using the appropriate yaml file for macOS Intel, macOS ARM64, Windows or Linux. 
