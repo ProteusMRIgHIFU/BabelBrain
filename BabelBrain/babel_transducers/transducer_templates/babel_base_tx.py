@@ -1015,7 +1015,7 @@ class RunCombineTrajectories(QObject):
                         WLoc=np.where(TargetMap==TargetMap.max())
                         print(os.path.split(subt)[1],'WLoc',WLoc)
                         target_locations.append(np.array([WLoc[0][0],WLoc[1][0],WLoc[2][0]],dtype=int).flatten())
-                    tx_element_locations.append(data['TxElemCenters'])
+                        tx_element_locations.append(data['TxElemCenters'])
 
                     for td in [['p_amp','p_complex'],['p_amp_refocus','p_complex_refocus']]:
                         if td[0] in data:
