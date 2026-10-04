@@ -1419,6 +1419,8 @@ class Babel_Thermal(QWidget):
             BaselineTemperature=37.0
         Tmap=(DataThermal['TempEndFUS']-BaselineTemperature)*IsppaRatio+BaselineTemperature
         Tmap=np.flip(Tmap,axis=2)
+        if self._IsMergedTab():
+            Tmap=np.transpose(Tmap,(1,2,0))
         nii=nibabel.Nifti1Image(Tmap.astype(np.float32),affine=nidata.affine)
         nii.to_filename(OutName)
         _rec_artifact(OutName)
