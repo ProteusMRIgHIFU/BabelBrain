@@ -13,46 +13,6 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QToolButton" name="SettingsToolButton">
-   <property name="geometry">
-    <rect>
-     <x>985</x>
-     <y>2</y>
-     <width>30</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <property name="focusPolicy">
-    <enum>Qt::FocusPolicy::NoFocus</enum>
-   </property>
-   <property name="toolTip">
-    <string>Settings</string>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">QToolButton { border: none; font-size: 18px; }
-QToolButton:hover { background-color: rgba(128, 128, 128, 40); border-radius: 4px; }
-QToolButton::menu-indicator { image: none; }</string>
-   </property>
-   <property name="text">
-    <string>⚙</string>
-   </property>
-   <property name="popupMode">
-    <enum>QToolButton::ToolButtonPopupMode::InstantPopup</enum>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
-   </property>
-   <property name="autoRaise">
-    <bool>true</bool>
-   </property>
-   <widget class="QMenu" name="SettingsMenu">
-    <property name="title">
-     <string/>
-    </property>
-    <addaction name="ManageCustomTransducersAction"/>
-   </widget>
-   <addaction name="SettingsMenu"/>
-  </widget>
   <widget class="QPushButton" name="ContinuepushButton">
    <property name="geometry">
     <rect>
@@ -673,11 +633,6 @@ PETRA, Density?</string>
     </property>
    </widget>
   </widget>
-  <action name="ManageCustomTransducersAction">
-   <property name="text">
-    <string>Manage Custom Transducers</string>
-   </property>
-  </action>
   <widget class="QPushButton" name="CancelpushButton">
    <property name="geometry">
     <rect>
