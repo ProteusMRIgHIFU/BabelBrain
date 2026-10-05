@@ -11,34 +11,19 @@
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
-    QCursor, QFont, QFontDatabase, QGradient,
-    QIcon, QImage, QKeySequence, QLinearGradient,
-    QPainter, QPalette, QPixmap, QRadialGradient,
-    QTransform)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGroupBox,
-    QLabel, QLineEdit, QMenu, QPushButton,
-    QSizePolicy, QToolButton, QWidget)
+    QLabel, QLineEdit, QPushButton, QSizePolicy,
+    QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
         Dialog.resize(1025, 431)
-        self.ManageCustomTransducersAction = QAction(Dialog)
-        self.ManageCustomTransducersAction.setObjectName(u"ManageCustomTransducersAction")
-        self.SettingsToolButton = QToolButton(Dialog)
-        self.SettingsToolButton.setObjectName(u"SettingsToolButton")
-        self.SettingsToolButton.setGeometry(QRect(985, 2, 30, 24))
-        self.SettingsToolButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.SettingsToolButton.setStyleSheet(u"QToolButton { border: none; font-size: 18px; }\n"
-"QToolButton:hover { background-color: rgba(128, 128, 128, 40); border-radius: 4px; }\n"
-"QToolButton::menu-indicator { image: none; }")
-        self.SettingsToolButton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.SettingsToolButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        self.SettingsToolButton.setAutoRaise(True)
-        self.SettingsMenu = QMenu(self.SettingsToolButton)
-        self.SettingsMenu.setObjectName(u"SettingsMenu")
         self.ContinuepushButton = QPushButton(Dialog)
         self.ContinuepushButton.setObjectName(u"ContinuepushButton")
         self.ContinuepushButton.setGeometry(QRect(378, 391, 239, 32))
@@ -204,9 +189,6 @@ class Ui_Dialog(object):
         self.CancelpushButton.setObjectName(u"CancelpushButton")
         self.CancelpushButton.setGeometry(QRect(945, 392, 74, 32))
 
-        self.SettingsToolButton.addAction(self.SettingsMenu.menuAction())
-        self.SettingsMenu.addAction(self.ManageCustomTransducersAction)
-
         self.retranslateUi(Dialog)
 
         QMetaObject.connectSlotsByName(Dialog)
@@ -214,12 +196,6 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.ManageCustomTransducersAction.setText(QCoreApplication.translate("Dialog", u"Manage Custom Transducers", None))
-#if QT_CONFIG(tooltip)
-        self.SettingsToolButton.setToolTip(QCoreApplication.translate("Dialog", u"Settings", None))
-#endif // QT_CONFIG(tooltip)
-        self.SettingsToolButton.setText(QCoreApplication.translate("Dialog", u"\u2699", None))
-        self.SettingsMenu.setTitle("")
         self.ContinuepushButton.setText(QCoreApplication.translate("Dialog", u"CONTINUE", None))
         self.groupBox.setTitle(QCoreApplication.translate("Dialog", u"Imaging input", None))
         self.CoregCTlabel.setText(QCoreApplication.translate("Dialog", u"Correg.?", None))
