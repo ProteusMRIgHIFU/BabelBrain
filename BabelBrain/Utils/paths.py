@@ -55,3 +55,26 @@ def resource_path(anchor: str | Path) -> Path:
         return bundle_dir
 
     return anchor.parent
+
+
+def custom_transducers_root() -> Path:
+    """Directory holding the user-created (custom) transducer packages.
+
+    Normally ``~/.config/BabelBrain/Transducers``, so generated transducers never
+    touch the base installation. A job server overrides it per session with
+    ``BABEL_CUSTOM_TX_ROOT`` to point at the client's transducer staged inside
+    that session's temp workspace (see server.py ``_stage_custom_transducer``) --
+    which also hides the server box's OWN custom transducers from client
+    sessions, so a client's ``MyTx`` can never collide with a server-local one.
+
+    Read through this function rather than caching it in a module constant: a
+    session worker process is spawned before the job that names the staging
+    directory arrives, so the value has to be resolved per job (SelFiles is
+    constructed per job by scripting.build_selfiles).
+    """
+
+    override = os.environ.get('BABEL_CUSTOM_TX_ROOT')
+    if override:
+        return Path(override)
+
+    return Path.home() / '.config' / 'BabelBrain' / 'Transducers'

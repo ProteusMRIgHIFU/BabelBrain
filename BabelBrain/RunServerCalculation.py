@@ -34,6 +34,9 @@ from PySide6.QtCore import QObject, Signal
 
 import client_functions as cf
 import RemoteServers
+from BuildInfo import GetAppVersion
+from Utils.custom_tx_package import CustomTxPackageError, package_files
+from Utils.paths import custom_transducers_root
 
 # Map the GUI step to the server's `steps` key (see server.py _STEP).
 STEP_PLANNING = 'planning'
@@ -44,6 +47,14 @@ RAYLEIGH_TEST = 'rayleigh'
 # Advanced-config-dict features a server must advertise for offload to work.
 _REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'persistent_session'}
 _STANDALONE_REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'standalone_functions'}
+# Additionally required when the session's transducer is a user-created one: the
+# server has to accept and import the uploaded transducer package.
+_CUSTOM_TX_REQUIRED_FEATURES = {'custom_transducers'}
+
+# Where in the workspace the server expects a custom transducer's files. Mirrors
+# server.py's CUSTOM_TX_STAGING_DIR — kept as a literal here rather than imported
+# so this module stays usable without the server module present.
+CUSTOM_TX_STAGING_DIR = '.custom_transducers'
 
 
 # ── Carry-over files ─────────────────────────────────────────────────────────
@@ -162,8 +173,15 @@ class RunServerCalculation(QObject):
         """Point the shared client helpers at this job's server (incl. TLS)."""
         cf.bind_server(self._server)
 
+    def _is_custom_tx(self):
+        """True when this session's transducer is a user-created one, whose
+        generated package has to be uploaded for the server to run it."""
+        cfg = (getattr(self._mainApp, 'Config', None) or {}) if self._mainApp else {}
+        return bool(cfg.get('is_custom_tx'))
+
     def preflight(self):
-        """Verify the server is reachable and capable, or raise RemoteNotReady."""
+        """Verify the server is reachable, version-matched and capable, or raise
+        RemoteNotReady."""
         if not self._server:
             raise RemoteNotReady("No remote server is configured for this session.")
         ok, info = RemoteServers.test_connection(self._server)
@@ -171,12 +189,39 @@ class RunServerCalculation(QObject):
             raise RemoteNotReady("Remote server '%s' is not available:\n%s"
                                  % (self._server.get('name', '?'), info))
         caps = info.get('capabilities', {})
-        required_features = (_STANDALONE_REQUIRED_FEATURES
-                        if self._step == RAYLEIGH_TEST else _REQUIRED_FEATURES)
+        name = self._server.get('name', '?')
+
+        # v0 version lock: client and server must be the SAME BabelBrain. The
+        # work sent over is not version-stable (action lists naming the server's
+        # own widgets, a config dict keyed to its Options, and — for a custom
+        # transducer — generated code built against its templates), so refuse
+        # here rather than fail confusingly mid-run. An older server that does
+        # not report a version is refused too: it predates this contract.
+        server_version = caps.get('babelbrain_version')
+        client_version = GetAppVersion()
+        if str(server_version or '') != client_version:
+            raise RemoteNotReady(
+                "BabelBrain version mismatch with server '%s':\n"
+                "   this client: %s\n   the server:  %s\n\n"
+                "Client and server must run the same BabelBrain version."
+                % (name, client_version, server_version or "not reported"))
+
+        required_features = set(_STANDALONE_REQUIRED_FEATURES
+                                if self._step == RAYLEIGH_TEST else _REQUIRED_FEATURES)
+        if self._is_custom_tx():
+            required_features |= _CUSTOM_TX_REQUIRED_FEATURES
         missing = required_features - set(caps.get('features', []))
         if missing:
+            if missing == _CUSTOM_TX_REQUIRED_FEATURES:
+                # The common, actionable case: the server simply has not opted in.
+                raise RemoteNotReady(
+                    "Server '%s' does not accept custom transducers, and this "
+                    "session uses '%s'.\n\nThe server must be started with "
+                    "--serve-allow-custom-transducers (it runs the transducer "
+                    "code this client generated, so it is off by default)."
+                    % (name, (self._mainApp.Config or {}).get('TxSystem')))
             raise RemoteNotReady("Server '%s' is missing required features: %s"
-                                 % (self._server.get('name', '?'), ", ".join(sorted(missing))))
+                                 % (name, ", ".join(sorted(missing))))
         return caps
 
     # ── advanced configuration ───────────────────────────────────────────
@@ -200,7 +245,10 @@ class RunServerCalculation(QObject):
     def _upload_inputs(self, ws_id):
         """Upload the minimal input set into the workspace; return the server-side
         paths to reference in the JobSpec. Only the files Step 1 actually reads
-        are sent (not the whole m2m_* folder)."""
+        are sent (not the whole m2m_* folder). For a user-created transducer the
+        generated package goes up too, under 'custom_transducer' — a descriptor
+        dict rather than a path, since the server resolves the staging location
+        itself (see _upload_custom_transducer)."""
         cfg = self._mainApp.Config
         paths = {}
         paths['t1w'] = cf.upload(ws_id, cfg['T1W'], os.path.basename(cfg['T1W']))
@@ -239,7 +287,56 @@ class RunServerCalculation(QObject):
         if cfg.get('bUseCT') and cfg.get('CT_or_ZTE_input'):
             ct = cfg['CT_or_ZTE_input']
             paths['ct'] = cf.upload(ws_id, ct, os.path.basename(ct))
+        if cfg.get('is_custom_tx'):
+            paths['custom_transducer'] = self._upload_custom_transducer(ws_id)
         return paths
+
+    def _upload_custom_transducer(self, ws_id):
+        """Stage this session's user-created transducer on the server.
+
+        A custom transducer is not part of either installation: it is a small
+        generated Python package under the client's custom-transducers root (see
+        CreateTransducers/transducer_creator.py). Upload it into the workspace
+        where the server expects to find it, and return the descriptor to put on
+        the JobSpec. The server validates the files, makes them importable for
+        the session only, and removes them with the workspace.
+
+        Uploaded once per session, from _upload_inputs — i.e. on whichever path
+        primes the session (a remote Step 1, or _ensure_session when Step 1 was
+        run locally), since the server needs it at BabelBrain launch.
+        """
+        cfg = self._mainApp.Config
+        tx_name = cfg['TxSystem']
+        try:
+            files = package_files(custom_transducers_root(), tx_name)
+        except CustomTxPackageError as e:
+            # A clear message beats the traceback run() would otherwise print:
+            # the usual cause is a transducer folder edited or partly deleted.
+            raise RemoteNotReady("Cannot send custom transducer to the server:\n%s" % e)
+        folder = '%s/babel_%s' % (CUSTOM_TX_STAGING_DIR, tx_name)
+        for path in files:
+            cf.upload(ws_id, str(path), '%s/%s' % (folder, path.name))
+        print('[remote] uploaded custom transducer %r (%d files)'
+              % (tx_name, len(files)))
+        return {'name': tx_name,
+                'template_version': self._custom_tx_template_version(tx_name)}
+
+    @staticmethod
+    def _custom_tx_template_version(tx_name):
+        """The transducer's template version, recorded in its default.yaml when
+        it was generated. The server checks it against the templates it ships."""
+        import yaml
+        default_yaml = (custom_transducers_root() / ('babel_%s' % tx_name)
+                        / 'default.yaml')
+        with open(default_yaml, 'r') as f:
+            params = yaml.safe_load(f) or {}
+        version = params.get('template_version')
+        if not version:
+            raise RemoteNotReady(
+                "Custom transducer %r does not record a template version, so the "
+                "server cannot confirm it is compatible. Re-create it from its "
+                "YAML config file." % tx_name)
+        return str(version)
 
     def _planning_steps(self):
         """The ordered planning actions: Step-1 controls that live on the main
@@ -336,9 +433,14 @@ class RunServerCalculation(QObject):
             'trajectory': server_paths['trajectory'],
             'trajectory_type': cfg.get('TrajectoryType'),
             'transducer': cfg.get('TxSystem'),
+            # Without this the server's combo lookup misses a custom transducer
+            # (its entry carries a 'Custom: ' prefix) — see scripting._apply_inputs.
+            'is_custom_tx': bool(cfg.get('is_custom_tx')),
             'ct_type': cfg.get('CTType'),       # server _combo_index accepts the int
             'coreg_ct': cfg.get('CoregCT_MRI'),
         }
+        if 'custom_transducer' in server_paths:
+            fields['custom_transducer'] = server_paths['custom_transducer']
         if 'thermal_profile' in server_paths:
             fields['thermal_profile'] = server_paths['thermal_profile']
         if cfg.get('bUseCT'):
@@ -370,6 +472,7 @@ class RunServerCalculation(QObject):
         spec = {
             'workspace': sess['workspace'],
             'recalculate': recalculate,
+            'client_version': GetAppVersion(),   # v0: must equal the server's
             'keep_alive': True,
             'config': self.advanced_config_payload(),
             'steps': {step_key: acts},
@@ -418,6 +521,7 @@ class RunServerCalculation(QObject):
                 config = cf._req("GET", "/currentconfig")
                 spec = {
                     'workspace': ws_id,
+                    'client_version': GetAppVersion(),
                     'keep_alive': False,
                     'config': config,
                     'standalone': {
@@ -521,12 +625,17 @@ class RunServerCalculation(QObject):
 
     # ── run (Qt worker slot) ──────────────────────────────────────────────
     def run(self):
+        # ForwardSimple is called SYNCHRONOUSLY (from CustomTransducer, not as a
+        # QThread worker) and its return value is fed straight into NumPy, so an
+        # error must propagate to that caller's try/except — swallowing it into
+        # _fail would return None and crash obscurely downstream. It also has no
+        # mainApp, which _fail needs.
+        if self._step == RAYLEIGH_TEST:
+            result = self._run_forward_simple()
+            self.finished.emit(result)
+            return result
         try:
-            if self._step == RAYLEIGH_TEST:
-                result = self._run_forward_simple()
-                self.finished.emit(result)
-                return result
-            elif self._combine:
+            if self._combine:
                 self._run_combine()
             elif self._step == STEP_PLANNING:
                 self._run_planning()
@@ -730,7 +839,8 @@ class RunServerCalculation(QObject):
 
     def _fail(self, msg):
         self._errorText = msg
-        self._mainApp._remoteErrorText = msg
+        if self._mainApp is not None:
+            self._mainApp._remoteErrorText = msg
         print('[remote] ERROR:\n' + msg)
         self.logTelemetry.emit("CTS:L2: remote error")
         self.endError.emit()

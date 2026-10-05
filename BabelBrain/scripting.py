@@ -198,7 +198,20 @@ def _apply_inputs(sf, inputs):
         if isinstance(tx, int):
             ui.TransducerTypecomboBox.setCurrentIndex(tx)
         else:
-            sf.SelectTxSystem(str(tx))
+            # A custom transducer's combo entry carries the 'Custom: ' prefix, so
+            # SelectTxSystem has to be told which kind of name this is.
+            sf.SelectTxSystem(str(tx), is_custom_tx=bool(inputs.get('is_custom_tx')))
+            # SelectTxSystem is a no-op when the name is not in the list, which
+            # would silently leave the FIRST device selected and run the whole
+            # pipeline on the wrong transducer. Fail instead. The most likely
+            # cause in server mode is a custom transducer that was never staged
+            # (see server.py _stage_custom_transducer).
+            selected = ui.TransducerTypecomboBox.currentData()
+            if selected is None or selected['name'] != str(tx):
+                raise ValueError(
+                    "Transducer %r is not available%s. Available: %s"
+                    % (tx, " as a custom transducer" if inputs.get('is_custom_tx') else "",
+                       ", ".join(sf.GetAllTransducers())))
     # Computing engine: explicit (gpu, backend), or a substring match on the
     # combo text, else leave SelFiles' auto-selected default.
     if has('gpu') or has('backend'):
@@ -272,9 +285,9 @@ def launch(base_config=None, **inputs):
     """Build a ready-to-drive BabelBrain widget from explicit inputs.
 
     Recognised keys: t1w, trajectory, trajectory_type, simbnibs, simbnibs_type,
-    ct_type, ct, coreg_ct, ct_mapping, thermal_profile, transducer, gpu, backend,
-    computing, multipoint_type, multipoint, frequency_khz, ppw, hu_threshold,
-    output_path. `base_config` (a saved-selection dict) seeds any field not
+    ct_type, ct, coreg_ct, ct_mapping, thermal_profile, transducer,
+    is_custom_tx, gpu, backend, computing, multipoint_type, multipoint,
+    frequency_khz, ppw, hu_threshold, output_path. `base_config` (a saved-selection dict) seeds any field not
     given in **inputs. Returns the shown BabelBrain widget."""
     sf = build_selfiles(inputs, base_config=base_config)
     bb = _babel_main().BabelBrain(sf, AltOutputFilesPath=inputs.get('output_path'))
@@ -334,7 +347,7 @@ def _apply_prev_config(sf, cfg):
         if backend:
             sf.SelectComputingEngine(GPU=cfg.get('ComputingDevice', ''), Backend=backend)
     if cfg.get('TxSystem'):
-        sf.SelectTxSystem(cfg['TxSystem'])
+        sf.SelectTxSystem(cfg['TxSystem'], bool(cfg.get('is_custom_tx')))
     if cfg.get('EnableMultiPoint'):
         ui.MultiPointTypecomboBox.setCurrentIndex(1)
     if cfg.get('MultiPoint', '').strip() if isinstance(cfg.get('MultiPoint'), str) else False:

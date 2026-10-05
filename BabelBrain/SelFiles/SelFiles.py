@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog,
                                QMessageBox, QStyle, QWidget)
 
 from BuildInfo import TitleSuffix
-from CreateTransducers.transducer_creator import (CUSTOM_TRANSDUCERS_FOLDER,
-                                                  CustomTransducer,
+from CreateTransducers.transducer_creator import (CustomTransducer,
                                                   get_class_name)
 from GUIComponents.custom_transducer_dialog import (CUSTOM_TRANSDUCER_OPTION,
                                                     CUSTOM_TRANSDUCER_PREFIX,
@@ -26,7 +25,7 @@ from TranscranialModeling.babel_integration.babel_integration_helpers import Spe
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_Dialog
-from Utils.paths import bundle_root
+from Utils.paths import bundle_root, custom_transducers_root
 from Utils.transducer_registry import DEFAULT_TRANSDUCERS
 
 
@@ -317,7 +316,7 @@ class SelFiles(QDialog):
 
     def _custom_tx_item_data(self, tx_name: str) -> dict:
         """Build the item-data dict for a custom transducer by reading its default.yaml."""
-        tx_default_yaml = CUSTOM_TRANSDUCERS_FOLDER / f"babel_{tx_name}" / "default.yaml"
+        tx_default_yaml = custom_transducers_root() / f"babel_{tx_name}" / "default.yaml"
         try:
             with open(tx_default_yaml, "r") as f:
                 tx_params = yaml.safe_load(f)
@@ -344,16 +343,19 @@ class SelFiles(QDialog):
         # and opeing another create transducer dialog. We block signals from transducer combobox here to prevent this
         self.ui.TransducerTypecomboBox.blockSignals(True) 
 
-        # Define the transducers folder path if not already created
-        if not os.path.exists(CUSTOM_TRANSDUCERS_FOLDER):
+        # Define the transducers folder path if not already created. In server
+        # mode this is the staging folder inside the job's workspace, not the
+        # user's .config -- see Utils.paths.custom_transducers_root.
+        transducers_folder = custom_transducers_root()
+        if not os.path.exists(transducers_folder):
             # Create the directory safely
-            CUSTOM_TRANSDUCERS_FOLDER.mkdir(parents=True, exist_ok=True)
+            transducers_folder.mkdir(parents=True, exist_ok=True)
 
         try:
             valid_custom_txs = set()
 
             # Loop through each custom transducer and add to list
-            tx_folders = [f.name for f in Path(CUSTOM_TRANSDUCERS_FOLDER).iterdir() if f.is_dir()]
+            tx_folders = [f.name for f in Path(transducers_folder).iterdir() if f.is_dir()]
             for tx_folder in tx_folders:
                 tx_folder_found = re.search("(?<=babel_).*", str(tx_folder))
                 if tx_folder_found:

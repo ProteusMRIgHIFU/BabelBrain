@@ -1641,8 +1641,11 @@ class CustomTransducer:
             return
 
     def _run_forward_simple(self,cwvnb_extlay,center,ds,u0,rf):
-        
-        if self.computing_backend in 'Server':
+
+        # == not `in`: `in` is a SUBSTRING test on the string 'Server', so the
+        # CPU case (computing_backend == '') matched it and took the remote path
+        # with no server configured.
+        if self.computing_backend == 'Server':
             remote_calc = RunServerCalculation(
                 step=RAYLEIGH_TEST,
                 server=self.remote_server,

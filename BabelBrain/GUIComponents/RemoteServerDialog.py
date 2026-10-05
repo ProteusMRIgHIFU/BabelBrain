@@ -219,15 +219,28 @@ class RemoteServerManagerDialog(QDialog):
             return
         ok, info = RemoteServers.test_connection(srv)
         if ok:
+            from BuildInfo import GetAppVersion
             caps = info.get('capabilities', {})
             txs = caps.get('transducers', [])
             feats = caps.get('features', [])
-            QMessageBox.information(
-                self, "Connection OK",
-                "Connected to '%s' (%s).\n\nServer version: %s\nTransducers: %d\nFeatures: %s"
-                % (srv['name'], RemoteServers.base_url(srv),
-                   caps.get('server_version', '?'), len(txs),
-                   ", ".join(feats) or "(none)"))
+            remote_version = caps.get('babelbrain_version') or "not reported"
+            client_version = GetAppVersion()
+            summary = ("Connected to '%s' (%s).\n\n"
+                       "BabelBrain version: %s  (this client: %s)\n"
+                       "API version: %s\nTransducers: %d\nFeatures: %s"
+                       % (srv['name'], RemoteServers.base_url(srv),
+                          remote_version, client_version,
+                          caps.get('server_version', '?'), len(txs),
+                          ", ".join(feats) or "(none)"))
+            # Say so HERE rather than letting the user discover it when Step 1
+            # refuses: offload requires the same BabelBrain on both ends.
+            if remote_version != client_version:
+                QMessageBox.warning(
+                    self, "Connection OK — but version mismatch",
+                    summary + "\n\nThis server CANNOT be used for offload: client "
+                    "and server must run the same BabelBrain version.")
+            else:
+                QMessageBox.information(self, "Connection OK", summary)
         else:
             QMessageBox.critical(self, "Connection failed",
                                  "Could not connect to '%s':\n\n%s" % (srv['name'], info))
