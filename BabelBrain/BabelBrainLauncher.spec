@@ -95,7 +95,11 @@ if is_mac:
     app = BUNDLE(
         coll,
         name="BabelBrain.app",
-        bundle_identifier="com.ucalgary.babelbrain",
+        # NOT "com.ucalgary.babelbrain": that is the *version* app's id, and the
+        # PKG ships both. Two payload bundles with one identifier make the
+        # Installer (and LaunchServices) unable to tell them apart, which is how
+        # /Applications/BabelBrain.app ended up relocated into the version store.
+        bundle_identifier="com.ucalgary.babelbrain.launcher",
         version=hub_version,
         icon="./Proteus-Alciato-logo.png",
     )

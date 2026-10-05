@@ -112,6 +112,10 @@ class HubWindow(QDialog):
         self._download_btn.clicked.connect(self._on_download)
         self._uninstall_btn = QPushButton('Remove')
         self._uninstall_btn.clicked.connect(self._on_uninstall)
+        # Full uninstall, discoverable from inside the app as well as from the
+        # separate uninstaller app the installer places next to this one.
+        self._uninstall_all_btn = QPushButton('Uninstall BabelBrain…')
+        self._uninstall_all_btn.clicked.connect(self._on_uninstall_all)
         self._quit_btn = QPushButton('Quit')
         self._quit_btn.clicked.connect(self.reject)
         buttons.addWidget(self._setdefaul_btn)
@@ -119,6 +123,7 @@ class HubWindow(QDialog):
         buttons.addWidget(self._download_btn)
         buttons.addWidget(self._uninstall_btn)
         buttons.addStretch(1)
+        buttons.addWidget(self._uninstall_all_btn)
         buttons.addWidget(self._quit_btn)
         layout.addLayout(buttons)
 
@@ -363,6 +368,18 @@ class HubWindow(QDialog):
             self._state.current_build_id = None
             state_mod.save(self._state)
         self._populate()
+
+    def _on_uninstall_all(self):
+        '''Remove BabelBrain entirely. The dialog owns the confirmations; if the
+        user goes through with it this selector is gone too, so close.'''
+        from .uninstall_ui import UninstallDialog
+
+        dlg = UninstallDialog(self)
+        dlg.exec()
+        if dlg.completed:
+            self.reject()
+        else:
+            self._populate()
 
     # -- result -------------------------------------------------------------
     def selected_version(self) -> versions_mod.VersionInfo | None:

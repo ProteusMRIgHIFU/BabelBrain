@@ -293,7 +293,8 @@ def _remove_elevated_windows(location: Path):
 
 def run_install_worker(spec_file: str) -> int:
     '''Entry point for the elevated worker process (invoked via
-    ``--install-worker``). Performs only the privileged filesystem change and
+    ``--install-worker``). Performs only the privileged filesystem change
+    (``place``, ``remove`` a version, or ``purge`` a full uninstall) and
     reports back through the result file named in the spec.'''
     spec = json.loads(Path(spec_file).read_text())
     result_file = Path(spec['result'])
@@ -304,6 +305,20 @@ def run_install_worker(spec_file: str) -> int:
                 raise InstallError(f'Refusing to remove {location}: not a '
                                    f'BabelBrain version bundle.')
             shutil.rmtree(location)
+        elif spec.get('action') == 'purge':
+            # Full uninstall (see Hub/uninstall.py). Imported here rather than
+            # at module scope because uninstall.py imports this module for the
+            # elevation helpers.
+            from . import uninstall as uninstall_mod
+            for raw in spec.get('paths', []):
+                target = Path(raw)
+                if not uninstall_mod.is_removable(target):
+                    raise InstallError(f'Refusing to remove {target}: not a '
+                                       f'location BabelBrain installs to.')
+                if target.is_dir():
+                    shutil.rmtree(target, ignore_errors=False)
+                elif target.exists():
+                    target.unlink()
         else:
             _place(Path(spec['src']), Path(spec['dst']))
         result_file.write_text(json.dumps({'ok': True}))

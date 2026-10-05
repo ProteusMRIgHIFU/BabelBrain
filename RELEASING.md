@@ -22,12 +22,14 @@ lives in the module docstrings under `BabelBrain/Hub/`.
 The GitHub Actions workflow `.github/workflows/build-release.yml`, per platform,
 produces:
 
-1. **The installer** — packages BOTH apps and seeds a default version:
+1. **The installer** — packages the launcher apps and seeds a default version:
    - macOS: a signed/notarized `.dmg` containing a `.pkg` that installs
-     `BabelBrain.app` + `BabelBrain-Version-Selector.app` to `/Applications` and
-     seeds the version into `/Users/Shared/BabelBrain/versions/<build_id>/`.
+     `BabelBrain.app`, `BabelBrain-Version-Selector.app` and
+     `BabelBrain-Uninstaller.app` to `/Applications` and seeds the version into
+     `/Users/Shared/BabelBrain/versions/<build_id>/`.
    - Windows: a per-user Inno Setup `.exe` (no admin) that installs both apps and
      seeds the version into `%LOCALAPPDATA%\BabelBrain\versions\<build_id>\`.
+     No uninstaller app is needed — the Inno uninstaller does that job.
    The seeded version makes a fresh install work offline.
 
 2. **A relocatable version bundle** — `‹artifact›-version.zip` plus
@@ -118,6 +120,26 @@ Notes:
   silently does nothing. Both build paths therefore do `pkgbuild` →
   `productbuild --package`, and `BabelBrain/Hub/verify_pkg_scripts.sh` fails the
   build if the declaration goes missing again.
+- **The second macOS packaging detail that bites — bundle relocation.**
+  `pkgbuild` marks every `.app` in the payload *relocatable*, and at install
+  time the Installer then writes it wherever LaunchServices already knows a
+  bundle with the same `CFBundleIdentifier` — **not** at the payload path. With
+  a store full of `BabelBrain.app` bundles that is fatal: in the
+  2026-10-04 `test-` build, `/Applications/BabelBrain.app` was redirected on top
+  of `/Users/Shared/BabelBrain/versions/<build_id>/BabelBrain.app`, so the main
+  app never appeared in `/Applications` and a 128 MB launcher replaced a 1.1 GB
+  version. Two things prevent it:
+  1. `BabelBrain/Hub/make_pkg_component_plist.sh` runs `pkgbuild --analyze` and
+     sets `BundleIsRelocatable=false` (and `BundleIsVersionChecked=false`, so a
+     reinstall or downgrade is never silently skipped) on every bundle; both
+     build paths pass the result to `pkgbuild --component-plist`.
+  2. Each app has its own `bundle_identifier`: `com.ucalgary.babelbrain` is the
+     **version** app only, while the launcher is `…​.launcher`, the picker
+     `…​.selector` and the uninstaller `…​.uninstaller`. Two payload bundles
+     sharing an id are indistinguishable to the Installer.
+
+  `verify_pkg_scripts.sh` fails the build if any bundle is relocatable or if two
+  share an identifier.
 - **Small state** (the current selection, cached manifest) lives separately in
   `~/.config/BabelBrain/` (`hub.yaml`, `manifest_cache.json`) on all platforms —
   never in the versions store.
@@ -128,6 +150,57 @@ Notes:
 These locations are defined in `BabelBrain/Hub/paths.py` — change them there if
 needed (the installer seed paths in `build-release.yml` / `BabelBrain.iss` must
 match).
+
+---
+
+## Uninstalling (leaving nothing behind)
+
+Version bundles are multi-GB and live **outside** the app directory, so neither
+platform's default removal gesture reaches them: dragging an app to the Trash
+never runs code, and the Inno uninstaller only owns `{app}`. Both platforms
+therefore route a full uninstall through one implementation,
+`BabelBrain/Hub/uninstall.py`.
+
+| | macOS | Windows |
+| --- | --- | --- |
+| Entry point | `BabelBrain-Uninstaller.app` (installed by the PKG), or **Uninstall BabelBrain…** in the Version Selector | *Apps & features* → Uninstall (Inno), or the same button in the Version Selector |
+| Built by | `BabelBrain/BabelBrainUninstaller.spec` → `dist/uninstaller/` | n/a — Inno calls `BabelBrain-Version-Selector.exe --purge-user-data` |
+
+**What is removed**
+
+| Category | Removed | Paths |
+| --- | --- | --- |
+| `versions` | always | `~/Library/Application Support/BabelBrain`, `/Users/Shared/BabelBrain` · `%LOCALAPPDATA%\BabelBrain`, `%ProgramData%\BabelBrain` |
+| `apps` | always (macOS) | `/Applications/BabelBrain*.app` and the `~/Applications` equivalents |
+| `settings` | **only if the user opts in** | `~/.config/BabelBrain` (preferences, install id, **custom transducers**), `~/.babelbrain`, `~/.BabelBrainSync` |
+
+Settings default to *kept*: the footprint is a few KB, a reinstall picks the
+preferences back up, and the custom transducers in there are the user's own
+work. Both platforms ask about them in a separate confirmation so a genuinely
+clean wipe is still one click away. **Study data is never touched** — input
+images, the `.ini` files BabelBrain writes next to a dataset, and simulation
+outputs live in folders the user chose.
+
+**Mechanics worth knowing**
+
+- `Hub/uninstall.py:is_removable()` gates every deletion, including the ones
+  performed as root: only the exact locations the module inventories can be
+  removed, so no bug or tampered elevated job spec can widen it.
+- macOS does everything root-owned in **one** `osascript` batch — the shared
+  store, `/Applications`, and `pkgutil --forget com.ucalgary.babelbrain.pkg` so
+  the receipt database is clean too. A declined prompt is reported, never
+  worked around.
+- The uninstaller app deletes itself last, from a detached watcher that waits
+  for the process to exit (removing a running PyInstaller bundle would pull
+  not-yet-loaded dylibs out from under it).
+- The Windows uninstaller runs the purge with `allow_elevation=False`: a UAC
+  prompt behind the Inno progress window would just hang. An all-users
+  `%ProgramData%` store it cannot touch is *reported* to the user. Inno also
+  carries an `[UninstallDelete]` backstop for the version store in case the
+  Version Selector could not be run at all.
+
+`BabelBrain-Version-Selector --list-footprint [--include-settings]` prints every
+path with its size and removes nothing — handy for support tickets.
 
 ---
 

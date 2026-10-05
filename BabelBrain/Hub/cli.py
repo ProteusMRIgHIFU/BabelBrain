@@ -6,6 +6,9 @@ Command-line entry shared by the two installed apps:
 * **BabelBrain-Version-Selector.app** (mode='selector') — the picker: choose,
   download, and switch versions. Selecting a version here records it as the
   current selection, so BabelBrain.app then runs it.
+* **BabelBrain-Uninstaller.app** (mode='uninstaller') — removes BabelBrain and
+  every installed version. macOS has no uninstall hook of its own, so this is a
+  real app the PKG installs; see :mod:`Hub.uninstall`.
 
 **launcher mode is fully transparent**: it intercepts NOTHING and forwards every
 argument to the selected version, so BabelBrain.app behaves exactly like running
@@ -21,6 +24,12 @@ and anything after a ``--`` separator) to the version it launches::
     --show-prereleases     include pre-releases when the picker opens
     --install-worker FILE  internal: elevated helper that finishes a shared
                            install or removal (Windows)
+    --uninstall            open the uninstaller
+    --list-footprint       print every file BabelBrain installed, with sizes
+    --purge-user-data      remove them without a GUI (used by the Windows
+                           uninstaller, which must not raise its own UAC prompt)
+    --include-settings     with --purge-user-data / --list-footprint, also
+                           cover ~/.config/BabelBrain and the other small state
 
 On every start (both modes) the Hub adopts a build a platform installer has just
 seeded, so a freshly installed version becomes the one that runs — see
@@ -55,6 +64,16 @@ def _build_parser() -> argparse.ArgumentParser:
                    help='Include pre-releases when the picker opens.')
     p.add_argument('--install-worker', dest='install_worker', default=None,
                    help=argparse.SUPPRESS)   # internal elevated helper
+    p.add_argument('--uninstall', action='store_true',
+                   help='Remove BabelBrain and all installed versions.')
+    p.add_argument('--list-footprint', action='store_true',
+                   help='List everything BabelBrain installed on this machine.')
+    p.add_argument('--purge-user-data', action='store_true',
+                   help='Remove installed versions without a GUI (no elevation '
+                        'prompt); used by the Windows uninstaller.')
+    p.add_argument('--include-settings', action='store_true',
+                   help='With --purge-user-data / --list-footprint, also cover '
+                        'settings and custom transducers.')
     return p
 
 
@@ -108,12 +127,17 @@ def _no_version_dialog():
 
 def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
     '''Entry point. ``mode`` is 'launcher' for BabelBrain.app (run current
-    version, no picker) or 'selector' for the Version Selector (show the picker).'''
+    version, no picker), 'selector' for the Version Selector (show the picker),
+    or 'uninstaller' for BabelBrain-Uninstaller.app (remove everything).'''
     argv = list(sys.argv[1:] if argv is None else argv)
 
     # BabelBrain.app: fully transparent. Run the current version and forward
     # EVERY argument to it, intercepting nothing — so it behaves exactly like
     # launching BabelBrain.py directly (--help, --serve, -bInUseWithBrainsight …).
+    # The uninstaller app has one job and takes no flags worth parsing.
+    if mode == 'uninstaller':
+        return _run_uninstaller()
+
     if mode == 'launcher':
         st, versions = _load_state_and_versions()
         vi = _default_version(versions, st)
@@ -142,6 +166,18 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
         _print_versions(versions)
         return 0
 
+    if args.list_footprint:
+        from . import uninstall as uninstall_mod
+        print(uninstall_mod.format_footprint(
+            uninstall_mod.footprint(include_settings=args.include_settings)))
+        return 0
+
+    if args.purge_user_data:
+        return _purge_headless(args.include_settings)
+
+    if args.uninstall:
+        return _run_uninstaller()
+
     # Explicit selection (advanced / scripts): run it directly.
     if args.selector:
         vi = versions_mod.find_by_selector(versions, args.selector)
@@ -154,6 +190,37 @@ def main(argv: list[str] | None = None, mode: str = 'selector') -> int:
 
     # Version Selector: always show the picker.
     return _run_picker(st, versions, forwarded)
+
+
+def _run_uninstaller() -> int:
+    """Show the uninstall dialog. Returns 0 whether or not the user went through
+    with it — declining to uninstall is not an error."""
+    from PySide6.QtWidgets import QApplication
+    from .uninstall_ui import UninstallDialog
+
+    app = QApplication.instance() or QApplication([])  # noqa: F841
+    dlg = UninstallDialog()
+    dlg.exec()
+    return 0
+
+
+def _purge_headless(include_settings: bool) -> int:
+    """Remove the version stores with no GUI and no elevation prompt.
+
+    This is what the Windows uninstaller calls while it still can (before it
+    deletes the app directory it would run from). It must never block on a UAC
+    dialog behind the Inno progress window, so ``allow_elevation=False``: a
+    machine-wide store it cannot touch is *reported*, not silently skipped.
+    """
+    from . import uninstall as uninstall_mod
+
+    report = uninstall_mod.purge(include_settings=include_settings,
+                                 allow_elevation=False)
+    for path in report.removed:
+        print(f'removed: {path}')
+    for path, why in report.failed:
+        sys.stderr.write(f'could not remove {path}: {why}\n')
+    return 0 if report.ok else 1
 
 
 def _run_picker(st: state_mod.HubState, versions, forwarded: list[str]) -> int:

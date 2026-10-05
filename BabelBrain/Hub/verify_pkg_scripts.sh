@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 #
-# Assert that a built macOS PKG will actually RUN its postinstall.
+# Assert that a built macOS PKG is wired correctly, before anyone installs it.
 #
 #     verify_pkg_scripts.sh <path/to/installer.pkg>
+#
+# Two checks, both for failures that are INVISIBLE in the build log and only
+# show up on a user's machine:
+#
+#   1. the postinstall is attached to the component package (below);
+#   2. no bundle is marked relocatable, and no two bundles share an identifier.
 #
 # The postinstall is what records the seeded build as the default version (see
 # make_pkg_scripts.sh). It only runs if it is attached to the *component*
@@ -40,3 +46,42 @@ if [[ "$FOUND" -ne 1 ]]; then
   exit 1
 fi
 echo ">> PKG script wiring OK"
+
+# --------------------------------------------------------------------------
+# No bundle may be relocatable, and identifiers must be unique.
+#
+# A relocatable bundle is installed wherever LaunchServices already knows one
+# with the same CFBundleIdentifier, NOT at its payload path. BabelBrain ships
+# several BabelBrain.app bundles (the launcher plus one per version in the
+# store), so relocation silently drops /Applications/BabelBrain.app on top of a
+# version folder and the user is left without a main app. Fix by building the
+# component with 'pkgbuild --component-plist' from
+# Hub/make_pkg_component_plist.sh, and by giving each app its own identifier.
+# --------------------------------------------------------------------------
+BAD=0
+for INFO in "$WORK"/x/*.pkg/PackageInfo; do
+  [[ -f "$INFO" ]] || continue
+
+  RELOCATED="$(/usr/bin/sed -n '/<relocate>/,/<\/relocate>/p' "$INFO" \
+               | /usr/bin/grep -o 'id="[^"]*"' | /usr/bin/sed 's/id="//;s/"//' || true)"
+  if [[ -n "$RELOCATED" ]]; then
+    echo "error: $(basename "$(dirname "$INFO")") marks these bundles relocatable:" >&2
+    echo "$RELOCATED" | /usr/bin/sed 's/^/         /' >&2
+    echo "       They will be installed wherever LaunchServices already has a" >&2
+    echo "       bundle with that id, not at their payload path." >&2
+    echo "       Build with: pkgbuild --component-plist <Hub/make_pkg_component_plist.sh output>" >&2
+    BAD=1
+  fi
+
+  DUPES="$(/usr/bin/grep -o '<bundle id="[^"]*"[^>]*path=' "$INFO" \
+           | /usr/bin/sed 's/<bundle id="//;s/".*//' | /usr/bin/sort | /usr/bin/uniq -d || true)"
+  if [[ -n "$DUPES" ]]; then
+    echo "error: $(basename "$(dirname "$INFO")") ships two payload bundles with" >&2
+    echo "       the same identifier:" >&2
+    echo "$DUPES" | /usr/bin/sed 's/^/         /' >&2
+    echo "       Give each app its own bundle_identifier in its .spec file." >&2
+    BAD=1
+  fi
+done
+[[ "$BAD" -eq 0 ]] || exit 1
+echo ">> PKG bundle placement OK (nothing relocatable, identifiers unique)"
