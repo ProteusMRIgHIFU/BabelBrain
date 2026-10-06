@@ -958,11 +958,26 @@ class CustomTransducer:
             f.write(tx_main_file_output)
             
         # Create default.yaml File
-        safe_transducer_config = self._make_yaml_safe(transducer_config)
+        self._write_tx_default_yaml(transducer_config)
+
+    def _write_tx_default_yaml(self, data):
+        # Header written as YAML comments so the file still parses
+        default_yaml_header = (
+            "# ===============================================================================\n"
+            "# WARNING: AUTO-GENERATED FILE - DO NOT MODIFY MANUALLY\n"
+            "# ===============================================================================\n"
+            "#\n"
+            "# BabelBrain Generated File\n"
+            "#\n"
+            f"# Application Version: BabelBrain v{self.bb_version}\n"
+            f"# Custom Transducer Template Version: v{self.template_version}\n"
+            "\n"
+        )
 
         with open(self.tx_default_yaml, "w") as f:
+            f.write(default_yaml_header)
             yaml.safe_dump(
-                safe_transducer_config,
+                self._make_yaml_safe(data),
                 f,
                 default_flow_style=False,
                 sort_keys=False,
@@ -1154,13 +1169,7 @@ class CustomTransducer:
 
                 data["PlanTUS"]= self.PlanTUS
 
-                with open(self.tx_default_yaml, "w") as f:
-                    yaml.safe_dump(
-                        self._make_yaml_safe(data),
-                        f,
-                        default_flow_style=False,
-                        sort_keys=False,
-                    )
+                self._write_tx_default_yaml(data)
 
         # Acoustics Water Sim
         tx_data, acoustics_water_plot, grid_info = self._run_rayleigh()
