@@ -1,3 +1,4 @@
+import copy
 import importlib
 import logging
 import os
@@ -1052,8 +1053,11 @@ class CustomTransducer:
             f.write(tx_integration_output)
     
     def _format_transducer_config(self):
-        transducer_config = vars(self).copy()
-        del transducer_config['env']
+        transducer_config = copy.deepcopy({
+            key: value
+            for key, value in vars(self).items()
+            if key not in ["env","computing_backend","gpu","is_gpu_initialized","remote_server","yaml_line_info"]
+        })
         
         # Important folder paths
         transducer_config["tx_parent_folder"] = str(self.tx_parent_folder.resolve())
