@@ -953,7 +953,7 @@ def _run_standalone(job, manager, gpu_pool):
                                    data['ds'].astype(np.float32, copy=False),
                                    data['u0'],
                                    data['rf'].astype(np.float32, copy=False))
-            else:
+            elif name == 'RayleighPlanTUS':
                 # The whole PlanTUS focal sweep (steering phases + axial forward
                 # propagation per target) in this one job; see
                 # Utils/rayleigh_plantus.py, shared with the local path.
@@ -962,6 +962,8 @@ def _run_standalone(job, manager, gpu_pool):
                 n_targets = len(args['targets'])
                 emit('standalone', "RayleighPlanTUS: %d focal targets" % n_targets, 30)
                 u2 = plantus_axial_profiles(ForwardSimple, **args)
+            else:
+                raise ValueError("unknown standalone function %r" % name)
 
         output_path = os.path.join(workspace_root, '%s_output.npy' % name)
         np.save(output_path, u2)
