@@ -26,9 +26,11 @@ from CreateTransducers.transducer_verification_dialog import (
     PlotWidget,
     TransducerVerificationDialog,
 )
-from RunServerCalculation import RAYLEIGH_TEST, RunServerCalculation
+from RunServerCalculation import RAYLEIGH_PLANTUS, RAYLEIGH_TEST, RunServerCalculation
 from Utils.custom_tx import register_template_aliases
 from Utils.paths import bundle_root
+from Utils.rayleigh_plantus import (MODE_ANNULAR, MODE_ARRAY, MODE_NONE,
+                                    plantus_axial_profiles)
 from Utils.transducer_registry import DEFAULT_TRANSDUCER_NAMES
 
 logger = logging.getLogger(__name__)
@@ -1430,11 +1432,52 @@ class CustomTransducer:
         
         sim_conditions._ZSourceLocation = 0
 
-        if self.geometry_type == 'simple_focused':
-            n_elems = 1
-        else:
-            n_elems = sim_conditions._Tx['NumberElems']
-        n_total = sim_conditions._Tx['center'].shape[0]
+        # ------------------------------------------------------------------ #
+        #  Focal targets and steering inputs for the whole sweep             #
+        # ------------------------------------------------------------------ #
+        new_targets = []
+        targets = []
+        for focal_dist in self.PlanTUS[freq]['FocalDistanceListInitial']:
+            new_zsteering = focal_dist/1e3 - self.focal_length
+            new_target = self.focal_length+new_zsteering
+            new_targets.append(new_target)
+            # Snap the target to the grid
+            targets.append([
+                sim_conditions._XDim[len(xfield)//2],
+                sim_conditions._YDim[len(yfield)//2],
+                sim_conditions._ZDim[np.argmin(abs(sim_conditions._ZDim-new_target))]
+            ])
+
+        sweep_args = {
+            'cwvnb_extlay': cwvnb_extlay,
+            'center': sim_conditions._Tx['center'].astype(np.float32),
+            'ds': sim_conditions._Tx['ds'].astype(np.float32),
+            'amp': np.float32(amp),
+            'targets': np.array(targets, np.float32),
+            'rf': np.column_stack((
+                np.zeros_like(zfield),
+                np.zeros_like(zfield),
+                zfield
+            )).astype(np.float32),
+        }
+        if self.geometry_type in ['flat_annular_array','focused_annular_array']:
+            sweep_args['mode'] = MODE_ANNULAR
+            sweep_args['n_subs'] = np.array(
+                [sim_conditions._Tx['elemdims'][n][0] for n in range(sim_conditions._Tx['NumberElems'])])
+        elif self.geometry_type in ['focused_array','flat_array_2D']:
+            sweep_args['mode'] = MODE_ARRAY
+            sweep_args['n_subs'] = np.full(sim_conditions._Tx['NumberElems'], sim_conditions._Tx['elemdims'])
+            sweep_args['steer'] = np.array([not np.isclose(t, self.focal_length) for t in new_targets])
+            sweep_args['elemcenter'] = sim_conditions._Tx['elemcenter'].astype(np.float32)
+            sweep_args['focal_ds'] = np.float32(sim_conditions._SpatialStep**2)
+        else:  # 'simple_focused'
+            sweep_args['mode'] = MODE_NONE
+            sweep_args['n_subs'] = np.array([sim_conditions._Tx['center'].shape[0]])
+
+        # ------------------------------------------------------------------ #
+        #  Steering + forward Rayleigh for all targets (one remote job)      #
+        # ------------------------------------------------------------------ #
+        profiles = self._run_plantus_sweep(sweep_args)
 
         focal_dists = []
         FHMLs = []
@@ -1446,113 +1489,8 @@ class CustomTransducer:
             plot_lines = []
             plot_data = []
 
-        for focal_idx, focal_dist in enumerate(
-            self.PlanTUS[freq]['FocalDistanceListInitial']
-        ):
-            new_zsteering = focal_dist/1e3 - self.focal_length
-            new_target = self.focal_length+new_zsteering
-            
-            sim_conditions._FocalSpotLocation = np.array([
-                len(xfield)//2,
-                len(yfield)//2,
-                np.argmin(abs(sim_conditions._ZDim-new_target))
-            ])
-            
-            # ------------------------------------------------------------------ #
-            #  Steering / phase computation                                      #
-            # ------------------------------------------------------------------ #
-            if self.geometry_type in ['flat_annular_array','focused_annular_array']:
-                # Forward-propagate each element's sub-panels to the focal point and
-                # compute the conjugate phase needed to steer to that point.
-                center = np.zeros((1, 3), np.float32)
-                center[0,0] = sim_conditions._XDim[sim_conditions._FocalSpotLocation[0]]
-                center[0,1] = sim_conditions._YDim[sim_conditions._FocalSpotLocation[1]]
-                center[0,2] = sim_conditions._ZDim[sim_conditions._FocalSpotLocation[2]]
-                print('center', center)
-                print('Z location', sim_conditions._ZDim[sim_conditions._ZSourceLocation])
-
-                u2back = np.zeros(n_elems, np.complex64)
-                nBase = 0
-                print('Locations Tx and center', sim_conditions._Tx['center'].min(axis=0), center)
-                for n in range(n_elems):
-                    n_sub = sim_conditions._Tx['elemdims'][n][0]
-                    u0_sub = np.ones(n_sub, np.complex64)
-                    SelCenters = sim_conditions._Tx['center'][nBase:nBase+n_sub, :].astype(np.float32)
-                    SelDs      = sim_conditions._Tx['ds'][nBase:nBase+n_sub, :].astype(np.float32)
-                    u2back[n] = self._run_forward_simple(
-                        cwvnb_extlay,
-                        SelCenters,
-                        SelDs,
-                        u0_sub,
-                        center
-                    )[0]
-                    nBase += n_sub
-
-                AllPhi = np.zeros(n_elems)
-                for n in range(n_elems):
-                    AllPhi[n] = -np.angle(u2back[n])
-
-                print('Phase for array: [', np.rad2deg(AllPhi).tolist(), ']')
-
-                u0 = np.zeros((n_total, 1), np.complex64)
-                nBase = 0
-                for n in range(n_elems):
-                    n_sub = sim_conditions._Tx['elemdims'][n][0]
-                    u0[nBase:nBase+n_sub] = (amp * np.exp(1j*AllPhi[n])).astype(np.complex64)
-                    nBase += n_sub
-
-            elif self.geometry_type in ['focused_array','flat_array_2D']:
-                if not np.isclose(new_target, self.focal_length):
-                    # Propagate from the focal point to each element centre (inverse
-                    # direction), then conjugate to obtain the steering phase.
-                    ds = np.ones((1)) * sim_conditions._SpatialStep**2
-                    u0_focal = np.zeros((1), np.complex64)
-                    u0_focal[0] = 1+0j
-                    center = np.zeros((1, 3), np.float32)
-                    center[0,0] = sim_conditions._XDim[sim_conditions._FocalSpotLocation[0]]
-                    center[0,1] = sim_conditions._YDim[sim_conditions._FocalSpotLocation[1]]
-                    center[0,2] = sim_conditions._ZDim[sim_conditions._FocalSpotLocation[2]]
-                    print('center', center)
-
-                    u2back = self._run_forward_simple(
-                        cwvnb_extlay,
-                        center,
-                        ds.astype(np.float32),
-                        u0_focal,
-                        sim_conditions._Tx['elemcenter'].astype(np.float32)
-                    )
-                    u0 = np.zeros((n_total, 1), np.complex64)
-                    nBase = 0
-                    for n in range(n_elems):
-                        phi = np.angle(np.conjugate(u2back[n]))
-                        u0[nBase:nBase+sim_conditions._Tx['elemdims']] = (amp * np.exp(1j*phi)).astype(np.complex64)
-                        nBase += sim_conditions._Tx['elemdims']
-                else:
-                    u0 = (np.ones((n_total, 1), np.float32)
-                        + 1j*np.zeros((n_total, 1), np.float32)) * amp
-
-            elif self.geometry_type == 'simple_focused':  # 'none'
-                u0 = (np.ones((n_total, 1), np.float32)
-                    + 1j*np.zeros((n_total, 1), np.float32)) * amp
-
-            # ------------------------------------------------------------------ #
-            #  Perform Forward Rayleigh                                          #
-            # ------------------------------------------------------------------ #
-            rf = np.column_stack((
-                np.zeros_like(zfield),
-                np.zeros_like(zfield),
-                zfield
-            )).astype(np.float32)
-
-            u2 = self._run_forward_simple(
-                cwvnb_extlay,
-                sim_conditions._Tx['center'].astype(np.float32),
-                sim_conditions._Tx['ds'].astype(np.float32),
-                u0,
-                rf,
-            )
-            
-            u2_1D = abs(u2)
+        for focal_idx, new_target in enumerate(new_targets):
+            u2_1D = profiles[focal_idx].copy()
             u2_1D *= Material['Water'][0]*Material['Water'][1] # Convert to pressure
             if normalized_pressure:
                 u2_1D /= max(u2_1D)
@@ -1639,6 +1577,22 @@ class CustomTransducer:
             self.is_gpu_initialized = True
         else:
             return
+
+    def _run_plantus_sweep(self, sweep_args):
+        """Run the whole PlanTUS axial sweep, remotely as a single server job or
+        locally on this machine's GPU."""
+        if self.computing_backend == 'Server':
+            remote_calc = RunServerCalculation(
+                step=RAYLEIGH_PLANTUS,
+                server=self.remote_server,
+                standalone_args=sweep_args,
+            )
+            return remote_calc.run()
+
+        self._initialize_gpu()
+        forward = lambda cwvnb_extlay, center, ds, u0, rf: ForwardSimple(
+            cwvnb_extlay, center, ds, u0, rf, deviceMetal=self.gpu)
+        return plantus_axial_profiles(forward, **sweep_args)
 
     def _run_forward_simple(self,cwvnb_extlay,center,ds,u0,rf):
 
