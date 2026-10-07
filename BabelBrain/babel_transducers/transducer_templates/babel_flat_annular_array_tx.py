@@ -139,10 +139,6 @@ class RunAcousticSim(QObject):
         kargs['ID']=ID
         kargs['deviceName']=deviceName
         kargs['is_custom_tx'] = self._mainApp.Config['is_custom_tx']
-        # if self._mainApp.Config['is_custom_tx']:
-        #     kargs['geometry_type'] = self._mainApp.AcSim.Config['geometry_type']
-        # else:
-        #     kargs['geometry_type'] = self._mainApp.Config['TxType']
         kargs['geometry_type'] = self._mainApp.Config['TxType']
         kargs['coordinate_system'] = self._mainApp.AcSim.Config.get('coordinate_system','cartesian')
         kargs['Aperture'] = self._mainApp.AcSim.Config['TxDiam']
