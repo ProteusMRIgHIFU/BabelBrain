@@ -573,8 +573,12 @@ def ConvertZTE_PETRA_pCT(InputT1,
 
             if bGeneratePETRAHistogram:
                 plt.figure()
-                plt.plot(bins, vals)
-                plt.scatter(soft_tissue_value, np.max(vals))
+                plt.plot(bins, hist_vals);
+                for ind2 in locs:
+                    plt.plot([ind2,ind2],[np.min(hist_vals),np.max(hist_vals)])
+                plt.xlabel('PETRA Value')
+                plt.ylabel('Count')
+                plt.title('Image Histogram')
                 petrahistofname = InputZTE.split('.nii')[0]+'-PETRA_Histogram.pdf'
                 plt.savefig(petrahistofname)
                 plt.close('all')
