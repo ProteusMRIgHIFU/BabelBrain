@@ -20,7 +20,7 @@ from TranscranialModeling.babel_integration.integration_templates.babel_integrat
     SimulationConditionsBASE,
     _rec_artifact,
 )
-from TranscranialModeling.tx_geometries import generate_focused_array_tx
+from TranscranialModeling.tx_geometries import generate_focused_array_tx, shift_tx
 
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -49,11 +49,6 @@ def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
     ListPoints += [[-BaseTriangle,-HeightTriangle/2]]
     ListPoints=np.array(ListPoints)
     return ListPoints
-
-def shift_tx(tx,shift):
-    tx['VertDisplay'][:,2] -= shift
-    tx['center'][:,2] -= shift
-    tx['elemcenter'][:,2] -= shift
 
 class RUN_SIM(RUN_SIM_BASE):
     def CreateSimObject(self,**kargs):
@@ -251,12 +246,12 @@ class SimulationConditions(SimulationConditionsBASE):
         self._Tx = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
         self._TxOrig = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._OrigFocalLength, self._original_element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
 
-        shift_tx(self._Tx,self._FocalLength)
-        shift_tx(self._TxOrig,self._OrigFocalLength)
+        shift_tx(self._Tx,-self._FocalLength)
+        shift_tx(self._TxOrig,-self._OrigFocalLength)
 
         if self._Frequency == 220e3:
             self._TxHighRes = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurfaceHighRes)
-            shift_tx(self._TxHighRes,self._FocalLength)
+            shift_tx(self._TxHighRes,-self._FocalLength)
         else:
             self._TxHighRes=self._TxOrig
         
