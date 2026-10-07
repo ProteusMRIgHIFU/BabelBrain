@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 
 import yaml
-from PySide6.QtCore import QAbstractTableModel, Qt, Slot
+from PySide6.QtCore import QAbstractTableModel, Qt, Slot, QRect
 from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog,
-                               QMessageBox, QStyle, QWidget)
+                               QMessageBox, QStyle, QWidget, QLabel,QComboBox)
 import Localization
 from Localization import TR
 from BuildInfo import TitleSuffix
