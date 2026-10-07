@@ -51,8 +51,8 @@ TX_GEOMETRIES = {
     "simple_focused": {
         "annular": False,
         "coordinate_system": "cartesian",
-        "flat": True,
-        "spherical": False,
+        "flat": False,
+        "spherical": True,  # single spherical cap
         "steering_axes": None,
     },
     "flat_annular_array": {
