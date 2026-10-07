@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """Fetch / pin the external PlanTUS tool for BabelBrain.
 
-BabelBrain drives the external PlanTUS planner (https://github.com/mlueckel/PlanTUS).
+BabelBrain drives the external PlanTUS planner, developed upstream at
+https://github.com/mlueckel/PlanTUS. TEMPORARY: the pin currently points at the
+fork https://github.com/spichardo/PlanTUS, which carries a fix to the BabelBrain
+trajectory export that is not upstream yet (upstream renamed the SimNIBS '000'
+target name with a global string replace, which also corrupted numeric values
+containing '000'). Move PLANTUS_URL back to mlueckel/PlanTUS once that is merged.
+
 PlanTUS is actively developed, so BabelBrain pins one known-good commit. That pin
 lives in two places kept in sync:
 
@@ -28,8 +34,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-PLANTUS_URL = "https://github.com/mlueckel/PlanTUS"
-PLANTUS_PIN = "97d908b439c78a5d8b4fed9bba750ae2a99cce3b"
+# TEMPORARY fork (see module docstring); revert to mlueckel/PlanTUS when the
+# trajectory export fix lands upstream.
+PLANTUS_URL = "https://github.com/spichardo/PlanTUS"
+PLANTUS_PIN = "33d65b54be43d962255f49db7a2904dc67f71205"
 
 # A file that must exist inside a valid PlanTUS checkout.
 PLANTUS_SENTINEL = "PlanTUS_wrapper.py"
@@ -104,6 +112,10 @@ def ensure_plantus(dest: Path = DEFAULT_DEST, force: bool = False, verbose: bool
         try:
             rel = dest.relative_to(_REPO_ROOT)
             log(f"Initializing PlanTUS submodule: {rel}")
+            # An already-initialized submodule keeps the URL it was cloned with
+            # in .git/config, so a .gitmodules URL change (e.g. upstream -> fork)
+            # only takes effect after a sync.
+            _run(["git", "submodule", "sync", "--", str(rel)], cwd=_REPO_ROOT, check=False)
             _run(["git", "submodule", "update", "--init", "--", str(rel)], cwd=_REPO_ROOT)
             used_submodule = True
         except subprocess.CalledProcessError as e:
@@ -121,6 +133,10 @@ def ensure_plantus(dest: Path = DEFAULT_DEST, force: bool = False, verbose: bool
     if _current_sha(dest) != PLANTUS_PIN:
         log(f"Checking out pinned commit {PLANTUS_PIN}")
         try:
+            # The pin may only exist on PLANTUS_URL (it currently lives on a
+            # fork), so point origin there before fetching it.
+            if Path(dest) == DEFAULT_DEST:
+                _run(["git", "remote", "set-url", "origin", PLANTUS_URL], cwd=dest, check=False)
             _run(["git", "fetch", "--quiet", "origin", PLANTUS_PIN], cwd=dest, check=False)
             _run(["git", "checkout", "--quiet", PLANTUS_PIN], cwd=dest)
         except subprocess.CalledProcessError as e:

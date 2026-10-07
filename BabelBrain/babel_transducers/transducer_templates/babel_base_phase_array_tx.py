@@ -434,8 +434,10 @@ class BabelBasePhaseArray(BabelBaseTx):
             NiftiWater=nibabel.load(self._FullSolName[0].split('_DataForSim.h5')[0]+'_Water_FullElasticSolution_Sub_NORM.nii.gz')
 
         self._MainApp.UpdateNiftiAcResults(NiftiSkull,NiftiWater,self._TrajectoryNumber)
-
         
+        if hasattr(self.Widget,'CombineTrajectories'):
+            for n in range(len(self._MainApp.Config['ID'])):
+                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllAcFieldsDone())
     
     def EnableMultiPoint(self,MultiPoint):
         print('MultiPoint',MultiPoint)

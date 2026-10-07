@@ -93,3 +93,19 @@ def TitleSuffix(label=None):
         label = GetBuildLabel()
     return ' [' + label + ']' if label else ''
 
+
+def GetAppVersion():
+    """This build's BabelBrain version as a bare string, e.g. ``'0.8.8'``.
+
+    Read from ``version-gui.txt`` and stripped, so it is safe to compare. Used by
+    the client/server handshake, which requires an EXACT version match between a
+    client and the job server it offloads to (see RunServerCalculation.preflight
+    and server.py's ``client_version`` check): the client sends generated
+    transducer code and GUI-captured action lists that the server executes
+    against its own templates and widgets, and neither is version-stable.
+    """
+    # resource_path (not bundle_root): BuildInfo.py is a TOP-LEVEL module, whose
+    # version-gui.txt sits in its own folder rather than a level up.
+    from Utils.paths import resource_path
+    with open(Path(resource_path(__file__)) / 'version-gui.txt', 'r') as f:
+        return f.readline().strip()

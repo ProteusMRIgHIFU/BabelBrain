@@ -27,13 +27,14 @@ from Telemetry.TelemetryConsentDialog import (TELEMETRY_OFF,
 from .ui_form import Ui_OptionsDialog
 from Utils.paths import resource_path
 from Localization import TR
+from Utils.paths import bundle_root
 
 def plantus_bundled_path():
     """Absolute path to the PlanTUS tool bundled with BabelBrain.
 
     This is the submodule/checkout populated by Scripts/fetch_plantus.py at
     ExternalBin/PlanTUS/PlanTUS."""
-    return os.path.normpath(os.path.join(resource_path(__file__).parent, 'ExternalBin', 'PlanTUS', 'PlanTUS'))
+    return os.path.normpath(os.path.join(bundle_root(__file__), 'ExternalBin', 'PlanTUS', 'PlanTUS'))
 
 
 def connect_folder_button(parent,button, line_edit, title):
@@ -102,7 +103,6 @@ class OptionalParams(object):
         self._DefaultAdvanced['bSegmentBrainTissue']=False
         self._DefaultAdvanced['SimbNINBSRoot']='...'
         self._DefaultAdvanced['PlanTUSRoot']='...'
-        self._DefaultAdvanced['ConnectomeRoot']='...'
         self._DefaultAdvanced['LimitBHTEIterationsPerProcess']=100
         self._DefaultAdvanced['bForceHomogenousMedium']=False
         self._DefaultAdvanced['HomogenousMediumValues']={}
@@ -216,8 +216,7 @@ class AdvancedOptions(QDialog):
 
         buttons = [
                 (self.ui.SimNIBSRootpushButton, self.ui.SimbNINBSRootlineEdit, "Select SimNIBS Root Folder"),
-                (self.ui.PlanTUSRootpushButton, self.ui.PlanTUSRootlineEdit, "Select PlanTUS Root Folder"),
-                (self.ui.ConnectomeRootpushButton, self.ui.ConnectomeRootlineEdit, "Select Connectome Root Folder")
+                (self.ui.PlanTUSRootpushButton, self.ui.PlanTUSRootlineEdit, "Select PlanTUS Root Folder")
             ]
 
         for button, line_edit, title in buttons:
@@ -470,9 +469,7 @@ class AdvancedOptions(QDialog):
         PlanTUSRoot='' if values.PlanTUSRoot in ('...','') else values.PlanTUSRoot
         self.ui.PlanTUSRootlineEdit.setText(PlanTUSRoot)
         self.ui.PlanTUSRootlineEdit.setCursorPosition(len(PlanTUSRoot))
-        self.ui.ConnectomeRootlineEdit.setText(values.ConnectomeRoot)
-        self.ui.ConnectomeRootlineEdit.setCursorPosition(len(values.ConnectomeRoot))
-
+        
         # sel=self.ui.CTX500CorrectioncomboBox.findText(values.CTX_500_Correction)
         # if sel==-1:
         #     raise ValueError('The CTX 500 correction choice is not available in the GUI -'+values.CTX_500_Correction )
@@ -530,7 +527,6 @@ class AdvancedOptions(QDialog):
         self.NewValues.bSegmentBrainTissue=self.ui.SegmentBrainTissuecheckBox.isChecked()
         self.NewValues.SimbNINBSRoot=self.ui.SimbNINBSRootlineEdit.text()
         self.NewValues.PlanTUSRoot=self.ui.PlanTUSRootlineEdit.text()
-        self.NewValues.ConnectomeRoot=self.ui.ConnectomeRootlineEdit.text()
         if self.NewValues.bSegmentBrainTissue:
             if not os.path.isdir(self.NewValues.SimbNINBSRoot):
                 msgBox = QMessageBox()

@@ -27,7 +27,8 @@ from CreateTransducers.transducer_verification_dialog import (
     TransducerVerificationDialog,
 )
 from RunServerCalculation import RAYLEIGH_TEST, RunServerCalculation
-from Utils.paths import resource_path
+from Utils.custom_tx import register_template_aliases
+from Utils.paths import bundle_root
 from Utils.transducer_registry import DEFAULT_TRANSDUCER_NAMES
 
 logger = logging.getLogger(__name__)
@@ -872,7 +873,7 @@ class CustomTransducer:
         
         
         # Environment for jinja files
-        env = Environment(loader=FileSystemLoader(resource_path(__file__) / ".." / "babel_transducers" / "transducer_templates"), trim_blocks=True, lstrip_blocks=True)
+        env = Environment(loader=FileSystemLoader(bundle_root(__file__) / "babel_transducers" / "transducer_templates"), trim_blocks=True, lstrip_blocks=True)
         self.env = env
         
         self._set_tx_file_paths()
@@ -926,6 +927,11 @@ class CustomTransducer:
 
         # Create the directory safely
         self.tx_folder.mkdir(parents=True, exist_ok=True)
+
+        # The folder is imported as the package `babel_<Name>`, so give it an
+        # __init__.py rather than relying on implicit namespace packages, which
+        # a frozen app's import machinery handles less predictably.
+        (self.tx_folder / "__init__.py").touch()
         
     def _create_tx_main_file(self):
         tx_main_file_template = self.env.get_template("babel_tx.py.jinja")
@@ -942,7 +948,6 @@ class CustomTransducer:
             transducer_template= "babel_" +transducer_template,
             transducer_template_class_name=transducer_template_class_name,
             transducer_class_name=self.class_name,
-            default_yaml=self.tx_default_yaml
         )
         
         # Create Tx Main File
@@ -1122,6 +1127,7 @@ class CustomTransducer:
     def _validate_tx(self):
 
         sys.path.insert(0, str(CUSTOM_TRANSDUCERS_FOLDER))
+        register_template_aliases()
         self.TxIntegration = importlib.import_module(f"babel_{self.class_name}.babel_integration_{self.class_name}")
 
         # Acoustic Water Sims for PlanTUS
@@ -1635,8 +1641,11 @@ class CustomTransducer:
             return
 
     def _run_forward_simple(self,cwvnb_extlay,center,ds,u0,rf):
-        
-        if self.computing_backend in 'Server':
+
+        # == not `in`: `in` is a SUBSTRING test on the string 'Server', so the
+        # CPU case (computing_backend == '') matched it and took the remote path
+        # with no server configured.
+        if self.computing_backend == 'Server':
             remote_calc = RunServerCalculation(
                 step=RAYLEIGH_TEST,
                 server=self.remote_server,

@@ -2,11 +2,11 @@ import os
 
 import yaml
 
-from Utils.paths import resource_path
+from Utils.paths import bundle_root
 
 def _load_transducer_list() -> list[dict]:
     """Load the built-in transducer registry from transducer_list.yaml."""
-    transducer_list_yaml = os.path.join(resource_path(__file__).parent, 'SelFiles', 'transducer_list.yaml')
+    transducer_list_yaml = os.path.join(bundle_root(__file__), 'SelFiles', 'transducer_list.yaml')
     with open(transducer_list_yaml, 'r') as f:
         return yaml.safe_load(f)
 

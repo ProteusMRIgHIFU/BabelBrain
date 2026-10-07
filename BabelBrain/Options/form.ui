@@ -581,9 +581,9 @@
      <property name="geometry">
       <rect>
        <x>3</x>
-       <y>90</y>
+       <y>110</y>
        <width>636</width>
-       <height>179</height>
+       <height>157</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -598,7 +598,7 @@
         <x>543</x>
         <y>3</y>
         <width>86</width>
-        <height>172</height>
+        <height>151</height>
        </rect>
       </property>
       <property name="text">
@@ -671,44 +671,6 @@ PlanTUS</string>
        <rect>
         <x>163</x>
         <y>67</y>
-        <width>375</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>...</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="ConnectomeRootpushButton">
-      <property name="geometry">
-       <rect>
-        <x>8</x>
-        <y>115</y>
-        <width>149</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string>Connectome root</string>
-      </property>
-      <property name="autoDefault">
-       <bool>false</bool>
-      </property>
-      <property name="flat">
-       <bool>false</bool>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="ConnectomeRootlineEdit">
-      <property name="geometry">
-       <rect>
-        <x>163</x>
-        <y>120</y>
         <width>375</width>
         <height>21</height>
        </rect>
@@ -848,7 +810,7 @@ to skin (mm)</string>
       <property name="geometry">
        <rect>
         <x>163</x>
-        <y>150</y>
+        <y>124</y>
         <width>375</width>
         <height>21</height>
        </rect>
@@ -864,7 +826,7 @@ to skin (mm)</string>
       <property name="geometry">
        <rect>
         <x>8</x>
-        <y>145</y>
+        <y>119</y>
         <width>149</width>
         <height>32</height>
        </rect>
@@ -886,8 +848,8 @@ to skin (mm)</string>
     <widget class="QCheckBox" name="ExtractAirRegionscheckBox">
      <property name="geometry">
       <rect>
-       <x>202</x>
-       <y>328</y>
+       <x>9</x>
+       <y>82</y>
        <width>150</width>
        <height>20</height>
       </rect>
@@ -1609,8 +1571,6 @@ for large thermal simulation</string>
   <tabstop>SimbNINBSRootlineEdit</tabstop>
   <tabstop>PlanTUSRootpushButton</tabstop>
   <tabstop>PlanTUSRootlineEdit</tabstop>
-  <tabstop>ConnectomeRootpushButton</tabstop>
-  <tabstop>ConnectomeRootlineEdit</tabstop>
   <tabstop>RUNPlanTUSpushButton</tabstop>
   <tabstop>ForceBlendercheckBox</tabstop>
   <tabstop>ManualFOVcheckBox</tabstop>

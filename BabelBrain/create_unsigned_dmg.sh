@@ -4,9 +4,10 @@
 # waiting for the GitHub Actions release build. It mirrors the macOS steps in
 # .github/workflows/build-release.yml, just without code signing / notarization.
 #
-# Two-app model: the PKG inside the DMG installs
+# Three-app model: the PKG inside the DMG installs
 #   * /Applications/BabelBrain.app                    (the launcher / main app)
 #   * /Applications/BabelBrain-Version-Selector.app   (the picker)
+#   * /Applications/BabelBrain-Uninstaller.app        (complete removal)
 # and seeds a default BabelBrain version into the shared versions store
 #   * /Users/Shared/BabelBrain/versions/<build_id>/BabelBrain.app
 # so the app works offline right after install, and records it as the default
@@ -30,7 +31,7 @@ SKIP_VERSION_BUILD="no"
 for arg in "$@"; do
   case "$arg" in
     --skip-version-build) SKIP_VERSION_BUILD="yes";;
-    -h|--help) sed -n '2,32p' "$SCRIPT_PATH"; exit 0;;
+    -h|--help) sed -n '2,23p' "$SCRIPT_PATH"; exit 0;;
     *) echo "Unknown argument: $arg" >&2; exit 1;;
   esac
 done
@@ -39,7 +40,8 @@ done
 # the first thing in the script, which wiped dist/ before --skip-version-build
 # was even read, silently making that flag a no-op that rebuilt everything.
 rm -f ./*.pkg ./*.dmg
-rm -rf dist/selector dist/launcher build/selector build/launcher
+rm -rf dist/selector dist/launcher dist/uninstaller \
+       build/selector build/launcher build/uninstaller
 if [[ "$SKIP_VERSION_BUILD" != "yes" ]]; then
   rm -rf dist/version build/version
 fi
@@ -57,6 +59,7 @@ PKG="BabelBrain-macOS-${ARCHKEY}.pkg"
 VERSION_APP="dist/version/BabelBrain.app"
 SELECTOR_APP="dist/selector/BabelBrain-Version-Selector.app"
 LAUNCHER_APP="dist/launcher/BabelBrain.app"
+UNINSTALLER_APP="dist/uninstaller/BabelBrain-Uninstaller.app"
 
 # ---------------------------------------------------------------------------
 # 1. Build the BabelBrain version (the heavy part) + stamp build_info.json.
@@ -80,7 +83,7 @@ BUILD_ID="$(python -c "import json;d=json.load(open('$BUILD_INFO'));c=(d.get('gi
 echo ">> build_id: $BUILD_ID"
 
 # ---------------------------------------------------------------------------
-# 2. Build the two launcher apps (fast).
+# 2. Build the three small apps (fast).
 # ---------------------------------------------------------------------------
 echo ">> Building Version Selector app"
 pyinstaller BabelBrainHub.spec --noconfirm --clean \
@@ -88,10 +91,13 @@ pyinstaller BabelBrainHub.spec --noconfirm --clean \
 echo ">> Building BabelBrain launcher app"
 pyinstaller BabelBrainLauncher.spec --noconfirm --clean \
   --distpath dist/launcher --workpath build/launcher
+echo ">> Building uninstaller app"
+pyinstaller BabelBrainUninstaller.spec --noconfirm --clean \
+  --distpath dist/uninstaller --workpath build/uninstaller
 
 # ---------------------------------------------------------------------------
-# 3. Stage the PKG payload: both apps in /Applications, the version seeded in
-#    the shared store.
+# 3. Stage the PKG payload: all three apps in /Applications, the version
+#    seeded in the shared store.
 # ---------------------------------------------------------------------------
 echo ">> Staging PKG payload"
 STAGE="$(mktemp -d -t bbpkg)"
@@ -100,6 +106,7 @@ trap 'rm -rf "$STAGE" "${STAGE_DMG:-}" "${PKG_SCRIPTS:-}" "${PKG_COMPONENT_DIR:-
 mkdir -p "$STAGE/Applications" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID"
 /usr/bin/ditto "$LAUNCHER_APP" "$STAGE/Applications/BabelBrain.app"
 /usr/bin/ditto "$SELECTOR_APP" "$STAGE/Applications/BabelBrain-Version-Selector.app"
+/usr/bin/ditto "$UNINSTALLER_APP" "$STAGE/Applications/BabelBrain-Uninstaller.app"
 /usr/bin/ditto "$VERSION_APP" "$STAGE/Users/Shared/BabelBrain/versions/$BUILD_ID/BabelBrain.app"
 
 # ---------------------------------------------------------------------------
@@ -117,11 +124,18 @@ VERSION_STR="$(cat version.txt)"
 # no <scripts> element at all, so the postinstall ships but never runs.
 # pkgbuild also gives the component a stable identifier, instead of the random
 # per-build "bbpkg.XXXXXXXX" productbuild --root invents.
+#
+# --component-plist is just as load-bearing: pkgbuild marks .app bundles
+# relocatable by default, and the Installer then writes them wherever
+# LaunchServices already knows a bundle with the same id — which put
+# /Applications/BabelBrain.app inside the version store instead.
 PKG_SCRIPTS="$(mktemp -d -t bbscripts)"
 ./Hub/make_pkg_scripts.sh "$BUILD_ID" "$PKG_SCRIPTS"
 PKG_COMPONENT_DIR="$(mktemp -d -t bbcomp)"
+./Hub/make_pkg_component_plist.sh "$STAGE" "$PKG_COMPONENT_DIR/components.plist"
 pkgbuild \
   --root "$STAGE" \
+  --component-plist "$PKG_COMPONENT_DIR/components.plist" \
   --scripts "$PKG_SCRIPTS" \
   --identifier com.ucalgary.babelbrain.pkg \
   --version "$VERSION_STR" \
@@ -166,6 +180,6 @@ fi
 echo ""
 echo "Done: $(pwd)/$DMG   (contains $PKG)"
 echo "Install: open the DMG and double-click BabelBrain.pkg (needs your password)."
-echo "It installs both apps to /Applications and seeds version $BUILD_ID into"
+echo "It installs the three apps to /Applications and seeds version $BUILD_ID into"
 echo "/Users/Shared/BabelBrain/versions. For a fast loop you can instead run:"
 echo "  dist/selector/BabelBrain-Version-Selector.app/Contents/MacOS/BabelBrain-Version-Selector"

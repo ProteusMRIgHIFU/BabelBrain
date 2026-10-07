@@ -182,9 +182,10 @@ jobs:
       # --------------------------------------------------------------------
       # macOS signing/notarization. The VERSION app is signed + notarized +
       # stapled first (it becomes both the standalone -version.zip download and
-      # the copy seeded into the store), then the two small launcher apps
-      # (BabelBrain.app + BabelBrain-Version-Selector.app) are each signed +
-      # notarized, and the PKG installs all of them.
+      # the copy seeded into the store), then the three small apps
+      # (BabelBrain.app + BabelBrain-Version-Selector.app +
+      # BabelBrain-Uninstaller.app) are each signed + notarized, and the PKG
+      # installs all of them.
       # Required repo secrets (signing is skipped if MACOS_CERT_P12_BASE64 is unset):
       #   MACOS_CERT_P12_BASE64 / _PASSWORD, MACOS_SIGN_IDENTITY,
       #   MACOS_INSTALLER_SIGN_IDENTITY, MACOS_NOTARY_APPLE_ID / _TEAM_ID / _APP_PASSWORD
@@ -268,6 +269,16 @@ jobs:
           pyinstaller BabelBrainLauncher.spec --noconfirm --clean \
             --distpath dist/launcher --workpath build/launcher
 
+      - name: Build uninstaller app (macOS)
+        # macOS has no uninstall hook of its own, so complete removal needs a
+        # real app the PKG installs. Windows gets the same behaviour from the
+        # Inno uninstaller calling the Version Selector, so this is mac-only.
+        if: runner.os == 'macOS'
+        working-directory: BabelBrain
+        run: |
+          pyinstaller BabelBrainUninstaller.spec --noconfirm --clean \
+            --distpath dist/uninstaller --workpath build/uninstaller
+
       - name: Sign launcher apps (macOS)
         if: runner.os == 'macOS' && env.SIGNING_AVAILABLE == 'true'
         env:
@@ -275,7 +286,8 @@ jobs:
         run: |
           ENTITLEMENTS="BabelBrain/entitlements.plist"
           for APP in "BabelBrain/dist/launcher/BabelBrain.app" \
-                     "BabelBrain/dist/selector/BabelBrain-Version-Selector.app"; do
+                     "BabelBrain/dist/selector/BabelBrain-Version-Selector.app" \
+                     "BabelBrain/dist/uninstaller/BabelBrain-Uninstaller.app"; do
             codesign --deep --force --options=runtime --timestamp \
               --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$APP"
             codesign --verify --deep --strict --verbose=2 "$APP"
@@ -289,7 +301,8 @@ jobs:
           APP_PASSWORD: ${{ secrets.MACOS_NOTARY_APP_PASSWORD }}
         run: |
           for APP in "BabelBrain/dist/launcher/BabelBrain.app" \
-                     "BabelBrain/dist/selector/BabelBrain-Version-Selector.app"; do
+                     "BabelBrain/dist/selector/BabelBrain-Version-Selector.app" \
+                     "BabelBrain/dist/uninstaller/BabelBrain-Uninstaller.app"; do
             ZIP="$RUNNER_TEMP/$(basename "$APP").zip"
             /usr/bin/ditto -c -k --keepParent "$APP" "$ZIP"
             xcrun notarytool submit "$ZIP" \
@@ -307,13 +320,15 @@ jobs:
           mkdir -p artifacts
           VERSION=$(cat BabelBrain/version.txt)
           STAGE="$RUNNER_TEMP/pkg_root"
-          # Both apps in /Applications; the version seeded into the shared store.
+          # All three apps in /Applications; the version seeded into the shared store.
           mkdir -p "$STAGE/Applications" \
                    "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID"
           /usr/bin/ditto "BabelBrain/dist/launcher/BabelBrain.app" \
             "$STAGE/Applications/BabelBrain.app"
           /usr/bin/ditto "BabelBrain/dist/selector/BabelBrain-Version-Selector.app" \
             "$STAGE/Applications/BabelBrain-Version-Selector.app"
+          /usr/bin/ditto "BabelBrain/dist/uninstaller/BabelBrain-Uninstaller.app" \
+            "$STAGE/Applications/BabelBrain-Uninstaller.app"
           /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" \
             "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID/BabelBrain.app"
           # postinstall records the seeded build as the default version, so a
@@ -325,8 +340,15 @@ jobs:
           SCRIPTS="$RUNNER_TEMP/pkg_scripts"
           rm -rf "$SCRIPTS"
           BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
+          # --component-plist pins every .app to its payload path. Without it
+          # pkgbuild marks them relocatable and the Installer redirects
+          # /Applications/BabelBrain.app on top of whatever BabelBrain.app
+          # LaunchServices already knows about — i.e. into the version store.
+          COMPONENTS="$RUNNER_TEMP/components.plist"
+          BabelBrain/Hub/make_pkg_component_plist.sh "$STAGE" "$COMPONENTS"
           pkgbuild \
             --root "$STAGE" \
+            --component-plist "$COMPONENTS" \
             --scripts "$SCRIPTS" \
             --identifier com.ucalgary.babelbrain.pkg \
             --version "$VERSION" \
@@ -403,7 +425,8 @@ jobs:
 
       - name: Build unsigned PKG + DMG (macOS, no signing secrets)
         # Fallback so pipeline testing without signing secrets still yields a DMG
-        # with the same PKG structure (both apps + seeded version), just unsigned.
+        # with the same PKG structure (all three apps + seeded version), just
+        # unsigned.
         if: runner.os == 'macOS' && env.SIGNING_AVAILABLE != 'true'
         run: |
           mkdir -p artifacts
@@ -416,15 +439,21 @@ jobs:
             "$STAGE/Applications/BabelBrain.app"
           /usr/bin/ditto "BabelBrain/dist/selector/BabelBrain-Version-Selector.app" \
             "$STAGE/Applications/BabelBrain-Version-Selector.app"
+          /usr/bin/ditto "BabelBrain/dist/uninstaller/BabelBrain-Uninstaller.app" \
+            "$STAGE/Applications/BabelBrain-Uninstaller.app"
           /usr/bin/ditto "BabelBrain/dist/version/BabelBrain.app" \
             "$STAGE/Users/Shared/BabelBrain/versions/$BABEL_BUILD_ID/BabelBrain.app"
           PKG="artifacts/${{ matrix.artifact_name }}.pkg"
           SCRIPTS="$RUNNER_TEMP/pkg_scripts_unsigned"
           rm -rf "$SCRIPTS"
           BabelBrain/Hub/make_pkg_scripts.sh "$BABEL_BUILD_ID" "$SCRIPTS"
-          # pkgbuild attaches the postinstall to the component; productbuild
+          COMPONENTS="$RUNNER_TEMP/components_unsigned.plist"
+          BabelBrain/Hub/make_pkg_component_plist.sh "$STAGE" "$COMPONENTS"
+          # pkgbuild attaches the postinstall to the component and
+          # --component-plist stops the apps being relocated; productbuild
           # only wraps it. See the signed step above.
-          pkgbuild --root "$STAGE" --scripts "$SCRIPTS" \
+          pkgbuild --root "$STAGE" --component-plist "$COMPONENTS" \
+            --scripts "$SCRIPTS" \
             --identifier com.ucalgary.babelbrain.pkg --version "$VERSION" \
             --install-location / "$RUNNER_TEMP/component_unsigned.pkg"
           productbuild --identifier com.ucalgary.babelbrain.pkg \

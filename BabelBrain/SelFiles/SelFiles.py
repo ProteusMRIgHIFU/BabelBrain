@@ -6,15 +6,13 @@ import sys
 from pathlib import Path
 
 import yaml
-from PySide6.QtCore import QAbstractTableModel, Qt, Slot, QRect
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QMenu,QLabel,QComboBox,QLineEdit,QCheckBox,
-                               QAbstractSpinBox,
+from PySide6.QtCore import QAbstractTableModel, Qt, Slot
+from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog,
                                QMessageBox, QStyle, QWidget)
 import Localization
 from Localization import TR
 from BuildInfo import TitleSuffix
-from CreateTransducers.transducer_creator import (CUSTOM_TRANSDUCERS_FOLDER,
-                                                  CustomTransducer,
+from CreateTransducers.transducer_creator import (CustomTransducer,
                                                   get_class_name)
 from GUIComponents.custom_transducer_dialog import (CUSTOM_TRANSDUCER_OPTION,
                                                     CUSTOM_TRANSDUCER_PREFIX,
@@ -28,7 +26,7 @@ from TranscranialModeling.babel_integration.babel_integration_helpers import Spe
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 from .ui_form import Ui_SelFilesDialog
-from Utils.paths import resource_path
+from Utils.paths import bundle_root, custom_transducers_root
 from Utils.transducer_registry import DEFAULT_TRANSDUCERS
 
 
@@ -157,20 +155,6 @@ class SelFiles(QDialog):
         super().__init__(parent)
         self.ui = Ui_SelFilesDialog()
         self.ui.setupUi(self)
-        self.ui.SettingsToolButton.raise_()
-
-        # Create the settings menu in Python because pyside6-uic represents a
-        # QMenu embedded in a QToolButton as a submenu instead of calling
-        # QToolButton.setMenu().
-        self.ui.SettingsMenu = QMenu(self.ui.SettingsToolButton)
-        self.ui.SettingsMenu.setObjectName("SettingsMenu")
-        self.ui.ManageCustomTransducersAction = self.ui.SettingsMenu.addAction(
-            "Manage Custom Transducers"
-        )
-        self.ui.ManageCustomTransducersAction.setObjectName(
-            "ManageCustomTransducersAction"
-        )
-        self.ui.SettingsToolButton.setMenu(self.ui.SettingsMenu)
 
         self._PopulateTransducerComboBox()   # populate from transducer_list.yaml
         self.AddCustomTransducersToList()  # Add saved custom transducers
@@ -178,7 +162,8 @@ class SelFiles(QDialog):
         from GUIComponents.AppStyle import app_qss, apply_native_spinbox_style
         self.setStyleSheet(app_qss(self))
         apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
-        with open(os.path.join(resource_path(__file__).parent, 'version-gui.txt'), 'r') as f:
+        self._UpdateTransducerPopupWidth()  # re-measure with the styled font
+        with open(os.path.join(bundle_root(__file__), 'version-gui.txt'), 'r') as f:
             version = f.readlines()[0]
         self.bb_version = version.strip()
         # This is the first screen users see, so a dev/test build has to say so
@@ -200,7 +185,6 @@ class SelFiles(QDialog):
         self.ui.TransducerTypecomboBox.currentIndexChanged.connect(self.SelectTransducer)
         self.ui.SelMultiPointProfilepushButton.clicked.connect(self.SelectMultiPointProfile)
         self.ui.CancelpushButton.clicked.connect(self.Cancel)
-        self.ui.ManageCustomTransducersAction.triggered.connect(self.ManageCustomTransducers)
 
         self.ui.SelTrajectorypushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
         self.ui.SelT1WpushButton.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
@@ -388,9 +372,63 @@ class SelFiles(QDialog):
     def ManageCustomTransducers(self):
         CustomTransducerManagerDialog(self).exec()
 
+    def CreateCustomTransducer(self):
+        """
+        Open the custom transducer dialog and create the transducer. Returns the
+        new transducer's combobox text, or None if the user cancelled.
+        """
+        dialog = CustomTransducerDialog(self, config_file=self.custom_transducer_config)
+        temp_tx = None
+
+        while True:
+            result = dialog.exec()
+
+            # User cancelled or closed the dialog
+            if result != QDialog.DialogCode.Accepted:
+                break
+
+            self.custom_transducer_config = dialog.config_file
+
+            try:
+                gpu, computing_backend = self.GetSelectedComputingEngine()
+                self.remote_server = self.GetSelectedServer()
+                temp_tx = CustomTransducer(
+                    bb_version=self.bb_version,
+                    transducer_yaml=self.custom_transducer_config,
+                    computing_backend=computing_backend,
+                    gpu=gpu,
+                    remote_server=self.remote_server)
+
+            except Exception as error:
+                if "Cancel Action" not in str(error):
+                    show_error_dialog(
+                        self,
+                        error,
+                        "Unable to create transducer",
+                    )
+
+                # Reopen the same dialog as though Accept had not succeeded.
+                continue
+            finally:
+                # Refresh transducer list.
+                self.AddCustomTransducersToList()
+
+            # Transducer was created successfully.
+            break
+
+        if temp_tx is None:
+            return None
+
+        new_tx_name = CUSTOM_TRANSDUCER_PREFIX + get_class_name(temp_tx.name)
+        new_tx_index = self.ui.TransducerTypecomboBox.findText(new_tx_name)
+        if new_tx_index >= 0:
+            self.ui.TransducerTypecomboBox.setCurrentIndex(new_tx_index)
+            return new_tx_name
+        return None
+
     def _custom_tx_item_data(self, tx_name: str) -> dict:
         """Build the item-data dict for a custom transducer by reading its default.yaml."""
-        tx_default_yaml = CUSTOM_TRANSDUCERS_FOLDER / f"Babel_{tx_name}" / "default.yaml"
+        tx_default_yaml = custom_transducers_root() / f"babel_{tx_name}" / "default.yaml"
         try:
             with open(tx_default_yaml, "r") as f:
                 tx_params = yaml.safe_load(f)
@@ -417,16 +455,19 @@ class SelFiles(QDialog):
         # and opeing another create transducer dialog. We block signals from transducer combobox here to prevent this
         self.ui.TransducerTypecomboBox.blockSignals(True) 
 
-        # Define the transducers folder path if not already created
-        if not os.path.exists(CUSTOM_TRANSDUCERS_FOLDER):
+        # Define the transducers folder path if not already created. In server
+        # mode this is the staging folder inside the job's workspace, not the
+        # user's .config -- see Utils.paths.custom_transducers_root.
+        transducers_folder = custom_transducers_root()
+        if not os.path.exists(transducers_folder):
             # Create the directory safely
-            CUSTOM_TRANSDUCERS_FOLDER.mkdir(parents=True, exist_ok=True)
+            transducers_folder.mkdir(parents=True, exist_ok=True)
 
         try:
             valid_custom_txs = set()
 
             # Loop through each custom transducer and add to list
-            tx_folders = [f.name for f in Path(CUSTOM_TRANSDUCERS_FOLDER).iterdir() if f.is_dir()]
+            tx_folders = [f.name for f in Path(transducers_folder).iterdir() if f.is_dir()]
             for tx_folder in tx_folders:
                 tx_folder_found = re.search("(?<=babel_).*", str(tx_folder))
                 if tx_folder_found:
@@ -452,6 +493,22 @@ class SelFiles(QDialog):
                     self.ui.TransducerTypecomboBox.removeItem(index)
         finally:
             self.ui.TransducerTypecomboBox.blockSignals(False)
+
+        self._UpdateTransducerPopupWidth()
+
+    def _UpdateTransducerPopupWidth(self):
+        """Widen the transducer dropdown's popup list to fit its longest entry,
+        without changing the width of the combobox itself."""
+        # Measure the text directly: sizeHintForColumn() is unreliable until the
+        # popup has been shown, so it gave too narrow a width at startup.
+        combo = self.ui.TransducerTypecomboBox
+        view = combo.view()
+        view.ensurePolished()
+        metrics = view.fontMetrics()
+        text_width = max((metrics.horizontalAdvance(combo.itemText(i))
+                          for i in range(combo.count())), default=0)
+        view.setMinimumWidth(text_width +
+                             view.verticalScrollBar().sizeHint().width() + 30)
 
     # ── Computing-engine dropdown (local GPUs + remote servers) ──────────────
     def _engineKey(self, it):
@@ -507,6 +564,11 @@ class SelFiles(QDialog):
         if items[index]['kind'] != 'action':
             self._prevEngineKey = self._engineKey(items[index])
             return
+        self.ManageRemoteServers()
+
+    def ManageRemoteServers(self):
+        """Open the remote-server manager, then rebuild the computing-engine
+        dropdown, keeping the previously selected engine when it still exists."""
         from GUIComponents.RemoteServerDialog import RemoteServerManagerDialog
         RemoteServerManagerDialog(self).exec()
         prev = getattr(self, '_prevEngineKey', None)
@@ -820,61 +882,20 @@ class SelFiles(QDialog):
     def SelectTransducer(self, value):
         sel_tx = self.ui.TransducerTypecomboBox.currentText()
 
-        # Open custom transducer dialog if option is selected
+        # Open custom transducer manager if option is selected
         if sel_tx == CUSTOM_TRANSDUCER_OPTION:
-            dialog = CustomTransducerDialog(self, config_file=self.custom_transducer_config)
-            temp_tx = None
-
-            while True:
-                result = dialog.exec()
-
-                # User cancelled or closed the dialog
-                if result != QDialog.DialogCode.Accepted:
-                    break
-
-                self.custom_transducer_config = dialog.config_file
-
-                try:
-                    gpu, computing_backend = self.GetSelectedComputingEngine()
-                    self.remote_server = self.GetSelectedServer()
-                    temp_tx = CustomTransducer(
-                        bb_version=self.bb_version,
-                        transducer_yaml=self.custom_transducer_config,
-                        computing_backend=computing_backend,
-                        gpu=gpu,
-                        remote_server=self.remote_server)
-
-                except Exception as error:
-                    if "Cancel Action" not in str(error):
-                        show_error_dialog(
-                            self,
-                            error,
-                            "Unable to create transducer",
-                        )
-
-                    # Reopen the same dialog as though Accept had not succeeded.
-                    continue
-                finally:
-                    # Refresh transducer list.
-                    self.AddCustomTransducersToList()
-
-                # Transducer was created successfully.
-                break
-
-            # Change currently selected tx
-            if temp_tx:
-                new_tx_name = (CUSTOM_TRANSDUCER_PREFIX + get_class_name(temp_tx.name))
-                new_tx_index = (self.ui.TransducerTypecomboBox.findText(new_tx_name))
-
-                if new_tx_index >= 0:
-                    self.ui.TransducerTypecomboBox.setCurrentIndex(new_tx_index)
-                else:
-                    self.ui.TransducerTypecomboBox.setCurrentIndex(self._previous_transducer_index)
+            # Restore the previous selection before opening the manager so the
+            # combobox never sits on the 'Add Custom Transducer' option while
+            # the manager edits the list.
+            combo = self.ui.TransducerTypecomboBox
+            combo.blockSignals(True)
+            if combo.itemText(self._previous_transducer_index) == CUSTOM_TRANSDUCER_OPTION:
+                combo.setCurrentIndex(0)
             else:
-                if self.ui.TransducerTypecomboBox.itemText(self._previous_transducer_index) == CUSTOM_TRANSDUCER_OPTION:
-                    self.ui.TransducerTypecomboBox.setCurrentIndex(0)
-                else:
-                    self.ui.TransducerTypecomboBox.setCurrentIndex(self._previous_transducer_index)
+                combo.setCurrentIndex(self._previous_transducer_index)
+            combo.blockSignals(False)
+
+            self.ManageCustomTransducers()
 
         tx_data = self.ui.TransducerTypecomboBox.currentData()
         steering_enabled = tx_data is not None and tx_data.get('steering', False)

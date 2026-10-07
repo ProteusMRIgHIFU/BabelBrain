@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-CUSTOM_TRANSDUCER_OPTION = 'Add Custom Transducer ...'
+CUSTOM_TRANSDUCER_OPTION = '➕  Add / remove custom transducer…'
 CUSTOM_TRANSDUCER_PREFIX = 'Custom: '
 
 

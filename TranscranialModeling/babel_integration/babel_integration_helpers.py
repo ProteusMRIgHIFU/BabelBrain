@@ -35,7 +35,7 @@ try:
 except ImportError:
     def _rec_artifact(_p, **_k):
         return _p
-from Utils.paths import resource_path
+from Utils.paths import bundle_root
 
 np.seterr(divide='raise')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -46,7 +46,7 @@ _IS_MAC = platform.system() == 'Darwin'
 
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
-_MapPichardo = ReadFromH5py(os.path.join(resource_path(__file__).parent, 'MapPichardo.h5'))
+_MapPichardo = ReadFromH5py(os.path.join(bundle_root(__file__), 'MapPichardo.h5'))
 if scipy.__version__>"1.14.0":
     interp2d=interpolate.RectBivariateSpline
     _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'],kx=1,ky=1)
@@ -327,7 +327,7 @@ def HUtoDensityUCLLowEnergy(hu_in):
         Density values (kg/m³) interpolated from calibration table.
     '''
     #using calibration reported in https://github.com/ucl-bug/petra-to-ct 
-    f = h5py.File(os.path.join(resource_path(__file__).parent, 'ct-calibration-low-dose-30-March-2023-v1.h5'), 'r')
+    f = h5py.File(os.path.join(bundle_root(__file__), 'ct-calibration-low-dose-30-March-2023-v1.h5'), 'r')
     ct_calibration=f['ct_calibration'][:][0,:,:].T
     return np.interp(hu_in,ct_calibration[0,:],ct_calibration[1,:])
 
@@ -335,7 +335,7 @@ def SimNIBS_PETRApct_Density(hu_in):
     MAX_CT_VALUE = 3150 # [hu]
     MAX_DENSITY_VALUE = 3147.35469785 # [kg/m3]
     DENSITY_WATER = 1000.0  # [kg/m3]
-    points = np.loadtxt(os.path.join(resource_path(__file__).parent, 'ct_to_density_calibration_cph2025_line_v1.csv'), delimiter=",")
+    points = np.loadtxt(os.path.join(bundle_root(__file__), 'ct_to_density_calibration_cph2025_line_v1.csv'), delimiter=",")
     points = np.concatenate((points, [[MAX_CT_VALUE, MAX_DENSITY_VALUE]]))
     hu_values, density_values = points[:, 0], points[:, 1]
     assert np.all(np.diff(hu_values) > 0), "ct to density values must be increasing only in the calibration file."
@@ -508,7 +508,7 @@ def HUtoAttenuationWebb(hu, frequency, params=['GE','120','B','','0.5, 0.6']):
     lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
     dict_dtypes = {x : 'str'  for x in lst_str_cols}
 
-    df = pd.read_csv(os.path.join(resource_path(__file__).parent, 'WebbHU_Att.csv'), keep_default_na=False, index_col=lst_str_cols, dtype=dict_dtypes)
+    df = pd.read_csv(os.path.join(bundle_root(__file__), 'WebbHU_Att.csv'), keep_default_na=False, index_col=lst_str_cols, dtype=dict_dtypes)
     
     sel=df.loc[[params]]
 
@@ -535,7 +535,7 @@ def SpeedofSoundWebbDataset():
     lst_str_cols = ['Scanner','Energy','Kernel','Other','Res']
     dict_dtypes = {x : 'str'  for x in lst_str_cols}
 
-    df = pd.read_csv(os.path.join(resource_path(__file__).parent, 'WebbHU_SoS.csv'), keep_default_na=False, index_col=lst_str_cols, dtype=dict_dtypes)
+    df = pd.read_csv(os.path.join(bundle_root(__file__), 'WebbHU_SoS.csv'), keep_default_na=False, index_col=lst_str_cols, dtype=dict_dtypes)
     return df
 
 

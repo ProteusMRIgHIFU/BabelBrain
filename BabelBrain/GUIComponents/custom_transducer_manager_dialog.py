@@ -87,21 +87,12 @@ class CustomTransducerManagerDialog(QDialog):
 
     @Slot()
     def AddTransducer(self):
-        add_tx_index = self.parent_dialog.ui.TransducerTypecomboBox.findText(
-            CUSTOM_TRANSDUCER_OPTION
-        )
+        new_tx = self.parent_dialog.CreateCustomTransducer()
 
-        if add_tx_index >= 0:
-            self.parent_dialog.ui.TransducerTypecomboBox.setCurrentIndex(add_tx_index)
+        if new_tx is not None:
+            new_tx = new_tx.removeprefix(CUSTOM_TRANSDUCER_PREFIX)
 
-        current_tx = self.parent_dialog.ui.TransducerTypecomboBox.currentText()
-
-        if current_tx.startswith(CUSTOM_TRANSDUCER_PREFIX):
-            current_tx = current_tx.removeprefix(CUSTOM_TRANSDUCER_PREFIX)
-        else:
-            current_tx = None
-
-        self.RefreshTransducerList(current_tx)
+        self.RefreshTransducerList(new_tx)
 
     @Slot()
     def DeleteTransducer(self):
@@ -122,7 +113,7 @@ class CustomTransducerManagerDialog(QDialog):
         if response != QMessageBox.StandardButton.Yes:
             return
 
-        tx_folder = CUSTOM_TRANSDUCERS_FOLDER / f"Babel_{tx_name}"
+        tx_folder = CUSTOM_TRANSDUCERS_FOLDER / f"babel_{tx_name}"
         current_tx = self.parent_dialog.ui.TransducerTypecomboBox.currentText()
 
         try:
@@ -178,6 +169,7 @@ class CustomTransducerManagerDialog(QDialog):
                 combo_box.insertItem(
                     insert_index,
                     custom_transducer_display_name(tx_name),
+                    self.parent_dialog._custom_tx_item_data(tx_name),
                 )
                 insert_index += 1
 

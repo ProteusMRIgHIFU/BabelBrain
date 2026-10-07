@@ -1,7 +1,8 @@
 ; BabelBrain — Windows installer (Inno Setup)
 ; Build:  ISCC.exe /DAppVersion=<version> /DBuildId=<version+commit> BabelBrain.iss
 ;
-; Two-app model. Installs:
+; Two-app model (Windows needs no uninstaller app of its own — the Inno
+; uninstaller does that job). Installs:
 ;   {app}\BabelBrain.exe                                  - the launcher / main app
 ;   {app}\VersionSelector\BabelBrain-Version-Selector.exe - the version picker
 ; and seeds a default BabelBrain version into the per-user store:
@@ -10,6 +11,13 @@
 ;   {localappdata}\BabelBrain\default_build.json
 ; Expects PyInstaller onedir output at .\dist\launcher\, .\dist\selector\,
 ; .\dist\version\ .
+;
+; Uninstall removes the seeded/downloaded versions too. They live in
+; {localappdata}\BabelBrain, deliberately OUTSIDE {app}, so the stock
+; uninstaller would leave several GB behind; CurUninstallStepChanged below
+; hands that job to the Version Selector (--purge-user-data), which is the same
+; code the macOS uninstaller app uses. Settings and custom transducers are
+; small and often worth keeping, so they are removed only if the user says so.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -78,6 +86,12 @@ Name: "{group}\{#SelectorName}"; Filename: "{app}\{#SelectorExe}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
+[UninstallDelete]
+; Backstop: if the Version Selector could not be run during uninstall (a
+; partial install, a corrupt exe), the version store still goes. Inno processes
+; these after the main file removal.
+Type: filesandordirs; Name: "{localappdata}\BabelBrain"
+
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
@@ -105,6 +119,72 @@ begin
                  '}' + #13#10;
       // A failed marker write is not worth failing the install over.
       SaveStringToFile(Marker, Content, False);
+    end;
+  end;
+end;
+
+// --------------------------------------------------------------------------
+// Uninstall: leave nothing behind.
+//
+// {app} is Inno's to remove, but the version store is not — it lives in
+// {localappdata}\BabelBrain so that versions survive an app upgrade. Running
+// the Version Selector with --purge-user-data reuses Hub/uninstall.py, so
+// Windows and macOS remove exactly the same set of paths. It runs at
+// usUninstall, while the exe still exists, with no elevation of its own (a
+// UAC prompt hidden behind the uninstall progress window would just hang), so
+// a machine-wide %ProgramData% store is reported rather than silently skipped.
+// --------------------------------------------------------------------------
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Selector, Params, Home: String;
+  ResultCode: Integer;
+  RemoveSettings, Purged: Boolean;
+begin
+  if CurUninstallStep <> usUninstall then
+    Exit;
+
+  RemoveSettings := MsgBox(
+      'Also remove your BabelBrain settings and custom transducers?' + #13#10 + #13#10 +
+      'These are small, and keeping them means a future reinstall finds your '
+      + 'preferences and any transducers you created.' + #13#10 + #13#10 +
+      'Your study data (images, .ini files and results) is never removed.',
+      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+
+  Purged := False;
+  Selector := ExpandConstant('{app}\{#SelectorExe}');
+  if FileExists(Selector) then
+  begin
+    Params := '--purge-user-data';
+    if RemoveSettings then
+      Params := Params + ' --include-settings';
+    // SW_HIDE: no console flash. A non-zero exit means something could not be
+    // removed (typically an all-users store needing administrator rights).
+    if Exec(Selector, Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      Purged := ResultCode = 0;
+      if ResultCode <> 0 then
+        MsgBox('Some BabelBrain files could not be removed - usually versions '
+             + 'installed for all users, which need administrator rights.'
+             + #13#10 + #13#10 + 'You can delete them manually from:' + #13#10
+             + ExpandConstant('{commonappdata}\BabelBrain'),
+               mbInformation, MB_OK);
+    end;
+  end;
+
+  // Fallback when the Version Selector is missing or did not start: remove the
+  // same paths directly. [UninstallDelete] covers the version store as well.
+  if not Purged then
+  begin
+    DelTree(ExpandConstant('{localappdata}\BabelBrain'), True, True, True);
+    if RemoveSettings then
+    begin
+      Home := GetEnv('USERPROFILE');
+      if Home <> '' then
+      begin
+        DelTree(Home + '\.config\BabelBrain', True, True, True);
+        DelTree(Home + '\.babelbrain', True, True, True);
+        DelTree(Home + '\.BabelBrainSync', True, True, True);
+      end;
     end;
   end;
 end;

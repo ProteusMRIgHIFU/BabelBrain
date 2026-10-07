@@ -1,6 +1,6 @@
 """
 ===============================================================================
-WARNING: AUTO-GENERATED FILE — DO NOT MODIFY MANUALLY
+WARNING: AUTO-GENERATED FILE - DO NOT MODIFY MANUALLY
 ===============================================================================
 
 BabelBrain Generated File
@@ -9,22 +9,15 @@ Application Version: BabelBrain v{{ babelbrain_version }}
 Custom Transducer Template Version: v{{ template_version }}
 """
 
-from multiprocessing import Process,Queue
-import os
 from pathlib import Path
-import platform
-import sys
-
-import yaml
 
 from .{{ transducer_class_name }}_form import {{ transducer_class_name }}Form
-
-module_directory = Path.cwd() / 'BabelBrain' / 'babel_transducers' / 'transducer_templates'
-sys.path.insert(0, str(module_directory))
-from {{ transducer_template }} import {{ transducer_template_class_name }}
+from babel_transducers.transducer_templates.{{ transducer_template }} import {{ transducer_template_class_name }}
 
 
 class {{ transducer_class_name }}({{ transducer_template_class_name }}):
     def __init__(self, parent=None, MainApp=None):
-        super().__init__(parent, MainApp, tx_config_file="{{ default_yaml }}", step_2_form={{ transducer_class_name }}Form)
-
+        # default.yaml sits next to this file, so the transducer folder stays
+        # movable (and shareable) after it has been generated.
+        config_file = Path(__file__).with_name("default.yaml")
+        super().__init__(parent, MainApp, tx_config_file=str(config_file), step_2_form={{ transducer_class_name }}Form)

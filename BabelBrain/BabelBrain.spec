@@ -58,6 +58,89 @@ def collect_external_bin_binaries():
     return collected_binaries
 
 
+def collect_transducer_configs():
+    """``default.yaml`` for every built-in transducer.
+
+    Utils.paths.resource_path() resolves a frozen module's resources as
+    ``_MEIPASS/<name of the module's own folder>``, so each config has to land
+    in a folder named after its transducer, e.g.
+    ``babel_transducers/focused_array/H317/default.yaml`` -> ``./H317``.
+    Globbing keeps this in step with babel_transducers/ as devices are added.
+    """
+
+    collected = []
+    for path in glob(os.path.join("babel_transducers", "*", "*", "*.yaml")):
+        collected += [(path, "." + os.sep + os.path.basename(os.path.dirname(path)))]
+
+    print("\nTransducer Configs:\n" + "\n".join(map(str, collected)))
+
+    return collected
+
+
+def collect_gpu_kernels():
+    """GPU kernel sources and headers.
+
+    ``GPUFunctions/<Op>/<kernel>.cpp`` is read by ``GPUFunctions/<Op>/*.py``,
+    which resolves to ``_MEIPASS/<Op>``. The second copy under
+    ``./GPUFunctions/<Op>`` is what keeps GPUUtils' nvrtc include path
+    (``_MEIPASS/GPUFunctions``) valid for the CUDA backend.
+    """
+
+    collected = []
+    for pattern in ("*.cpp", "*.h"):
+        for path in glob(os.path.join("GPUFunctions", "*", pattern)):
+            op = os.path.basename(os.path.dirname(path))
+            collected += [(path, "." + os.sep + op),
+                          (path, "." + os.sep + os.path.join("GPUFunctions", op))]
+
+    print("\nGPU Kernels:\n" + "\n".join(map(str, collected)))
+
+    return collected
+
+
+def collect_local_submodules(package_dir, package_name):
+    """Every module under a first-party package, named as it is imported.
+
+    ``collect_submodules()`` is not usable for these: it imports the package in
+    an isolated subprocess whose sys.path does not contain the repository, and
+    it skips sub-folders without an ``__init__.py``. Walking the tree needs no
+    imports and cannot miss a module.
+    """
+
+    modules = [package_name]
+    for path in glob(os.path.join(package_dir, "**", "*.py"), recursive=True):
+        rel = os.path.relpath(path, package_dir)
+        if "__pycache__" in rel:
+            continue
+        parts = rel[: -len(".py")].split(os.sep)
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        if parts:
+            modules += [".".join([package_name] + parts)]
+
+    return sorted(set(modules))
+
+
+def collect_optional_packages(packages):
+    """collect_all() for packages that are not installed on every platform."""
+
+    opt_datas = []
+    opt_binaries = []
+    opt_hiddenimports = []
+
+    for pkg in packages:
+        try:
+            modinfo = collect_all(pkg)
+        except Exception as e:  # not installed in this environment
+            print(f"\nSkipping optional package {pkg}: {e}")
+            continue
+        opt_datas += modinfo[0]
+        opt_binaries += modinfo[1]
+        opt_hiddenimports += modinfo[2]
+
+    return opt_datas, opt_binaries, opt_hiddenimports
+
+
 def collect_missing_package_info(missing_packages):
 
     missing_datas = []
@@ -108,60 +191,49 @@ upx_exclude_list = []
 # Add Common Data Files
 # ==============================================================================
 
-commonDatas = [
-    ("Babel_H317/default.yaml", "./Babel_H317"),
-    ("Babel_H246/default.yaml", "./Babel_H246"),
-    ("Babel_CTX500/default.yaml", "./Babel_CTX500"),
-    ("Babel_CTX250/default.yaml", "./Babel_CTX250"),
-    ("Babel_CTX250_2ch/default.yaml", "./Babel_CTX250_2ch"),
-    ("Babel_DPX500/default.yaml", "./Babel_DPX500"),
-    ("Babel_DPXPC300/default.yaml", "./Babel_DPXPC300"),
-    ("Babel_SingleTx/default.yaml", "./Babel_SingleTx"),
-    ("Babel_SingleTx/defaultBSonix.yaml", "./Babel_SingleTx"),
-    ("Babel_REMOPD/default.yaml", "./Babel_REMOPD"),
-    ("Babel_I12378/default.yaml", "./Babel_I12378"),
-    ("Babel_ATAC/default.yaml", "./Babel_ATAC"),
-    ("Babel_R15148/default.yaml", "./Babel_R15148"),
-    ("Babel_R15287/default.yaml", "./Babel_R15287"),
-    ("Babel_R15473/default.yaml", "./Babel_R15473"),
-    ("Babel_R15646/default.yaml", "./Babel_R15646"),
-    ("Babel_IGT64_500/default.yaml", "./Babel_IGT64_500"),
-    ("Babel_DomeTx/default.yaml", "./Babel_DomeTx"),
-    ("Babel_H301/default.yaml", "./Babel_H301"),
+# Everything Utils.paths.resource_path() / bundle_root() reaches at runtime.
+# resource_path(__file__) is _MEIPASS/<name of the calling module's folder> and
+# bundle_root(__file__) is _MEIPASS itself, so destinations below are named
+# after the folder the reading module lives in -- not after its source path.
+commonDatas = collect_transducer_configs() + collect_gpu_kernels() + [
+    # Read by Utils/transducer_registry.py via bundle_root()
+    ("SelFiles/transducer_list.yaml", "./SelFiles"),
+    # Jinja sources for user-created transducers, rendered by
+    # CreateTransducers/transducer_creator.py via bundle_root()
+    ("babel_transducers/transducer_templates/babel_integration_tx.py.jinja", "./babel_transducers/transducer_templates"),
+    ("babel_transducers/transducer_templates/babel_tx.py.jinja", "./babel_transducers/transducer_templates"),
+    ("babel_transducers/transducer_templates/tx_form.py.jinja", "./babel_transducers/transducer_templates"),
+    # Bundle root: read by the top-level modules (BabelBrain.py, ClockDialog.py,
+    # CTZTEProcessing.py) and by anything calling bundle_root()
     ("default.yaml", "./"),
     ("version.txt", "./"),
     ("version-gui.txt", "./"),
     ("icons8-hourglass.gif", "./"),
     ("ExampleHistogram.h5", "./"),
     ("rigid_template.txt", "./"),
-    ("../TranscranialModeling/H-317 XYZ Coordinates_revB update 1.18.22.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/I12378.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/ATACArray.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/DomeTxTransducerGeometry.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/R15148_1001.mat", "./TranscranialModeling"),
-    ("../TranscranialModeling/R15646.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/MapPichardo.h5", "./TranscranialModeling"),
-    ("../TranscranialModeling/WebbHU_SoS.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/WebbHU_Att.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5", "./TranscranialModeling"),
-    ("../TranscranialModeling/ct_to_density_calibration_cph2025_line_v1.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/REMOPD_ElementPosition.mat", "./TranscranialModeling"),
-    ("../TranscranialModeling/IGT64_500.csv", "./TranscranialModeling"),
-    ("../TranscranialModeling/H301.csv", "./TranscranialModeling"),
-    ("GPUFunctions/GPUBinaryClosing/binary_closing.cpp", "./GPUFunctions/GPUBinaryClosing"),
-    ("GPUFunctions/GPULabel/label.cpp", "./GPUFunctions/GPULabel"),
-    ("GPUFunctions/GPUMapping/map_filter.cpp", "./GPUFunctions/GPUMapping"),
-    ("GPUFunctions/GPUMedianFilter/median_filter.cpp", "./GPUFunctions/GPUMedianFilter"),
-    ("GPUFunctions/GPUResample/affine_transform.cpp", "./GPUFunctions/GPUResample"),
-    ("GPUFunctions/GPUResample/spline_filter.cpp", "./GPUFunctions/GPUResample"),
-    ("GPUFunctions/GPUVoxelize/voxelize.cpp", "./GPUFunctions/GPUVoxelize"),
-    ("GPUFunctions/GPUVoxelize/helper_math.h", "./GPUFunctions/GPUVoxelize"),
+    ("Proteus-Alciato-logo.png", "./"),
+    # Skull-property calibration tables, read by
+    # TranscranialModeling/babel_integration/babel_integration_helpers.py
+    ("../TranscranialModeling/MapPichardo.h5", "./"),
+    ("../TranscranialModeling/WebbHU_SoS.csv", "./"),
+    ("../TranscranialModeling/WebbHU_Att.csv", "./"),
+    ("../TranscranialModeling/ct-calibration-low-dose-30-March-2023-v1.h5", "./"),
+    ("../TranscranialModeling/ct_to_density_calibration_cph2025_line_v1.csv", "./"),
 ]
 
 # Compiled UI string catalogues (see Localization.py and i18n/README.md). Only
 # the .qm files are needed at run time; the .ts sources stay out of the bundle.
 # glob so that new languages/modes are picked up without touching this list.
 commonDatas += [(f, "./i18n") for f in sorted(glob("i18n" + os.sep + "*.qm"))]
+# Fail the build rather than shipping an app that is missing a resource: a
+# source path that no longer exists is silently dropped by PyInstaller, which
+# is how the pre-UserTx transducer layout survived in this spec unnoticed.
+missing_sources = [src for src, _ in commonDatas if not os.path.isfile(src)]
+if missing_sources:
+    raise FileNotFoundError(
+        "BabelBrain.spec references data files that do not exist:\n  "
+        + "\n  ".join(missing_sources)
+    )
 
 datas += commonDatas
 print("\nCommon Data Files:\n" + "\n".join(map(str, commonDatas)))  # print list of common data files
@@ -170,41 +242,36 @@ print("\nCommon Data Files:\n" + "\n".join(map(str, commonDatas)))  # print list
 # Add Common Hidden Imports
 # ==============================================================================
 
+# Modules PyInstaller's import graph cannot see. BabelBrain.load_ui() imports
+# the Step-2 GUI by name (babel_transducers.<type>.<Tx>.babel_<Tx>) and the
+# matching solver is pulled in from there, so both trees are collected whole.
 commonhidden = [
-    "Babel_H317.Babel_H317",
-    "Babel_H246.Babel_H246",
-    "Babel_CTX500.Babel_CTX500",
-    "Babel_CTX250.Babel_CTX250",
-    "Babel_CTX250_2ch.Babel_CTX250_2ch",
-    "Babel_DPX500.Babel_DPX500",
-    "Babel_DPXPC300.Babel_DPXPC300",
-    "Babel_SingleTx.Babel_SingleTx",
-    "Babel_SingleTx.Babel_BSonix",
-    "Babel_REMOPD.Babel_REMOPD",
-    "Babel_I12378.Babel_I12378",
-    "Babel_ATAC.Babel_ATAC",
-    "Babel_R15148.Babel_R15148",
-    "Babel_R15287.Babel_R15287",
-    "Babel_R15473.Babel_R15473",
-    "Babel_R15646.Babel_R15646",
-    "Babel_IGT64_500.Babel_IGT64_500",
-    "Babel_DomeTx.Babel_DomeTx",
-    "Babel_H301.Babel_H301",
-    "TranscranialModeling.BabelIntegrationCONCAVE_PHASEDARRAY",
-    "TranscranialModeling.BabelIntegrationH317",
-    "TranscranialModeling.BabelIntegrationH246",
-    "TranscranialModeling.BabelIntegrationREMOPD",
-    "TranscranialModeling.BabelIntegrationI12378",
-    "TranscranialModeling.BabelIntegrationATAC",
-    "TranscranialModeling.BabelIntegrationR15148",
-    "TranscranialModeling.BabelIntegrationR15646",
-    "TranscranialModeling.BabelIntegrationIGT64_500",
-    "TranscranialModeling.BabelIntegrationDomeTx",
-    "TranscranialModeling.BabelIntegrationH301",
+    "Babel_Thermal.Babel_Thermal",
+    "CreateTransducers.transducer_creator",
+    "CreateTransducers.transducer_verification_dialog",
+    "GUIComponents.TxPanelBase",
+    "TranscranialModeling.tx_geometries",
 ]
+commonhidden += collect_local_submodules("babel_transducers", "babel_transducers")
+commonhidden += collect_local_submodules(
+    os.path.join("..", "TranscranialModeling", "babel_integration"),
+    "TranscranialModeling.babel_integration",
+)
 
 hiddenimports += commonhidden
 print("\nCommon Hidden Imports:\n" + "\n".join(map(str, commonhidden)))  # print list of common hidden imports
+
+# ==============================================================================
+# Add Common Optional Packages
+# ==============================================================================
+
+# pyvista backs the 3D views in BabelDatasetPreps and the custom-transducer
+# verification dialog; pyvistaqt is only listed in some environment files, so
+# a missing one is skipped rather than failing the build.
+od, ob, ohi = collect_optional_packages(["pyvista", "pyvistaqt"])
+datas += od
+binaries += ob
+hiddenimports += ohi
 
 # ==============================================================================
 # Platform-specific

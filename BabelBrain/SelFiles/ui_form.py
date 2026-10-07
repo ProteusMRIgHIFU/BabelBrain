@@ -11,34 +11,19 @@
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
     QMetaObject, QObject, QPoint, QRect,
     QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
-    QCursor, QFont, QFontDatabase, QGradient,
-    QIcon, QImage, QKeySequence, QLinearGradient,
-    QPainter, QPalette, QPixmap, QRadialGradient,
-    QTransform)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGroupBox,
-    QLabel, QLineEdit, QMenu, QPushButton,
-    QSizePolicy, QToolButton, QWidget)
+    QLabel, QLineEdit, QPushButton, QSizePolicy,
+    QWidget)
 
 class Ui_SelFilesDialog(object):
     def setupUi(self, SelFilesDialog):
         if not SelFilesDialog.objectName():
             SelFilesDialog.setObjectName(u"SelFilesDialog")
         SelFilesDialog.resize(1025, 431)
-        self.ManageCustomTransducersAction = QAction(SelFilesDialog)
-        self.ManageCustomTransducersAction.setObjectName(u"ManageCustomTransducersAction")
-        self.SettingsToolButton = QToolButton(SelFilesDialog)
-        self.SettingsToolButton.setObjectName(u"SettingsToolButton")
-        self.SettingsToolButton.setGeometry(QRect(985, 2, 30, 24))
-        self.SettingsToolButton.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.SettingsToolButton.setStyleSheet(u"QToolButton { border: none; font-size: 18px; }\n"
-"QToolButton:hover { background-color: rgba(128, 128, 128, 40); border-radius: 4px; }\n"
-"QToolButton::menu-indicator { image: none; }")
-        self.SettingsToolButton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.SettingsToolButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        self.SettingsToolButton.setAutoRaise(True)
-        self.SettingsMenu = QMenu(self.SettingsToolButton)
-        self.SettingsMenu.setObjectName(u"SettingsMenu")
         self.ContinuepushButton = QPushButton(SelFilesDialog)
         self.ContinuepushButton.setObjectName(u"ContinuepushButton")
         self.ContinuepushButton.setGeometry(QRect(378, 391, 239, 32))
@@ -204,9 +189,6 @@ class Ui_SelFilesDialog(object):
         self.CancelpushButton.setObjectName(u"CancelpushButton")
         self.CancelpushButton.setGeometry(QRect(945, 392, 74, 32))
 
-        self.SettingsToolButton.addAction(self.SettingsMenu.menuAction())
-        self.SettingsMenu.addAction(self.ManageCustomTransducersAction)
-
         self.retranslateUi(SelFilesDialog)
 
         QMetaObject.connectSlotsByName(SelFilesDialog)
@@ -214,12 +196,6 @@ class Ui_SelFilesDialog(object):
 
     def retranslateUi(self, SelFilesDialog):
         SelFilesDialog.setWindowTitle(QCoreApplication.translate("SelFilesDialog", u"Dialog", None))
-        self.ManageCustomTransducersAction.setText(QCoreApplication.translate("SelFilesDialog", u"Manage Custom Transducers", None))
-#if QT_CONFIG(tooltip)
-        self.SettingsToolButton.setToolTip(QCoreApplication.translate("SelFilesDialog", u"Settings", None))
-#endif // QT_CONFIG(tooltip)
-        self.SettingsToolButton.setText(QCoreApplication.translate("SelFilesDialog", u"\u2699", None))
-        self.SettingsMenu.setTitle("")
         self.ContinuepushButton.setText(QCoreApplication.translate("SelFilesDialog", u"CONTINUE", None))
         self.groupBox.setTitle(QCoreApplication.translate("SelFilesDialog", u"Imaging input", None))
         self.CoregCTlabel.setText(QCoreApplication.translate("SelFilesDialog", u"Correg.?", None))
