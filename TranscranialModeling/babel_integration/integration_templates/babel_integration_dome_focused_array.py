@@ -245,7 +245,7 @@ class SimulationConditions(SimulationConditionsBASE):
         if PPWSurfaceHighRes is None:
             PPWSurfaceHighRes = self.PPW_SURFACE_HIGH_RES
         if self._coordinate_system == 'spherical':
-            element_positions = np.column_stack((self._elements["r"], np.deg2rad(self._elements["theta"]), np.deg2rad(self._elements["phi"])))
+            element_positions = np.column_stack((self._elements["r"], self._elements["theta"], self._elements["phi"]))
         else:
             element_positions = np.column_stack((self._elements["x"], self._elements["y"], self._elements["z"]))
         self._Tx = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
