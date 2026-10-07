@@ -13,7 +13,7 @@ USFrequencies:
     - 500000.0
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
-NaturalOutPlaneDistance: 1.2e-3 #mm
+distance_elements_to_outplane: 1.2e-3 # m, fabrication dead space between element surface and device edge
 
 PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
     300000.0:
