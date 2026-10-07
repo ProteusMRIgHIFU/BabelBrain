@@ -121,7 +121,11 @@ class RUN_SIM_BASE(object):
                 AlphaCFL=0.5
                 for PPW in basePPW:
                     ppws='%iPPW_' % PPW
-                    SensorSubSampling=0 #this will force to recalculaet
+                    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+                        print('BABELBRAIN_TSUS_EXVIVO capturing signal with no subsampling')
+                        SensorSubSampling=1
+                    else:
+                        SensorSubSampling=0 #this will force to recalculaet
 
                     prefix=basedir+ID+os.sep
                     MASKFNAME=prefix+target+fstr+ppws+ 'BabelViscoInput.nii.gz'
@@ -456,9 +460,11 @@ class BabelFTD_Simulations_BASE(object):
                                            entry['LongAtt'],
                                            entry['ShearAtt'])
         elif self._CTFNAME is not None and not self._bWaterOnly:
-            if 'BABEL_PYTEST_PAPER' in os.environ:
+            if 'BABEL_PYTEST_PAPER' in os.environ or os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
                 #we skin and Brain as water
                 print('*'*30)
+                if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+                    print('BABELBRAIN_TSUS_EXVIVO')
                 print('Modeling soft tissue as water')
                 print('*'*30)
                 lMaterials=['Water','Water']
@@ -1256,7 +1262,11 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         print('PPP, Subsampling, PPP for sensors ', self._PPP,self._SensorSubSampling, self._PPP/self._SensorSubSampling)
         assert((self._PPP%self._SensorSubSampling)==0)
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
-        self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            print('BABELBRAIN_TSUS_EXVIVO capturing all time data')
+            self._SensorStart=0 # 
+        else:
+            self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
 
         self._SubAirRegions=None
         #we add the material map
@@ -1633,6 +1643,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             self._InPeakValue=self._DictPeakValue['Pressure']
             self._PressMapFourier*=2/self._Sensor['time'].size
             print('Elapsed time doing phase and amp extraction from Fourier (s)',time.time()-t0)
+
+
             
             if bDoRefocusing:
                 self._SensorBack['Pressure']=np.ascontiguousarray(self._SensorBack['Pressure'])
@@ -1993,6 +2005,13 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            print('BABELBRAIN_TSUS_EXVIVO Saving Sensor data')
+            DataForSim['Sensor']=self._Sensor
+            DataForSim['SensorMap']=self._SensorMap
+            DataForSim['SensorIndex']=self._InputParam-1
+            DataForSim['SensorMaterialMap']=self._MaterialMapNoCT
+                        
         if hasattr(self,'_SourceMapRayleigh'):
             DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,
                                                             self._PMLThickness:-self._PMLThickness]

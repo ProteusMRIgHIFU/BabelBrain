@@ -502,6 +502,9 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
             CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
+            if bTVUS_OPERATION and os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1' and not np.any(CSFRegion):
+                print('BABELBRAIN_TSUS_EXVIVO:Using eroded AllTissueRegion for CSF region')
+                CSFRegion=ndimage.binary_erosion(AllTissueRegion,iterations=10) # for ex vivo, we just do a dummy region
             with CodeTimer("CTS:L3:S1: charm surface recon",unit='s'):
                 skin_mesh=MaskToStl(AllTissueRegion,charm.affine)
                 csf_mesh=MaskToStl(CSFRegion,charm.affine)

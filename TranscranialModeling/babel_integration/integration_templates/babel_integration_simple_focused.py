@@ -252,12 +252,22 @@ class SimulationConditions(SimulationConditionsBASE):
             ] = InputFocus["sourceplane"]
 
     def CreateSources(self, ramp_length=4):
+
         # we create the list of functions sources taken from the Rayliegh incident field
-        LengthSource = (
-            np.floor(self._TimeSimulation / (1.0 / self._Frequency))
-            * 1
-            / self._Frequency
-        )
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            print('BABELBRAIN_TSUS_EXVIVO: Single element CreateSources ')
+
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            ramp_length=3 #reducing the ramping - to fix later to something that matches better experiments
+            period=1.0 / self._Frequency
+            numberPulses=1.0+ramp_length*2
+            LengthSource = numberPulses*period
+            print(f'setting numbers of pulses and ramping to {numberPulses} and {ramp_length}')
+        else:
+            LengthSource = (
+                np.floor(self._TimeSimulation / (1.0 / self._Frequency))
+                * 1/ self._Frequency
+            )
         TimeVectorSource = np.arange(
             0, LengthSource + self._TemporalStep, self._TemporalStep
         )
