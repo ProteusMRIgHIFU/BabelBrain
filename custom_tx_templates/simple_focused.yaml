@@ -24,6 +24,8 @@ focal_length: 0.05                      # Radius of curvature of the cap (m)
 distance_elements_to_outplane: 0.0      # Dead space (m), transducer rim to device edge. Default 0
 
 # ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
 # PlanTUS tables, one entry per frequency (distances in m).
 # If omitted, BabelBrain estimates them with Rayleigh simulations in water.
 # PlanTUS:

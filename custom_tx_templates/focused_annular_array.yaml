@@ -38,6 +38,8 @@ steering:
     z: [-0.03294, 0.01956]              # Axial offset [min, max] (m) from the natural focus; negative moves towards the transducer, abs(min) <= focal_length
 
 # ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
 # PlanTUS tables, one entry per frequency (distances in m).
 # If omitted, BabelBrain estimates them with Rayleigh simulations in water.
 # PlanTUS:

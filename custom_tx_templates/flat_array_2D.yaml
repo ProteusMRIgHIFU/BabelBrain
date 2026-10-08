@@ -115,6 +115,8 @@ steering:
     z: [0.02, 0.1]                      # Focal depths measured from the array plane (min must be > 0)
 
 # ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
 # PlanTUS tables, one entry per frequency (distances in m).
 # If omitted, BabelBrain estimates them with Rayleigh simulations in water.
 # PlanTUS:

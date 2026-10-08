@@ -31,6 +31,8 @@ steering:
     z: [0.025, 0.095]                   # Focal depths [min, max] (m) from the array plane, min > 0. Also the TPO distance range in the GUI.
 
 # ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
 # PlanTUS tables, one entry per frequency (distances in m).
 # Automatic estimation is not available for this type, so enter them here to use PlanTUS.
 # PlanTUS:

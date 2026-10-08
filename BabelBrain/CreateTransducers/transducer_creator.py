@@ -163,6 +163,7 @@ class CustomTransducer:
         self.xsteering_limits: list | None = None
         self.ysteering_limits: list | None = None
         self.zsteering_limits: list | None = None
+        self.xy_mech_limits: list | None = None
         
         try:
             # Load/Validate transducer details
@@ -339,6 +340,7 @@ class CustomTransducer:
         self._validate_annular(tx_params)                                                                       # sets: self.rings
         self._validate_outplane_distances(tx_params)                                                            # sets: self.distance_elements_to_outplane, self.distance_outplane_to_focus
         self._validate_steering(tx_params)                                                                      # sets: self.xsteering_limits, self.ysteering_limits, self.zsteering_limits
+        self._validate_mechanical_adjustment(tx_params)                                                         # sets: self.xy_mech_limits
         self._validate_PlanTUS(tx_params)                                                                       # sets: self.PlanTUS
     
     # ---------------------------------------------------------------------
@@ -921,6 +923,28 @@ class CustomTransducer:
         self.ysteering_limits = tx_ysteering
         self.zsteering_limits = tx_zsteering
         
+    def _validate_mechanical_adjustment(self, tx_params: dict) -> None:
+        """
+        Validates the optional transducer mechanical_adjustment parameter.
+        
+        Args:
+            tx_params (dict): Raw transducer parameters loaded from yaml file.
+        
+        Raises:
+            ValueError: If mechanical_adjustment is not a valid type or is not [min, max] with min <= max.
+        
+        Sets:
+            self.xy_mech_limits (list): [min_mech_limit, max_mech_limit] for the lateral X and Y mechanical adjustments.
+                                        Left as None if not specified, so the geometry type defaults are used.
+        """
+        tx_mech = self._get_param('mechanical_adjustment', list, tx_params, optional=True, list_type=(int,float))
+        if tx_mech is None:
+            return
+        
+        self._validate_limits(tx_mech, "mechanical_adjustment")
+        self.xy_mech_limits = [float(limit) for limit in tx_mech]
+        print(f"Transducer X/Y Mechanical Adjustment Limits (m): {self.xy_mech_limits}")
+        
     def _validate_PlanTUS(self, tx_params: dict) -> None:
         """
         Validates the transducer PlanTUS parameter.
@@ -1144,12 +1168,10 @@ class CustomTransducer:
 
         # Argument formating
         if len(self.steering_axes) == 3:
-            xy_mech = "(-10.0, 10.0)"
             multifocal = True
             refocusing = True
             
         else:
-            xy_mech = "(-5.0, 5.0)"
             multifocal = False
             refocusing = False
         
@@ -1179,6 +1201,12 @@ class CustomTransducer:
                 steering_z_name = "TPODistance"
         else:
             steering_z_name = None
+        
+        # Optional mechanical adjustment limits from the yaml file (m) replace the default (mm)
+        if self.xy_mech_limits:
+            xy_mech = f"({round(self.xy_mech_limits[0]*1e3, 3)}, {round(self.xy_mech_limits[1]*1e3, 3)})"
+        else:
+            xy_mech = "(-10.0, 10.0)"
         
         # Create Tx Form Text
         tx_form_output = tx_form_template.render(
