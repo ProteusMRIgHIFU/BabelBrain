@@ -33,6 +33,7 @@ class FocusedAnnularArrayTx(BabelBaseTx):
         self.Widget.CalculateMechAdj.setEnabled(False)
     
     def NotifyGeneratedMask(self):
+        self._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
 

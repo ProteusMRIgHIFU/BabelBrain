@@ -34,6 +34,7 @@ class SimpleFocusedTx(BabelBaseTx):
         self.Widget.CalculateMechAdj.setEnabled(False)
 
     def NotifyGeneratedMask(self):
+        self._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         self.CalculateDistanceFromSkin()
 

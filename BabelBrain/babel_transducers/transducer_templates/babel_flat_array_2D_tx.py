@@ -46,6 +46,9 @@ class FlatArray2DTx(BabelBasePhaseArray):
             self.Widget.ApplyFeasibleTraj.setVisible(False)
         self.Widget.MultifocusLabel.setVisible(False)
         self.Widget.SelCombinationDropDown.setVisible(False)
+        self.Widget.XMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
+        self.Widget.YMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.EnableRefocusing)
         while self.Widget.SelCombinationDropDown.count()>0:
             self.Widget.SelCombinationDropDown.removeItem(0)
         self.Widget.SelCombinationDropDown.addItem('ALL') # Add this will cover the case of single focus
@@ -60,10 +63,10 @@ class FlatArray2DTx(BabelBasePhaseArray):
             self.Widget.LabelTissueRemoved.setVisible(False)
 
     def NotifyGeneratedMask(self):
+        self._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))
-
 
     @Slot()
     def _ResolveSimulationFilenames(self):

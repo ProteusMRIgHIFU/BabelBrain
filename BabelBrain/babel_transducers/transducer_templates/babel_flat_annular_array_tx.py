@@ -47,6 +47,7 @@ class FlatAnnularArrayTx(BabelBaseTx):
         self._ZSteering =self.Widget.TPODistanceSpinBox.value()/1e3
 
     def NotifyGeneratedMask(self):
+        self._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.TPODistanceSpinBox.setValue(np.round(DistanceFromSkin,1))
