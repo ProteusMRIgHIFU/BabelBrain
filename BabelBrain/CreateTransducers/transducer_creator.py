@@ -1245,13 +1245,23 @@ class CustomTransducer:
         if self.is_flat:
             transducer_config.pop('distance_outplane_to_focus')
         else:
-            transducer_config['NaturalOutPlaneDistance'] = transducer_config.pop('distance_outplane_to_focus')
+            if self.geometry_type == 'focused_array':
+                transducer_config['DefaultDistanceConeToFocus'] = transducer_config.pop('distance_outplane_to_focus')
+                transducer_config['MaximalDistanceConeToFocus'] = self.focal_length - self._get_max_element_height()
+            else:
+                transducer_config['NaturalOutPlaneDistance'] = transducer_config.pop('distance_outplane_to_focus')
         transducer_config['TxDiam'] = transducer_config.pop('aperture_size')
         if self.geometry_type in ["focused_annular_array","flat_annular_array","focused_array"]:
-            # Flat annular arrays have no natural focus, FocalLength is omitted as PlanTUS would use it to offset the transducer plane
             if self.geometry_type != "flat_annular_array":
-                transducer_config['FocalLength'] = transducer_config.pop('focal_length')
-            
+                transducer_config['FocalLength'] = transducer_config.pop('focal_length')  # Flat annular arrays have no natural focus, FocalLength is omitted as PlanTUS would use it to offset the transducer plane
+                
+                # TPO distance is the absolute focal depth for flat annular arrays, same as the z steering limits
+                transducer_config['MinimalTPODistance'] = transducer_config['zsteering_limits'][0]   # m
+                transducer_config['MaximalTPODistance'] = transducer_config['zsteering_limits'][-1]  # m
+            elif self.geometry_type == 'focused_annular_array':
+                transducer_config['MinimalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][0]
+                transducer_config['MaximalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][1]
+                
             if self.is_annular:
                 transducer_config['InDiameters'] = transducer_config['rings']['inner_diameters']
                 transducer_config['OutDiameters'] = transducer_config['rings']['outer_diameters']
@@ -1271,27 +1281,11 @@ class CustomTransducer:
             transducer_config['DefaultZSteering'] = float(np.sum(transducer_config['zsteering_limits'])/len(transducer_config['zsteering_limits']))
         
         # Added Default variable values
-        if self.geometry_type == 'simple_focused':
-            transducer_config['MaxDistanceToSkin'] = 50 # mm
-            transducer_config['MaxNegativeDistance'] = 10   # mm
-        elif self.geometry_type == 'focused_annular_array':
-            transducer_config['MaxDistanceToSkin'] = 50 # mm
-            transducer_config['MaxNegativeDistance'] = 10   # mm
-            transducer_config['MinimalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][0]
-            transducer_config['MaximalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][1]
-        elif self.geometry_type == 'flat_annular_array':
-            transducer_config['MaxDistanceToSkin'] = 50 # mm
-            transducer_config['MaxNegativeDistance'] = 10   # mm
-            # TPO distance is the absolute focal depth for flat annular arrays, same as the z steering limits
-            transducer_config['MinimalTPODistance'] = transducer_config['zsteering_limits'][0]   # m
-            transducer_config['MaximalTPODistance'] = transducer_config['zsteering_limits'][-1]  # m
-        elif self.geometry_type in ['flat_array_2D']:
+        if self.geometry_type in ['simple_focused','focused_annular_array','flat_annular_array','flat_array_2D']:
             transducer_config['MaxDistanceToSkin'] = 50 # mm
             transducer_config['MaxNegativeDistance'] = 10   # mm
         elif self.geometry_type in ['focused_array']:
-            transducer_config['MinimalDistanceConeToFocus'] = 10.0e-3 # m
-            transducer_config['MaximalDistanceConeToFocus'] = 129.0e-3 # m
-            transducer_config['DefaultDistanceConeToFocus'] = (transducer_config['MinimalDistanceConeToFocus'] + transducer_config['MaximalDistanceConeToFocus']) / 2
+            transducer_config['MinimalDistanceConeToFocus'] = 0.0 # m
             
         return transducer_config
     
