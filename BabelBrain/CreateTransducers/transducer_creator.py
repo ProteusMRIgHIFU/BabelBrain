@@ -1261,60 +1261,49 @@ class CustomTransducer:
         })
         
         # Important folder paths
-        transducer_config["tx_parent_folder"] = str(self.tx_parent_folder.resolve())
-        transducer_config["tx_folder"] = str(self.tx_folder.resolve())
-        transducer_config["tx_default_yaml"] = str(self.tx_default_yaml.resolve())
-        transducer_config["tx_main_file"] = str(self.tx_main_file.resolve())
-        transducer_config["tx_form_file"] = str(self.tx_form_file.resolve())
-        transducer_config["tx_integration_file"] = str(self.tx_integration_file.resolve())
+        for key in ["tx_parent_folder","tx_folder","tx_default_yaml","tx_main_file","tx_form_file","tx_integration_file"]:
+            transducer_config[key] = str(getattr(self, key).resolve())
         
-        # Variable renaming
+        # Variable renaming common to all geometries
         transducer_config['USFrequencies'] = transducer_config.pop('frequencies')
-        if self.is_flat:
-            transducer_config.pop('distance_outplane_to_focus')
-        else:
-            if self.geometry_type == 'focused_array':
-                transducer_config['DefaultDistanceConeToFocus'] = transducer_config.pop('distance_outplane_to_focus')
-                transducer_config['MaximalDistanceConeToFocus'] = self.focal_length - self._get_max_element_height()
-            else:
-                transducer_config['NaturalOutPlaneDistance'] = transducer_config.pop('distance_outplane_to_focus')
         transducer_config['TxDiam'] = transducer_config.pop('aperture_size')
-        if self.geometry_type in ["focused_annular_array","flat_annular_array","focused_array"]:
-            if self.geometry_type != "flat_annular_array":
-                transducer_config['FocalLength'] = transducer_config.pop('focal_length')  # Flat annular arrays have no natural focus, FocalLength is omitted as PlanTUS would use it to offset the transducer plane
-
-            if self.geometry_type == "flat_annular_array":
-                # TPO distance is the absolute focal depth for flat annular arrays, same as the z steering limits
-                transducer_config['MinimalTPODistance'] = transducer_config['zsteering_limits'][0]   # m
-                transducer_config['MaximalTPODistance'] = transducer_config['zsteering_limits'][-1]  # m
-            elif self.geometry_type == 'focused_annular_array':
-                transducer_config['MinimalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][0]
-                transducer_config['MaximalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][1]
-                
-            if self.is_annular:
-                transducer_config['InDiameters'] = transducer_config['rings']['inner_diameters']
-                transducer_config['OutDiameters'] = transducer_config['rings']['outer_diameters']
-                transducer_config.pop('rings')
+        distance_outplane_to_focus = transducer_config.pop('distance_outplane_to_focus')
+        if self.is_annular:
+            rings = transducer_config.pop('rings')
+            transducer_config['InDiameters'] = rings['inner_diameters']
+            transducer_config['OutDiameters'] = rings['outer_diameters']
         
-        if "x" in self.steering_axes:
-            transducer_config['MinimalXSteering'] = transducer_config['xsteering_limits'][0]
-            transducer_config['MaximalXSteering'] = transducer_config['xsteering_limits'][-1]
-            
-        if "y" in self.steering_axes:
-            transducer_config['MinimalYSteering'] = transducer_config['ysteering_limits'][0]
-            transducer_config['MaximalYSteering'] = transducer_config['ysteering_limits'][-1]
-            
+        # Steering limits
+        for axis in "xyz":
+            if axis in self.steering_axes:
+                limits = transducer_config[f'{axis}steering_limits']
+                transducer_config[f'Minimal{axis.upper()}Steering'] = limits[0]
+                transducer_config[f'Maximal{axis.upper()}Steering'] = limits[-1]
         if "z" in self.steering_axes:
-            transducer_config['MinimalZSteering'] = transducer_config['zsteering_limits'][0]
-            transducer_config['MaximalZSteering'] = transducer_config['zsteering_limits'][-1]
-            transducer_config['DefaultZSteering'] = float(np.sum(transducer_config['zsteering_limits'])/len(transducer_config['zsteering_limits']))
+            transducer_config['DefaultZSteering'] = float(np.mean(transducer_config['zsteering_limits']))
         
-        # Added Default variable values
-        if self.geometry_type in ['simple_focused','focused_annular_array','flat_annular_array','flat_array_2D']:
+        # Geometry specific values
+        if self.geometry_type == 'focused_array':
+            transducer_config['FocalLength'] = transducer_config.pop('focal_length')
+            transducer_config['MinimalDistanceConeToFocus'] = 0.0 # m
+            transducer_config['MaximalDistanceConeToFocus'] = self.focal_length - self._get_max_element_height()
+            transducer_config['DefaultDistanceConeToFocus'] = distance_outplane_to_focus
+        else:
             transducer_config['MaxDistanceToSkin'] = 50 # mm
             transducer_config['MaxNegativeDistance'] = 10   # mm
-        elif self.geometry_type in ['focused_array']:
-            transducer_config['MinimalDistanceConeToFocus'] = 0.0 # m
+            if not self.is_flat:
+                transducer_config['NaturalOutPlaneDistance'] = distance_outplane_to_focus
+            
+            if self.geometry_type == 'focused_annular_array':
+                # TPO distance is measured from the natural focus
+                transducer_config['FocalLength'] = transducer_config.pop('focal_length')
+                transducer_config['MinimalTPODistance'] = self.focal_length + self.zsteering_limits[0]   # m
+                transducer_config['MaximalTPODistance'] = self.focal_length + self.zsteering_limits[-1]  # m
+            elif self.geometry_type == 'flat_annular_array':
+                # TPO distance is the absolute focal depth, same as the z steering limits. FocalLength is
+                # omitted as there is no natural focus and PlanTUS would use it to offset the transducer plane
+                transducer_config['MinimalTPODistance'] = self.zsteering_limits[0]   # m
+                transducer_config['MaximalTPODistance'] = self.zsteering_limits[-1]  # m
             
         return transducer_config
     
