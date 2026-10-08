@@ -1282,7 +1282,8 @@ class CustomTransducer:
         if self.geometry_type in ["focused_annular_array","flat_annular_array","focused_array"]:
             if self.geometry_type != "flat_annular_array":
                 transducer_config['FocalLength'] = transducer_config.pop('focal_length')  # Flat annular arrays have no natural focus, FocalLength is omitted as PlanTUS would use it to offset the transducer plane
-                
+
+            if self.geometry_type == "flat_annular_array":
                 # TPO distance is the absolute focal depth for flat annular arrays, same as the z steering limits
                 transducer_config['MinimalTPODistance'] = transducer_config['zsteering_limits'][0]   # m
                 transducer_config['MaximalTPODistance'] = transducer_config['zsteering_limits'][-1]  # m
