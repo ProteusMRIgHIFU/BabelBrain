@@ -1327,7 +1327,7 @@ class CustomTransducer:
                 pass 
             else:
                 for freq in self.PlanTUS:
-                    focal_dists_per_freq, FHMLs_per_freq = self._run_rayleigh_PlanTUS(freq,normalized_pressure=False,plot_FHML=True)
+                    focal_dists_per_freq, FHMLs_per_freq = self._run_rayleigh_PlanTUS(freq,normalized_pressure=False,plot_FHML=False)
                     self.PlanTUS[freq]['FocalDistanceList'] = focal_dists_per_freq
                     self.PlanTUS[freq]['FHMLList'] = FHMLs_per_freq
                     del self.PlanTUS[freq]['FocalDistanceListInitial']
