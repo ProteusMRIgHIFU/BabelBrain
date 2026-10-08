@@ -24,7 +24,7 @@ class CustomTransducerDialog(QDialog):
         self.setWindowTitle('Add Custom Transducer')
         self.config_file = config_file
 
-        details_label = QLabel('For details on transducer config file formatting, see ...')
+        details_label = QLabel('For details on transducer config file formatting, see Custom Transducers section on BabelBrain website')
         details_label.setWordWrap(True)
 
         config_label = QLabel('Config File')
