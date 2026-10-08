@@ -1451,12 +1451,7 @@ class CustomTransducer:
             
         sim_conditions = self.TxIntegration.SimulationConditions(**args)
         
-        if self.geometry_type in ['focused_array']:
-            sim_conditions.GenTransducerGeom()
-        elif self.geometry_type in ['flat_array_2D']:
-            sim_conditions._Tx = sim_conditions.GenTransducerGeom()
-        else:
-            sim_conditions._Tx = sim_conditions.GenTx()
+        sim_conditions._Tx = sim_conditions.GenTx()
 
         Material = {}
         Material['Water']=     np.array([1000.0, SpeedofSoundWater(20.0), 0.0   ,   0.0,                   0.0] )
@@ -1696,12 +1691,7 @@ class CustomTransducer:
 
         sim_conditions = self.TxIntegration.SimulationConditions(**args)
 
-        if self.geometry_type in ['focused_array']:
-            sim_conditions.GenTransducerGeom()
-        elif self.geometry_type in ['flat_array_2D']:
-            sim_conditions._Tx = sim_conditions.GenTransducerGeom()
-        else:
-            sim_conditions._Tx = sim_conditions.GenTx()
+        sim_conditions._Tx = sim_conditions.GenTx()
         print('Tx z  min',sim_conditions._Tx['center'][:,2].min())
         
         Material = {}

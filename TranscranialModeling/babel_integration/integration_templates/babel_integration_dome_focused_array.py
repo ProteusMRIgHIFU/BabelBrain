@@ -234,7 +234,7 @@ class SimulationConditions(SimulationConditionsBASE):
                          DomeType=True)
         
 
-    def GenTransducerGeom(self,PPWSurface=None,PPWSurfaceHighRes=None):
+    def GenTx(self,PPWSurface=None,PPWSurfaceHighRes=None):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
         if PPWSurfaceHighRes is None:
@@ -272,11 +272,12 @@ class SimulationConditions(SimulationConditionsBASE):
                     670000: {6: 166890.38},
                 },
             }
-        
+        return self._Tx
+
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self.GenTransducerGeom()
+        self.GenTx()
 
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX

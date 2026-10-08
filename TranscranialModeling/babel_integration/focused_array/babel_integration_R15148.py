@@ -19,8 +19,8 @@ class BabelFTD_Simulations(babel_integration_focused_array.BabelFTD_Simulations)
 
 
 class SimulationConditions(babel_integration_focused_array.SimulationConditions):
-    def GenTransducerGeom(self):
-        super().GenTransducerGeom(PPWSurface=4)
+    def GenTx(self):
+        return super().GenTx(PPWSurface=4)
 
 # Ensures the correct class gets instantiated
 BabelFTD_Simulations._SimConditionsClass = SimulationConditions

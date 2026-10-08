@@ -47,7 +47,7 @@ class SimulationConditions(babel_integration_focused_array.SimulationConditions)
     # Class implementing the low level interface to prepare the details of the simulation conditions and execute the simulation
     # '''
     
-    def GenTransducerGeom(self,PPWSurface=None):
+    def GenTx(self,PPWSurface=None):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
 
@@ -57,6 +57,7 @@ class SimulationConditions(babel_integration_focused_array.SimulationConditions)
 
         self._Tx = generate_focused_array_tx(tx_xyz, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=False, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys="cartesian",show_plot=False,ppw_surface=PPWSurface)
         self._TxOrig = generate_focused_array_tx(tx_xyz, self._num_elements, self._Frequency, self._OrigFocalLength, self._original_element_size, validate_elements=False, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys="cartesian",show_plot=False,ppw_surface=PPWSurface)
+        return self._Tx
 
 # Ensures the correct class gets instantiated
 BabelFTD_Simulations._SimConditionsClass = SimulationConditions

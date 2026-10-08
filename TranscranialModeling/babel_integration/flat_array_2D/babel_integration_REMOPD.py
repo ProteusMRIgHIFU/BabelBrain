@@ -91,7 +91,7 @@ class SimulationConditions(babel_integration_flat_array_2D.SimulationConditions)
         self._TxSet = TxSet
         self._bFlipSteeringY = bFlipSteeringY
 
-    def GenTransducerGeom(self):
+    def GenTx(self):
         indices = REMOPD_SUBSETS.get(self._TxSet)  # None when TxSet == 'Total'
         
         # REMOPD specific z rotation
@@ -103,13 +103,13 @@ class SimulationConditions(babel_integration_flat_array_2D.SimulationConditions)
         ])
         self._RotationZ = rotation_matrix_z
         
-        return super().GenTransducerGeom(subset_indices=indices)
+        return super().GenTx(subset_indices=indices)
 
     def CalculateRayleighFieldsForward(self, deviceName="6800"):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         # first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._Tx = self.GenTransducerGeom()
+        self._Tx = self.GenTx()
 
         if self._TxMechanicalAdjustmentZ < 0:
             zCorrec = self._TxMechanicalAdjustmentZ

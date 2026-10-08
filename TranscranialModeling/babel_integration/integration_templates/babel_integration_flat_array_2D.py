@@ -197,7 +197,7 @@ class SimulationConditions(SimulationConditionsBASE):
         self._Aperture = Aperture
         self._zdistance = -distance_elements_to_outplane
 
-    def GenTransducerGeom(self, subset_indices=None, PPWSurface=None):
+    def GenTx(self, subset_indices=None, PPWSurface=None):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
         element_positions = np.column_stack(
@@ -223,7 +223,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         # first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._Tx = self.GenTransducerGeom()
+        self._Tx = self.GenTx()
 
         if self._TxMechanicalAdjustmentZ < 0:
             zCorrec = self._TxMechanicalAdjustmentZ

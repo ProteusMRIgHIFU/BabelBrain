@@ -273,7 +273,7 @@ class SimulationConditions(SimulationConditionsBASE):
 
 
 
-    def GenTransducerGeom(self,PPWSurface=None):
+    def GenTx(self,PPWSurface=None):
         # raise NotImplementedError("This method should be implemented in the derived class.")
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
@@ -283,11 +283,12 @@ class SimulationConditions(SimulationConditionsBASE):
             element_positions = np.column_stack((self._elements["x"], self._elements["y"], self._elements["z"]))
         self._Tx = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
         # self._TxOrig = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._OrigFocalLength, self._original_element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False)
+        return self._Tx
         
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self.GenTransducerGeom()
+        self.GenTx()
         ZDomainStart = self.CalculateDomainZReference()
         
         for k in ['center','elemcenter','VertDisplay']:
