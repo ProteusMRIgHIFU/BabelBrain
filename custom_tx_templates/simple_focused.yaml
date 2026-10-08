@@ -1,0 +1,32 @@
+# =============================================================================
+# BabelBrain custom transducer template: simple_focused
+# Template Version: 1.0
+#
+# Single-element spherical cap transducer, no electronic steering.
+# Units: lengths in metres (m), frequencies in hertz (Hz).
+# Scientific notation needs a decimal point and a signed exponent (e.g. 5.0e-2, 5.0e+5),
+# otherwise it is read as text. Plain decimals (0.05) are safest.
+#
+# The values below reproduce the built-in Single transducer at 500 kHz (BabelBrain GUI defaults).
+# =============================================================================
+
+# ---------- Common parameters ------------------------------------------------
+name: MySimpleFocusedTx                 # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
+geometry_type: simple_focused
+frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
+    - 500000
+aperture_size: 0.05                     # Aperture diameter (m)
+focal_length: 0.05                      # Radius of curvature of the cap (m)
+
+# Optional. Give one of these (or both, if consistent); the other is calculated from:
+#   distance_outplane_to_focus = focal_length - bowl depth - distance_elements_to_outplane
+# distance_outplane_to_focus: 0.05      # Device edge (out-plane) to focal spot (m)
+distance_elements_to_outplane: 0.0      # Dead space (m), transducer rim to device edge. Default 0
+
+# ---------- Optional ---------------------------------------------------------
+# PlanTUS tables, one entry per frequency (distances in m).
+# If omitted, BabelBrain estimates them with Rayleigh simulations in water.
+# PlanTUS:
+#     500000:
+#         FocalDistanceList: [0.043]
+#         FHMLList:          [0.025]
