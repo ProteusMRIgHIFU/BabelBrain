@@ -28,6 +28,7 @@ from CreateTransducers.transducer_verification_dialog import (
     TransducerVerificationDialog,
 )
 from RunServerCalculation import RAYLEIGH_PLANTUS, RAYLEIGH_TEST, RunServerCalculation
+from TranscranialModeling.tx_geometries import shift_tx
 from Utils.custom_tx import register_template_aliases
 from Utils.paths import bundle_root
 from Utils.rayleigh_plantus import (MODE_ANNULAR, MODE_ARRAY, MODE_NONE,
@@ -85,6 +86,8 @@ TX_GEOMETRIES = {
     },
 }
 VALID_FREQUENCIES = range(200000,1005000,5000)
+FLAT_FOCAL_LENGTH = 1.0e3 # m, flat geometries have no natural focus
+OUTPLANE_DISTANCE_TOLERANCE = 1.0e-6 # m, tolerance when checking distance_elements_to_outplane against distance_outplane_to_focus
 
 # =============================================================================
 # Helper Functions
@@ -135,7 +138,8 @@ class CustomTransducer:
         self.computing_backend = computing_backend
         self.coordinate_system: str | None = None
         self.coordinate_vars: list[str] = []
-        self.distance_outplane: float | None = None
+        self.distance_elements_to_outplane: float | None = None
+        self.distance_outplane_to_focus: float | None = None
         self.elements: dict | None = None
         self.element_size: float | None = None
         self.frequencies: list[int] = []
@@ -144,6 +148,7 @@ class CustomTransducer:
         self.gpu = gpu
         self.is_gpu_initialized = False
         self.is_annular: bool = False
+        self.is_flat: bool = False
         self.is_spherical: bool = False
         self.is_steerable: bool = False
         self.name: str | None = None
@@ -317,8 +322,12 @@ class CustomTransducer:
         self._validate_geometry(tx_params)                                                                      # sets: self.geometry_type, self.is_annular, ...
         self._validate_frequencies(tx_params)                                                                   # sets: self.frequencies
         self._validate_positive_param('aperture_size', (int, float), tx_params, unit="m")                       # sets: self.aperture_size
-        self._validate_positive_param('focal_length',  (int, float), tx_params, unit="m")                       # sets: self.focal_length
-        self._validate_positive_param('distance_outplane', (int, float), tx_params, allow_zero=True, unit="m")  # sets: self.distance_outplane
+        if self.is_flat:
+            # Flat geometries have no natural focus, so focal_length is not read from the yaml file
+            self.focal_length = FLAT_FOCAL_LENGTH
+            print(f"Transducer focal_length: {self.focal_length} m (fixed for {self.geometry_type})")
+        else:
+            self._validate_positive_param('focal_length',  (int, float), tx_params, unit="m")                   # sets: self.focal_length
         if self.geometry_type != "simple_focused":
             self._validate_positive_param('num_elements',  int, tx_params)                                      # sets: self.num_elements
             if self.geometry_type in ['flat_array_2D','focused_array']:
@@ -328,6 +337,7 @@ class CustomTransducer:
         self._validate_coordinate_system(tx_params)                                                             # sets: self.coordinate_system, self.coordinate_vars
         self._validate_elements(tx_params)                                                                      # sets: self.elements
         self._validate_annular(tx_params)                                                                       # sets: self.rings
+        self._validate_outplane_distances(tx_params)                                                            # sets: self.distance_elements_to_outplane, self.distance_outplane_to_focus
         self._validate_steering(tx_params)                                                                      # sets: self.xsteering_limits, self.ysteering_limits, self.zsteering_limits
         self._validate_PlanTUS(tx_params)                                                                       # sets: self.PlanTUS
     
@@ -722,6 +732,136 @@ class CustomTransducer:
         print(f"Transducer Inner Ring Diameters (mm): {inner_diams_mm}")
         print(f"Transducer Outer Ring Diameters (mm): {outer_diams_mm}")
 
+    def _validate_outplane_distances(self, tx_params: dict) -> None:
+        """
+        Validates the optional distance_elements_to_outplane and distance_outplane_to_focus parameters, calculating
+        whichever one is not supplied. The two are related by:
+        
+            distance_outplane_to_focus = focal_length - max element height - distance_elements_to_outplane
+        
+        If neither is supplied, distance_elements_to_outplane defaults to 0. If both are supplied, they must be consistent.
+        
+        Args:
+            tx_params (dict): Raw transducer parameters loaded from yaml file.
+        
+        Raises:
+            ValueError: If either parameter is not a valid type, if distance_elements_to_outplane is negative, if
+                        distance_outplane_to_focus is not positive, is specified for a flat geometry or exceeds the
+                        rim-to-focus distance, if both are specified but inconsistent, or if the deprecated
+                        distance_outplane key is used.
+        
+        Sets:
+            self.distance_elements_to_outplane (float): Fabrication dead space between the transducer elements and the edge
+                                    (out-plane) of the device, in m.
+            self.distance_outplane_to_focus (float): Distance from the edge of the device to the focal spot, in m.
+                                    Not set for flat geometries, which have no focal spot.
+        """
+        
+        tx_distance_elements_to_outplane = self._get_param('distance_elements_to_outplane', (int, float), tx_params, optional=True)
+        if tx_distance_elements_to_outplane is not None and tx_distance_elements_to_outplane < 0:
+            raise YAMLParameterError(f"distance_elements_to_outplane ({tx_distance_elements_to_outplane} m) must be >= 0 m", full_key='distance_elements_to_outplane')
+        
+        tx_distance_outplane_to_focus = self._get_param('distance_outplane_to_focus', (int, float), tx_params, optional=True)
+        
+        # Flat geometries have no focal spot, so there is no distance_outplane_to_focus
+        if self.is_flat:
+            if tx_distance_outplane_to_focus is not None:
+                raise YAMLParameterError(
+                    f"distance_outplane_to_focus cannot be specified for {self.geometry_type} (no focal spot), specify distance_elements_to_outplane instead",
+                    full_key='distance_outplane_to_focus'
+                )
+            self.distance_elements_to_outplane = float(tx_distance_elements_to_outplane or 0.0)
+            print(f"Transducer distance_elements_to_outplane: {self.distance_elements_to_outplane} m")
+            return
+        
+        if tx_distance_outplane_to_focus is not None and tx_distance_outplane_to_focus <= 0:
+            raise YAMLParameterError(f"distance_outplane_to_focus ({tx_distance_outplane_to_focus} m) must be > 0 m", full_key='distance_outplane_to_focus')
+        
+        # With no dead space the edge of the device is at the max element height (rim of the cap)
+        max_element_height = self._get_max_element_height()
+        rim_to_focus = self.focal_length - max_element_height
+        print(f"Transducer max element height: {max_element_height} m")
+        
+        if tx_distance_outplane_to_focus is None:
+            # Calculate distance_outplane_to_focus from distance_elements_to_outplane (default 0)
+            distance_elements_to_outplane = float(tx_distance_elements_to_outplane or 0.0)
+            distance_outplane_to_focus = rim_to_focus - distance_elements_to_outplane
+            if distance_outplane_to_focus <= 0:
+                raise YAMLParameterError(
+                    f"distance_elements_to_outplane ({distance_elements_to_outplane} m) must be less than the distance from the transducer rim to the focal spot "
+                    f"({rim_to_focus:.6g} m)",
+                    full_key='distance_elements_to_outplane' if 'distance_elements_to_outplane' in tx_params else 'focal_length'
+                )
+        else:
+            # Calculate distance_elements_to_outplane from distance_outplane_to_focus
+            distance_outplane_to_focus = float(tx_distance_outplane_to_focus)
+            distance_elements_to_outplane = rim_to_focus - distance_outplane_to_focus
+            if distance_elements_to_outplane < -OUTPLANE_DISTANCE_TOLERANCE:
+                raise YAMLParameterError(
+                    f"distance_outplane_to_focus ({distance_outplane_to_focus} m) must be <= the distance from the transducer rim to the focal spot "
+                    f"({rim_to_focus:.6g} m)",
+                    full_key='distance_outplane_to_focus'
+                )
+            distance_elements_to_outplane = max(distance_elements_to_outplane, 0.0)
+            
+            # If both were supplied, they must agree
+            if tx_distance_elements_to_outplane is not None and abs(tx_distance_elements_to_outplane - distance_elements_to_outplane) > OUTPLANE_DISTANCE_TOLERANCE:
+                raise YAMLParameterError(
+                    f"distance_elements_to_outplane ({tx_distance_elements_to_outplane} m) and distance_outplane_to_focus ({distance_outplane_to_focus} m) are inconsistent: "
+                    f"their sum must equal the distance from the transducer rim to the focal spot ({rim_to_focus:.6g} m). "
+                    f"Specify only one of them to have the other calculated",
+                    full_key='distance_outplane_to_focus'
+                )
+            if tx_distance_elements_to_outplane is not None:
+                distance_elements_to_outplane = tx_distance_elements_to_outplane
+
+        self.distance_elements_to_outplane = float(distance_elements_to_outplane)
+        self.distance_outplane_to_focus = float(distance_outplane_to_focus)
+        print(f"Transducer distance_elements_to_outplane: {self.distance_elements_to_outplane} m")
+        print(f"Transducer distance_outplane_to_focus: {self.distance_outplane_to_focus} m")
+    
+    def _get_max_element_height(self) -> float:
+        """
+        Returns the maximum z height (m) of the transducer surface above the apex of the spherical cap,
+        i.e. focal_length minus the distance from the rim of the cap to the focal spot.
+        
+        Raises:
+            ValueError: If the transducer surface extends beyond a hemisphere of radius focal_length.
+        """
+        if self.geometry_type == 'focused_array':
+            # Polar angle of each element centre, measured from the apex
+            if self.coordinate_system == 'spherical':
+                thetas = np.deg2rad(np.array(self.elements['theta'], dtype=float))
+            else:
+                positions = np.column_stack((self.elements['x'], self.elements['y'], self.elements['z'])).astype(float)
+                thetas = np.arcsin(np.linalg.norm(positions[:, :2], axis=1) / np.linalg.norm(positions, axis=1))
+            
+            # Elements are circular caps, so add the angular half-width of an element
+            element_half_angle = np.arcsin(min(self.element_size / 2 / self.focal_length, 1.0))
+            max_theta = thetas.max() + element_half_angle
+        else:
+            if self.geometry_type == 'focused_annular_array':
+                rim_radius = max(self.rings['outer_diameters']) / 2
+                rim_key = 'annular.outer_ring_diameters'
+            else:
+                rim_radius = self.aperture_size / 2
+                rim_key = 'aperture_size'
+            
+            if rim_radius > self.focal_length:
+                raise YAMLParameterError(
+                    f"Transducer radius ({rim_radius} m) cannot exceed focal_length ({self.focal_length} m)",
+                    full_key=rim_key
+                )
+            max_theta = np.arcsin(rim_radius / self.focal_length)
+        
+        if max_theta > np.pi / 2:
+            raise YAMLParameterError(
+                "Transducer elements extend beyond a hemisphere of radius focal_length",
+                full_key='elements'
+            )
+        
+        return float(self.focal_length * (1 - np.cos(max_theta)))
+    
     def _validate_steering(self, tx_params: dict) -> None:
         """
         Validates the transducer steering parameter.
@@ -761,8 +901,15 @@ class CustomTransducer:
         
         self._validate_numeric_list_dict(tx_steering,2,'steering')
         
+        # Flat geometries have no natural focus, z steering limits are absolute focal depths from the array plane
+        if self.is_flat:
+            if tx_zsteering[0] <= 0:
+                raise YAMLParameterError(
+                    f"Z minimum steering limit ({tx_zsteering[0]}) must be > 0, {self.geometry_type} z steering limits are focal depths measured from the array plane",
+                    full_key='steering.z[0]'
+                )
         # Check negative z steering does not exceed focal length as this is not physically possible
-        if 'z' in self.steering_axes:
+        elif 'z' in self.steering_axes:
             abs_zsteering_min = abs(tx_zsteering[0])
             if abs_zsteering_min > self.focal_length:
                 raise YAMLParameterError(
@@ -787,7 +934,8 @@ class CustomTransducer:
                         FocalDistanceList and FHMLList do not match.
         
         Sets:
-            self.PlanTUS (dict): Validated PlanTUS dict
+            self.PlanTUS (dict): Validated PlanTUS dict. Distances are entered in the yaml file in metres and
+                                 stored in millimetres, as expected by PlanTUS.
         """
         
         # PlanTUS is optional; skip validation entirely if the key is absent
@@ -833,13 +981,15 @@ class CustomTransducer:
                 if len(tx_planTUS_focal_dists) != len(tx_planTUS_focal_FHMLs):
                     raise ValueError(f"Number of elements in FocalDistanceList ({len(tx_planTUS_focal_dists)}) does not match number in FHMLList ({len(tx_planTUS_focal_FHMLs)})")
                                 
-                # Rename keys
-                print("        focal_distances (m):")
-                print(f"           {tx_planTUS_focal_dists}")
-                print("        FHMLs:")
-                print(f"           {tx_planTUS_focal_FHMLs}")
-                tx_planTUS_new[planTUS_freq] = {'focal_distances': tx_planTUS_focal_dists, 
-                                                'FHMLs': tx_planTUS_focal_FHMLs}
+                # Convert from m (yaml input) to mm (PlanTUS input)
+                tx_planTUS_focal_dists_mm = [round(d * 1e3, 6) for d in tx_planTUS_focal_dists]
+                tx_planTUS_focal_FHMLs_mm = [round(d * 1e3, 6) for d in tx_planTUS_focal_FHMLs]
+                print("        FocalDistanceList (mm):")
+                print(f"           {tx_planTUS_focal_dists_mm}")
+                print("        FHMLList (mm):")
+                print(f"           {tx_planTUS_focal_FHMLs_mm}")
+                tx_planTUS_new[planTUS_freq] = {'FocalDistanceList': tx_planTUS_focal_dists_mm, 
+                                                'FHMLList': tx_planTUS_focal_FHMLs_mm}
                 
                 # Remove current PlanTUS freq from check list so we can detect missing entries below
                 tx_freqs.remove(planTUS_freq)
@@ -852,18 +1002,24 @@ class CustomTransducer:
             for freq in tx_freqs:
                 tx_planTUS_focal_dists_initial = []
 
-                # Determine number of points to measure
+                # Determine number of points to measure (in mm)
                 if self.zsteering_limits:
-                    start = (self.focal_length + self.zsteering_limits[0]) * 1e3
-                    stop = (self.focal_length + self.zsteering_limits[1]) * 1e3
+                    if self.is_flat:
+                        # Limits are already absolute focal depths
+                        start = self.zsteering_limits[0] * 1e3
+                        stop = self.zsteering_limits[1] * 1e3
+                    else:
+                        # Limits are offsets from the natural focus
+                        start = (self.focal_length + self.zsteering_limits[0]) * 1e3
+                        stop = (self.focal_length + self.zsteering_limits[1]) * 1e3
                     tx_planTUS_focal_dists_initial = range(int(start),int(stop),2)
                 else:
-                    tx_planTUS_focal_dists_initial = [self.focal_length]
+                    tx_planTUS_focal_dists_initial = [self.focal_length * 1e3]
 
                 tx_planTUS_new[freq] = {}
                 tx_planTUS_new[freq]['FocalDistanceListInitial'] = list(tx_planTUS_focal_dists_initial)
                 tx_planTUS_new[freq]['FocalDistanceList'] = []
-                tx_planTUS_new[freq]['FHMLs'] = []
+                tx_planTUS_new[freq]['FHMLList'] = []
 
         self.PlanTUS = tx_planTUS_new
 
@@ -1084,10 +1240,15 @@ class CustomTransducer:
         
         # Variable renaming
         transducer_config['USFrequencies'] = transducer_config.pop('frequencies')
-        transducer_config['NaturalOutPlaneDistance'] = transducer_config.pop('distance_outplane')
+        if self.is_flat:
+            transducer_config.pop('distance_outplane_to_focus')
+        else:
+            transducer_config['NaturalOutPlaneDistance'] = transducer_config.pop('distance_outplane_to_focus')
         transducer_config['TxDiam'] = transducer_config.pop('aperture_size')
         if self.geometry_type in ["focused_annular_array","flat_annular_array","focused_array"]:
-            transducer_config['FocalLength'] = transducer_config.pop('focal_length')
+            # Flat annular arrays have no natural focus, FocalLength is omitted as PlanTUS would use it to offset the transducer plane
+            if self.geometry_type != "flat_annular_array":
+                transducer_config['FocalLength'] = transducer_config.pop('focal_length')
             
             if self.is_annular:
                 transducer_config['InDiameters'] = transducer_config['rings']['inner_diameters']
@@ -1111,11 +1272,17 @@ class CustomTransducer:
         if self.geometry_type == 'simple_focused':
             transducer_config['MaxDistanceToSkin'] = 50 # mm
             transducer_config['MaxNegativeDistance'] = 10   # mm
-        elif self.geometry_type in ['focused_annular_array','flat_annular_array']:
+        elif self.geometry_type == 'focused_annular_array':
             transducer_config['MaxDistanceToSkin'] = 50 # mm
             transducer_config['MaxNegativeDistance'] = 10   # mm
-            transducer_config['MinimalTPODistance'] = 8.0e-3   # m
-            transducer_config['MaximalTPODistance'] = 120.0e-3  # m
+            transducer_config['MinimalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][0]
+            transducer_config['MaximalTPODistance'] = self.focal_length + transducer_config['zsteering_limits'][1]
+        elif self.geometry_type == 'flat_annular_array':
+            transducer_config['MaxDistanceToSkin'] = 50 # mm
+            transducer_config['MaxNegativeDistance'] = 10   # mm
+            # TPO distance is the absolute focal depth for flat annular arrays, same as the z steering limits
+            transducer_config['MinimalTPODistance'] = transducer_config['zsteering_limits'][0]   # m
+            transducer_config['MaximalTPODistance'] = transducer_config['zsteering_limits'][-1]  # m
         elif self.geometry_type in ['flat_array_2D']:
             transducer_config['MaxDistanceToSkin'] = 50 # mm
             transducer_config['MaxNegativeDistance'] = 10   # mm
@@ -1152,15 +1319,15 @@ class CustomTransducer:
         self.TxIntegration = importlib.import_module(f"babel_{self.class_name}.babel_integration_{self.class_name}")
 
         # Acoustic Water Sims for PlanTUS
-        if not self.PlanTUS[self.frequencies[0]]['FHMLs']:
+        if not self.PlanTUS[self.frequencies[0]]['FHMLList']:
             if self.geometry_type == 'flat_annular_array':
                 # FHML calculation is wonky for this transducer type
                 pass 
             else:
                 for freq in self.PlanTUS:
-                    focal_dists_per_freq, FHMLs_per_freq = self._run_rayleigh_PlanTUS(freq,normalized_pressure=False,plot_FHML=False)
+                    focal_dists_per_freq, FHMLs_per_freq = self._run_rayleigh_PlanTUS(freq,normalized_pressure=False,plot_FHML=True)
                     self.PlanTUS[freq]['FocalDistanceList'] = focal_dists_per_freq
-                    self.PlanTUS[freq]['FHMLs'] = FHMLs_per_freq
+                    self.PlanTUS[freq]['FHMLList'] = FHMLs_per_freq
                     del self.PlanTUS[freq]['FocalDistanceListInitial']
                     
                 # Update default file
@@ -1175,10 +1342,19 @@ class CustomTransducer:
         tx_data, acoustics_water_plot, grid_info = self._run_rayleigh()
         acoustics_water_plot = np.abs(acoustics_water_plot)
     
+        focal_spot, focal_spot_label, outplane_z = self._get_verification_markers()
+        
+        # For flat 2D arrays shift elements back to 0 for visualization
+        if self.geometry_type == "flat_array_2D":
+            shift_tx(tx_data,-tx_data['elemcenter'][:,2].max())    
+        
         user_verification_dialog = TransducerVerificationDialog(
             tx_data=tx_data,
             acoustic_data=acoustics_water_plot,
             grid_info=grid_info,
+            focal_spot=focal_spot,
+            focal_spot_label=focal_spot_label,
+            outplane_z=outplane_z,
             parent=None,
         )
 
@@ -1199,6 +1375,29 @@ class CustomTransducer:
             raise ValueError("Cancel Action: User did not approve transducer design")
         
     
+    def _get_verification_markers(self) -> tuple[np.ndarray, str, float]:
+        """
+        Returns the focal spot location, its label and the out-plane z position (all in m) in the
+        Rayleigh simulation frame, where the transducer back (apex) is at z = 0 and +z points to the target.
+        """
+        focal_spot = focal_spot_label = None
+        
+        if self.is_flat:
+            outplane_z = self.distance_elements_to_outplane # rings are placed at z = 0
+        else:
+            focal_spot = np.array([0.0, 0.0, self.focal_length])
+            focal_spot_label = "Focal Spot"
+            outplane_z = self.focal_length - self.distance_outplane_to_focus
+
+        return focal_spot, focal_spot_label, outplane_z
+    
+    def _get_rayleigh_domain_depth(self) -> float:
+        """Returns the depth (m) of the Rayleigh simulation domain, ensuring flat geometry focal depths are included."""
+        # Flat geometries have a nominal (very large) focal length, so size the domain from the z steering limits instead
+        if self.is_flat:
+            return self.zsteering_limits[1]*1.25
+        return self.focal_length*2
+    
     def _run_rayleigh(self):
         
         args = {}
@@ -1214,12 +1413,14 @@ class CustomTransducer:
         if len(self.steering_axes) == 3:
             args['RotationZ'] = 0.0
         if self.geometry_type in ['focused_array']:
-            args['DistanceConeToFocus'] = self.focal_length - self.distance_outplane
+            args['DistanceConeToFocus'] = self.distance_outplane_to_focus
             args['coordinate_system'] = self.coordinate_system
         if self.geometry_type in ['focused_array','flat_array_2D']:
             args['elements'] = self.elements
             args['num_elements'] = self.num_elements
             args['element_size'] = self.element_size
+        if self.geometry_type == 'flat_array_2D':
+            args['distance_elements_to_outplane'] = self.distance_elements_to_outplane # integration offsets elements by this dead space
         if self.is_annular:
             args['InDiameters'] = np.array(self.rings['inner_diameters'])
             args['OutDiameters'] = np.array(self.rings['outer_diameters'])
@@ -1239,7 +1440,7 @@ class CustomTransducer:
         
         #Limits of domain, in m
         radius = self.aperture_size/2*1.5
-        depth = self.focal_length*2
+        depth = self._get_rayleigh_domain_depth()
         xfmin=-radius
         xfmax=radius
         yfmin=-radius
@@ -1260,7 +1461,42 @@ class CustomTransducer:
         Amp = 60e3/Material['Water'][0]/SpeedofSoundWater(20.0) #60 kPa
 
         sim_conditions._SourceAmpPa = Amp
-        u0=(np.ones((sim_conditions._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((sim_conditions._Tx['center'].shape[0],1),np.float32))*sim_conditions._SourceAmpPa
+        u0=((np.ones((sim_conditions._Tx['center'].shape[0],1),np.float32)+ 1j*np.zeros((sim_conditions._Tx['center'].shape[0],1),np.float32))*sim_conditions._SourceAmpPa).astype(np.complex64) # GPU kernel expects complex64
+        
+        # Flat 2D arrays have no natural focus, so phase elements to focus at the default z steering depth
+        if self.geometry_type == 'flat_array_2D':
+            focal_depth = float(np.mean(self.zsteering_limits))
+            ds = np.ones((1)) * spatial_step**2
+            u0_focal = np.ones((1), np.complex64)
+            center = np.array([[0.0, 0.0, focal_depth]], np.float32)
+            u2back = self._run_forward_simple(
+                cwvnb_extlay,
+                center,
+                ds.astype(np.float32),
+                u0_focal,
+                sim_conditions._Tx['elemcenter'].astype(np.float32)
+            )
+            elem_dims = sim_conditions._Tx['elemdims']
+            for n in range(sim_conditions._Tx['NumberElems']):
+                phi = np.angle(np.conjugate(u2back[n]))
+                u0[n*elem_dims:(n+1)*elem_dims] = (Amp * np.exp(1j*phi)).astype(np.complex64)
+        
+        # Flat annular arrays have no natural focus, so phase rings to focus at the default z steering depth
+        elif self.geometry_type == 'flat_annular_array':
+            center = np.array([[0.0, 0.0, float(np.mean(self.zsteering_limits))]], np.float32)
+            n_base = 0
+            for n in range(sim_conditions._Tx['NumberElems']):
+                n_sub = sim_conditions._Tx['elemdims'][n][0]
+                # Forward-propagate each ring to the focal point and apply the conjugate phase
+                u2back = self._run_forward_simple(
+                    cwvnb_extlay,
+                    sim_conditions._Tx['center'][n_base:n_base+n_sub, :].astype(np.float32),
+                    sim_conditions._Tx['ds'][n_base:n_base+n_sub, :].astype(np.float32),
+                    np.ones(n_sub, np.complex64),
+                    center
+                )
+                u0[n_base:n_base+n_sub] = (Amp * np.exp(-1j*np.angle(u2back[0]))).astype(np.complex64)
+                n_base += n_sub
         
         rf=np.hstack(
             (
@@ -1320,19 +1556,44 @@ class CustomTransducer:
             label='Half Max',
             visible=False
         )
+        FHML_text = ax.text(
+            0.98,
+            0.95,
+            '',
+            transform=ax.transAxes,
+            ha='right',
+            va='top',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
+            visible=False
+        )
 
         for legend_line, legend_text in zip(legend_lines, legend_texts):
             legend_line.set_picker(True)
             legend_line.set_pickradius(5)
             legend_text.set_picker(True)
 
+        # Plot lines can also be clicked directly to select them
+        for line in plot_lines:
+            line.set_picker(True)
+            line.set_pickradius(5)
+
+        last_mouse_event = {'event': None}
+
         def on_pick(event):
+            # Overlapping lines fire one pick event per line for a single click, only handle the first
+            if event.mouseevent is last_mouse_event['event']:
+                return
+            
             if event.artist in legend_lines:
                 selected_idx = legend_lines.index(event.artist)
             elif event.artist in legend_texts:
                 selected_idx = legend_texts.index(event.artist)
+            elif event.artist in plot_lines and event.artist.get_visible():
+                selected_idx = plot_lines.index(event.artist)
             else:
                 return
+            
+            last_mouse_event['event'] = event.mouseevent
 
             # Clicking the selected line again restores all lines
             if selected_line['index'] == selected_idx:
@@ -1350,6 +1611,7 @@ class CustomTransducer:
                 lower_line.set_visible(False)
                 upper_line.set_visible(False)
                 half_max_line.set_visible(False)
+                FHML_text.set_visible(False)
 
             # Otherwise only show the selected line
             else:
@@ -1370,10 +1632,12 @@ class CustomTransducer:
                 lower_line.set_xdata([data['left'], data['left']])
                 upper_line.set_xdata([data['right'], data['right']])
                 half_max_line.set_ydata([data['half_max'], data['half_max']])
+                FHML_text.set_text(f"Focal distance: {data['focal_dist']:.2f} mm\nFHML: {data['FHML']:.2f} mm")
 
                 lower_line.set_visible(True)
                 upper_line.set_visible(True)
                 half_max_line.set_visible(True)
+                FHML_text.set_visible(True)
 
             fig.canvas.draw_idle()
 
@@ -1394,12 +1658,14 @@ class CustomTransducer:
         if len(self.steering_axes) == 3:
             args['RotationZ'] = 0.0
         if self.geometry_type in ['focused_array']:
-            args['DistanceConeToFocus'] = self.focal_length # - self.distance_outplane
+            args['DistanceConeToFocus'] = self.focal_length # - self.distance_outplane_to_focus
             args['coordinate_system'] = self.coordinate_system
         if self.geometry_type in ['focused_array','flat_array_2D']:
             args['elements'] = self.elements
             args['num_elements'] = self.num_elements
             args['element_size'] = self.element_size
+        if self.geometry_type == 'flat_array_2D':
+            args['distance_elements_to_outplane'] = self.distance_elements_to_outplane # integration offsets elements by this dead space
         if self.is_annular:
             args['InDiameters'] = np.array(self.rings['inner_diameters'])
             args['OutDiameters'] = np.array(self.rings['outer_diameters'])
@@ -1427,7 +1693,7 @@ class CustomTransducer:
         
         #Limits of domain, in m
         radius = self.aperture_size/2*1.5
-        depth = self.focal_length*2
+        depth = self._get_rayleigh_domain_depth()
         xfmin=-radius
         xfmax=radius
         yfmin=-radius
@@ -1547,6 +1813,8 @@ class CustomTransducer:
                     'left': zfield[left]*1e3,
                     'right': zfield[right]*1e3,
                     'half_max': half_max,
+                    'focal_dist': focal_dist,
+                    'FHML': FHML,
                 })
 
         if plot_FHML:
