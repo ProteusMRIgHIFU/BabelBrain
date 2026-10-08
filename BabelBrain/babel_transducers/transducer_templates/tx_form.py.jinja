@@ -51,11 +51,12 @@ class {{ tx_name }}Form(TxPanelBase):
         {%- if focal_length_adjustable %}
         # Focal length control
         self.FocalLengthSpinBox = make_dspin(
-            "FocalLengthSpinBox",value=50.0, minimum=20.0, maximum=150.0,
+            "FocalLengthSpinBox", value={{ focal_length_mm }}, minimum={{ focal_length_mm }}, maximum={{ focal_length_mm }},
             decimals=1, step=0.1
         )
         self.FocalLengthLabel = make_label("Focal length (mm)", name="FocalLengthLabel")
         lay.addLayout(form_row(self.FocalLengthLabel, self.FocalLengthSpinBox))
+        self.FocalLengthSpinBox.setEnabled(False) # custom geometry is fixed by the yaml file
         
         {% endif -%}
 
@@ -63,11 +64,12 @@ class {{ tx_name }}Form(TxPanelBase):
         {%- if diameter_adjustable %}
         # Tx diameter control
         self.DiameterSpinBox = make_dspin(
-            "DiameterSpinBox", value=50.0, minimum=20.0, maximum=150.0,
+            "DiameterSpinBox", value={{ diameter_mm }}, minimum={{ diameter_mm }}, maximum={{ diameter_mm }},
             decimals=1, step=0.1
         )
         self.DiameterLabel = make_label("Diameter (mm)", name="DiameterLabel")
         lay.addLayout(form_row(self.DiameterLabel, self.DiameterSpinBox))
+        self.DiameterSpinBox.setEnabled(False) # custom geometry is fixed by the yaml file
         
         {% endif -%}
         

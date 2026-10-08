@@ -1187,6 +1187,8 @@ class CustomTransducer:
             tx_name=self.class_name,
             focal_length_adjustable=self.geometry_type == "simple_focused",
             diameter_adjustable=self.geometry_type == "simple_focused",
+            focal_length_mm=round(self.focal_length*1e3, 1),
+            diameter_mm=round(self.aperture_size*1e3, 1),
             multifocal=multifocal,
             refocusing=refocusing,
             distance_outplane_to_focus=self.geometry_type == "simple_focused",
