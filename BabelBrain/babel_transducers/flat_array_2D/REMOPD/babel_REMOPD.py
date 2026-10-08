@@ -5,6 +5,8 @@ import time
 from multiprocessing import Process,Queue
 
 import numpy as np
+from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from babel_transducers.flat_array_2D.REMOPD.REMOPD_form import REMOPDForm
@@ -52,6 +54,22 @@ class REMOPD(babel_flat_array_2D_tx.FlatArray2DTx):
 
     def _CreateAcousticWorker(self):
         return RunAcousticSim(self._MainApp)
+    
+    def _PromptReuseOrRecalc(self):
+        recalc_requested = super()._PromptReuseOrRecalc()
+        
+        if recalc_requested:
+            return True
+        
+        Skull=ReadFromH5py(self._FullSolName[0])
+        TxSet = Skull['TxSet']
+        if type(TxSet) is bytes:
+            TxSet=TxSet.decode("utf-8")
+        index = self.Widget.SelTxSetDropDown.findText(TxSet, Qt.MatchFixedString)
+        if index >= 0:
+            self.Widget.SelTxSetDropDown.setCurrentIndex(index)
+            
+        return False
 
 class RunAcousticSim(babel_flat_array_2D_tx.RunAcousticSim):
 

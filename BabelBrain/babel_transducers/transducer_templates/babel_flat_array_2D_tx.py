@@ -109,12 +109,6 @@ class FlatArray2DTx(BabelBasePhaseArray):
         except:
             self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'].astype(int))
         self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
-        TxSet = Skull['TxSet']
-        if type(TxSet) is bytes:
-            TxSet=TxSet.decode("utf-8")
-        index = self.Widget.SelTxSetDropDown.findText(TxSet, Qt.MatchFixedString)
-        if index >= 0:
-            self.Widget.SelTxSetDropDown.setCurrentIndex(index)
         self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
         self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
         self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
