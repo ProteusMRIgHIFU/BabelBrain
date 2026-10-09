@@ -116,15 +116,12 @@ class SimulationConditions(babel_integration_flat_array_2D.SimulationConditions)
         else:
             zCorrec = 0.0
 
+        zTx=self._ZDim[self._ZSourceLocation] - self._SkullMaskNii.header.get_zooms()[2] / 1e3 + zCorrec
+
         for k in ["center", "elemcenter", "VertDisplay"]:
             self._Tx[k][:, 0] += self._TxMechanicalAdjustmentX
             self._Tx[k][:, 1] += self._TxMechanicalAdjustmentY
-            self._Tx[k][:, 2] = (
-                self._ZDim[self._ZSourceLocation]
-                - self._SkullMaskNii.header.get_zooms()[2] / 1e3
-                + zCorrec
-            )
-
+            self._Tx[k][:, 2] = zTx
         Correction = 0.0
         while np.max(self._Tx["center"][:, 2]) >= self._ZDim[self._ZSourceLocation]:
             # at the most, we could be too deep only a fraction of a single voxel, in such case we just move the Tx back a single step
@@ -185,7 +182,7 @@ class SimulationConditions(babel_integration_flat_array_2D.SimulationConditions)
                 + self._TxMechanicalAdjustmentY
                 + steerY
             )
-            center[0, 2] = self._ZDim[self._ZSourceLocation] + self._ZSteering + zCorrec
+            center[0, 2] = zTx + self._ZSteering 
 
             print(
                 "center",

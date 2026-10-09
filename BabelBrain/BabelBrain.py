@@ -1232,8 +1232,7 @@ class BabelBrain(QWidget):
             #we adjust in steps
             FocIJKAdjust[0,0]+=AcWidget.XMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[0]
             FocIJKAdjust[1,0]+=AcWidget.YMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
-            FocIJKAdjust[1,0]+=AcWidget.SkinDistanceSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
-
+            
             FocRASAdjust=self._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
 
             FocRASAdjust-=FocRASInit

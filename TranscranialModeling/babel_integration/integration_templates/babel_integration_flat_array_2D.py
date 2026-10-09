@@ -230,14 +230,13 @@ class SimulationConditions(SimulationConditionsBASE):
         else:
             zCorrec = 0.0
 
+        zTx=self._ZDim[self._ZSourceLocation] - self._SkullMaskNii.header.get_zooms()[2] / 1e3 + zCorrec
+        
+
         for k in ["center", "elemcenter", "VertDisplay"]:
             self._Tx[k][:, 0] += self._TxMechanicalAdjustmentX
             self._Tx[k][:, 1] += self._TxMechanicalAdjustmentY
-            self._Tx[k][:, 2] = (
-                self._ZDim[self._ZSourceLocation]
-                - self._SkullMaskNii.header.get_zooms()[2] / 1e3
-                + zCorrec
-            )
+            self._Tx[k][:, 2] = zTx
 
         Correction = 0.0
         while np.max(self._Tx["center"][:, 2]) >= self._ZDim[self._ZSourceLocation]:
@@ -294,7 +293,7 @@ class SimulationConditions(SimulationConditionsBASE):
                 + self._TxMechanicalAdjustmentY
                 + self._YSteering
             )
-            center[0, 2] = self._ZDim[self._ZSourceLocation] + self._ZSteering + zCorrec
+            center[0, 2] = zTx + self._ZSteering 
 
             print(
                 "center",
@@ -424,10 +423,6 @@ class SimulationConditions(SimulationConditionsBASE):
         self._PunctualSource[0, -int(ramp_length_points) :] *= np.flip(ramp)
         self._SourceMapPunctual = np.zeros((self._N1, self._N2, self._N3), np.uint32)
         LocForRefocusing = self._FocalSpotLocation.copy()
-        # LocForRefocusing[2]=0.0
-        # LocForRefocusing[0]+=int(np.round(self._XSteering/self._SpatialStep))
-        # LocForRefocusing[1]+=int(np.round(self._YSteering/self._SpatialStep))
-        # LocForRefocusing[2]+=int(np.round(self._ZSteering/self._SpatialStep))
         self._SourceMapPunctual[
             LocForRefocusing[0], LocForRefocusing[1], LocForRefocusing[2]
         ] = 1

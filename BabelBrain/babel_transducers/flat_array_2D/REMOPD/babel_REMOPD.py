@@ -50,6 +50,10 @@ class REMOPD(babel_flat_array_2D_tx.FlatArray2DTx):
         else:
             self.Widget.ApplyFeasibleTraj.setVisible(False)
 
+        self.Widget.XMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
+        self.Widget.YMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
+        self.Widget.SkinDistanceSpinBox.valueChanged.connect(self.EnableRefocusing)
+
     def _CreateAcousticWorker(self):
         return RunAcousticSim(self._MainApp)
 
@@ -70,12 +74,8 @@ class RunAcousticSim(babel_flat_array_2D_tx.RunAcousticSim):
         bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
         #we can use mechanical adjustments in other directions for final tuning
         TxMechanicalAdjustmentZ= -self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value()/1e3  #in m
-        if not bRefocus:
-            TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
-            TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-        else:
-            TxMechanicalAdjustmentX=0
-            TxMechanicalAdjustmentY=0
+        TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
+        TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
         ###############
         XSteering=self._mainApp.AcSim.Widget.XSteeringSpinBox.value()/1e3 
         YSteering=self._mainApp.AcSim.Widget.YSteeringSpinBox.value()/1e3  

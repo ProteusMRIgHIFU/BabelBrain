@@ -50,10 +50,16 @@ class BabelBasePhaseArray(BabelBaseTx):
 
         self.Widget.ZSteeringSpinBox.valueChanged.connect(self.ZSteeringUpdate)
         self.Widget.RefocusingcheckBox.stateChanged.connect(self.EnableRefocusing)
+
+        self.Widget.XMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
+        self.Widget.YMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
         
         if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
             self.Widget.ZMechanicSpinBox.setVisible(False) #for these Tx, we disable ZMechanic as this is controlled by the distance cone to focus
             self.Widget.ZMechaniclabel.setVisible(False)
+            self.Widget.DistanceConeToFocusSpinBox.valueChanged.connect(self.EnableRefocusing)
+        else:
+            self.Widget.ZMechanicSpinBox.valueChanged.connect(self.EnableRefocusing)
         self.Widget.CalculateMechAdj.clicked.connect(self.CalculateMechAdj)
         self.Widget.CalculateMechAdj.setEnabled(False)
         if self._MainApp.Config['TrajectoryType']!='localite':
@@ -179,10 +185,23 @@ class BabelBasePhaseArray(BabelBaseTx):
     @Slot()
     def EnableRefocusing(self,value):
         bRefocus =self.Widget.RefocusingcheckBox.isChecked()
-        self.Widget.XMechanicSpinBox.setEnabled(not bRefocus)
-        self.Widget.YMechanicSpinBox.setEnabled(not bRefocus)
+        if bRefocus:
+            self.Widget.XSteeringSpinBox.setValue(-self.Widget.XMechanicSpinBox.value())
+            self.Widget.YSteeringSpinBox.setValue(-self.Widget.YMechanicSpinBox.value())
+            if hasattr(self.Widget,'DistanceConeToFocusSpinBox'):
+                self.Widget.ZSteeringSpinBox.setValue(
+                    self.CalculateDistanceFromSkin()-self.Widget.DistanceConeToFocusSpinBox.value())
+            elif  hasattr(self.Widget,'SkinDistanceSpinBox'):
+                self.Widget.ZSteeringSpinBox.setValue(self.CalculateDistanceFromSkin()+self.Widget.SkinDistanceSpinBox.value())
+            else: #dome Tx
+                self.Widget.ZSteeringSpinBox.setValue(-self.Widget.ZMechanicSpinBox.value())
+            
+        self.Widget.XSteeringSpinBox.setEnabled(not bRefocus)
+        self.Widget.YSteeringSpinBox.setEnabled(not bRefocus)
+        self.Widget.ZSteeringSpinBox.setEnabled(not bRefocus)
         
     def NotifyGeneratedMask(self):
+        self._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         self.CalculateDistanceFromSkin()
         self._UnmodifiedZMechanic = 0.0
@@ -476,15 +495,9 @@ class RunAcousticSim(QObject):
 
         bRefocus = self._mainApp.AcSim.Widget.RefocusingcheckBox.isChecked()
         #we can use mechanical adjustments in other directions for final tuning
-        if not bRefocus:
-            TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
-            TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-            TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
-
-        else:
-            TxMechanicalAdjustmentX=0
-            TxMechanicalAdjustmentY=0
-            TxMechanicalAdjustmentZ=0
+        TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
+        TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
+        TxMechanicalAdjustmentZ= self._mainApp.AcSim.Widget.ZMechanicSpinBox.value()/1e3  #in m
         ###############
         ZSteering=self._mainApp.AcSim.Widget.ZSteeringSpinBox.value()/1e3  #Add here the final adjustment)
         XSteering=self._mainApp.AcSim.Widget.XSteeringSpinBox.value()/1e3
