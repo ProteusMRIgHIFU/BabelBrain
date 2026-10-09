@@ -2010,7 +2010,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             DataForSim['Sensor']=self._Sensor
             DataForSim['SensorMap']=self._SensorMap
             DataForSim['SensorIndex']=self._InputParam-1
-            DataForSim['SensorMaterialMap']=self._MaterialMapNoCT
+            if hasattr(self,'_MaterialMapNoCT'): #if not present, this means this a water simulation
+                DataForSim['SensorMaterialMap']=self._MaterialMapNoCT
                         
         if hasattr(self,'_SourceMapRayleigh'):
             DataForSim['SourcePlane']=self._SourceMapRayleigh[self._PMLThickness:-self._PMLThickness,

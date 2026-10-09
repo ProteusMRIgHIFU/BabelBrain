@@ -258,7 +258,7 @@ class SimulationConditions(SimulationConditionsBASE):
             print('BABELBRAIN_TSUS_EXVIVO: Single element CreateSources ')
 
         if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
-            ramp_length=3 #reducing the ramping - to fix later to something that matches better experiments
+            ramp_length=1 #reducing the ramping - to fix later to something that matches better experiments
             period=1.0 / self._Frequency
             numberPulses=1.0+ramp_length*2
             LengthSource = numberPulses*period
