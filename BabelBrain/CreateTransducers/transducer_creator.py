@@ -95,7 +95,7 @@ TX_GEOMETRIES = {
 }
 VALID_FREQUENCIES = range(200000,1005000,5000)
 FLAT_FOCAL_LENGTH = 1.0e3 # m, flat geometries have no natural focus
-OUTPLANE_DISTANCE_TOLERANCE = 1.0e-6 # m, tolerance when checking distance_elements_to_outplane against distance_outplane_to_focus
+OUTPLANE_DISTANCE_TOLERANCE = 1.0e-6 # m, tolerance when checking distance_tx_bottom_to_outplane against distance_outplane_to_focus
 
 # =============================================================================
 # Helper Functions
@@ -146,7 +146,7 @@ class CustomTransducer:
         self.computing_backend = computing_backend
         self.coordinate_system: str | None = None
         self.coordinate_vars: list[str] = []
-        self.distance_elements_to_outplane: float | None = None
+        self.distance_tx_bottom_to_outplane: float | None = None
         self.distance_outplane_to_focus: float | None = None
         self.elements: dict | None = None
         self.element_size: float | None = None
@@ -346,7 +346,7 @@ class CustomTransducer:
         self._validate_coordinate_system(tx_params)                                                             # sets: self.coordinate_system, self.coordinate_vars
         self._validate_elements(tx_params)                                                                      # sets: self.elements
         self._validate_annular(tx_params)                                                                       # sets: self.rings
-        self._validate_outplane_distances(tx_params)                                                            # sets: self.distance_elements_to_outplane, self.distance_outplane_to_focus
+        self._validate_outplane_distances(tx_params)                                                            # sets: self.distance_tx_bottom_to_outplane, self.distance_outplane_to_focus
         self._validate_steering(tx_params)                                                                      # sets: self.xsteering_limits, self.ysteering_limits, self.zsteering_limits
         self._validate_mechanical_adjustment(tx_params)                                                         # sets: self.xy_mech_limits
         self._validate_PlanTUS(tx_params)                                                                       # sets: self.PlanTUS
@@ -745,32 +745,32 @@ class CustomTransducer:
 
     def _validate_outplane_distances(self, tx_params: dict) -> None:
         """
-        Validates the optional distance_elements_to_outplane and distance_outplane_to_focus parameters, calculating
+        Validates the optional distance_tx_bottom_to_outplane and distance_outplane_to_focus parameters, calculating
         whichever one is not supplied. The two are related by:
         
-            distance_outplane_to_focus = focal_length - max element height - distance_elements_to_outplane
+            distance_outplane_to_focus = focal_length - max element height - distance_tx_bottom_to_outplane
         
-        If neither is supplied, distance_elements_to_outplane defaults to 0. If both are supplied, they must be consistent.
+        If neither is supplied, distance_tx_bottom_to_outplane defaults to 0. If both are supplied, they must be consistent.
         
         Args:
             tx_params (dict): Raw transducer parameters loaded from yaml file.
         
         Raises:
-            ValueError: If either parameter is not a valid type, if distance_elements_to_outplane is negative, if
+            ValueError: If either parameter is not a valid type, if distance_tx_bottom_to_outplane is negative, if
                         distance_outplane_to_focus is not positive, is specified for a flat geometry or exceeds the
                         rim-to-focus distance, if both are specified but inconsistent, or if the deprecated
                         distance_outplane key is used.
         
         Sets:
-            self.distance_elements_to_outplane (float): Fabrication dead space between the transducer elements and the edge
+            self.distance_tx_bottom_to_outplane (float): Fabrication dead space between the transducer elements and the edge
                                     (out-plane) of the device, in m.
             self.distance_outplane_to_focus (float): Distance from the edge of the device to the focal spot, in m.
                                     Not set for flat geometries, which have no focal spot.
         """
         
-        tx_distance_elements_to_outplane = self._get_param('distance_elements_to_outplane', (int, float), tx_params, optional=True)
-        if tx_distance_elements_to_outplane is not None and tx_distance_elements_to_outplane < 0:
-            raise YAMLParameterError(f"distance_elements_to_outplane ({tx_distance_elements_to_outplane} m) must be >= 0 m", full_key='distance_elements_to_outplane')
+        tx_distance_tx_bottom_to_outplane = self._get_param('distance_tx_bottom_to_outplane', (int, float), tx_params, optional=True)
+        if tx_distance_tx_bottom_to_outplane is not None and tx_distance_tx_bottom_to_outplane < 0:
+            raise YAMLParameterError(f"distance_tx_bottom_to_outplane ({tx_distance_tx_bottom_to_outplane} m) must be >= 0 m", full_key='distance_tx_bottom_to_outplane')
         
         tx_distance_outplane_to_focus = self._get_param('distance_outplane_to_focus', (int, float), tx_params, optional=True)
         
@@ -778,11 +778,11 @@ class CustomTransducer:
         if self.is_flat:
             if tx_distance_outplane_to_focus is not None:
                 raise YAMLParameterError(
-                    f"distance_outplane_to_focus cannot be specified for {self.geometry_type} (no focal spot), specify distance_elements_to_outplane instead",
+                    f"distance_outplane_to_focus cannot be specified for {self.geometry_type} (no focal spot), specify distance_tx_bottom_to_outplane instead",
                     full_key='distance_outplane_to_focus'
                 )
-            self.distance_elements_to_outplane = float(tx_distance_elements_to_outplane or 0.0)
-            print(f"Transducer distance_elements_to_outplane: {self.distance_elements_to_outplane} m")
+            self.distance_tx_bottom_to_outplane = float(tx_distance_tx_bottom_to_outplane or 0.0)
+            print(f"Transducer distance_tx_bottom_to_outplane: {self.distance_tx_bottom_to_outplane} m")
             return
         
         if tx_distance_outplane_to_focus is not None and tx_distance_outplane_to_focus <= 0:
@@ -794,41 +794,41 @@ class CustomTransducer:
         print(f"Transducer max element height: {max_element_height} m")
         
         if tx_distance_outplane_to_focus is None:
-            # Calculate distance_outplane_to_focus from distance_elements_to_outplane (default 0)
-            distance_elements_to_outplane = float(tx_distance_elements_to_outplane or 0.0)
-            distance_outplane_to_focus = rim_to_focus - distance_elements_to_outplane
+            # Calculate distance_outplane_to_focus from distance_tx_bottom_to_outplane (default 0)
+            distance_tx_bottom_to_outplane = float(tx_distance_tx_bottom_to_outplane or 0.0)
+            distance_outplane_to_focus = rim_to_focus - distance_tx_bottom_to_outplane
             if distance_outplane_to_focus <= 0:
                 raise YAMLParameterError(
-                    f"distance_elements_to_outplane ({distance_elements_to_outplane} m) must be less than the distance from the transducer rim to the focal spot "
+                    f"distance_tx_bottom_to_outplane ({distance_tx_bottom_to_outplane} m) must be less than the distance from the transducer rim to the focal spot "
                     f"({rim_to_focus:.6g} m)",
-                    full_key='distance_elements_to_outplane' if 'distance_elements_to_outplane' in tx_params else 'focal_length'
+                    full_key='distance_tx_bottom_to_outplane' if 'distance_tx_bottom_to_outplane' in tx_params else 'focal_length'
                 )
         else:
-            # Calculate distance_elements_to_outplane from distance_outplane_to_focus
+            # Calculate distance_tx_bottom_to_outplane from distance_outplane_to_focus
             distance_outplane_to_focus = float(tx_distance_outplane_to_focus)
-            distance_elements_to_outplane = rim_to_focus - distance_outplane_to_focus
-            if distance_elements_to_outplane < -OUTPLANE_DISTANCE_TOLERANCE:
+            distance_tx_bottom_to_outplane = rim_to_focus - distance_outplane_to_focus
+            if distance_tx_bottom_to_outplane < -OUTPLANE_DISTANCE_TOLERANCE:
                 raise YAMLParameterError(
                     f"distance_outplane_to_focus ({distance_outplane_to_focus} m) must be <= the distance from the transducer rim to the focal spot "
                     f"({rim_to_focus:.6g} m)",
                     full_key='distance_outplane_to_focus'
                 )
-            distance_elements_to_outplane = max(distance_elements_to_outplane, 0.0)
+            distance_tx_bottom_to_outplane = max(distance_tx_bottom_to_outplane, 0.0)
             
             # If both were supplied, they must agree
-            if tx_distance_elements_to_outplane is not None and abs(tx_distance_elements_to_outplane - distance_elements_to_outplane) > OUTPLANE_DISTANCE_TOLERANCE:
+            if tx_distance_tx_bottom_to_outplane is not None and abs(tx_distance_tx_bottom_to_outplane - distance_tx_bottom_to_outplane) > OUTPLANE_DISTANCE_TOLERANCE:
                 raise YAMLParameterError(
-                    f"distance_elements_to_outplane ({tx_distance_elements_to_outplane} m) and distance_outplane_to_focus ({distance_outplane_to_focus} m) are inconsistent: "
+                    f"distance_tx_bottom_to_outplane ({tx_distance_tx_bottom_to_outplane} m) and distance_outplane_to_focus ({distance_outplane_to_focus} m) are inconsistent: "
                     f"their sum must equal the distance from the transducer rim to the focal spot ({rim_to_focus:.6g} m). "
                     f"Specify only one of them to have the other calculated",
                     full_key='distance_outplane_to_focus'
                 )
-            if tx_distance_elements_to_outplane is not None:
-                distance_elements_to_outplane = tx_distance_elements_to_outplane
+            if tx_distance_tx_bottom_to_outplane is not None:
+                distance_tx_bottom_to_outplane = tx_distance_tx_bottom_to_outplane
 
-        self.distance_elements_to_outplane = float(distance_elements_to_outplane)
+        self.distance_tx_bottom_to_outplane = float(distance_tx_bottom_to_outplane)
         self.distance_outplane_to_focus = float(distance_outplane_to_focus)
-        print(f"Transducer distance_elements_to_outplane: {self.distance_elements_to_outplane} m")
+        print(f"Transducer distance_tx_bottom_to_outplane: {self.distance_tx_bottom_to_outplane} m")
         print(f"Transducer distance_outplane_to_focus: {self.distance_outplane_to_focus} m")
     
     def _get_max_element_height(self) -> float:
@@ -1411,7 +1411,7 @@ class CustomTransducer:
         focal_spot = focal_spot_label = None
         
         if self.is_flat:
-            outplane_z = self.distance_elements_to_outplane # rings are placed at z = 0
+            outplane_z = self.distance_tx_bottom_to_outplane # rings are placed at z = 0
         else:
             focal_spot = np.array([0.0, 0.0, self.focal_length])
             focal_spot_label = "Focal Spot"
@@ -1448,7 +1448,7 @@ class CustomTransducer:
             args['num_elements'] = self.num_elements
             args['element_size'] = self.element_size
         if self.geometry_type == 'flat_array_2D':
-            args['distance_elements_to_outplane'] = self.distance_elements_to_outplane # integration offsets elements by this dead space
+            args['distance_tx_bottom_to_outplane'] = self.distance_tx_bottom_to_outplane # integration offsets elements by this dead space
         if self.is_annular:
             args['InDiameters'] = np.array(self.rings['inner_diameters'])
             args['OutDiameters'] = np.array(self.rings['outer_diameters'])
@@ -1688,7 +1688,7 @@ class CustomTransducer:
             args['num_elements'] = self.num_elements
             args['element_size'] = self.element_size
         if self.geometry_type == 'flat_array_2D':
-            args['distance_elements_to_outplane'] = self.distance_elements_to_outplane # integration offsets elements by this dead space
+            args['distance_tx_bottom_to_outplane'] = self.distance_tx_bottom_to_outplane # integration offsets elements by this dead space
         if self.is_annular:
             args['InDiameters'] = np.array(self.rings['inner_diameters'])
             args['OutDiameters'] = np.array(self.rings['outer_diameters'])

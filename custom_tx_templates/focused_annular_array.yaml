@@ -21,9 +21,9 @@ aperture_size: 0.064                    # Aperture diameter (m)
 focal_length: 62.94e-3                  # Radius of curvature of the cap (m). Must be >= half of the largest outer ring diameter.
 
 # Optional. Give one of these (or both, if consistent); the other is calculated from:
-#   distance_outplane_to_focus = focal_length - bowl depth - distance_elements_to_outplane
+#   distance_outplane_to_focus = focal_length - bowl depth - distance_tx_bottom_to_outplane
 distance_outplane_to_focus: 0.05238     # Device edge (out-plane) to focal spot (m)
-# distance_elements_to_outplane: 0.0    # Dead space (m), transducer rim to device edge. Default 0
+# distance_tx_bottom_to_outplane: 0.0    # Dead space (m), transducer rim to device edge. Default 0
 
 # ---------- Type-specific parameters -----------------------------------------
 num_elements: 4                         # Number of rings

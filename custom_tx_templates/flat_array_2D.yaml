@@ -20,7 +20,7 @@ aperture_size: 0.058                    # Aperture width (m), full extent of the
 # focal_length is NOT needed: flat arrays have no natural focus (set internally to 1.0e3 m)
 
 # ---------- Type-specific parameters -----------------------------------------
-distance_elements_to_outplane: 0.0012   # Optional dead space (m), element surface to device edge. Default 0. Do not add to elements.z
+distance_tx_bottom_to_outplane: 0.0012   # Optional dead space (m), element surface to device edge. Default 0. Do not add to elements.z
 num_elements: 256                       # Number of elements
 element_size: 0.00258                   # Side length of each square element (m). Element centres must be at least this far apart.
 

@@ -190,7 +190,7 @@ class RunAcousticSim(QObject):
         kargs['num_elements'] = self._mainApp.AcSim.Config['NumElements']
         kargs['element_size'] = self._mainApp.AcSim.Config['ElementSize']
         kargs['coordinate_system'] = self._mainApp.AcSim.Config.get('CoordinateSystem','cartesian')
-        kargs['distance_elements_to_outplane'] = self._mainApp.AcSim.Config['DistanceElementsToOutplane']
+        kargs['distance_tx_bottom_to_outplane'] = self._mainApp.AcSim.Config['DistanceTxBottomToOutplane']
         kargs['Aperture'] = self._mainApp.AcSim.Config['TxDiam']
         kargs['COMPUTING_BACKEND']=COMPUTING_BACKEND
         kargs['basePPW']=basePPW

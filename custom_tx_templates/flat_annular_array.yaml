@@ -20,7 +20,7 @@ aperture_size: 0.0336                   # Aperture diameter (m)
 # focal_length is NOT needed: flat arrays have no natural focus (set internally to 1.0e3 m)
 
 # ---------- Type-specific parameters -----------------------------------------
-distance_elements_to_outplane: 0.0      # Optional dead space (m), ring surface to device edge. Default 0
+distance_tx_bottom_to_outplane: 0.0      # Optional dead space (m), ring surface to device edge. Default 0
 num_elements: 2                         # Number of rings
 
 # Ring diameters (m), innermost ring first

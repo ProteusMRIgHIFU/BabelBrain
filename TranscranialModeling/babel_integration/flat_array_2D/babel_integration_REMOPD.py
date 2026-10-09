@@ -70,7 +70,7 @@ class BabelFTD_Simulations(babel_integration_flat_array_2D.BabelFTD_Simulations)
             elements=self._elements,
             num_elements=self._num_elements,
             element_size=self._element_size,
-            distance_elements_to_outplane=self._distance_elements_to_outplane,
+            distance_tx_bottom_to_outplane=self._distance_tx_bottom_to_outplane,
             TxSet=self._TxSet,
             bFlipSteeringY=self._bFlipSteeringY,
             **kargs,
