@@ -125,22 +125,21 @@ def FitAttTrabecularLong_Multiple(frequency,bcoeff=1,reductionFactor=0.8):
     # IEEE transactions on ultrasonics, ferroelectrics, and frequency control 68, no. 5 (2020): 1532-1545. doi: 10.1109/TUFFC.2020.3039743
     return np.round(202.76362433*((frequency/1e6)**bcoeff)*reductionFactor) 
 
-MatFreq={}
-for f in np.arange(100e3,1125e3,5e3):
+def CalcMaterialFreq(f):
     Material={}
     #Density (kg/m3), LongSoS (m/s), ShearSoS (m/s), Long Att (Np/m), Shear Att (Np/m)
     Material['Water']=     np.array([1000.0, 1500.0, 0.0   ,   0.0,                   0.0] )
     Material['Cortical']=  np.array([1896.5, FitSpeedCorticalLong(f), 
-                                             FitSpeedCorticalShear(f),  
-                                             FitAttCorticalLong_Multiple(f)  , 
-                                             FitAttBoneShear(f)])
+                                                FitSpeedCorticalShear(f),  
+                                                FitAttCorticalLong_Multiple(f)  , 
+                                                FitAttBoneShear(f)])
     Material['Trabecular']=np.array([1738.0, FitSpeedTrabecularLong(f),
-                                             FitSpeedTrabecularShear(f),
-                                             FitAttTrabecularLong_Multiple(f) , 
-                                             FitAttBoneShear(f)])
+                                                FitSpeedTrabecularShear(f),
+                                                FitAttTrabecularLong_Multiple(f) , 
+                                                FitAttBoneShear(f)])
     Material['Skin']=           np.array([1116.0, 1537.0, 0.0   ,  2.3*f/500e3 , 0])
     Material['Brain']=          np.array([1041.0, 1562.0, 0.0   ,  3.45*f/500e3 , 0])
-   
+    
     #for gm and wm attenuation, average of these 2 reports
     # white matter	0.558	dB/cm/MHz	0.25-0.75				fit to line for ITIS Foundation from .25 to .75 MHz, intercept=0
     # white matter	1.21	dB/cm/MHz 	3.5 to 10		20C		Labuda (2022) - From sectional 2D maps
@@ -151,11 +150,16 @@ for f in np.arange(100e3,1125e3,5e3):
     Material['WhiteMatter']=    np.array([1041.0, 1537.0, 0.0   ,  10.1772968*f/1000e3 , 0])
     Material['GrayMatter']=     np.array([1045.0, 1520.0, 0.0   ,  4.397881647*f/1000e3 , 0])
     Material['CSF']=            np.array([1007.0, 1507.0, 0.0   , 0.0990*f/1000e3 , 0])
+    return Material
 
+MatFreq={}
+for f in np.arange(100e3,1125e3,5e3):
+    Material=CalcMaterialFreq(f)
     MatFreq[f]=Material
 
-
 def GetSmallestSOS(frequency,bShear=False):
+    if frequency not in MatFreq:
+        MatFreq[frequency]=CalcMaterialFreq(frequency)
     SelFreq=MatFreq[frequency]
     SoS=SelFreq['Water'][1]
     for k in SelFreq:

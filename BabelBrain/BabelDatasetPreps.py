@@ -81,7 +81,15 @@ def smooth(inputModel, method='Laplace', iterations=30, laplaceRelaxationFactor=
     return smoothing.GetOutput()
 
 def MaskToStl(binmask,affine):
-    pvvol=pv.wrap(binmask.astype(np.float32))
+    #marching cubes does not cap the isosurface at the limits of the array, so a mask
+    #touching the array boundary produces an open surface. Pad with one empty voxel layer
+    #so there is always background to close against, and compensate the shift below.
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+        #we just do this for the exact case of TSUS testing
+        binmask=np.pad(binmask.astype(np.float32),1,mode='constant',constant_values=0.0)
+        pvvol=pv.wrap(binmask)
+    else:
+        pvvol=pv.wrap(binmask.astype(np.float32))
     surface=pvvol.contour(isosurfaces=np.array([0.9]))
     
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -100,7 +108,14 @@ def MaskToStl(binmask,affine):
         writer.Write()
 
         meshsurface=trimesh.load_mesh(tmpdirname+os.sep+'__t.stl')
-        nP=(affine[:3,:3]@meshsurface.vertices.T).T
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            if not meshsurface.is_watertight:
+                nOpen=len(trimesh.grouping.group_rows(meshsurface.edges_sorted,require_count=1))
+                print('BABELBRAIN_TSUS_EXVIVO Warning: MaskToStl produced a non-watertight mesh, %i open edges' % nOpen)
+            #undo the one-voxel padding applied before contouring
+            nP=(affine[:3,:3]@(meshsurface.vertices-1.0).T).T
+        else:
+            nP=(affine[:3,:3]@meshsurface.vertices.T).T
         nP[:,0]+=affine[0,3]
         nP[:,1]+=affine[1,3]
         nP[:,2]+=affine[2,3]
@@ -502,7 +517,8 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
 
             BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
             CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
-            if bTVUS_OPERATION and os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1' and not np.any(CSFRegion):
+            print('bTVUS_OPERATION',bTVUS_OPERATION,os.environ.get('BABELBRAIN_TSUS_EXVIVO','0'))
+            if bTVUS_OPERATION and os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
                 print('BABELBRAIN_TSUS_EXVIVO:Using eroded AllTissueRegion for CSF region')
                 CSFRegion=ndimage.binary_erosion(AllTissueRegion,iterations=10) # for ex vivo, we just do a dummy region
             with CodeTimer("CTS:L3:S1: charm surface recon",unit='s'):
@@ -596,6 +612,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     TransformationCone[0:3,0:3]=RMat
 
     Cone.apply_transform(TransformationCone)
+    Cone.export(os.path.split(skin_stl)[0]+'/cone.stl')
 
     CumulativeTransform=TransformationCone.copy()
 

@@ -476,6 +476,8 @@ class BabelFTD_Simulations_BASE(object):
                 else:
                     lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
+                if self._Frequency not in MatFreq:
+                    MatFreq[self._Frequency]=CalcMaterialFreq(self._Frequency)
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
@@ -511,6 +513,8 @@ class BabelFTD_Simulations_BASE(object):
                 else:
                     lMaterials+=['WhiteMatter','GrayMatter','CSF']
             for k in lMaterials:
+                if self._Frequency not in MatFreq:
+                    MatFreq[self._Frequency]=CalcMaterialFreq(self._Frequency)
                 SelM=MatFreq[self._Frequency][k]
                 self._SIM_SETTINGS.AddMaterial(SelM[0], #den
                                             SelM[1],
