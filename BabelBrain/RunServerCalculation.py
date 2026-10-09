@@ -341,7 +341,7 @@ class RunServerCalculation(QObject):
                         / 'default.yaml')
         with open(default_yaml, 'r') as f:
             params = yaml.safe_load(f) or {}
-        version = params.get('template_version')
+        version = params.get('TemplateVersion')
         if not version:
             raise RemoteNotReady(
                 "Custom transducer %r does not record a template version, so the "

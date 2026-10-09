@@ -47,6 +47,14 @@ class YAMLParameterError(Exception):
 # =============================================================================
 
 COORD_VARS = {'cartesian': ('x', 'y', 'z'), 'spherical': ('r', 'theta', 'phi')}
+# default.yaml keys whose PascalCase name can't be derived mechanically from the attribute name (acronyms/abbreviations)
+DEFAULT_YAML_KEY_RENAMES = {
+    'bb_version': 'BabelBrainVersion',
+    'xsteering_limits': 'XSteeringLimits',
+    'ysteering_limits': 'YSteeringLimits',
+    'zsteering_limits': 'ZSteeringLimits',
+    'xy_mech_limits': 'XYMechLimits',
+}
 CUSTOM_TRANSDUCERS_FOLDER = Path.home() / '.config' / 'BabelBrain' / 'Transducers'
 TX_GEOMETRIES = {
     "simple_focused": {
@@ -684,9 +692,10 @@ class CustomTransducer:
         for dim_var in self.coordinate_vars:
             _ = self._get_param(dim_var, list, tx_elements, parent_key='elements', list_type=(int,float))
         self._validate_numeric_list_dict(tx_elements,self.num_elements,'elements')
-        
-        self.elements = tx_elements
-        for dim_key,dim_values in tx_elements.items():
+
+        # Store with PascalCase keys (e.g. X, Theta) to match default.yaml convention
+        self.elements = {get_class_name(dim_var): tx_elements[dim_var] for dim_var in self.coordinate_vars}
+        for dim_key,dim_values in self.elements.items():
             logger.debug(f"Transducer Element {dim_key} Values:\n{dim_values}")
     
     def _validate_annular(self, tx_params: dict) -> None:
@@ -833,9 +842,9 @@ class CustomTransducer:
         if self.geometry_type == 'focused_array':
             # Polar angle of each element centre, measured from the apex
             if self.coordinate_system == 'spherical':
-                thetas = np.deg2rad(np.array(self.elements['theta'], dtype=float))
+                thetas = np.deg2rad(np.array(self.elements['Theta'], dtype=float))
             else:
-                positions = np.column_stack((self.elements['x'], self.elements['y'], self.elements['z'])).astype(float)
+                positions = np.column_stack((self.elements['X'], self.elements['Y'], self.elements['Z'])).astype(float)
                 thetas = np.arcsin(np.linalg.norm(positions[:, :2], axis=1) / np.linalg.norm(positions, axis=1))
             
             # Elements are circular caps, so add the angular half-width of an element
@@ -1304,8 +1313,13 @@ class CustomTransducer:
                 # omitted as there is no natural focus and PlanTUS would use it to offset the transducer plane
                 transducer_config['MinimalTPODistance'] = self.zsteering_limits[0]   # m
                 transducer_config['MaximalTPODistance'] = self.zsteering_limits[-1]  # m
-            
-        return transducer_config
+
+        # Flat geometries use a fixed nominal focal length that must not be exposed as FocalLength (see above)
+        if self.is_flat:
+            transducer_config.pop('focal_length')
+
+        # Remaining keys follow the PascalCase convention used in default.yaml
+        return {DEFAULT_YAML_KEY_RENAMES.get(key, get_class_name(key)): value for key, value in transducer_config.items()}
     
     def _make_yaml_safe(self, value):
         if isinstance(value, dict):

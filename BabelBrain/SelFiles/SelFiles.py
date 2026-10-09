@@ -320,8 +320,8 @@ class SelFiles(QDialog):
         try:
             with open(tx_default_yaml, "r") as f:
                 tx_params = yaml.safe_load(f)
-            geometry_type = tx_params.get('geometry_type', '')
-            steering_axes = tx_params.get('steering_axes', [])
+            geometry_type = tx_params.get('GeometryType', '')
+            steering_axes = tx_params.get('SteeringAxes', [])
             steering = len(steering_axes) == 3
         except Exception:
             geometry_type = ''

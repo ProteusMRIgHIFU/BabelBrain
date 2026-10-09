@@ -201,7 +201,7 @@ class SimulationConditions(SimulationConditionsBASE):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
         element_positions = np.column_stack(
-            (self._elements["x"], self._elements["y"], self._elements["z"])
+            (self._elements["X"], self._elements["Y"], self._elements["Z"])
         )
         if subset_indices is not None:
             element_positions = element_positions[subset_indices]

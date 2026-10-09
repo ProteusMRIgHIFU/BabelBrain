@@ -52,8 +52,8 @@ PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
             - 14.3
 
 # Added
-elements:
-  x:
+Elements:
+  X:
     - 0.04885
     - 0.03952
     - 0.0151
@@ -182,7 +182,7 @@ elements:
     - -0.03769
     - 0.02075
     - -0.03471
-  y:
+  Y:
     - 0
     - 0.02871
     - 0.04646
@@ -311,7 +311,7 @@ elements:
     - -0.02301
     - 0.00069
     - -0.03405
-  z:
+  Z:
     - 0.052903
     - 0.052905
     - 0.052901
@@ -440,6 +440,6 @@ elements:
     - 0.056878
     - 0.068952
     - 0.053112
-num_elements: 128
-element_size: 6.6e-3
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+NumElements: 128
+ElementSize: 6.6e-3
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

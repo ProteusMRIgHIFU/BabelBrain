@@ -51,8 +51,8 @@ class SimulationConditions(babel_integration_focused_array.SimulationConditions)
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
 
-        radii = np.array(self._elements["radii"]).reshape(self._num_elements,1)
-        thetas = np.deg2rad(np.array(self._elements["thetas"]).reshape(self._num_elements,1))
+        radii = np.array(self._elements["Radii"]).reshape(self._num_elements,1)
+        thetas = np.deg2rad(np.array(self._elements["Thetas"]).reshape(self._num_elements,1))
         tx_xyz = compute_H301_xyz_coords(radii,thetas,self._FocalLength)
 
         self._Tx = generate_focused_array_tx(tx_xyz, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=False, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys="cartesian",show_plot=False,ppw_surface=PPWSurface)

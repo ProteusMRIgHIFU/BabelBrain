@@ -75,4 +75,4 @@ OutDiameters:  #outer diameter of rings
     - 43.71e-3
     - 53.11e-3
     - 60.83e-3
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

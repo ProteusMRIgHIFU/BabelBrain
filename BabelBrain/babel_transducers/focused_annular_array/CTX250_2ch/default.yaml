@@ -42,4 +42,4 @@ InDiameters: #inner diameter of rings
 OutDiameters:  #outer diameter of rings
     - 28.7e-3
     - 40.2e-3
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

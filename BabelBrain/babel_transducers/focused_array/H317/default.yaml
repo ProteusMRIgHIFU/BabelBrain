@@ -12,8 +12,8 @@ MinimalDistanceConeToFocus:       20.0e-3  # in m
 MaximalDistanceConeToFocus:       95.5e-3  # in m
 DefaultDistanceConeToFocus:       27.0e-3  # in m
 
-elements:
-  x:
+Elements:
+  X:
   - 0.02889758
   - 0.0253619
   - 0.01671828
@@ -142,7 +142,7 @@ elements:
   - 0.0647573
   - 0.06592824
   - 0.07257796
-  y:
+  Y:
   - -0.00559562
   - -0.01688846
   - -0.02232406
@@ -271,7 +271,7 @@ elements:
   - 0.03358896
   - 0.02040382
   - 0.00838962
-  z:
+  Z:
   - 0.13175234
   - 0.13151612
   - 0.13208762
@@ -401,8 +401,8 @@ elements:
   - 0.1160272
   - 0.11352022
 
-num_elements: 128
-element_size: 0.0095
+NumElements: 128
+ElementSize: 0.0095
 
 USFrequencies:
     - 250000.0
@@ -549,4 +549,4 @@ PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
             - 16.7
             - 17.5
 
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
