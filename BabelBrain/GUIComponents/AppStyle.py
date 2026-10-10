@@ -109,9 +109,9 @@ def apply_native_spinbox_style(root):
 # shrinks the icons and flattens the buttons so it blends with the app.
 _NAV_TOOLBAR_QSS = f"""
 QToolBar {{ border: none; padding: 0px; spacing: 1px; background: transparent; }}
-QToolButton {{ border: none; padding: 2px; margin: 0px; }}
+QToolButton {{ border: 1px solid transparent; padding: 1px; margin: 0px; }}
 QToolButton:hover {{ background: palette(midlight); border-radius: 3px; }}
-QToolButton:checked {{ background: palette(midlight); border-radius: 3px; }}
+QToolButton:checked {{ background: rgba(128, 128, 128, 110); border-radius: 3px; }}
 QToolBar QLabel {{ font-size: 11px; }}
 """
 

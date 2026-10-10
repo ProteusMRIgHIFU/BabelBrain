@@ -112,12 +112,6 @@ class FlatArray2DTx(BabelBasePhaseArray):
         except:
             self.Widget.RefocusingcheckBox.setChecked(Skull['bDoRefocusing'].astype(int))
         self.Widget.MaxDepthSpinBox.setValue(Skull['zLengthBeyonFocalPoint']*1e3)
-        TxSet = Skull['TxSet']
-        if type(TxSet) is bytes:
-            TxSet=TxSet.decode("utf-8")
-        index = self.Widget.SelTxSetDropDown.findText(TxSet, Qt.MatchFixedString)
-        if index >= 0:
-            self.Widget.SelTxSetDropDown.setCurrentIndex(index)
         self.Widget.XMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentX']*1e3)
         self.Widget.YMechanicSpinBox.setValue(Skull['TxMechanicalAdjustmentY']*1e3)
         self.Widget.SkinDistanceSpinBox.setValue(DistanceSkin)
@@ -194,16 +188,12 @@ class RunAcousticSim(QObject):
         kargs['ID']=ID
         kargs['deviceName']=deviceName
         kargs['is_custom_tx'] = self._mainApp.Config['is_custom_tx']
-        # if self._mainApp.Config['is_custom_tx']:
-        #     kargs['geometry_type'] = self._mainApp.AcSim.Config['geometry_type']
-        # else:
-        #     kargs['geometry_type'] = self._mainApp.Config['TxType']
         kargs['geometry_type'] = self._mainApp.Config['TxType']
-        kargs['elements'] = self._mainApp.AcSim.Config['elements']
-        kargs['num_elements'] = self._mainApp.AcSim.Config['num_elements']
-        kargs['element_size'] = self._mainApp.AcSim.Config['element_size']
-        kargs['coordinate_system'] = self._mainApp.AcSim.Config.get('coordinate_system','cartesian')
-        kargs['distance_outplane'] = self._mainApp.AcSim.Config['NaturalOutPlaneDistance']
+        kargs['elements'] = self._mainApp.AcSim.Config['Elements']
+        kargs['num_elements'] = self._mainApp.AcSim.Config['NumElements']
+        kargs['element_size'] = self._mainApp.AcSim.Config['ElementSize']
+        kargs['coordinate_system'] = self._mainApp.AcSim.Config.get('CoordinateSystem','cartesian')
+        kargs['distance_tx_bottom_to_outplane'] = self._mainApp.AcSim.Config['DistanceTxBottomToOutplane']
         kargs['Aperture'] = self._mainApp.AcSim.Config['TxDiam']
         kargs['COMPUTING_BACKEND']=COMPUTING_BACKEND
         kargs['basePPW']=basePPW

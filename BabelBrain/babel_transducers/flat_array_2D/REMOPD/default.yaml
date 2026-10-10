@@ -13,7 +13,7 @@ USFrequencies:
     - 500000.0
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
-NaturalOutPlaneDistance: 1.2e-3 #mm
+DistanceTxBottomToOutplane: 1.2e-3 # m, fabrication dead space between element surface and device edge
 
 PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
     300000.0:
@@ -213,10 +213,10 @@ PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
             - 98.0
             - 102.2
 
-element_size: 0.00258
-num_elements: 256
-elements:
-  x:
+ElementSize: 0.00258
+NumElements: 256
+Elements:
+  X:
     - -0.001540000000000
     - 0.001540000000000
     - -0.007700000000000
@@ -473,7 +473,7 @@ elements:
     - 0.001540000000000
     - 0.004620000000000
     - 0.007700000000000
-  y:
+  Y:
     - 0.020020000000000
     - 0.020020000000000
     - 0.016940000000000
@@ -730,7 +730,7 @@ elements:
     - -0.026180000000000
     - -0.026180000000000
     - -0.026180000000000
-  z:
+  Z:
     - 0.0
     - 0.0
     - 0.0
@@ -987,4 +987,4 @@ elements:
     - 0.0
     - 0.0
     - 0.0
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

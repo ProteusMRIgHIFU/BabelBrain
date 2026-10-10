@@ -203,6 +203,8 @@ commonDatas = collect_transducer_configs() + collect_gpu_kernels() + [
     ("babel_transducers/transducer_templates/babel_integration_tx.py.jinja", "./babel_transducers/transducer_templates"),
     ("babel_transducers/transducer_templates/babel_tx.py.jinja", "./babel_transducers/transducer_templates"),
     ("babel_transducers/transducer_templates/tx_form.py.jinja", "./babel_transducers/transducer_templates"),
+    # Ready-to-edit custom transducer yaml templates, one per geometry type, shipped for users to copy
+    *[(path, "./custom_tx_templates") for path in sorted(glob(os.path.join("..", "custom_tx_templates", "*.yaml")))],
     # Bundle root: read by the top-level modules (BabelBrain.py, ClockDialog.py,
     # CTZTEProcessing.py) and by anything calling bundle_root()
     ("default.yaml", "./"),

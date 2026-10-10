@@ -32,3 +32,4 @@
 - {name: IGT64_500,   module_name: IGT64_500,     custom: false, steering: true,  transducer_type: focused_array}
 - {name: H301,        module_name: H301,          custom: false, steering: true,  transducer_type: focused_array}
 - {name: DomeTx,      module_name: DomeTx,        custom: false, steering: true,  transducer_type: focused_array}
+- {name: R16081,      module_name: R16081,        custom: false, steering: true,  transducer_type: focused_array}

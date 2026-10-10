@@ -9,7 +9,7 @@ MinimalYSteering:      -20.0e-3  # in m
 MaximalYSteering:       20.0e-3  # in m
 
 MinimalDistanceConeToFocus:       10.0e-3  # in m
-MaximalDistanceConeToFocus:       61.0e-3  # in m 
+MaximalDistanceConeToFocus:       55.6e-3  # in m 
 DefaultDistanceConeToFocus:       40.0e-3  # in m
 
 USFrequencies:
@@ -64,8 +64,8 @@ PlanTUS: #This information is to interface with the PlanTUS tool - Synthectic
             - 41.4
 
 # Added
-elements:
-  x:
+Elements:
+  X:
     - 0.006353
     - 0.002483
     - -0.004528
@@ -194,7 +194,7 @@ elements:
     - 0.047442
     - 0.037186
     - -0.046181
-  y:
+  Y:
     - -0.000466
     - 0.005821
     - 0.004542
@@ -323,7 +323,7 @@ elements:
     - -0.009069
     - 0.030194
     - -0.010662
-  z:
+  Z:
     - 0.079746
     - 0.079749
     - 0.079743
@@ -452,6 +452,6 @@ elements:
     - 0.063773
     - 0.064075
     - 0.064449
-num_elements: 128
-element_size: 6.6e-3
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+NumElements: 128
+ElementSize: 6.6e-3
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

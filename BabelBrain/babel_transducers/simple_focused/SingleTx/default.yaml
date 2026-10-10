@@ -17,7 +17,7 @@ USFrequencies:
     - 950000.0
     - 1000000.0
 NaturalOutPlaneDistance: 0.0
-TxDiam: 50e-33
+TxDiam: 50.0e-3 # not used
 MaxDistanceToSkin: 50 # mm
 MaxNegativeDistance: 10 # mm
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

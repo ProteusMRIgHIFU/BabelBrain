@@ -1,0 +1,48 @@
+# =============================================================================
+# BabelBrain custom transducer template: focused_annular_array
+# Template Version: 1.0
+#
+# Concentric rings on a spherical cap sharing one geometric focus, steered along the
+# beam (z) axis only. Rings are centred on the z axis; +z points from the transducer
+# towards the target.
+# Units: lengths in metres (m), frequencies in hertz (Hz).
+# Scientific notation needs a decimal point and a signed exponent (e.g. 6.4e-2),
+# otherwise it is read as text. Plain decimals (0.064) are safest.
+#
+# The values below reproduce the built-in CTX500 transducer (4 rings).
+# =============================================================================
+
+# ---------- Common parameters ------------------------------------------------
+name: MyFocusedAnnularTx                # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
+geometry_type: focused_annular_array
+frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
+    - 500000
+aperture_size: 0.064                    # Aperture diameter (m)
+focal_length: 62.94e-3                  # Radius of curvature of the cap (m). Must be >= half of the largest outer ring diameter.
+
+# Optional. Give one of these (or both, if consistent); the other is calculated from:
+#   distance_outplane_to_focus = focal_length - bowl depth - distance_tx_bottom_to_outplane
+distance_outplane_to_focus: 0.05238     # Device edge (out-plane) to focal spot (m)
+# distance_tx_bottom_to_outplane: 0.0    # Dead space (m), transducer rim to device edge. Default 0
+
+# ---------- Type-specific parameters -----------------------------------------
+num_elements: 4                         # Number of rings
+
+# Ring diameters (m), innermost ring first, num_elements entries each.
+annular:
+    inner_ring_diameters: [0.0,     0.0316988, 0.0442688, 0.0536688]  # Use 0.0 for a solid central disc
+    outer_ring_diameters: [0.03114, 0.04371,   0.05311,   0.06083]    # Each must be larger than its inner diameter
+
+# TPO distance range in the BabelBrain GUI = focal_length + z (here 30-82.5 mm).
+steering:
+    z: [-0.03294, 0.01956]              # Axial offset [min, max] (m) from the natural focus; negative moves towards the transducer, abs(min) <= focal_length
+
+# ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
+# PlanTUS tables, one entry per frequency (distances in m).
+# If omitted, BabelBrain estimates them with Rayleigh simulations in water.
+# PlanTUS:
+#     500000:
+#         FocalDistanceList: [0.0331, 0.0347, 0.0368, 0.0393, 0.0424, 0.0462, 0.0508, 0.0560, 0.0618, 0.0685, 0.0766]
+#         FHMLList:          [0.0084, 0.0093, 0.0103, 0.0116, 0.0135, 0.0161, 0.0192, 0.0228, 0.0263, 0.0302, 0.0345]

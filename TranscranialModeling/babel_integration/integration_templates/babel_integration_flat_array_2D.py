@@ -69,7 +69,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         elements=[],
         num_elements=0,
         element_size=0,
-        distance_outplane=0,
+        distance_tx_bottom_to_outplane=0,
         **kargs,
     ):
 
@@ -81,7 +81,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
         self._elements = elements
         self._num_elements = num_elements
         self._element_size = element_size
-        self._distance_outplane = distance_outplane
+        self._distance_tx_bottom_to_outplane = distance_tx_bottom_to_outplane
         super().__init__(**kargs)
 
     def CreateSimConditions(self, **kargs):
@@ -95,7 +95,7 @@ class BabelFTD_Simulations(BabelFTD_Simulations_BASE):
             elements=self._elements,
             num_elements=self._num_elements,
             element_size=self._element_size,
-            distance_outplane=self._distance_outplane,
+            distance_tx_bottom_to_outplane=self._distance_tx_bottom_to_outplane,
             **kargs,
         )
 
@@ -178,13 +178,13 @@ class SimulationConditions(SimulationConditionsBASE):
         elements=[],
         num_elements=0,
         element_size=0,
-        distance_outplane=0.0,
+        distance_tx_bottom_to_outplane=0.0,  # m, fabrication dead space between element surface and device edge
         **kargs,
     ):
         super().__init__(
             Aperture=Aperture,
             FocalLength=FocalLength,
-            ZTxCorrecton=distance_outplane,  # this will put the required water space in the simulation domain
+            ZTxCorrecton=distance_tx_bottom_to_outplane,  # this will put the required water space in the simulation domain
             **kargs,
         )
         self._XSteering = XSteering
@@ -195,13 +195,13 @@ class SimulationConditions(SimulationConditionsBASE):
         self._num_elements = num_elements
         self._element_size = element_size
         self._Aperture = Aperture
-        self._zdistance = -distance_outplane
+        self._zdistance = -distance_tx_bottom_to_outplane
 
-    def GenTransducerGeom(self, subset_indices=None, PPWSurface=None):
+    def GenTx(self, subset_indices=None, PPWSurface=None):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
         element_positions = np.column_stack(
-            (self._elements["x"], self._elements["y"], self._elements["z"])
+            (self._elements["X"], self._elements["Y"], self._elements["Z"])
         )
         if subset_indices is not None:
             element_positions = element_positions[subset_indices]
@@ -223,7 +223,7 @@ class SimulationConditions(SimulationConditionsBASE):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         # first we generate the high res source of the tx elements
         # and we select the set based on input
-        self._Tx = self.GenTransducerGeom()
+        self._Tx = self.GenTx()
 
         if self._TxMechanicalAdjustmentZ < 0:
             zCorrec = self._TxMechanicalAdjustmentZ

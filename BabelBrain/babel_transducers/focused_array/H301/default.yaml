@@ -15,8 +15,8 @@ DefaultDistanceConeToFocus:       60.0e-3  # in m
 USFrequencies:
     - 1100000.0
 
-elements:
-  radii: # m
+Elements:
+  Radii: # m
     - 0.0272231
     - 0.027848968
     - 0.028460962
@@ -146,7 +146,7 @@ elements:
     - 0.06981375
     - 0.070035501
 
-  thetas: # degrees
+  Thetas: # degrees
     - 0
     - 21.91258465
     - 43.35548712
@@ -276,6 +276,6 @@ elements:
     - 115.9467474
     - 124.5552666
 
-num_elements: 128
-element_size: 10.15e-3
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+NumElements: 128
+ElementSize: 10.15e-3
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
