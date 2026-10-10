@@ -429,6 +429,153 @@ def _set_line(actor, p1, p2):
     pts.Modified(); poly.Modified()
 
 
+# ── ROI (rectangular region of interest) helpers ───────────────────────────
+
+# Dash patterns, given as alternating on/off run lengths in multiples of the
+# dash unit (see _dashed_rect_segments).  The first entry is always an "on" run.
+ROI_STYLES: dict[str, tuple[float, ...]] = {
+    "solid":   (1.0,),
+    "dashed":  (1.0, 0.6),
+    "dotted":  (0.22, 0.55),
+    "dashdot": (1.0, 0.5, 0.22, 0.5),
+}
+
+
+def _parse_color(c) -> tuple[float, float, float]:
+    """
+    Accept "#rrggbb", any Qt colour name ("yellow", "magenta"), or an (r, g, b)
+    triple in either 0-1 or 0-255 range.  Returns an (r, g, b) triple in 0-1.
+    """
+    if isinstance(c, (tuple, list, np.ndarray)):
+        rgb = [float(v) for v in list(c)[:3]]
+        if max(rgb) > 1.0:
+            rgb = [v / 255.0 for v in rgb]
+        return (rgb[0], rgb[1], rgb[2])
+    col = QColor(str(c))
+    if not col.isValid():
+        raise ValueError(f"Unrecognised colour: {c!r}")
+    return (col.redF(), col.greenF(), col.blueF())
+
+
+def _rect_corners(centre: np.ndarray, right: np.ndarray, up: np.ndarray,
+                  width: float, height: float) -> list[np.ndarray]:
+    """Four corners of the rectangle, counter-clockwise in the (right, up) plane."""
+    c = np.asarray(centre, dtype=float)
+    r = np.asarray(right,  dtype=float) * (width  / 2.)
+    u = np.asarray(up,     dtype=float) * (height / 2.)
+    return [c - r - u, c + r - u, c + r + u, c - r + u]
+
+
+def _dashed_rect_segments(centre: np.ndarray, right: np.ndarray, up: np.ndarray,
+                          width: float, height: float,
+                          pattern: tuple[float, ...] = (1.0, 0.6),
+                          dash_length: float | None = None,
+                          ) -> list[tuple[np.ndarray, np.ndarray]]:
+    """
+    Trace a rectangle outline as a list of (p1, p2) world-space line segments.
+
+    The rectangle is centred on `centre` and spans `width` along `right` and
+    `height` along `up` (both expected to be unit vectors).
+
+    `pattern` holds alternating on/off run lengths in multiples of
+    `dash_length` (world units, i.e. mm).  A single-entry pattern yields a
+    solid outline.  `dash_length=None` picks a size proportional to the ROI.
+    The period is then stretched so a whole number of them fits the perimeter,
+    which makes the pattern close seamlessly at the starting corner.
+
+    Dashes are generated as geometry rather than with vtkProperty's line
+    stipple, which the OpenGL2 backend silently ignores.
+    """
+    corners = _rect_corners(centre, right, up, width, height)
+    path    = corners + [corners[0]]          # closed loop
+    edges   = []
+    perim   = 0.
+    for a, b in zip(path[:-1], path[1:]):
+        L = float(np.linalg.norm(b - a))
+        edges.append((a, b, L))
+        perim += L
+    if perim <= 0.:
+        return []
+
+    pattern = tuple(float(v) for v in pattern if float(v) > 0.) or (1.0,)
+    if len(pattern) == 1:                     # solid outline — no cutting needed
+        return [(a, b) for a, b, _ in edges]
+
+    if dash_length is None or dash_length <= 0.:
+        dash_length = (width + height) / 2. / 12.
+    period = max(dash_length, 1e-6) * sum(pattern)
+    nper   = max(1, int(round(perim / period)))
+    period = perim / nper
+    runs   = [v * period / sum(pattern) for v in pattern]
+
+    # "on" intervals, expressed as arc-length spans along the closed path
+    spans: list[tuple[float, float]] = []
+    s = 0.
+    while s < perim - 1e-9:
+        for k, run in enumerate(runs):
+            if k % 2 == 0:
+                spans.append((s, min(s + run, perim)))
+            s += run
+            if s >= perim:
+                break
+
+    # Cut every span out of the polyline
+    segs: list[tuple[np.ndarray, np.ndarray]] = []
+    for s0, s1 in spans:
+        if s1 - s0 <= 1e-9:
+            continue
+        base = 0.
+        for a, b, L in edges:
+            if L <= 0.:
+                continue
+            lo, hi = max(s0, base), min(s1, base + L)
+            if hi > lo:
+                d = (b - a) / L
+                segs.append((a + d * (lo - base), a + d * (hi - base)))
+            base += L
+    return segs
+
+
+def _make_segments_actor(color, line_width: float) -> vtk.vtkActor:
+    """An actor holding an (initially empty) set of independent line segments."""
+    poly = vtk.vtkPolyData()
+    poly.SetPoints(vtk.vtkPoints())
+    poly.SetLines(vtk.vtkCellArray())
+    m = vtk.vtkPolyDataMapper(); m.SetInputData(poly)
+    a = vtk.vtkActor(); a.SetMapper(m)
+    a.GetProperty().SetColor(*_parse_color(color))
+    a.GetProperty().SetLineWidth(float(line_width))
+    a.GetProperty().SetLighting(False)
+    a.VisibilityOff()
+    return a
+
+
+def _set_segments(actor: vtk.vtkActor,
+                  segs: list[tuple[np.ndarray, np.ndarray]]) -> None:
+    poly  = actor.GetMapper().GetInput()
+    pts   = vtk.vtkPoints()
+    cells = vtk.vtkCellArray()
+    for p1, p2 in segs:
+        i = pts.InsertNextPoint(float(p1[0]), float(p1[1]), float(p1[2]))
+        j = pts.InsertNextPoint(float(p2[0]), float(p2[1]), float(p2[2]))
+        cells.InsertNextCell(2); cells.InsertCellPoint(i); cells.InsertCellPoint(j)
+    poly.SetPoints(pts); poly.SetLines(cells); poly.Modified()
+
+
+# ── ROISpec ────────────────────────────────────────────────────────────────
+@dataclass
+class ROISpec:
+    """One rectangular ROI, defined by its RAS centre and in-plane extents."""
+    ras:         np.ndarray
+    width:       float
+    height:      float
+    color:       object = "#ffff00"
+    style:       str    = "dashed"
+    line_width:  float  = 1.5
+    dash_length: float | None = None
+    visible:     bool   = True
+
+
 def _make_wl_style(on_wl_drag, on_wl_end, on_scroll) -> vtk.vtkInteractorStyle:
     """
     Custom interactor style for medical image viewing.
@@ -560,6 +707,9 @@ class SliceViewport(QFrame):
         self._current_slice = 0
         # Per-volume actor/property pairs
         self._layers: list[tuple[vtk.vtkImageSlice, vtk.vtkImageProperty]] = []
+        # Scripted ROI overlays:  roi_id -> (ROISpec, vtkActor)
+        self._rois: dict[int, tuple[ROISpec, vtk.vtkActor]] = {}
+        self._roi_next_id = 0
         self._build_ui()
         self._build_pipeline()
 
@@ -705,6 +855,7 @@ class SliceViewport(QFrame):
         self._current_slice = mid
         self._lbl_slice.setText(f"{mid+1} / {self._pg.n}")
         self._init_camera(mid)
+        self._update_rois()
         self.vtk_widget.GetRenderWindow().Render()
 
     def _make_slice_actor(self) -> tuple[vtk.vtkImageSlice, vtk.vtkImageProperty]:
@@ -754,13 +905,11 @@ class SliceViewport(QFrame):
         self._current_slice = mid
         self._lbl_slice.setText(f"{mid+1} / {pg.n}")
 
-        # Re-add crosshairs above image actors
-        self.renderer.RemoveActor(self._cross_h)
-        self.renderer.RemoveActor(self._cross_v)
-        self.renderer.AddActor(self._cross_h)
-        self.renderer.AddActor(self._cross_v)
+        # Re-add crosshairs / ROIs above image actors
+        self._raise_annotations()
 
         self._init_camera(mid)
+        self._update_rois()
         self.vtk_widget.Initialize()
         self.vtk_widget.Start()
 
@@ -771,12 +920,9 @@ class SliceViewport(QFrame):
         actor.SetUserTransform(rec.vtk_xform)
         self._apply_volume_property(prop, rec)
 
-        # Insert before crosshairs (which are the last two actors)
-        self.renderer.RemoveActor(self._cross_h)
-        self.renderer.RemoveActor(self._cross_v)
+        # Insert below the crosshair / ROI annotation actors
         self.renderer.AddActor(actor)
-        self.renderer.AddActor(self._cross_h)
-        self.renderer.AddActor(self._cross_v)
+        self._raise_annotations()
 
         self._layers.append((actor, prop))
         self.vtk_widget.GetRenderWindow().Render()
@@ -842,7 +988,170 @@ class SliceViewport(QFrame):
         self.vtk_widget.GetRenderWindow().Render()
         
 
+    # ── Rectangular ROIs (scripting API, not exposed in the GUI) ──────────
+
+    def add_roi(self, ras, width: float, height: float,
+                color="#ffff00", style: str = "dashed",
+                line_width: float = 1.5, dash_length: float | None = None,
+                visible: bool = True) -> int:
+        """
+        Draw a rectangular ROI in this viewport and return its id.
+
+        Intended for scripted use (``BabelBrain.py --exec ...``); the GUI never
+        calls it.
+
+        Parameters
+        ----------
+        ras : (3,) array-like
+            Centre of the ROI in RAS world coordinates.  Only the two in-plane
+            components matter: the point is projected onto the slice plane
+            currently displayed, so the ROI stays visible whatever slice is
+            shown and in whichever orientation (``medical`` or ``affine``) this
+            viewport happens to be rendering.
+        width, height : float
+            Extents in mm along this viewport's horizontal (``PlaneGeometry.right``)
+            and vertical (``PlaneGeometry.up``) screen axes.  In medical mode
+            those are: axial — width along RAS-X, height along RAS-Y; coronal —
+            X / Z; sagittal — Y / Z.  In affine mode they follow the base
+            volume's voxel axes.
+        color : str | tuple
+            "#rrggbb", a Qt colour name ("yellow"), or an (r, g, b) triple in
+            0-1 or 0-255 range.  Default bright yellow.
+        style : {"dashed", "solid", "dotted", "dashdot"}
+            Outline style; default "dashed".
+        line_width : float
+            Outline width in pixels.
+        dash_length : float, optional
+            Dash unit in mm.  ``None`` scales it to the ROI size.  Ignored when
+            ``style="solid"``.
+        visible : bool
+            Draw it straight away (default) or keep it hidden until
+            ``update_roi(roi_id, visible=True)``.
+        """
+        style = str(style).lower()
+        if style not in ROI_STYLES:
+            raise ValueError(
+                f"Unknown ROI style {style!r}; expected one of {sorted(ROI_STYLES)}")
+        spec = ROISpec(
+            ras         = np.asarray(ras, dtype=float).ravel()[:3].copy(),
+            width       = float(width),
+            height      = float(height),
+            color       = color,
+            style       = style,
+            line_width  = float(line_width),
+            dash_length = None if dash_length is None else float(dash_length),
+            visible     = bool(visible),
+        )
+        actor  = _make_segments_actor(spec.color, spec.line_width)
+        self.renderer.AddActor(actor)
+        roi_id = self._roi_next_id
+        self._roi_next_id += 1
+        self._rois[roi_id] = (spec, actor)
+        self._rebuild_roi(roi_id)
+        self.vtk_widget.GetRenderWindow().Render()
+        return roi_id
+
+    def update_roi(self, roi_id: int, **kwargs) -> None:
+        """
+        Change any of the parameters of an existing ROI.
+
+        Accepts the same keywords as :meth:`add_roi` (``ras``, ``width``,
+        ``height``, ``color``, ``style``, ``line_width``, ``dash_length``,
+        ``visible``).  Unknown keywords raise TypeError.
+        """
+        if roi_id not in self._rois:
+            return
+        spec, actor = self._rois[roi_id]
+        for key, val in kwargs.items():
+            if not hasattr(spec, key):
+                raise TypeError(f"update_roi() got an unexpected keyword {key!r}")
+            if key == "ras":
+                val = np.asarray(val, dtype=float).ravel()[:3].copy()
+            elif key == "style":
+                val = str(val).lower()
+                if val not in ROI_STYLES:
+                    raise ValueError(
+                        f"Unknown ROI style {val!r}; expected one of {sorted(ROI_STYLES)}")
+            elif key in ("width", "height", "line_width"):
+                val = float(val)
+            elif key == "dash_length":
+                val = None if val is None else float(val)
+            elif key == "visible":
+                val = bool(val)
+            setattr(spec, key, val)
+        if "color" in kwargs:
+            actor.GetProperty().SetColor(*_parse_color(spec.color))
+        if "line_width" in kwargs:
+            actor.GetProperty().SetLineWidth(spec.line_width)
+        self._rebuild_roi(roi_id)
+        self.vtk_widget.GetRenderWindow().Render()
+
+    def remove_roi(self, roi_id: int) -> None:
+        """Delete one ROI.  Unknown ids are ignored."""
+        entry = self._rois.pop(roi_id, None)
+        if entry is None:
+            return
+        self.renderer.RemoveActor(entry[1])
+        self.vtk_widget.GetRenderWindow().Render()
+
+    def clear_rois(self) -> None:
+        """Delete every ROI in this viewport."""
+        if not self._rois:
+            return
+        for _, actor in self._rois.values():
+            self.renderer.RemoveActor(actor)
+        self._rois.clear()
+        self.vtk_widget.GetRenderWindow().Render()
+
+    def roi_ids(self) -> list[int]:
+        """Ids of the ROIs currently held by this viewport, in creation order."""
+        return sorted(self._rois)
+
     # ── Internals ─────────────────────────────────────────────────────────
+
+    def _raise_annotations(self) -> None:
+        """
+        Re-add the crosshair and ROI actors so they sit above the image slices.
+
+        vtkRenderer draws in insertion order, so any actor added after them
+        (a new overlay, a reconfigured base volume) has to be followed by this.
+        """
+        for actor in [self._cross_h, self._cross_v] + \
+                     [a for _, a in self._rois.values()]:
+            self.renderer.RemoveActor(actor)
+            self.renderer.AddActor(actor)
+
+    def _rebuild_roi(self, roi_id: int) -> None:
+        """Recompute one ROI's outline for the slice currently displayed."""
+        entry = self._rois.get(roi_id)
+        if entry is None:
+            return
+        spec, actor = entry
+        if self._pg is None or not spec.visible:
+            actor.VisibilityOff()
+            return
+        pg     = self._pg
+        normal = pg.normal / np.linalg.norm(pg.normal)
+        right  = pg.right  / np.linalg.norm(pg.right)
+        up     = pg.up     / np.linalg.norm(pg.up)
+        focal  = self._focal_for(self._current_slice)
+        # Project the RAS centre onto the displayed plane, then nudge a quarter
+        # slice toward the camera so the outline is never swallowed by the
+        # (otherwise coplanar) image slice.  Parallel projection means the nudge
+        # does not shift the ROI on screen.
+        side   = -1. if pg.flip_lr else 1.
+        centre = (spec.ras
+                  + normal * float(np.dot(focal - spec.ras, normal))
+                  + normal * side * 0.25 * pg.step)
+        _set_segments(actor, _dashed_rect_segments(
+            centre, right, up, spec.width, spec.height,
+            ROI_STYLES[spec.style], spec.dash_length))
+        actor.VisibilityOn()
+
+    def _update_rois(self) -> None:
+        """Re-project every ROI (after a slice move or a geometry change)."""
+        for roi_id in list(self._rois):
+            self._rebuild_roi(roi_id)
 
     def _apply_volume_property(self, prop: vtk.vtkImageProperty, rec: VolumeRecord):
         prop.SetOpacity(rec.opacity if rec.visible else 0.0)
@@ -929,6 +1238,7 @@ class SliceViewport(QFrame):
         cam.SetPosition(*(np.array(cam.GetPosition()) + delta).tolist())
         self._current_slice = index
         self._lbl_slice.setText(f"{index+1} / {self._pg.n}")
+        self._update_rois()
         self.vtk_widget.GetRenderWindow().Render()
 
     def _on_slider(self, value: int) -> None:
@@ -1700,6 +2010,68 @@ class NiftiViewer(QWidget):
         self._crosshair_visible = visible
         for vp in self._vps:
             vp.set_crosshair_visible(visible)
+
+    # ── Rectangular ROIs (scripting API, not exposed in the GUI) ──────────
+
+    def add_roi(self, ras, width: float, height: float, planes=(0, 1, 2),
+                **kwargs) -> dict[int, int]:
+        """
+        Draw the same rectangular ROI in several viewports at once.
+
+        Thin wrapper over :meth:`SliceViewport.add_roi`, meant for scripted
+        runs (``BabelBrain.py --exec ...``) — e.g. outlining a target region
+        before :meth:`grab_screenshot`.
+
+        Parameters
+        ----------
+        ras : (3,) array-like
+            ROI centre in RAS world coordinates.  Each viewport projects it
+            onto the slice it is currently showing, so one RAS point is enough
+            whatever the orientation (``medical`` or ``affine``) and slice.
+        width, height : float
+            Extents in mm along each viewport's horizontal and vertical screen
+            axes.  Note these are per-view axes, so the same pair means
+            different anatomical directions in each view (medical mode: axial
+            X/Y, coronal X/Z, sagittal Y/Z).  Pass a single plane in `planes`
+            when the two numbers only make sense for one view.
+        planes : int | iterable of int
+            Which viewports to draw in.  0/1/2 are axial/coronal/sagittal in
+            medical mode, "Slice j"/"Slice i"/"Slice k" in affine mode.
+        **kwargs
+            ``color`` (default "#ffff00"), ``style`` (default "dashed"),
+            ``line_width``, ``dash_length``, ``visible`` — see
+            :meth:`SliceViewport.add_roi`.
+
+        Returns
+        -------
+        dict
+            ``{plane_idx: roi_id}`` handle, to be passed back to
+            :meth:`update_roi` or :meth:`remove_roi`.
+        """
+        if isinstance(planes, (int, np.integer)):
+            planes = (int(planes),)
+        handle: dict[int, int] = {}
+        for idx in planes:
+            idx = int(idx)
+            if not 0 <= idx < len(self._vps):
+                raise ValueError(f"plane index out of range: {idx}")
+            handle[idx] = self._vps[idx].add_roi(ras, width, height, **kwargs)
+        return handle
+
+    def update_roi(self, handle: dict[int, int], **kwargs) -> None:
+        """Change parameters of an ROI created by :meth:`add_roi`."""
+        for plane_idx, roi_id in handle.items():
+            self._vps[int(plane_idx)].update_roi(roi_id, **kwargs)
+
+    def remove_roi(self, handle: dict[int, int]) -> None:
+        """Delete an ROI created by :meth:`add_roi`."""
+        for plane_idx, roi_id in handle.items():
+            self._vps[int(plane_idx)].remove_roi(roi_id)
+
+    def clear_rois(self) -> None:
+        """Delete every ROI in all three viewports."""
+        for vp in self._vps:
+            vp.clear_rois()
 
     def reset_view(self) -> None:
         """
