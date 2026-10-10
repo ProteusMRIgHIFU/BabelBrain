@@ -46,17 +46,17 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         module_name = f"TranscranialModeling.babel_integration.integration_templates.babel_integration_{geometry_type}"
         RUN_SIM = importlib.import_module(module_name).RUN_SIM
     else:
-        if TxSystem in ['Single','BSonix']:
-            from TranscranialModeling.babel_integration.integration_templates.babel_integration_simple_focused import RUN_SIM 
-        elif TxSystem in ['CTX_500','CTX_250','CTX_250_2ch','DPX_500','DPXPC_300','R15287','R15473']:
-            from TranscranialModeling.babel_integration.integration_templates.babel_integration_focused_annular_array import RUN_SIM 
-        elif TxSystem in ['H317','H246','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx']:
-            module_name = f"TranscranialModeling.babel_integration.{geometry_type}.babel_integration_{TxSystem}"
+        module_name = f"TranscranialModeling.babel_integration.{geometry_type}.babel_integration_{TxSystem}"
+        try:
             RUN_SIM = importlib.import_module(module_name).RUN_SIM
-        else:
-            raise ValueError("TX system " + TxSystem + " is not yet supported")
+        except ModuleNotFoundError as e:
+            # Only an unknown device maps to "not supported"; a missing
+            # dependency inside an existing module should surface as-is.
+            if e.name is None or not module_name.startswith(e.name):
+                raise
+            raise ValueError("TX system " + TxSystem + " is not yet supported") from e
 
-    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
         if kargs['bDryRun']==False:
             stdout = InOutputWrapper(queue,True)
     else:
@@ -75,7 +75,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         if 'bDryRun' in kargs:
             bDryRun=kargs['bDryRun']
         if kargs['bUseRayleighForWater']==False or bDryRun:
-            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
@@ -86,7 +86,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             bDisplay=False,
                             TxSystem=TxSystem,
                             **kargs)
-        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type == 'focused_array':
+        if TxSystem in ['H317','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type == 'focused_array':
             #we need to combine ac field files for display if using multipoint
             if kargs['MultiPoint'] is not None and kargs['bDryRun'] == False: 
                 kargs['bDryRun'] = True
@@ -126,7 +126,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             combinedNifti.to_filename(finalName)
                             _rec_artifact(finalName)
 
-        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
             kargs['bDryRun'] = True
             FilesWater=R.RunCases(targets=Target, 
                             bTightNarrowBeamDomain=True,

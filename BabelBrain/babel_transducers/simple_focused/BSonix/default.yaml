@@ -42,4 +42,4 @@ PlanTUS: #This information is to interface with the PlanTUS tool
                 - 80.0
             FHMLList:
                 - 42.5
-coordinate_system: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'
+CoordinateSystem: 'cartesian'  # geometry coordinate system for elements: 'cartesian' or 'spherical'

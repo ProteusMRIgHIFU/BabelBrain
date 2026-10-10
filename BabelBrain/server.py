@@ -910,7 +910,7 @@ def _run_standalone(job, manager, gpu_pool):
     spec = job.spec
     standalone = spec.get('standalone') or {}
     name = standalone.get('name')
-    if name != 'ForwardSimple':
+    if name not in ('ForwardSimple', 'RayleighPlanTUS'):
         raise ValueError("unknown standalone function %r" % name)
 
     workspace_root = spec.get('output_path')
@@ -927,12 +927,12 @@ def _run_standalone(job, manager, gpu_pool):
     device = None
     try:
         if gpu_pool is None:
-            raise RuntimeError("standalone ForwardSimple requires the server GPU pool")
+            raise RuntimeError("standalone %s requires the server GPU pool" % name)
         device = gpu_pool.acquire(
             on_wait=lambda: emit('standalone', 'waiting for GPU to be available', 10))
         gpu_name, backend = device
-        emit('standalone', "ForwardSimple using %s [%s]" % (gpu_name, backend), 20)
-        _log("standalone ForwardSimple: acquired GPU %s [%s]" % (gpu_name, backend))
+        emit('standalone', "%s using %s [%s]" % (name, gpu_name, backend), 20)
+        _log("standalone %s: acquired GPU %s [%s]" % (name, gpu_name, backend))
 
         if backend == 'CUDA':
             InitCuda(gpu_name)
@@ -941,23 +941,35 @@ def _run_standalone(job, manager, gpu_pool):
         elif backend == 'Metal':
             InitMetal(gpu_name)
         else:
-            raise ValueError("ForwardSimple does not support server backend %r" % backend)
+            raise ValueError("%s does not support server backend %r" % (name, backend))
 
         # No deviceMetal=: ForwardSimple ignores it (the Metal/OpenCL/CUDA device
         # is the one Init*() above selected), and hardcoding a device name here
         # read as if this only worked on an M1.
         with np.load(input_path, allow_pickle=False) as data:
-            u2 = ForwardSimple(data['cwvnb_extlay'],
-                               data['center'].astype(np.float32, copy=False),
-                               data['ds'].astype(np.float32, copy=False),
-                               data['u0'],
-                               data['rf'].astype(np.float32, copy=False))
+            if name == 'ForwardSimple':
+                u2 = ForwardSimple(data['cwvnb_extlay'],
+                                   data['center'].astype(np.float32, copy=False),
+                                   data['ds'].astype(np.float32, copy=False),
+                                   data['u0'],
+                                   data['rf'].astype(np.float32, copy=False))
+            elif name == 'RayleighPlanTUS':
+                # The whole PlanTUS focal sweep (steering phases + axial forward
+                # propagation per target) in this one job; see
+                # Utils/rayleigh_plantus.py, shared with the local path.
+                from Utils.rayleigh_plantus import plantus_axial_profiles
+                args = {k: data[k] for k in data.files}
+                n_targets = len(args['targets'])
+                emit('standalone', "RayleighPlanTUS: %d focal targets" % n_targets, 30)
+                u2 = plantus_axial_profiles(ForwardSimple, **args)
+            else:
+                raise ValueError("unknown standalone function %r" % name)
 
-        output_path = os.path.join(workspace_root, 'ForwardSimple_output.npy')
+        output_path = os.path.join(workspace_root, '%s_output.npy' % name)
         np.save(output_path, u2)
         job.artifacts = [{'path': output_path, 'fmt': 'npy',
                           'step': None, 'role': 'output'}]
-        emit('standalone', 'ForwardSimple calculation complete', 98)
+        emit('standalone', '%s calculation complete' % name, 98)
     finally:
         if device is not None:
             gpu_pool.release(device)
@@ -2024,7 +2036,7 @@ def run_server(app, args):
                 # (RunServerCalculation._REQUIRED_FEATURES); the
                 # new per-session workers provide it.
                 "persistent_session", "sessions", "multi_gpu",
-                "standalone_functions"]
+                "standalone_functions", "standalone_rayleigh_plantus"]
     if allow_custom_tx:
         features.append("custom_transducers")
     capabilities = {"transducers": transducers, "server_version": "v1-multigpu",

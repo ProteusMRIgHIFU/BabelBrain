@@ -43,10 +43,18 @@ STEP_PLANNING = 'planning'
 STEP_ACOUSTIC = 'acoustic'
 STEP_THERMAL = 'thermal'
 RAYLEIGH_TEST = 'rayleigh'
+RAYLEIGH_PLANTUS = 'rayleigh_plantus'
+
+# Standalone (no BabelBrain instance) steps -> the server's allow-listed
+# function name (see server.py _run_standalone).
+_STANDALONE_FUNCTIONS = {RAYLEIGH_TEST: 'ForwardSimple',
+                         RAYLEIGH_PLANTUS: 'RayleighPlanTUS'}
 
 # Advanced-config-dict features a server must advertise for offload to work.
 _REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'persistent_session'}
 _STANDALONE_REQUIRED_FEATURES = {'workspaces', 'uploads', 'artifact_download', 'standalone_functions'}
+# Extra features a server must advertise per standalone step.
+_STANDALONE_STEP_FEATURES = {RAYLEIGH_PLANTUS: {'standalone_rayleigh_plantus'}}
 # Additionally required when the session's transducer is a user-created one: the
 # server has to accept and import the uploaded transducer package.
 _CUSTOM_TX_REQUIRED_FEATURES = {'custom_transducers'}
@@ -146,7 +154,7 @@ class RunServerCalculation(QObject):
         self._standalone_args = standalone_args
         self._errorText = None
 
-        if self._step == RAYLEIGH_TEST:
+        if self._step in _STANDALONE_FUNCTIONS:
             self._param_actions = []
             self._combine_sync_actions = []
             self._thermal_profile = None
@@ -206,8 +214,11 @@ class RunServerCalculation(QObject):
                 "Client and server must run the same BabelBrain version."
                 % (name, client_version, server_version or "not reported"))
 
-        required_features = set(_STANDALONE_REQUIRED_FEATURES
-                                if self._step == RAYLEIGH_TEST else _REQUIRED_FEATURES)
+        if self._step in _STANDALONE_FUNCTIONS:
+            required_features = (_STANDALONE_REQUIRED_FEATURES
+                                 | _STANDALONE_STEP_FEATURES.get(self._step, set()))
+        else:
+            required_features = set(_REQUIRED_FEATURES)
         if self._is_custom_tx():
             required_features |= _CUSTOM_TX_REQUIRED_FEATURES
         missing = required_features - set(caps.get('features', []))
@@ -330,7 +341,7 @@ class RunServerCalculation(QObject):
                         / 'default.yaml')
         with open(default_yaml, 'r') as f:
             params = yaml.safe_load(f) or {}
-        version = params.get('template_version')
+        version = params.get('TemplateVersion')
         if not version:
             raise RemoteNotReady(
                 "Custom transducer %r does not record a template version, so the "
@@ -495,27 +506,27 @@ class RunServerCalculation(QObject):
         sess['launched'] = True
         return result
 
-    def _run_forward_simple(self):
-        """Run ForwardSimple remotely without launching a BabelBrain instance."""
+    def _run_standalone(self):
+        """Run an allow-listed standalone function (ForwardSimple, or the whole
+        RayleighPlanTUS sweep) remotely as ONE job, without launching a
+        BabelBrain instance. The arguments travel as a single .npz."""
         import numpy as np
 
+        name = _STANDALONE_FUNCTIONS[self._step]
         if not self._standalone_args:
-            raise RemoteNotReady("ForwardSimple remote arguments were not provided.")
+            raise RemoteNotReady("%s remote arguments were not provided." % name)
 
         self.preflight()
         self._bind()
         ws = cf.create_workspace(mode='temp')
         ws_id = ws['workspace_id']
         try:
-            with tempfile.TemporaryDirectory(prefix='babel-forward-simple-') as tmpdir:
-                input_name = 'ForwardSimple_input.npz'
+            with tempfile.TemporaryDirectory(prefix='babel-standalone-') as tmpdir:
+                input_name = '%s_input.npz' % name
                 input_path = os.path.join(tmpdir, input_name)
-                np.savez(input_path,
-                         cwvnb_extlay=np.asarray(self._standalone_args['cwvnb_extlay']),
-                         center=np.asarray(self._standalone_args['center']),
-                         ds=np.asarray(self._standalone_args['ds']),
-                         u0=np.asarray(self._standalone_args['u0']),
-                         rf=np.asarray(self._standalone_args['rf']))
+                np.savez(input_path, **{k: np.asarray(v)
+                                        for k, v in self._standalone_args.items()
+                                        if v is not None})
 
                 cf.upload(ws_id, input_path, input_name)
                 config = cf._req("GET", "/currentconfig")
@@ -525,22 +536,23 @@ class RunServerCalculation(QObject):
                     'keep_alive': False,
                     'config': config,
                     'standalone': {
-                        'name': 'ForwardSimple',
+                        'name': name,
                         'input': input_name,
                     },
                 }
                 job_id = cf.submit(spec)
-                print('[remote] submitted ForwardSimple job %s' % job_id)
+                print('[remote] submitted %s job %s' % (name, job_id))
                 result = self._follow(job_id)
                 if result['state'] != 'SUCCEEDED':
-                    raise RemoteNotReady("Remote ForwardSimple failed:\n%s"
-                                         % (result.get('error') or result['state']))
+                    raise RemoteNotReady("Remote %s failed:\n%s"
+                                         % (name, result.get('error') or result['state']))
 
+                output_name = '%s_output.npy' % name
                 downloaded = cf.download_all(result['job_id'], result['artifacts'], tmpdir)
                 output_paths = [path for path, _ in downloaded
-                                if os.path.basename(path) == 'ForwardSimple_output.npy']
+                                if os.path.basename(path) == output_name]
                 if len(output_paths) != 1:
-                    raise RemoteNotReady("Remote ForwardSimple did not return its output artifact.")
+                    raise RemoteNotReady("Remote %s did not return its output artifact." % name)
                 return np.load(output_paths[0], allow_pickle=False)
         finally:
             try:
@@ -625,13 +637,14 @@ class RunServerCalculation(QObject):
 
     # ── run (Qt worker slot) ──────────────────────────────────────────────
     def run(self):
-        # ForwardSimple is called SYNCHRONOUSLY (from CustomTransducer, not as a
+        # Standalone functions (ForwardSimple, the RayleighPlanTUS sweep) are
+        # called SYNCHRONOUSLY (from CustomTransducer, not as a
         # QThread worker) and its return value is fed straight into NumPy, so an
         # error must propagate to that caller's try/except — swallowing it into
         # _fail would return None and crash obscurely downstream. It also has no
         # mainApp, which _fail needs.
-        if self._step == RAYLEIGH_TEST:
-            result = self._run_forward_simple()
+        if self._step in _STANDALONE_FUNCTIONS:
+            result = self._run_standalone()
             self.finished.emit(result)
             return result
         try:

@@ -20,7 +20,7 @@ from TranscranialModeling.babel_integration.integration_templates.babel_integrat
     SimulationConditionsBASE,
     _rec_artifact,
 )
-from TranscranialModeling.tx_geometries import generate_focused_array_tx
+from TranscranialModeling.tx_geometries import generate_focused_array_tx, shift_tx
 
 def CreateCircularCoverage(DiameterFocalBeam=1.5e-3,DiameterCoverage=10e-3):
     RadialL=np.arange(DiameterFocalBeam,DiameterCoverage/2,DiameterFocalBeam)
@@ -49,11 +49,6 @@ def CreateSpreadFocus(DiameterFocalBeam=1.5e-3):
     ListPoints += [[-BaseTriangle,-HeightTriangle/2]]
     ListPoints=np.array(ListPoints)
     return ListPoints
-
-def shift_tx(tx,shift):
-    tx['VertDisplay'][:,2] -= shift
-    tx['center'][:,2] -= shift
-    tx['elemcenter'][:,2] -= shift
 
 class RUN_SIM(RUN_SIM_BASE):
     def CreateSimObject(self,**kargs):
@@ -239,24 +234,24 @@ class SimulationConditions(SimulationConditionsBASE):
                          DomeType=True)
         
 
-    def GenTransducerGeom(self,PPWSurface=None,PPWSurfaceHighRes=None):
+    def GenTx(self,PPWSurface=None,PPWSurfaceHighRes=None):
         if PPWSurface is None:
             PPWSurface = self.PPW_SURFACE
         if PPWSurfaceHighRes is None:
             PPWSurfaceHighRes = self.PPW_SURFACE_HIGH_RES
         if self._coordinate_system == 'spherical':
-            element_positions = np.column_stack((self._elements["r"], np.deg2rad(self._elements["theta"]), np.deg2rad(self._elements["phi"])))
+            element_positions = np.column_stack((self._elements["R"], self._elements["Theta"], self._elements["Phi"]))
         else:
-            element_positions = np.column_stack((self._elements["x"], self._elements["y"], self._elements["z"]))
+            element_positions = np.column_stack((self._elements["X"], self._elements["Y"], self._elements["Z"]))
         self._Tx = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
         self._TxOrig = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._OrigFocalLength, self._original_element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurface)
 
-        shift_tx(self._Tx,self._FocalLength)
-        shift_tx(self._TxOrig,self._OrigFocalLength)
+        shift_tx(self._Tx,-self._FocalLength)
+        shift_tx(self._TxOrig,-self._OrigFocalLength)
 
         if self._Frequency == 220e3:
             self._TxHighRes = generate_focused_array_tx(element_positions, self._num_elements, self._Frequency, self._FocalLength, self._element_size, validate_elements=True, sos=SpeedofSoundWater(20.0),rotation_z=self._RotationZ, coordinate_sys=self._coordinate_system,show_plot=False,ppw_surface=PPWSurfaceHighRes)
-            shift_tx(self._TxHighRes,self._FocalLength)
+            shift_tx(self._TxHighRes,-self._FocalLength)
         else:
             self._TxHighRes=self._TxOrig
         
@@ -277,11 +272,12 @@ class SimulationConditions(SimulationConditionsBASE):
                     670000: {6: 166890.38},
                 },
             }
-        
+        return self._Tx
+
     def CalculateRayleighFieldsForward(self,deviceName='6800'):
         print("Precalculating Rayleigh-based field as input for FDTD...")
         #first we generate the high res source of the tx elements
-        self.GenTransducerGeom()
+        self.GenTx()
 
         for k in ['center','elemcenter','VertDisplay']:
             self._Tx[k][:,0]+=self._TxMechanicalAdjustmentX

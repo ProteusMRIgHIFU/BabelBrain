@@ -30,6 +30,9 @@ class PyVistaPlotWidget(QWidget):
         grid_info,
         acoustic_data,
         show_sub_elements=False,
+        focal_spot=None,
+        focal_spot_label="Focal Spot",
+        outplane_z=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -139,7 +142,10 @@ class PyVistaPlotWidget(QWidget):
 
         mesh = pv.PolyData(np.asarray(tx["VertDisplay"] * 1e3), faces,)
 
-        self._tx_bounds = mesh.bounds
+        tx_bounds = np.array(mesh.bounds)
+        # Points the view must include: the transducer and origin always, markers only while visible
+        self._base_points = np.vstack([np.array(tx_bounds).reshape(3, 2).T, np.zeros(3)])
+        self._marker_points = {}
 
         display_sub_elems = {}
         if show_sub_elements:
@@ -162,12 +168,53 @@ class PyVistaPlotWidget(QWidget):
             label="Origin",
         )
 
-        self.plotter.add_legend(
-            size=(0.2, 0.08),
-            face="rectangle",
-            border=True,
-            loc="upper left",
-        )
+        self.focal_spot_actor = None
+        if focal_spot is not None:
+            focal_spot_mm = np.asarray(focal_spot, dtype=float) * 1e3
+            self._marker_points['focal_spot'] = focal_spot_mm.reshape(1, 3)
+            self.focal_spot_actor = self.plotter.add_points(
+                focal_spot_mm.reshape(1, 3),
+                color="limegreen",
+                point_size=15,
+                render_points_as_spheres=True,
+                label=focal_spot_label,
+            )
+
+        # Out-plane (edge of the device) drawn as a translucent surface spanning the transducer
+        self.outplane_actor = None
+        if outplane_z is not None:
+            outplane_z_mm = outplane_z * 1e3
+            x_size = (tx_bounds[1] - tx_bounds[0]) * 1.1
+            y_size = (tx_bounds[3] - tx_bounds[2]) * 1.1
+            outplane = pv.Plane(
+                center=(
+                    (tx_bounds[0] + tx_bounds[1]) / 2,
+                    (tx_bounds[2] + tx_bounds[3]) / 2,
+                    outplane_z_mm,
+                ),
+                direction=(0, 0, 1),
+                i_size=x_size,
+                j_size=y_size,
+            )
+            self._marker_points['outplane'] = np.array(outplane.bounds).reshape(3, 2).T
+            self.outplane_actor = self.plotter.add_mesh(
+                outplane,
+                color="steelblue",
+                opacity=0.35,
+                label="Out-plane",
+            )
+
+        # Legend entries as (actor, label, color), actor None means always shown.
+        # Markers are only listed if they exist (flat types have no focal spot)
+        self._legend_entries = [
+            (None, "Transducer Elements", "venetian_red"),
+            (None, "Origin", "k"),
+        ]
+        if self.focal_spot_actor is not None:
+            self._legend_entries.append((self.focal_spot_actor, focal_spot_label, "limegreen"))
+        if self.outplane_actor is not None:
+            self._legend_entries.append((self.outplane_actor, "Out-plane", "steelblue"))
+        self._update_legend()
 
         self._set_xz_view()
 
@@ -188,6 +235,24 @@ class PyVistaPlotWidget(QWidget):
             QSizePolicy.Policy.Preferred,
         )
         self.nav_toolbar.addWidget(toolbar_spacer)
+
+        # Marker visibility toggles, only shown when the marker exists
+        if self.focal_spot_actor is not None:
+            self.focal_spot_checkbox = QCheckBox(f"Show {focal_spot_label}")
+            self.focal_spot_checkbox.setChecked(True)
+            self.focal_spot_checkbox.toggled.connect(
+                lambda checked: self._toggle_actor(self.focal_spot_actor, checked)
+            )
+            self.nav_toolbar.addWidget(self.focal_spot_checkbox)
+
+        if self.outplane_actor is not None:
+            self.outplane_checkbox = QCheckBox("Show Out-plane")
+            self.outplane_checkbox.setChecked(True)
+            self.outplane_checkbox.toggled.connect(
+                lambda checked: self._toggle_actor(self.outplane_actor, checked)
+            )
+            self.nav_toolbar.addWidget(self.outplane_checkbox)
+
         self.nav_toolbar.addWidget(self.acoustic_slice_checkbox)
 
         layout.addWidget(self.nav_toolbar)
@@ -262,11 +327,11 @@ class PyVistaPlotWidget(QWidget):
         if self.acoustic_slice_checkbox.isChecked():
             bounds = self._full_grid_bounds
         else:
-            xmin, xmax, ymin, ymax, zmin, zmax = self._tx_bounds
+            xmin, xmax, ymin, ymax, zmin, zmax = self._visible_tx_bounds()
             x_range = xmax - xmin
             y_range = ymax - ymin
 
-            z_range_target = max(x_range, y_range)
+            z_range_target = max(x_range, y_range, zmax - zmin)
             z_center = (zmin + zmax) / 2
             half = z_range_target / 2
 
@@ -316,6 +381,42 @@ class PyVistaPlotWidget(QWidget):
         if hasattr(self, "nav_toolbar"):
             self.nav_toolbar.push_current_view()
 
+    def _visible_tx_bounds(self):
+        """Bounds of the transducer and origin, plus any markers currently visible."""
+        actors = {'focal_spot': self.focal_spot_actor, 'outplane': self.outplane_actor}
+        points = [self._base_points] + [
+            pts for key, pts in self._marker_points.items()
+            if actors[key].GetVisibility()
+        ]
+        points = np.vstack(points)
+        mins = points.min(axis=0)
+        maxs = points.max(axis=0)
+        return (mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2])
+
+    def _update_legend(self):
+        """Rebuild the legend so it only lists items that are currently visible."""
+        labels = [
+            [label, color]
+            for actor, label, color in self._legend_entries
+            if actor is None or actor.GetVisibility()
+        ]
+        self.plotter.remove_legend(render=False)
+        self.plotter.add_legend(
+            labels=labels,
+            size=(0.2, 0.04 * len(labels)),
+            face="rectangle",
+            border=True,
+            loc="upper left",
+        )
+
+    def _toggle_actor(self, actor, checked):
+        actor.SetVisibility(checked)
+        self._update_legend()
+        self._refresh_bounds_and_camera()
+        self.plotter.render()
+        if hasattr(self, "nav_toolbar"):
+            self.nav_toolbar.push_current_view()
+
     def closeEvent(self, event):
         self.plotter.close()
         super().closeEvent(event)
@@ -349,6 +450,9 @@ class TransducerVerificationDialog(QDialog):
         tx_data,
         acoustic_data,
         grid_info,
+        focal_spot=None,
+        focal_spot_label="Focal Spot",
+        outplane_z=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -369,6 +473,9 @@ class TransducerVerificationDialog(QDialog):
             tx=tx_data,
             grid_info=grid_info,
             acoustic_data=acoustic_slice,
+            focal_spot=focal_spot,
+            focal_spot_label=focal_spot_label,
+            outplane_z=outplane_z,
         )
         self.image_canvas = self._create_image_plot(acoustic_slice, grid_info)
 

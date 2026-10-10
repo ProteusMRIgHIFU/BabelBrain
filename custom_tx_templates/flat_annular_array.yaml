@@ -1,0 +1,41 @@
+# =============================================================================
+# BabelBrain custom transducer template: flat_annular_array
+# Template Version: 1.0
+#
+# Concentric flat rings in a single plane, steered along the beam (z) axis only.
+# Rings are centred on the z axis; +z points from the transducer towards the target.
+# Units: lengths in metres (m), frequencies in hertz (Hz).
+# Scientific notation needs a decimal point and a signed exponent (e.g. 2.4e-2),
+# otherwise it is read as text. Plain decimals (0.024) are safest.
+#
+# The values below reproduce the built-in H246 transducer (2 rings).
+# =============================================================================
+
+# ---------- Common parameters ------------------------------------------------
+name: MyFlatAnnularTx                   # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
+geometry_type: flat_annular_array
+frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
+    - 500000
+aperture_size: 0.0336                   # Aperture diameter (m)
+# focal_length is NOT needed: flat arrays have no natural focus (set internally to 1.0e3 m)
+
+# ---------- Type-specific parameters -----------------------------------------
+distance_tx_bottom_to_outplane: 0.0      # Optional dead space (m), ring surface to device edge. Default 0
+num_elements: 2                         # Number of rings
+
+# Ring diameters (m), innermost ring first
+annular:
+    inner_ring_diameters: [0.0,    0.0240]  # Use 0.0 for a solid central disc
+    outer_ring_diameters: [0.0233, 0.0336]  # Each must be larger than its inner diameter
+steering:
+    z: [0.025, 0.095]                   # Focal depths [min, max] (m) from the array plane, min > 0. Also the TPO distance range in the GUI.
+
+# ---------- Optional ---------------------------------------------------------
+# mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
+
+# PlanTUS tables, one entry per frequency (distances in m).
+# Automatic estimation is not available for this type, so enter them here to use PlanTUS.
+# PlanTUS:
+#     500000:
+#         FocalDistanceList: [0.030, 0.035, 0.040, 0.045, 0.050]
+#         FHMLList:          [0.018, 0.030, 0.038, 0.050, 0.060]

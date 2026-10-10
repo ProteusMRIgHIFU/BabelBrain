@@ -594,3 +594,8 @@ def plot_elements(element_locations,element_step=1,show_origin=True,reverse_z_di
         ax.invert_zaxis()   
     
     plt.show()
+    
+def shift_tx(tx,shift):
+    tx['VertDisplay'][:,2] += shift
+    tx['center'][:,2] += shift
+    tx['elemcenter'][:,2] += shift
