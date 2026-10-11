@@ -9,7 +9,7 @@ from multiprocessing import Process,Queue
 
 import numpy as np
 import nibabel
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from matplotlib.figure import Figure
 from PySide6.QtCore import Signal, Slot, QObject
 from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -224,7 +224,7 @@ class BabelBasePhaseArray(BabelBaseTx):
 
     def _PromptReuseOrRecalc(self):
         #we can use the first entry, this is valid for all files in the list
-        Skull=ReadFromH5py(self._FullSolName[0])
+        Skull=ReadFromH5pyStream(self._FullSolName[0])
         XSteering=Skull['XSteering']
         YSteering=Skull['YSteering']
         ZSteering=Skull['ZSteering']
@@ -326,8 +326,8 @@ class BabelBasePhaseArray(BabelBaseTx):
         '''Read all steering results for this trajectory and stash the field columns.'''
         AcResults = []
         for fwater, fskull in zip(self._WaterSolName, self._FullSolName):
-            Skull = ReadFromH5py(fskull)
-            Water = ReadFromH5py(fwater)
+            Skull = ReadFromH5pyStream(fskull)
+            Water = ReadFromH5pyStream(fwater)
 
             if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
                 self._SDR = Skull['SDR']

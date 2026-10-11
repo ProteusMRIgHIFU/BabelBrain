@@ -42,7 +42,7 @@ import time
 import yaml
 import json
 from ThermalModeling.CalculateTemperatureEffects import GetThermalOutName
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, CloseAllH5Streams
 from .CalculateThermalProcess import CalculateThermalProcess
 import pandas as pd
 import platform
@@ -559,6 +559,7 @@ class Babel_Thermal(QWidget):
         self._bRecalculated=True
         self._ThermalResults=[]
         if bCalcFields:
+            CloseAllH5Streams()
             # Capture everything the worker needs from Step 2 for THIS trajectory
             # up front (case file, refocus selection, device extra-data), so the
             # off-thread worker never reads AcSim's live/active state.
@@ -741,7 +742,7 @@ class Babel_Thermal(QWidget):
                     self._ThermalResults=[]
                     return
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
-                self._ThermalResults.append(ReadFromH5py(ThermalName))
+                self._ThermalResults.append(ReadFromH5pyStream(ThermalName))
             if self.Config['bConcatenateSimulations']:
                 DataThermal=self._ThermalResults[-1] #we pick the latest one as that has the concatenated results
             else:

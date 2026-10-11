@@ -49,7 +49,7 @@ from scipy.stats import gaussian_kde
 
 from GPUFunctions.GPUBinaryClosing import BinaryClosing
 from os.path import join as jn
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
 
 class Processing(object):
     '''

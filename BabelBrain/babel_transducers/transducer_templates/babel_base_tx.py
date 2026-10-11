@@ -24,7 +24,7 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py,CloseAllH5Streams
 from GUIComponents.AppStyle import style_nav_toolbar
 
 #auxiliary functions to measure metrics in acoustic fields
@@ -310,6 +310,7 @@ class BabelBaseTx(QWidget):
             bCalcFields = True
         self._bRecalculated = True
         if bCalcFields:
+            CloseAllH5Streams()
             if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
                 # Offload Step 2 to the remote server, reusing the session Step 1
                 # opened. The worker mirrors the acoustic worker's signals; its
@@ -591,8 +592,8 @@ class BabelBaseTx(QWidget):
 
     def _LoadAcResultData(self, panel):
         '''Read the (single) skull/water H5 result and stash per-panel arrays.'''
-        Water = ReadFromH5py(self._WaterSolName)
-        Skull = ReadFromH5py(self._FullSolName)
+        Water = ReadFromH5pyStream(self._WaterSolName)
+        Skull = ReadFromH5pyStream(self._FullSolName)
         print('_FullSolName', self._FullSolName)
 
         if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
@@ -827,8 +828,8 @@ class BabelBaseTx(QWidget):
         WaterSolName = self._MainApp._merged_prefix_path + 'Water_Merged_DataForSim.h5'
         FullSolName = self._MainApp._merged_prefix_path + 'Merged_DataForSim.h5'
         self._MergedResultsFullSolName = FullSolName
-        Water = ReadFromH5py(WaterSolName)
-        Skull = ReadFromH5py(FullSolName)
+        Water = ReadFromH5pyStream(WaterSolName)
+        Skull = ReadFromH5pyStream(FullSolName)
 
         if 'SDR' in Skull and hasattr(self.Widget, 'SDRLabel'):
             self.Widget.SDRLabel.setText('%0.2f' % (Skull['SDR']))
@@ -901,6 +902,7 @@ class BabelBaseTx(QWidget):
                 bCalcMerge=False
 
         if bCalcMerge:
+            CloseAllH5Streams()
             if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
                 # Offload the merge to the remote server: the worker ensures every
                 # trajectory's acoustic is loaded there, clicks CombineTrajectories,
@@ -1010,7 +1012,7 @@ class RunCombineTrajectories(QObject):
             for entry in AllInputs:
                 inputNifti=nibabel.load(entry['Sub_Norm'])
                 for ntype,subt in enumerate([entry['skullh5'],entry['waterh5']]):
-                    data=ReadFromH5py(subt)
+                    data=ReadFromH5pyStream(subt)
                     if ntype==0:
                         TargetMap=np.zeros_like(data['MaterialMap'],dtype=float)
                         TargetMap[tuple(data['TargetLocation'])]=1
@@ -1080,7 +1082,7 @@ class RunCombineTrajectories(QObject):
                     bPETRA=AcOptions['bPETRA'],
                     AIRMASK=AIRMASK)
 
-            BaseSimData=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')
+            BaseSimData=ReadFromH5pyStream(self._MainApp._prefix_path[0]+'DataForSim.h5')
             N1,N2,N3=SkullMaskDataOrig.shape
             MaterialMap,MaterialMapRef,MaterialMapNoCT,SubAirRegions=CreateMaterialMaps(
                 N1,N2,N3,
@@ -1130,7 +1132,7 @@ class RunCombineTrajectories(QObject):
             if 'SDR' in BaseSimData:
                 SDRs=np.zeros(len(self._MainApp._prefix_path))
                 for n,p in  enumerate(self._MainApp._prefix_path):
-                    SDRs[n]=ReadFromH5py(self._MainApp._prefix_path[0]+'DataForSim.h5')['SDR']
+                    SDRs[n]=ReadFromH5pyStream(self._MainApp._prefix_path[0]+'DataForSim.h5')['SDR']
                 DataForSim['SDR']=np.mean(SDRs)
             DataForSim['DistanceFromSkin']=0.0
             DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])

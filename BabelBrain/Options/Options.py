@@ -7,7 +7,7 @@ from glob import glob
 from multiprocessing import Process, Queue
 
 import yaml
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox,
@@ -303,7 +303,7 @@ class AdvancedOptions(QDialog):
         else:
             RefData={'TxConfig':self._TxConfig}
             try:
-                Data=ReadFromH5py(calfile)
+                Data=ReadFromH5pyStream(calfile)
                 for k in ['TxConfig']:
                     if Data[k]!=RefData[k]:
                             ShowError(f"Calibration file does not match current Tx definition for field {k}:\n{Data[k]} vs {RefData[k]}")

@@ -24,7 +24,7 @@ import scipy
 import SimpleITK as sitk
 from scipy import interpolate
 
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 
 # Artifact recording (see BabelBrain/ArtifactIO.py). Guarded so this module still
 # imports if ArtifactIO isn't on the path; a no-op unless BABEL_ARTIFACT_LOG is set.
@@ -46,7 +46,7 @@ _IS_MAC = platform.system() == 'Darwin'
 
 DbToNeper=1/(20*np.log10(np.exp(1)))
 
-_MapPichardo = ReadFromH5py(os.path.join(bundle_root(__file__), 'MapPichardo.h5'))
+_MapPichardo = ReadFromH5pyStream(os.path.join(bundle_root(__file__), 'MapPichardo.h5'))
 if scipy.__version__>"1.14.0":
     interp2d=interpolate.RectBivariateSpline
     _PichardoSOS=interp2d(_MapPichardo['rho'], _MapPichardo['freq'], _MapPichardo['MapSoS'],kx=1,ky=1)

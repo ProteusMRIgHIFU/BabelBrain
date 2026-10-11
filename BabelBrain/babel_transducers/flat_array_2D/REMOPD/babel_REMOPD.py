@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process,Queue
 
 import numpy as np
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
@@ -65,7 +65,7 @@ class REMOPD(babel_flat_array_2D_tx.FlatArray2DTx):
         if recalc_requested:
             return True
         
-        Skull=ReadFromH5py(self._FullSolName[0])
+        Skull=ReadFromH5pyStream(self._FullSolName[0])
         TxSet = Skull['TxSet']
         if type(TxSet) is bytes:
             TxSet=TxSet.decode("utf-8")

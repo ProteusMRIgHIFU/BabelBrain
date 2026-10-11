@@ -6,7 +6,7 @@ import time
 from multiprocessing import Process,Queue
 
 import numpy as np
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import Signal, Slot, QObject, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 from Localization import TR
@@ -79,7 +79,7 @@ class FlatArray2DTx(BabelBasePhaseArray):
 
     def _PromptReuseOrRecalc(self):
         #we can use the first entry, this is valid for all files in the list
-        Skull=ReadFromH5py(self._FullSolName[0])
+        Skull=ReadFromH5pyStream(self._FullSolName[0])
         XSteering=Skull['XSteering']
         YSteering=Skull['YSteering']
         ZSteering=Skull['ZSteering']

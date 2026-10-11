@@ -200,7 +200,7 @@ def MapFilter(HUMap,SelBone,UniqueHU,GPUBackend='OpenCL'):
     return output
 
 # if __name__ == "__main__":
-#     from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
-#     t=ReadFromH5py('test.h5')
+#     from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
+#     t=ReadFromH5pyStream('test.h5')
 #     InitCUDA('A6000')
 #     MapFilter(t['HUMap'],t['SelBone'],t['UniqueHU'],GPUBackend='CUDA')

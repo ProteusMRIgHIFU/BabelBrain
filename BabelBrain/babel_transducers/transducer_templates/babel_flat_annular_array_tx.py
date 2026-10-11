@@ -6,7 +6,7 @@ import time
 from multiprocessing import Process, Queue
 
 import numpy as np
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 from Localization import TR
@@ -62,7 +62,7 @@ class FlatAnnularArrayTx(BabelBaseTx):
         print('WaterSolName',self._WaterSolName)
 
     def _PromptReuseOrRecalc(self):
-        Skull=ReadFromH5py(self._FullSolName)
+        Skull=ReadFromH5pyStream(self._FullSolName)
         TPO=Skull['ZSteering']
 
         DistanceSkin =  -Skull['TxMechanicalAdjustmentZ']*1e3

@@ -5,7 +5,7 @@ import time
 from multiprocessing import Process, Queue
 
 import numpy as np
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import QMessageBox
 from Localization import TR
@@ -91,7 +91,7 @@ class SimpleFocusedTx(BabelBaseTx):
         self._Diameter = self.Widget.DiameterSpinBox.value()
 
     def _PromptReuseOrRecalc(self):
-        Skull=ReadFromH5py(self._FullSolName)
+        Skull=ReadFromH5pyStream(self._FullSolName)
 
         DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 

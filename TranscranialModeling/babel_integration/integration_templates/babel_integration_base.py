@@ -19,7 +19,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
 from BabelViscoFDTD.PropagationModel import PropagationModel
 from BabelViscoFDTD.tools.RayleighAndBHTE import (InitCuda, InitMetal,
                                                   InitOpenCL)
@@ -391,7 +391,7 @@ class BabelFTD_Simulations_BASE(object):
         elif self._bForceHomogenousMedium:
             QCorrArr = np.ones(2)
         elif len(self._BenchmarkTestFile)>0:
-            InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
+            InputDataBenchmark=ReadFromH5pyStream(self._BenchmarkTestFile)
             assert(len(InputDataBenchmark['Materials'])==len(np.unique(InputDataBenchmark['MaterialMap'])))
             if 'QCorrArr' not in InputDataBenchmark:
                 QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
@@ -866,7 +866,7 @@ class SimulationConditionsBASE(object):
             if not os.path.isfile(OptimizedWeightsFile):
                 raise FileNotFoundError("OptimizedWeightsFile %s does not exist." %(OptimizedWeightsFile))
             self._OptimizedWeightsFile=OptimizedWeightsFile
-            self._OptimizedWeights = ReadFromH5py(OptimizedWeightsFile)['CALIBRATION']
+            self._OptimizedWeights = ReadFromH5pyStream(OptimizedWeightsFile)['CALIBRATION']
 
  
     def AddMaterial(self,Density,LSoS,SSoS,LAtt,SAtt): #add material (Density (kg/m3), long. SoS 9(m/s), shear SoS (m/s), Long. Attenuation (Np/m), shear attenuation (Np/m)
@@ -939,7 +939,7 @@ class SimulationConditionsBASE(object):
         if len(BenchmarkTestFile)==0:
             SmallestSOS=np.min([SmallestSOS[iS[0]],GetSmallestSOS(self._Frequency,bShear=True)])
         else:
-            InputDataBenchmark=ReadFromH5py(BenchmarkTestFile)
+            InputDataBenchmark=ReadFromH5pyStream(BenchmarkTestFile)
             SmallestSOS=1e6
             for e in InputDataBenchmark['Materials']:
                 SmallestSOS=np.min((SmallestSOS,e['LongSoS']))

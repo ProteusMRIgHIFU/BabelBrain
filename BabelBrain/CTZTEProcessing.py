@@ -19,7 +19,7 @@ import nibabel
 import numpy as np
 import scipy
 import SimpleITK as sitk
-from BabelViscoFDTD.H5pySimple import ReadFromH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from Calibration.ViewResults import PlotViewerCalibration
 from linetimer import CodeTimer
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -474,7 +474,7 @@ def GeneratePseudoCTHistogram(pCT,CTfname,DistanceFromTop=80.0):
     axs[1].set_title('PseudoCT - HU>200')
     axs[1].plot([2000,2000],[0,axs[1].get_ylim()[1]],':')
 
-    ExampleHisto = ReadFromH5py(os.path.join(resource_path(__file__), 'ExampleHistogram.h5'))
+    ExampleHisto = ReadFromH5pyStream(os.path.join(resource_path(__file__), 'ExampleHistogram.h5'))
     for k in ExampleHisto:
         ExampleHisto[k]=ExampleHisto[k][ExampleHisto[k]<=2300]
         axs[2].hist(ExampleHisto[k],30,density=True,alpha=0.5,label=k)

@@ -2,7 +2,7 @@ import sys
 import platform
 import traceback
 from BabelViscoFDTD.tools.RayleighAndBHTE import  InitOpenCL, InitCuda, InitMetal,InitMLX
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
 from scipy.io import savemat
 import numpy as np
 
@@ -100,7 +100,7 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
 
             fieldWorkerProcess.start()
             fname=GetProcessResult(fieldWorkerProcess,queueResult)
-            Data=ReadFromH5py(fname+'.h5')
+            Data=ReadFromH5pyStream(fname+'.h5')
             for f in lf:
                 if 'p_map_central'==f:
                     SubData['p_map']=Data[f] #this will make it compatible for other purposes

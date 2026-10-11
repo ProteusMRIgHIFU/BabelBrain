@@ -10,7 +10,7 @@ ABOUT:
 
 import numpy as np
 from  scipy.io import loadmat,savemat
-from BabelViscoFDTD.H5pySimple import ReadFromH5py, SaveToH5py
+from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
 from BabelViscoFDTD.tools.RayleighAndBHTE import (
     BHTE,
     BHTEMultiplePressureFields,
@@ -738,12 +738,12 @@ def CalculateTemperatureEffects(InputPData,
     TransformedLocations=[]
 
     if type(InputPData) is str:   
-        Input=ReadFromH5py(InputPData)
+        Input=ReadFromH5pyStream(InputPData)
         if not bMergedSimulation:
             pAmp=np.ascontiguousarray(np.flip(Input[sel_p],axis=2))
             WaterInputPData=InputPData.replace('DataForSim.h5','Water_DataForSim.h5')
             print('Load water',WaterInputPData)
-            InputWater=ReadFromH5py(WaterInputPData)    
+            InputWater=ReadFromH5pyStream(WaterInputPData)    
             pAmpWater=np.ascontiguousarray(np.flip(InputWater['p_amp'],axis=2))
         else:
             print('merging complex fields')
@@ -761,7 +761,7 @@ def CalculateTemperatureEffects(InputPData,
         
     else:
         ALL_ACFIELDSKULL=[]
-        Input=ReadFromH5py(InputPData[0])
+        Input=ReadFromH5pyStream(InputPData[0])
         if 'AirMask' in Input:
             AirMask=np.ascontiguousarray(np.flip(Input['AirMask'],axis=2))
         
@@ -771,11 +771,11 @@ def CalculateTemperatureEffects(InputPData,
             AllInputsWater=np.zeros((len(InputPData),Input[sel_p].shape[0],Input[sel_p].shape[1],
                             Input[sel_p].shape[2]),Input[sel_p].dtype)
         for n in range(len(InputPData)):
-            ALL_ACFIELDSKULL.append(ReadFromH5py(InputPData[n]))
+            ALL_ACFIELDSKULL.append(ReadFromH5pyStream(InputPData[n]))
             if not bMergedSimulation:
                 AllInputs[n,:,:,:]=np.ascontiguousarray(np.flip(ALL_ACFIELDSKULL[-1][sel_p],axis=2))
                 fwater=InputPData[n].replace('DataForSim.h5','Water_DataForSim.h5')
-                AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5py(fwater)['p_amp'],axis=2))
+                AllInputsWater[n,:,:,:]=np.ascontiguousarray(np.flip(ReadFromH5pyStream(fwater)['p_amp'],axis=2))
             else:
                 print('merging complex fields')
                 if len(MergedPressureRatio)!=len(ALL_ACFIELDSKULL[-1][combined_p]):
@@ -841,7 +841,7 @@ def CalculateTemperatureEffects(InputPData,
         BaselineTemperature=HomogenousMediumValues['InitTemperature']
     elif len(BenchmarkTestFile)>0:
         print('Running BHTE with Benchmark Test File',BenchmarkTestFile)
-        BenchmarkInput=ReadFromH5py(BenchmarkTestFile)
+        BenchmarkInput=ReadFromH5pyStream(BenchmarkTestFile)
         for k in ['SpecificHeat','Conductivity','Perfusion','Absorption','InitTemperature']:
             MaterialList[k]=np.zeros(len(BenchmarkInput['Materials']))
             
@@ -1035,7 +1035,7 @@ def CalculateTemperatureEffects(InputPData,
             
     if len(prevSimulationResultsFile)>0:
         print('Reading from previous file to concatenate',prevSimulationResultsFile)
-        PreviousData=ReadFromH5py(prevSimulationResultsFile)
+        PreviousData=ReadFromH5pyStream(prevSimulationResultsFile)
         initT0=PreviousData['FinalTemp']
         initDose=PreviousData['FinalDose']
     else:
