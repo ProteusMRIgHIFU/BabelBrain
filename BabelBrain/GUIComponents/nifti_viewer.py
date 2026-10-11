@@ -828,6 +828,28 @@ class SliceViewport(QFrame):
         """Current magnification relative to the fit-to-viewport view."""
         return self._zoom
 
+    def center_on(self, ras) -> None:
+        """
+        Pan so the RAS point sits at the centre of this viewport.
+
+        Like the ROIs, only the in-plane components matter: the point is
+        projected onto the slice currently displayed, and the slice itself
+        does not change (use NiftiViewer.navigate_to_ras for that).  The pan
+        is kept when scrolling slices, zooming or resizing, and undone by
+        reset_camera().
+        """
+        if self._pg is None:
+            return
+        ras    = np.asarray(ras, dtype=float).ravel()[:3]
+        normal = self._pg.normal / np.linalg.norm(self._pg.normal)
+        cam    = self.renderer.GetActiveCamera()
+        fp     = np.array(cam.GetFocalPoint())
+        new_fp = ras + normal * float(np.dot(fp - ras, normal))
+        delta  = new_fp - fp
+        cam.SetFocalPoint(*new_fp.tolist())
+        cam.SetPosition(*(np.array(cam.GetPosition()) + delta).tolist())
+        self.vtk_widget.GetRenderWindow().Render()
+
     def _apply_zoom(self) -> None:
         if self._pg is None:
             return
@@ -2169,6 +2191,18 @@ class NiftiViewer(QWidget):
     def get_zoom(self, planes=(0, 1, 2)) -> list[float]:
         """Current magnification of each requested viewport."""
         return [vp.get_zoom() for vp in self._plane_vps(planes)]
+
+    def center_on(self, ras, planes=(0, 1, 2)) -> None:
+        """
+        Pan the viewports so the RAS point is at their centre, typically after
+        :meth:`zoom` / :meth:`set_zoom` to keep a target in view.
+
+        As with :meth:`add_roi`, each viewport projects `ras` onto the slice
+        it is showing, so slices are not changed (see :meth:`navigate_to_ras`).
+        `planes` selects viewports as in :meth:`add_roi`.
+        """
+        for vp in self._plane_vps(planes):
+            vp.center_on(ras)
 
     def reset_view(self) -> None:
         """
