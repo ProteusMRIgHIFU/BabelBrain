@@ -194,6 +194,7 @@ dependencies:
       - histoprint==2.6.0
       - idna==3.11
       - imageio==2.37.2
+      - isal==1.8.0
       - kiwisolver==1.4.9
       - lazy-loader==0.4
       - linetimer==0.1.5

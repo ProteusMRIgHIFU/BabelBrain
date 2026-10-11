@@ -35,6 +35,8 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see FastGzip.py)
+from FastGzip import save_nifti
 from Utils.paths import resource_path
 
 logger = logging.getLogger()
@@ -93,11 +95,11 @@ def SaveHashInfo(precursorfiles, outputfilename, output=None, CTType=None, HUT=N
     if ".nii.gz" in outputfilename:
         if len(savedInfo) <= 80: # Nifiti descrip header can only accept string < 80 bytes (80 utf-8 chars)
             output.header['descrip'] = savedInfo
-            nibabel.save(output,outputfilename)
+            save_nifti(output,outputfilename)
             _rec_artifact(outputfilename)
         else:
             print(f"'descrip' string not saved in nifti header as it exceeds text limit ({len(savedInfo)} > 80)")
-            nibabel.save(output,outputfilename)
+            save_nifti(output,outputfilename)
             _rec_artifact(outputfilename)
     elif ".npy" in outputfilename: #numpy
         savedInfoNumpy = np.array(savedInfo)

@@ -45,6 +45,8 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see FastGzip.py)
+from FastGzip import save_nifti
 try:
     import CTZTEProcessing
 except:
@@ -1044,7 +1046,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
                 AirRegions=nibabel.Nifti1Image(AirRegions, affineair)
                 outname=os.path.dirname(T1Conformal_nii)+os.sep+prefix+'AirRegions.nii.gz'
 
-                AirRegions.to_filename(outname)
+                save_nifti(AirRegions,outname)
                 _rec_artifact(outname)
 
     with CodeTimer("CTS:L3:S1: final median filter ",unit='s'):
@@ -1124,7 +1126,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
         with CodeTimer("CTS:L3:S1: Upscaling final tissue to recover GM and WM masks",unit='s'):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 ename=os.path.join(tmpdirname,'empty.nii.gz')
-                emptyNifti.to_filename(ename)
+                save_nifti(emptyNifti,ename)
                 outname = os.path.join(tmpdirname,'out.nii.gz')
                 RunMeshConv(ename,mshfile,outname,SimbNINBSRoot=SimbNINBSRoot)
                 upScaleMask=nibabel.load(outname).get_fdata().astype(np.int8)

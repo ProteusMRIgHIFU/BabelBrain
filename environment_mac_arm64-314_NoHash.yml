@@ -258,6 +258,7 @@ dependencies:
       - hdf5plugin==6.0.0
       - histoprint==2.6.0
       - imageio==2.37.3
+      - isal==1.8.0
       - joblib==1.5.3
       - lazy-loader==0.5
       - linetimer==0.1.5

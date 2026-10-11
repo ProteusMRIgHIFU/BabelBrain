@@ -215,6 +215,7 @@ dependencies:
       - histoprint==2.6.0
       - imageio==2.37.3
       - iniconfig==2.3.0
+      - isal==1.8.0
       - jinja2==3.1.6
       - joblib==1.5.3
       - lazy-loader==0.5

@@ -10,6 +10,8 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see FastGzip.py)
+from FastGzip import save_nifti
 from collections import UserDict
 
 from PySide6.QtWidgets import (QApplication, QWidget,QGridLayout,
@@ -1435,7 +1437,7 @@ class Babel_Thermal(QWidget):
         if self._IsMergedTab():
             Tmap=np.transpose(Tmap,(1,2,0))
         nii=nibabel.Nifti1Image(Tmap.astype(np.float32),affine=nidata.affine)
-        nii.to_filename(OutName)
+        save_nifti(nii,OutName)
         _rec_artifact(OutName)
 
         pressureField = DataThermal['p_map'] * np.sqrt(IsppaRatio)
@@ -1453,18 +1455,18 @@ class Babel_Thermal(QWidget):
 
         OutName2=OutName.replace('ThermalField','PressureField')
         nii=nibabel.Nifti1Image(pressureField.astype(np.float32),affine=nidata.affine)
-        nii.to_filename(OutName2)
+        save_nifti(nii,OutName2)
         _rec_artifact(OutName2)
 
         OutName3=OutName.replace('ThermalField','IntensityField')
         nii=nibabel.Nifti1Image(intensityField.astype(np.float32),affine=nidata.affine)
-        nii.to_filename(OutName3)
+        save_nifti(nii,OutName3)
         _rec_artifact(OutName3)
 
         MIField = pressureField/1e6/np.sqrt(self._MainApp._Frequency/1e6)
         OutName4=OutName.replace('ThermalField','MI')
         nii=nibabel.Nifti1Image(MIField.astype(np.float32),affine=nidata.affine)
-        nii.to_filename(OutName4)
+        save_nifti(nii,OutName4)
         _rec_artifact(OutName4)
             
         #If running with Brainsight, we save the path of thermal map

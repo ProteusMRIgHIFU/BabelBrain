@@ -11,6 +11,8 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see FastGzip.py)
+from FastGzip import save_nifti
 
 def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
     
@@ -123,7 +125,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             else:
                                 send = '_FullElasticSolution'+ss+'_Sub_NORM.nii.gz'
                             finalName=fnames[0].split('__Steer_X')[0]+send
-                            combinedNifti.to_filename(finalName)
+                            save_nifti(combinedNifti,finalName)
                             _rec_artifact(finalName)
 
         if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:

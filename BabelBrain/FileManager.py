@@ -19,6 +19,8 @@ try:
 except Exception:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see FastGzip.py)
+from FastGzip import save_nifti
 
 MAX_WORKERS = os.cpu_count() * 4
 logger = logging.getLogger()
@@ -509,7 +511,7 @@ class FileManager:
             elif ext == '.stl':
                 file_data.export(filename)
             elif ext == '.nii':
-                nibabel.save(file_data, filename)
+                save_nifti(file_data, filename)
             elif ext == '.txt':
                 with open(filename, 'w') as file:
                     file.write(file_data)

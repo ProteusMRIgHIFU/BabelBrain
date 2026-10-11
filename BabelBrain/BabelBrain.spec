@@ -182,7 +182,7 @@ binaries = []
 # --execute / --code and --serve CLI entries; 'ArtifactIO' is imported by the
 # server and (guarded) by the pipeline modules. List them so the frozen binary
 # always bundles them.
-hiddenimports = ['scripting', 'server', 'ArtifactIO',
+hiddenimports = ['scripting', 'server', 'ArtifactIO', 'FastGzip',
                  'RemoteServers', 'RunServerCalculation',
                  'client_functions', 'GUIComponents.RemoteServerDialog']
 upx_exclude_list = []
@@ -270,7 +270,8 @@ print("\nCommon Hidden Imports:\n" + "\n".join(map(str, commonhidden)))  # print
 # pyvista backs the 3D views in BabelDatasetPreps and the custom-transducer
 # verification dialog; pyvistaqt is only listed in some environment files, so
 # a missing one is skipped rather than failing the build.
-od, ob, ohi = collect_optional_packages(["pyvista", "pyvistaqt"])
+# isal (ISA-L gzip, used by FastGzip) is optional: saves fall back to zlib.
+od, ob, ohi = collect_optional_packages(["pyvista", "pyvistaqt", "isal"])
 datas += od
 binaries += ob
 hiddenimports += ohi

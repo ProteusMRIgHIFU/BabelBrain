@@ -27,6 +27,7 @@ sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 
 import SimpleITK as sitk
+from FastGzip import write_sitk
 import nibabel
 import numpy as np
 import importlib
@@ -410,7 +411,7 @@ def save_T1W_iso(T1W_fname,T1WIso_fname,new_spacing=[1.0,1.0,1.0]):
                     preT1.GetDirection(), 
                     minval,
                     preT1.GetPixelID())
-    sitk.WriteImage(preT1, T1WIso_fname)
+    write_sitk(preT1, T1WIso_fname)
 
 
 _BrainsightSyncPath = str(Path.home()) + os.sep + '.BabelBrainSync'

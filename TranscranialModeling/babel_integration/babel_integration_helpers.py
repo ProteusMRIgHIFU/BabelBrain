@@ -35,6 +35,17 @@ try:
 except ImportError:
     def _rec_artifact(_p, **_k):
         return _p
+# Faster .nii.gz writing (see BabelBrain/FastGzip.py); plain nibabel/SimpleITK
+# if it isn't on the path.
+try:
+    from FastGzip import save_nifti, write_sitk
+except ImportError:
+    def save_nifti(img, path):
+        img.to_filename(str(path))
+        return path
+    def write_sitk(img, path):
+        sitk.WriteImage(img, str(path))
+        return path
 from Utils.paths import bundle_root
 
 np.seterr(divide='raise')
@@ -747,7 +758,7 @@ def SaveNiftiEnforcedISO(nii_in, fn):
     try:
         pre=sitk.ReadImage(fn_unc)
         pre.SetSpacing([res,res,res])
-        sitk.WriteImage(pre, newfn)
+        write_sitk(pre, newfn)
         os.remove(fn_unc)
     except:
         try: #lets try with a clean affine
@@ -757,7 +768,7 @@ def SaveNiftiEnforcedISO(nii_in, fn):
             nii.to_filename(fn_unc)
             pre=sitk.ReadImage(fn_unc)
             pre.SetSpacing([res,res,res])
-            sitk.WriteImage(pre, newfn)
+            write_sitk(pre, newfn)
             os.remove(fn_unc)
         except: #last resource is to use flirt
             res = '%6.5f' % (res)
@@ -808,7 +819,7 @@ def ResaveNormalized(rpath, mask,bApplyOnlyMask=False):
     if not bApplyOnlyMask:
         ResultsData/=ResultsData.max()
     NormalizedNifti=nibabel.Nifti1Image(ResultsData.astype(np.float32),Results.affine,header=Results.header)
-    NormalizedNifti.to_filename(NRPath)
+    save_nifti(NormalizedNifti,NRPath)
     _rec_artifact(NRPath)
 
 def compute_sdr_from_rays(volume, skull_mask, spacing_mm=(1.0, 1.0),
