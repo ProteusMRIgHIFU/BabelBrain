@@ -576,7 +576,7 @@ class ROISpec:
     visible:     bool   = True
 
 
-def _make_wl_style(on_wl_drag, on_wl_end, on_scroll) -> vtk.vtkInteractorStyle:
+def _make_wl_style(on_wl_drag, on_wl_end, on_scroll, on_zoom) -> vtk.vtkInteractorStyle:
     """
     Custom interactor style for medical image viewing.
 
@@ -591,6 +591,10 @@ def _make_wl_style(on_wl_drag, on_wl_end, on_scroll) -> vtk.vtkInteractorStyle:
     Middle button drag        : zoom
     Mouse wheel               : scroll slices — on_scroll(±1)
     Ctrl + mouse wheel        : zoom ±10 %
+
+    Zoom is not applied here: it is forwarded as on_zoom(factor), with
+    factor > 1 zooming in, so the owner (SliceViewport.zoom) keeps track
+    of the zoom level and scripts can drive the exact same code path.
     """
     style = vtk.vtkInteractorStyleUser()
 
@@ -618,13 +622,10 @@ def _make_wl_style(on_wl_drag, on_wl_end, on_scroll) -> vtk.vtkInteractorStyle:
         cam.SetPosition( *(pos + delta).tolist())
         rw.Render()
 
-    def _zoom(obj, factor):
-        iren = obj.GetInteractor()
-        rw   = iren.GetRenderWindow()
-        ren  = rw.GetRenderers().GetFirstRenderer()
-        cam  = ren.GetActiveCamera()
-        cam.SetParallelScale(max(0.1, cam.GetParallelScale() * factor))
-        rw.Render()
+    def _zoom(obj, scale_factor):
+        # scale_factor multiplies the camera parallel scale (> 1 = zoom out);
+        # on_zoom expects a magnification factor (> 1 = zoom in).
+        on_zoom(1.0 / max(scale_factor, 1e-3))
 
     def _on_lmb_press(obj, event):
         _s["lmb"] = True; _s["lx"], _s["ly"] = _pos(obj)
@@ -710,6 +711,8 @@ class SliceViewport(QFrame):
         # Scripted ROI overlays:  roi_id -> (ROISpec, vtkActor)
         self._rois: dict[int, tuple[ROISpec, vtk.vtkActor]] = {}
         self._roi_next_id = 0
+        # Magnification relative to the fit-to-viewport view (1.0 = fit)
+        self._zoom = 1.0
         self._build_ui()
         self._build_pipeline()
 
@@ -780,6 +783,7 @@ class SliceViewport(QFrame):
             on_wl_drag=lambda dw, dl: self._wl_drag_cb(dw, dl),
             on_wl_end=lambda: self._wl_end_cb(),
             on_scroll=_on_scroll,
+            on_zoom=self.zoom,
         )
         rw.GetInteractor().SetInteractorStyle(style)
 
@@ -787,6 +791,36 @@ class SliceViewport(QFrame):
         """Called by NiftiViewer to route WL drag to the selected volume."""
         self._wl_drag_cb = on_drag
         self._wl_end_cb  = on_end
+
+    # ── Zoom ──────────────────────────────────────────────────────────────
+
+    def zoom(self, factor: float) -> None:
+        """Zoom by a relative factor (> 1 zooms in, < 1 zooms out)."""
+        self.set_zoom(self._zoom * factor)
+
+    def set_zoom(self, level: float) -> None:
+        """
+        Set the absolute magnification relative to the fit-to-viewport view
+        (1.0 = whole plane visible, 2.0 = twice as large).  Zoom is centred
+        on the current camera focal point, so any pan is preserved.
+        """
+        if level <= 0:
+            raise ValueError(f"zoom level must be positive: {level}")
+        self._zoom = float(level)
+        self._apply_zoom()
+        self.vtk_widget.GetRenderWindow().Render()
+
+    def get_zoom(self) -> float:
+        """Current magnification relative to the fit-to-viewport view."""
+        return self._zoom
+
+    def _apply_zoom(self) -> None:
+        if self._pg is None:
+            return
+        fit = self._fit_parallel_scale()
+        ps  = max(0.1, fit / self._zoom)
+        self._zoom = fit / ps        # keep in sync with the clamp
+        self.renderer.GetActiveCamera().SetParallelScale(ps)
 
     # ── Orientation labels ─────────────────────────────────────────────────
 
@@ -1176,6 +1210,7 @@ class SliceViewport(QFrame):
         cam.SetFocalPoint(*focal.tolist())
         cam.SetPosition(*(focal + self._pg.normal * DIST * side).tolist())
         cam.SetViewUp(*self._pg.up.tolist())
+        self._zoom = 1.0
         cam.SetParallelScale(self._fit_parallel_scale())
         cam.SetClippingRange(1., DIST * 2.)
 
@@ -1208,11 +1243,10 @@ class SliceViewport(QFrame):
         return max(ps_v, ps_h)
 
     def resizeEvent(self, event) -> None:     # type: ignore[override]
-        """Refit the parallel scale whenever the viewport is resized."""
+        """Refit the parallel scale on resize, keeping the current zoom level."""
         super().resizeEvent(event)
         if self._pg is not None:
-            ps = self._fit_parallel_scale()
-            self.renderer.GetActiveCamera().SetParallelScale(ps)
+            self._apply_zoom()
             self.vtk_widget.GetRenderWindow().Render()
 
     def _move_to_slice(self, index: int) -> None:
@@ -2072,6 +2106,40 @@ class NiftiViewer(QWidget):
         """Delete every ROI in all three viewports."""
         for vp in self._vps:
             vp.clear_rois()
+
+    # ── Zoom (scripting API; same code path as the mouse zoom) ────────────
+
+    def _plane_vps(self, planes) -> list:
+        if isinstance(planes, (int, np.integer)):
+            planes = (int(planes),)
+        vps = []
+        for idx in planes:
+            idx = int(idx)
+            if not 0 <= idx < len(self._vps):
+                raise ValueError(f"plane index out of range: {idx}")
+            vps.append(self._vps[idx])
+        return vps
+
+    def zoom(self, factor: float, planes=(0, 1, 2)) -> None:
+        """
+        Zoom by a relative factor (> 1 zooms in, < 1 zooms out), e.g.
+        ``viewer.zoom(1.2)`` is a 20 % zoom-in on all three viewports.
+        `planes` selects viewports as in :meth:`add_roi`.
+        """
+        for vp in self._plane_vps(planes):
+            vp.zoom(factor)
+
+    def set_zoom(self, level: float, planes=(0, 1, 2)) -> None:
+        """
+        Set the absolute magnification relative to the fit-to-viewport view
+        (1.0 = default, as after :meth:`reset_view`).  Survives window resizes.
+        """
+        for vp in self._plane_vps(planes):
+            vp.set_zoom(level)
+
+    def get_zoom(self, planes=(0, 1, 2)) -> list[float]:
+        """Current magnification of each requested viewport."""
+        return [vp.get_zoom() for vp in self._plane_vps(planes)]
 
     def reset_view(self) -> None:
         """
