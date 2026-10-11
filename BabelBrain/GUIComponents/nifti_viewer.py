@@ -144,19 +144,38 @@ def _make_lut(
     cutoff: float | None = None,
 ) -> vtk.vtkLookupTable:
     """
-    Build a vtkLookupTable for the given colour map.
-    If cutoff is not None, values below the cutoff are made fully transparent
-    (alpha=0) AND the colour map is rescaled so the remaining range
-    [cutoff, hi] spans the full gradient (cutoff -> first colour, hi -> last
-    colour) instead of only its upper portion.
+    Build a vtkLookupTable for the given colour map over the display range
+    [lo, hi] = [level - window/2, level + window/2].  The table range is set
+    here, so the image property must use UseLookupTableScalarRangeOn() —
+    otherwise VTK re-stretches the table over the window and the cutoff
+    drifts away from its data value.
+
+    If cutoff is not None, values below the cutoff (in data units, whatever
+    the window) are made fully transparent AND the colour map is rescaled so
+    [max(cutoff, lo), hi] spans the full gradient (first colour -> last
+    colour), matching the ColourBar.
     """
 
     if name == 'tissue_label':
         return _build_tissue_lut()
 
     N = 1024   # enough entries for smooth gradients and a sharp cutoff edge
+    # With a cutoff the table must also cover the cutoff itself (it may sit
+    # outside the window) plus at least one transparent entry below it, which
+    # is what out-of-range values clamp to.  Entries are aligned so the cutoff
+    # falls exactly on an entry boundary: entry i covers [a + i*d, a + (i+1)*d).
+    use_cut = cutoff is not None and hi > lo
+    if use_cut:
+        a0, b0 = min(cutoff, lo), max(cutoff, hi)
+        d      = (b0 - a0) / (N - 2)
+        k      = int(np.ceil((cutoff - a0) / d)) + 1   # entries below cutoff (>= 1)
+        a      = cutoff - k * d
+        b      = a + N * d
+    else:
+        a, b = lo, hi
+
     lut = vtk.vtkLookupTable()
-    lut.SetRange(lo, hi)
+    lut.SetRange(a, b)
     lut.SetNumberOfTableValues(N)
 
     if name == "jet":
@@ -212,27 +231,22 @@ def _make_lut(
             lut.SetValueRange(0, 1)
         lut.Build()
 
-    # Apply cutoff.  Values below the cutoff are made fully transparent AND the
-    # colour map is rescaled so the remaining range [cutoff, hi] spans the full
-    # gradient (cutoff -> first colour, hi -> last colour) instead of only its
-    # upper portion.  This keeps the visible overlay consistent with the
-    # colourbar and removes the blank band that used to sit below the cutoff.
-    if cutoff is not None and hi > lo:
-        span  = hi - lo
-        t_cut = min(max((cutoff - lo) / span, 0.0), 1.0)
-        # Snapshot the freshly built gradient before overwriting any entries.
-        src   = [lut.GetTableValue(i) for i in range(N)]
-        denom = 1.0 - t_cut
-        for i in range(N):
-            t = i / (N - 1)
-            if t < t_cut or denom <= 0.0:
-                r, g, b, _ = src[i]
-                lut.SetTableValue(i, r, g, b, 0.0)   # below cutoff -> transparent
-            else:
-                s  = (t - t_cut) / denom             # rescale [cutoff, hi] -> [0, 1]
-                si = int(round(s * (N - 1)))
-                r, g, b, _ = src[si]
-                lut.SetTableValue(i, r, g, b, 1.0)
+    # Apply cutoff: remap the freshly built gradient so [max(cutoff, lo), hi]
+    # spans it fully, and make every entry below the cutoff transparent.
+    if use_cut:
+        src    = numpy_support.vtk_to_numpy(lut.GetTable()).copy()   # (N, 4) uint8
+        edges  = a + np.arange(N) * d                 # lower bound of each entry
+        bar_lo = min(max(cutoff, lo), hi)
+        if hi > bar_lo:
+            t = np.clip((edges - bar_lo) / (hi - bar_lo), 0.0, 1.0)
+        else:                                         # cutoff above window
+            t = np.ones(N)
+        table = src[np.rint(t * (N - 1)).astype(int)]
+        table[:, 3] = np.where(edges >= cutoff - 1e-6 * d, 255, 0)
+        # SetTable (unlike writing into GetTable()) marks the table as
+        # user-inserted, so a later Build() won't regenerate it.
+        lut.SetTable(numpy_support.numpy_to_vtk(
+            table, deep=True, array_type=vtk.VTK_UNSIGNED_CHAR))
 
     return lut
 
@@ -979,13 +993,12 @@ class SliceViewport(QFrame):
         actor.SetVisibility(rec.visible)
         self.vtk_widget.GetRenderWindow().Render()
 
-    def set_wl(self, layer_idx: int, window: float, level: float) -> None:
+    def set_wl(self, layer_idx: int, rec: VolumeRecord) -> None:
         """Fast path: update only window/level for a layer (called during drag)."""
         if layer_idx >= len(self._layers):
             return
         _, prop = self._layers[layer_idx]
-        prop.SetColorWindow(window)
-        prop.SetColorLevel(level)
+        self._apply_wl(prop, rec)
         self.vtk_widget.GetRenderWindow().Render()
 
     def set_slice(self, index: int) -> None:
@@ -1189,13 +1202,29 @@ class SliceViewport(QFrame):
 
     def _apply_volume_property(self, prop: vtk.vtkImageProperty, rec: VolumeRecord):
         prop.SetOpacity(rec.opacity if rec.visible else 0.0)
+        self._apply_wl(prop, rec)
+
+    def _apply_wl(self, prop: vtk.vtkImageProperty, rec: VolumeRecord) -> None:
+        """
+        Push window/level (and cutoff) to a layer.  For colour maps the LUT is
+        rebuilt over the display range, because the cutoff has to stay at a
+        fixed data value while the window moves.
+        """
         prop.SetColorWindow(rec.wl_window)
         prop.SetColorLevel(rec.wl_level)
-        lut = _make_lut(CMAPS.get(rec.cmap), rec.lo, rec.hi, rec.cutoff)
+        name = CMAPS.get(rec.cmap)
+        if name == 'tissue_label':
+            prop.SetLookupTable(_build_tissue_lut())
+            # Table range follows window/level, as before
+            prop.UseLookupTableScalarRangeOff()
+            return
+        half = rec.wl_window / 2.0
+        lut = _make_lut(name, rec.wl_level - half, rec.wl_level + half, rec.cutoff)
         lut.SetAlphaRange(1.0, 1.0)   # per-entry alpha from SetTableValue is honoured
         prop.SetLookupTable(lut)
-        # UseLookupTableScalarRange keeps window/level separate from LUT range
-        prop.UseLookupTableScalarRangeOff()
+        # The LUT carries its own range (display range + cutoff); VTK must not
+        # override it with the window/level.
+        prop.UseLookupTableScalarRangeOn()
 
     def _focal_for(self, index: int) -> np.ndarray:
         mid = self._pg.n // 2
@@ -2163,7 +2192,7 @@ class NiftiViewer(QWidget):
         # 2. Push reset WL to all viewports and update layer panel readouts
         for vol_idx, rec in enumerate(self._volumes):
             for vp in self._vps:
-                vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
+                vp.set_wl(vol_idx, rec)
             self.wl_updated.emit(vol_idx, rec.wl_window, rec.wl_level)
 
         # 3. Reset camera (pan + zoom) and slider on each viewport
@@ -2410,7 +2439,7 @@ class NiftiViewer(QWidget):
         rec.wl_window = max(1.0, rec.wl_window + dw_norm * scale)
         rec.wl_level  = rec.wl_level  - dl_norm * scale
         for vp in self._vps:
-            vp.set_wl(idx, rec.wl_window, rec.wl_level)
+            vp.set_wl(idx, rec)
         self._colorbar.update_bar(rec)
         self.wl_updated.emit(idx, rec.wl_window, rec.wl_level)
 
@@ -2425,7 +2454,7 @@ class NiftiViewer(QWidget):
         rec.wl_window = max(0.1, window)
         rec.wl_level  = level
         for vp in self._vps:
-            vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
+            vp.set_wl(vol_idx, rec)
         if vol_idx == self._selected_vol:
             self._colorbar.update_bar(rec)
         self.wl_updated.emit(vol_idx, rec.wl_window, rec.wl_level)
@@ -2438,7 +2467,7 @@ class NiftiViewer(QWidget):
         rec.wl_window = rec.hi - rec.lo or 0.1
         rec.wl_level  = (rec.hi + rec.lo) / 2.0
         for vp in self._vps:
-            vp.set_wl(vol_idx, rec.wl_window, rec.wl_level)
+            vp.set_wl(vol_idx, rec)
         if vol_idx == self._selected_vol:
             self._colorbar.update_bar(rec)
         self.wl_updated.emit(vol_idx, rec.wl_window, rec.wl_level)
