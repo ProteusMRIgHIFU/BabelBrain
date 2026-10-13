@@ -794,7 +794,20 @@ def _set_control(widget, control, value):
         raise ValueError("don't know how to set control %r" % control)
 
 
-def _click(bb, widget, control, wait, timeout):
+def _planning_done(bb):
+    """Step 1 completion across ALL trajectories. BabelBrain chains trajectories
+    (VerifyResults -> thread.finished -> _StartNextTrajectory), and UpdateMask
+    re-enables the tab after EACH one — so the tab alone would report done after
+    trajectory 0, and the job would collect artifacts before the others ran.
+    VerifyResults flags _bRunNextTrajectory while another trajectory is pending,
+    and _StartNextTrajectory clears it in the same slot that disables the tab, so
+    "tab enabled and nothing pending" holds only once the chain has ended (also
+    on an error or a rejected pseudo-CT, which never flag a next trajectory)."""
+    return (bb.Widget.tabWidget.isEnabled()
+            and not getattr(bb, '_bRunNextTrajectory', False))
+
+
+def _click(bb, widget, control, wait, timeout, done=None):
     from scripting import wait_until, check_no_error
     btn = getattr(widget, control, None)
     if btn is None:
@@ -804,7 +817,7 @@ def _click(bb, widget, control, wait, timeout):
         raise ValueError("control %r is disabled" % control)
     btn.click()
     if wait:
-        wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=timeout)
+        wait_until(done or bb.Widget.tabWidget.isEnabled, timeout_ms=timeout)
         check_no_error(bb)
 
 
@@ -859,7 +872,8 @@ def _run_calculation(bb, name, meta, act, emit, gpu_pool):
         _activity("%s: compute issued, waiting for completion (%s)" % (name, meta['run']))
         t0 = time.time()
         _click(bb, meta['widget'](bb), meta['run'], True,
-               act.get('timeout_ms', meta['timeout']))
+               act.get('timeout_ms', meta['timeout']),
+               done=(lambda: _planning_done(bb)) if name == 'planning' else None)
         _activity("%s: compute completed (wait_until returned)" % name)
         _log("========== %s: calculation finished in %.1fs =========="
              % (name, time.time() - t0))
