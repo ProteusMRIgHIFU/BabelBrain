@@ -566,6 +566,8 @@ class BabelBrain(QWidget):
         self._NiftiCT = None
         self._NiftiAirMask = None
 
+        self._bTrajAlreadyModified=False
+
         self._TelmetryMsgs=[]
         self._TimeStart = time.time()
 
@@ -1124,7 +1126,10 @@ class BabelBrain(QWidget):
             MultiYaml = os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
         newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(prevName)[1])
 
-        OrigTraj=self.ReadTrajectory()
+        if self._bTrajAlreadyModified:
+            OrigTraj=self.ReadTrajectory(sel_fname=newFName)
+        else:
+            OrigTraj=self.ReadTrajectory()
         if len(OrigTraj.shape)==3:
             OrigTraj=OrigTraj[:,:,Ntraj]
         OrigTraj[0,3]-=CorR
@@ -1132,13 +1137,23 @@ class BabelBrain(QWidget):
         OrigTraj[2,3]-=CorS
                 
         if self.Config['TrajectoryType']=='brainsight':
-            with open(self.Config['Mat4Trajectory'],'r') as f:
-                allLines=f.readlines()
+            if self._bTrajAlreadyModified:
+                with open(newFName,'r') as f:
+                    allLines=f.readlines()
+            else:
+                with open(self.Config['Mat4Trajectory'],'r') as f:
+                    allLines=f.readlines()
+            nTrajCount=0
+            bCountingTraj = False
             for n,l in enumerate(allLines):
                 if 'Created by: ' in l:
                     allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] +'\n' 
-                if l[0]!='#':
-                    break
+                if l[0]!='#' or bCountingTraj:
+                    if nTrajCount==Ntraj:
+                        break
+                    bCountingTraj=True
+                    nTrajCount+=1
+            assert(nTrajCount==Ntraj)
             LastLine=l.split('\t')
             LastLine[0]='_mod_'+LastLine[0]
             LastLine[1]='%4.3f' %(OrigTraj[0,3])
@@ -1174,47 +1189,66 @@ class BabelBrain(QWidget):
             #For Localite, we need a different approach
             #We calculate the difference in in the initial mechanical corrections and the current one
             #then we calculate that difference to 
-            AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
-            LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
-            prevSteering=LocTraj[self._TrajectoryNumber].steering
+            AcWidget=self.AcSim._Widgets[Ntraj]
+            if self._bTrajAlreadyModified: 
+                LocTraj=LocaliteTargeting.from_file(newFName)
+            else:
+                LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            
+            InitTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            prevSteering=InitTraj[Ntraj].steering
             InitCorrecX=0.0
             InitCorrecY=0.0
             InitCorrecZ=0.0
+
+            CurrentMechanicalX=0.0
+            CurrentMechanicalY=0.0
+            CurrentMechanicalZ=0.0
+                        
+
             if self.Config['TxSystem']=='REMOPD':
                 InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
                 InitCorrecY=np.round(prevSteering[1],1)
-                InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
+                InitCorrecZ=np.round(prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData'),1)
+            
+            CurrentMechanicalX=AcWidget.XMechanicSpinBox.value()
+            CurrentMechanicalY=AcWidget.YMechanicSpinBox.value()
+            CurrentMechanicalZ=AcWidget.SkinDistanceSpinBox.value()
 
             FocIJK=np.ones((4,1))
-            FocIJK[:3,0]=np.array(np.where(self._FinalMask[self._TrajectoryNumber]==5)).flatten()
+            FocIJK[:3,0]=np.array(np.where(self._FinalMask[Ntraj]==5)).flatten()
             
             FocIJKInit=FocIJK.copy()
             #we adjust in steps
             FocIJKInit[0,0]+=InitCorrecX/self._MaskNib[0].header.get_zooms()[0]
             FocIJKInit[1,0]+=InitCorrecY/self._MaskNib[0].header.get_zooms()[1]
-            FocIJKInit[1,0]+=InitCorrecZ/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKInit[2,0]+=InitCorrecZ/self._MaskNib[0].header.get_zooms()[2]
 
-            FocRASInit=self._MaskNib[self._TrajectoryNumber].affine@FocIJKInit
+            FocRASInit=self._MaskNib[Ntraj].affine@FocIJKInit
 
             FocIJKAdjust=FocIJK.copy()
             #we adjust in steps
-            FocIJKAdjust[0,0]+=AcWidget.XMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[0]
-            FocIJKAdjust[1,0]+=AcWidget.YMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKAdjust[0,0]+=CurrentMechanicalX/self._MaskNib[Ntraj].header.get_zooms()[0]
+            FocIJKAdjust[1,0]+=CurrentMechanicalY/self._MaskNib[Ntraj].header.get_zooms()[1]
+            FocIJKAdjust[2,0]+=CurrentMechanicalZ/self._MaskNib[Ntraj].header.get_zooms()[2]
             
-            FocRASAdjust=self._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
+            FocRASAdjust=self._MaskNib[Ntraj].affine@FocIJKAdjust
 
             FocRASAdjust-=FocRASInit
 
             #The difference in RAS is converted to the Localite convention and added to the pose translation vector
-            LocTraj[self._TrajectoryNumber].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
+            #first we copy the pose matrix to avoid accumulating changes
+            LocTraj[Ntraj].pose=InitTraj[Ntraj].pose
+            LocTraj[Ntraj].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
 
             if hasattr(AcWidget,'ZSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[0]=AcWidget.ZSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[0]=AcWidget.ZSteeringSpinBox.value()
             if hasattr(AcWidget,'YSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[1]=-AcWidget.YSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[1]=-AcWidget.YSteeringSpinBox.value()
             if hasattr(AcWidget,'XSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[2]=-AcWidget.XSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[2]=-AcWidget.XSteeringSpinBox.value()
             LocTraj.to_file(newFName)
+        self._bTrajAlreadyModified=True
         return newFName
 
     def UpdateAcousticTab(self):
