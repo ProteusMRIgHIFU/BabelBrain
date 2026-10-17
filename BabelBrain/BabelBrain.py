@@ -1206,15 +1206,22 @@ class BabelBrain(QWidget):
             CurrentMechanicalZ=0.0
                         
 
-            if self.Config['TxSystem']=='REMOPD':
+            if self.Config['TxType'] in ['flat_array_2D','focused_array']:
                 InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
                 InitCorrecY=np.round(prevSteering[1],1)
-                InitCorrecZ=np.round(prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData'),1)
+                if self.Config['TxType'] == 'flat_array_2D':
+                    InitCorrecZ=np.round(prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData'),1)
+                else:
+                    InitCorrecZ=np.round(AcWidget.DistanceSkinLabel.property('UserData')-prevSteering[0],1)
             
             CurrentMechanicalX=AcWidget.XMechanicSpinBox.value()
             CurrentMechanicalY=AcWidget.YMechanicSpinBox.value()
-            CurrentMechanicalZ=AcWidget.SkinDistanceSpinBox.value()
 
+            if hasattr(AcWidget,'DistanceConeToFocusSpinBox'):
+                CurrentMechanicalZ=AcWidget.DistanceSkinLabel.property('UserData')-AcWidget.DistanceConeToFocusSpinBox.value()
+            elif  hasattr(AcWidget,'SkinDistanceSpinBox'):
+                CurrentMechanicalZ=AcWidget.SkinDistanceSpinBox.value()
+    
             FocIJK=np.ones((4,1))
             FocIJK[:3,0]=np.array(np.where(self._FinalMask[Ntraj]==5)).flatten()
             
@@ -1243,6 +1250,8 @@ class BabelBrain(QWidget):
 
             if hasattr(AcWidget,'ZSteeringSpinBox'):
                 LocTraj[Ntraj].steering[0]=AcWidget.ZSteeringSpinBox.value()
+            elif  hasattr(AcWidget,'TPODistanceSpinBox'):
+                LocTraj[Ntraj].steering[0]=AcWidget.TPODistanceSpinBox.value()
             if hasattr(AcWidget,'YSteeringSpinBox'):
                 LocTraj[Ntraj].steering[1]=-AcWidget.YSteeringSpinBox.value()
             if hasattr(AcWidget,'XSteeringSpinBox'):
@@ -1254,17 +1263,25 @@ class BabelBrain(QWidget):
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
         #once UI elements are updated, we handle here special cases
-        if self.Config['TrajectoryType']=='localite' and self.Config['TxSystem']=='REMOPD':
+        if self.Config['TrajectoryType']=='localite':
             LocTraj = LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
             Steering=LocTraj[self._TrajectoryNumber].steering
             AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
-            AcWidget.XSteeringSpinBox.setValue(-Steering[2])
-            AcWidget.YSteeringSpinBox.setValue(-Steering[1])
-            AcWidget.ZSteeringSpinBox.setValue(Steering[0])
-            AcWidget.XMechanicSpinBox.setValue(Steering[2])
-            AcWidget.YMechanicSpinBox.setValue(Steering[1])
-            AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
-            
+            if self.Config['TxType'] in ['focused_array','flat_array_2D']:
+                AcWidget.XSteeringSpinBox.setValue(-Steering[2])
+                AcWidget.YSteeringSpinBox.setValue(-Steering[1])
+                AcWidget.XMechanicSpinBox.setValue(Steering[2])
+                AcWidget.YMechanicSpinBox.setValue(Steering[1])
+            if self.Config['TxType'] in ['focused_array','flat_array_2D','focused_annular_array']:
+                if self.Config['TxType'] == 'focused_annular_array':
+                    AcWidget.TPODistanceSpinBox.setValue(Steering[0]) #TODO: Need to verify with Localite if for CTX type devices this is relative to the natural focus or the outplane - for the time being, we are assuming it is relative to the out plane
+                else:
+                    AcWidget.ZSteeringSpinBox.setValue(Steering[0]) #TODO: Need to verify with Localite if for focused array this is relative to the natural focus or the outplane - for the time being, we are assuming it is relative to the natural focus 
+                if hasattr(AcWidget,'SkinDistanceSpinBox'):
+                    AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
+                elif hasattr(AcWidget,'DistanceConeToFocusSpinBox'):
+                    AcWidget.DistanceConeToFocusSpinBox.setValue(self.AcSim.CalculateDistanceFromSkin()-Steering[0])
+
 
     def NotifyError(self):
         self.SetErrorDomainCode()

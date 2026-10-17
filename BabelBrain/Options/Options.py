@@ -231,6 +231,9 @@ class AdvancedOptions(QDialog):
     
         self.ui.RUNPlanTUSpushButton.clicked.connect(self.RUNPlanTUS)
 
+        if self.parent().Config['TrajectoryType']=='localite':
+            self.ui.RUNPlanTUSpushButton.setEnabled(False)
+
         # An empty PlanTUS root means "use the built-in PlanTUS bundled with BabelBrain".
         # Advertise that with an always-visible hint, shown grey (Qt default) and italic.
         # Qt has no separate placeholder font, so we italicize the field only while it is
