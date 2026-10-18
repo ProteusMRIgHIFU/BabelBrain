@@ -1,0 +1,63 @@
+{
+
+  "schemaVersion" : 1,
+
+  "createdBy" : "BabelBrain v0.8.8",
+
+  "coordinateSystem" : "NIfTI:S:Aligned",
+
+  "acousticResults" : [
+
+    {
+      "targetName"       : "targa",
+      "targetUUID"       : "35F6B242-C024-4D86-BFD9-70C2934E1B66",
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targa_CTX_500_500kHz_6PPW_FullElasticSolution_Sub_NORM.nii.gz",
+      "modifiedPosition" : [ -0.776359014,	 0.133780985,	0.615929647,	35.284534643,	0.000000000,	-0.977214803,	0.212252746,	26.188000000, 0.630290950,	 0.164784333,	0.758669521,	61.834776299, 0, 0, 0, 1 ]
+    },
+
+    {
+      "targetName"       : "targb",
+      "targetUUID"       : "8BCB3821-F849-474C-9620-4144CFACA3A2",
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targb_CTX_500_500kHz_6PPW_FullElasticSolution_Sub_NORM.nii.gz",
+      "modifiedPosition" : [ -0.462993547,	 0.064548104,	0.884008211,	39.297207290, 0.000000000,	-0.997344832,	0.072823665,	20.673460251, 0.886361651,	 0.033716887,	0.461764221,	36.445753230, 0, 0, 0, 1  ]
+    }
+
+  ],
+
+  "acousticCombinedResults" : [
+
+    {
+      "targetUUIDList"   : [ "35F6B242-C024-4D86-BFD9-70C2934E1B66", "8BCB3821-F849-474C-9620-4144CFACA3A2" ],
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targa+targb+targc_CTX_500_500kHz_6PPW_Merged_NORM.nii.gz"
+    }
+
+  ],
+
+  "thermalResults" : [
+
+    {
+      "targetName"       : "targa",
+      "targetUUID"       : "35F6B242-C024-4D86-BFD9-70C2934E1B66",
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targa_CTX_500_500kHz_6PPW_THERMAL.nii.gz",
+      "modifiedPosition" : [ -0.776359014,	 0.133780985,	0.615929647,	35.284534643,	0.000000000,	-0.977214803,	0.212252746,	26.188000000, 0.630290950,	 0.164784333,	0.758669521,	61.834776299 ]
+    },
+
+    {
+      "targetName"       : "targb",
+      "targetUUID"       : "8BCB3821-F849-474C-9620-4144CFACA3A2",
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targb_CTX_500_500kHz_6PPW_THERMAL.nii.gz",
+      "modifiedPosition" : [ -0.462993547,	 0.064548104,	0.884008211,	39.297207290, 0.000000000,	-0.997344832,	0.072823665,	20.673460251, 0.886361651,	 0.033716887,	0.461764221,	36.445753230 ]
+    }
+
+  ],
+
+  "thermalCombinedResults" : [
+
+    {
+      "targetUUIDList"   : [ "35F6B242-C024-4D86-BFD9-70C2934E1B66", "8BCB3821-F849-474C-9620-4144CFACA3A2" ],
+      "imagePath"        : "/Users/alex/Desktop/for.modeling/_projects/outputs/four_targets/targa+targb+targc_CTX_500_500kHz_6PPW_Merged_THERMAL.nii.gz"
+    }
+
+  ]
+
+}

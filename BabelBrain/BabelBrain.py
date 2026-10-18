@@ -63,6 +63,7 @@ from CTZTEProcessing import ConfirmPseudoCT
 from ConvMatTransform import (
     BSight_to_itk,
     ReadTrajectoryBrainsight,
+    WriteTrajectoryBrainsight,
     GetBrainSightHeader,
     templateSlicer,
     read_itk_affine_transform,
@@ -70,6 +71,7 @@ from ConvMatTransform import (
     LocaliteTargeting
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
+import BrainsightSync
 from GUIComponents.custom_transducer_dialog import CUSTOM_TRANSDUCER_PREFIX
 
 from Options.Options import AdvancedOptions, OptionalParams, ApplyAdvancedConfig
@@ -274,35 +276,7 @@ def GetInputFromBrainsight():
                 msgBox.setIcon(QMessageBox.Warning)
                 msgBox.setText("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur")
                 msgBox.exec()
-            if 'NIfTI' not in header['Coordinate system']:
-                EndWithError("BabelBrain only supports Nifti convention for trajectory")
-            InputT1 = nibabel.load(res['T1W'])
-            qformcode=int(InputT1.header['qform_code'])
-            sformcode=int(InputT1.header['sform_code'])
-            bValidT1W=False
-            #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
-            if header['Coordinate system'] == 'NIfTI:Q:Scanner':
-                bValidT1W = qformcode==1
-            elif header['Coordinate system'] == 'NIfTI:Q:Aligned':
-                bValidT1W = qformcode==2
-            elif header['Coordinate system'] == 'NIfTI:Q:MNI-152':
-                bValidT1W = qformcode==3
-            elif header['Coordinate system'] == 'NIfTI:Q:Talairach':
-                bValidT1W = qformcode==4
-            elif header['Coordinate system'] == 'NIfTI:Q:Other-Template':
-                bValidT1W = qformcode==5
-            elif header['Coordinate system'] == 'NIfTI:S:Scanner':
-                bValidT1W = sformcode==1 
-            elif header['Coordinate system'] == 'NIfTI:S:Aligned':
-                bValidT1W = sformcode==2 
-            elif header['Coordinate system'] == 'NIfTI:S:MNI-152':
-                bValidT1W = sformcode==3 
-            elif header['Coordinate system'] == 'NIfTI:S:Talairach':
-                bValidT1W = sformcode==4 
-            elif header['Coordinate system'] == 'NIfTI:S:Other-Template':
-                bValidT1W = sformcode==5 
-            if not bValidT1W:
-                EndWithError("Header coordinate system ("+header['Coordinate system'] +") does not match T1W Nifti header\n qformcode and sformcode [%i,%i]" %(qformcode,sformcode))
+            ValidateNiftiCoordinateSystem(header['Coordinate system'],res['T1W'])
                         
 
         if res['outputfiles_path'] is not None:
@@ -339,6 +313,100 @@ def GetInputFromBrainsight():
             os.remove(fpath)
         
     return res,header
+
+def ValidateNiftiCoordinateSystem(CoordinateSystem,T1W_fname):
+    '''
+    Validate that a Brainsight coordinate system (e.g. 'NIfTI:S:Aligned') agrees
+    with the qform/sform codes of the T1W Nifti file; ends execution if not.
+    '''
+    if 'NIfTI' not in CoordinateSystem:
+        EndWithError("BabelBrain only supports Nifti convention for trajectory")
+    InputT1 = nibabel.load(T1W_fname)
+    qformcode=int(InputT1.header['qform_code'])
+    sformcode=int(InputT1.header['sform_code'])
+    bValidT1W=False
+    #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
+    if CoordinateSystem == 'NIfTI:Q:Scanner':
+        bValidT1W = qformcode==1
+    elif CoordinateSystem == 'NIfTI:Q:Aligned':
+        bValidT1W = qformcode==2
+    elif CoordinateSystem == 'NIfTI:Q:MNI-152':
+        bValidT1W = qformcode==3
+    elif CoordinateSystem == 'NIfTI:Q:Talairach':
+        bValidT1W = qformcode==4
+    elif CoordinateSystem == 'NIfTI:Q:Other-Template':
+        bValidT1W = qformcode==5
+    elif CoordinateSystem == 'NIfTI:S:Scanner':
+        bValidT1W = sformcode==1
+    elif CoordinateSystem == 'NIfTI:S:Aligned':
+        bValidT1W = sformcode==2
+    elif CoordinateSystem == 'NIfTI:S:MNI-152':
+        bValidT1W = sformcode==3
+    elif CoordinateSystem == 'NIfTI:S:Talairach':
+        bValidT1W = sformcode==4
+    elif CoordinateSystem == 'NIfTI:S:Other-Template':
+        bValidT1W = sformcode==5
+    if not bValidT1W:
+        EndWithError("Header coordinate system ("+CoordinateSystem +") does not match T1W Nifti header\n qformcode and sformcode [%i,%i]" %(qformcode,sformcode))
+
+def GetInputFromBrainsightJSON():
+    '''
+    Reads and validates the JSON input exported by Brainsight 2.6 and newer
+    (~/.BabelBrainSync/BabelBrainInput.json). Only called when that file exists.
+
+    The file is first renamed to BabelBrainInput-read.json, so it is consumed
+    once, even if invalid. The targets are written into a Brainsight trajectory
+    text file next to the outputs, so the rest of BabelBrain (Step 1,
+    ExportTrajectory, PlanTUS, ...) works as with the legacy text input. Target
+    UUIDs are kept in the returned BrainsightInput object.
+
+    Returns
+    -------
+    tuple
+        res : dict
+            Same entries as the dictionary returned by GetInputFromBrainsight.
+        BrainsightIn : BrainsightSync.BrainsightInput
+            Parsed JSON input (targets, UUIDs, coordinate system).
+    '''
+    ReadFName = BrainsightSync.ClaimInputJSON(_BrainsightSyncPath)
+    try:
+        BrainsightIn = BrainsightSync.ReadInputFile(ReadFName)
+    except BrainsightSync.BrainsightSyncError as e:
+        EndWithError("Invalid Brainsight input file\n" + ReadFName + "\n\n" + str(e))
+
+    if not os.path.isdir(BrainsightIn.segmentation_path):
+        EndWithError("Segmentation folder indicated by Brainsight does not exist:\n" + BrainsightIn.segmentation_path)
+    if not os.path.isfile(BrainsightIn.anatomical_path):
+        EndWithError("Anatomical file indicated by Brainsight does not exist:\n" + BrainsightIn.anatomical_path)
+
+    ValidateNiftiCoordinateSystem(BrainsightIn.coordinate_system,BrainsightIn.anatomical_path)
+
+    res={}
+    res['T1W']=BrainsightIn.anatomical_path
+    res['simbnibs_path']=BrainsightIn.segmentation_path
+    res['outputfiles_path']=BrainsightIn.output_path
+    if res['outputfiles_path'] is not None:
+        outpath = res['outputfiles_path']
+        os.makedirs(outpath,exist_ok=True)
+    else:
+        outpath = os.path.dirname(res['T1W'])
+
+    IdStr='+'.join(BrainsightIn.names)
+    RPath=outpath+os.sep+IdStr+'.txt'
+    WriteTrajectoryBrainsight(RPath,
+                              [t.mat4 for t in BrainsightIn.targets],
+                              BrainsightIn.names,
+                              BrainsightIn.coordinate_system,
+                              CreatedBy=BrainsightIn.created_by)
+    #we keep a copy of the input of this session next to the outputs
+    shutil.copyfile(ReadFName,outpath+os.sep+IdStr+'_'+BrainsightSync.INPUT_JSON_READ)
+
+    print('ID,RPath',IdStr,RPath)
+    res['Mat4Trajectory']=RPath
+
+    BrainsightSync.RemoveStaleOutputs(_BrainsightSyncPath)
+
+    return res,BrainsightIn
 
 def EndWithError(msg):
     '''
@@ -397,7 +465,7 @@ class BabelBrain(QWidget):
 
     '''
 
-    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None):
+    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,BrainsightJSONInput=None):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
@@ -496,7 +564,7 @@ class BabelBrain(QWidget):
             nEntries=self.Config['NumberTransducers']+1
         self._BrainsightOutput=['']*nEntries
         self._BrainsightThermalOutput=['']*nEntries
-                
+
         if AltOutputFilesPath is not None:
             self.Config['OutputFilesPath']=AltOutputFilesPath
         else:
@@ -511,6 +579,27 @@ class BabelBrain(QWidget):
         # - including the Brainsight "Created by:" header, which has to stay a
         # bare approved version number - is unaffected.
         self.Config['BuildLabel'] = GetBuildLabel()
+
+        #Brainsight 2.6+ communicates with JSON files; the only trigger is finding
+        #BabelBrainInput.json, otherwise we use the legacy text files
+        self.BrainsightSync=None
+        if not bInUseWithBrainsight:
+            self.Config['BrainsightProtocol']=None
+        elif BrainsightJSONInput is None:
+            self.Config['BrainsightProtocol']='legacy'
+        else:
+            self.Config['BrainsightProtocol']='json'
+            self.Config['Brainsight-OutputJSONSync'] = _BrainsightSyncPath+ os.sep+BrainsightSync.OUTPUT_JSON
+            if TrajectoryType=='brainsight' and [str(i) for i in ID]==BrainsightJSONInput.names:
+                self.BrainsightSync=BrainsightSync.BrainsightJSONSync(BrainsightJSONInput,
+                                                    self.Config['Brainsight-OutputJSONSync'],
+                                                    'BabelBrain v'+self.Config['version'].strip())
+            else:
+                msgBox = QMessageBox(_styled_dialog_parent())
+                msgBox.setIcon(QMessageBox.Warning)
+                msgBox.setText("The selected trajectory is not the one provided by Brainsight.\n"
+                               "Results will not be reported back to Brainsight.")
+                msgBox.exec()
 
         self.Config['MultiPoint']=''
         self.Config['EnableMultiPoint']=False
@@ -1259,6 +1348,22 @@ class BabelBrain(QWidget):
             LocTraj.to_file(newFName)
         self._bTrajAlreadyModified=True
         return newFName
+
+    def NotifyBrainsightTrajectoryReplaced(self,Ntraj,Mat4,source):
+        '''
+        Report to Brainsight (JSON scheme only) that trajectory Ntraj was
+        replaced (e.g. by PlanTUS), keeping its UUID. Results previously
+        reported for it, and the merged results, are withdrawn until
+        Steps 1 and 2 are executed again.
+        '''
+        if self.Config.get('BrainsightProtocol')!='json' or self.BrainsightSync is None:
+            return
+        self._BrainsightOutput[Ntraj]=''
+        self._BrainsightThermalOutput[Ntraj]=''
+        if len(self._BrainsightOutput)>1:
+            self._BrainsightOutput[-1]=''
+            self._BrainsightThermalOutput[-1]=''
+        self.BrainsightSync.ReplaceTrajectory(Ntraj,Mat4,source)
 
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
@@ -2363,9 +2468,14 @@ def main():
                 selwidget.ui.MultiPointlineEdit.setText(prevConfig['MultiPoint'])
                 
     AltOutputFilesPath=None
+    BrainsightJSONInput=None
     if args.bInUseWithBrainsight:
         bINUSE_INSIDE_BRAINSIGHT = True
-        Brainsight,header=GetInputFromBrainsight()
+        #Brainsight 2.6+ leaves BabelBrainInput.json; older versions use the legacy text files
+        if BrainsightSync.IsJSONSyncRequested(_BrainsightSyncPath):
+            Brainsight,BrainsightJSONInput=GetInputFromBrainsightJSON()
+        else:
+            Brainsight,header=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
         selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
@@ -2383,7 +2493,8 @@ def main():
     
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight,
-                        AltOutputFilesPath=AltOutputFilesPath)
+                        AltOutputFilesPath=AltOutputFilesPath,
+                        BrainsightJSONInput=BrainsightJSONInput)
     widget.show()
     retcode=app.exec()
     if (retcode==0):

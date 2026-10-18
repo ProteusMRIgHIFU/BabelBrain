@@ -480,6 +480,13 @@ class RUN_PLAN_TUS(QObject):
      
                         self.MainApp.Config['Mat4Trajectory'] = finalfname
                         self.MainApp.Config['ID'][self.IDIndex] = id
+                        # the trajectory file changed, so later mechanical-correction
+                        # exports must start again from it (not from a previous _mod_ file)
+                        self.MainApp._bTrajAlreadyModified = False
+                        if TrajectoryType =='brainsight':
+                            # Brainsight 2.6+ (JSON scheme): report the PlanTUS trajectory
+                            # with the UUID of the target it replaces
+                            self.MainApp.NotifyBrainsightTrajectoryReplaced(self.IDIndex,TT,'PlanTUS')
                         self.MainApp.UpdateWindowTitle()
                         QMessageBox.information(self.OptionsDlg,'', "Be sure of running Step 1 to update simulation state")
                                             

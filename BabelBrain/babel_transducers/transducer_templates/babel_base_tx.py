@@ -227,13 +227,21 @@ class BabelBaseTx(QWidget):
                                                         CorA=Results['AdjustmentInRAS'][1],
                                                         CorS=Results['AdjustmentInRAS'][2],
                                                         Ntraj=self._TrajectoryNumber)
-        if self._MainApp.Config['bInUseWithBrainsight']:
+        if self._MainApp.Config.get('BrainsightProtocol')=='json':
+            #Brainsight 2.6+: the corrected trajectory is reported in BabelBrainOutput.json
+            if self._MainApp.BrainsightSync is not None:
+                self._MainApp.BrainsightSync.SetMechanicalCorrection(self._TrajectoryNumber,Results['AdjustmentInRAS'])
+        elif self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-Target'],'w') as f:
                 f.write(fnameTrajectory)
         self.UpdateBSightOutputs()
 
     def UpdateBSightOutputs(self):        
-        if self._MainApp.Config['bInUseWithBrainsight']:
+        if self._MainApp.Config.get('BrainsightProtocol')=='json':
+            #Brainsight 2.6+: legacy output files are not written
+            if self._MainApp.BrainsightSync is not None:
+                self._MainApp.BrainsightSync.UpdateAcousticResults(self._MainApp._BrainsightOutput)
+        elif self._MainApp.Config['bInUseWithBrainsight']:
             with open(self._MainApp.Config['Brainsight-Output'],'w') as f:
                 f.write('\n'.join(self._MainApp._BrainsightOutput))
             with open(self._MainApp.Config['Brainsight-OutputJSON'],'w') as f:

@@ -1,0 +1,29 @@
+{
+
+  "schemaVersion" : 1,
+
+  "createdBy" : "Brainsight 2.6b1",
+
+  "segmentationPath" : "/Users/alex/Desktop/for.modeling/_datasets/simnibs.sample.data/m2m_ernie",
+
+  "anatomicalPath" : "/Users/alex/Desktop/for.modeling/_datasets/simnibs.sample.data/m2m_ernie/T1.nii.gz",
+
+  "coordinateSystem" : "NIfTI:S:Aligned",
+
+  "targets" : [
+
+    {
+      "name" : "targa",
+      "uuid" : "35F6B242-C024-4D86-BFD9-70C2934E1B66",
+      "position" : [ -0.776359014,	 0.133780985,	0.615929647,	35.284534643,	0.000000000,	-0.977214803,	0.212252746,	26.188000000, 0.630290950,	 0.164784333,	0.758669521,	61.834776299 ]
+    },
+
+    {
+      "name" : "targb",
+      "uuid" : "8BCB3821-F849-474C-9620-4144CFACA3A2",
+      "position" : [ -0.776359014,	 0.133780985,	0.615929647,	35.284534643,	0.000000000,	-0.977214803,	0.212252746,	26.188000000, 0.630290950,	 0.164784333,	0.758669521,	61.834776299 ]
+    }
+
+  ]
+
+}
