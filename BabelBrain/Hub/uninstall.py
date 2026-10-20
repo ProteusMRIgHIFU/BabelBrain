@@ -107,6 +107,7 @@ class PurgeReport:
     elevation_denied: bool = False
     receipt_forgotten: bool = False
     self_delete_scheduled: bool = False
+    self_left_behind: bool = False     # could not be made removable; user drags it to the Trash
 
     @property
     def ok(self) -> bool:
@@ -306,10 +307,26 @@ def _remove(path: Path) -> tuple[bool, str]:
         return False, str(e)
 
 
+def _user_can_remove(path: Path) -> bool:
+    '''True when this process can delete ``path`` and everything under it,
+    i.e. its parent and every directory in the tree are writable. Symlinks are
+    not followed; any unreadable entry counts as "no".'''
+    if not os.access(str(path.parent), os.W_OK):
+        return False
+    if path.is_symlink() or not path.is_dir():
+        return True
+    failed = []
+    for root, _dirs, _files in os.walk(path, onerror=failed.append):
+        if not os.access(root, os.W_OK):
+            return False
+    return not failed
+
+
 def _schedule_self_delete(app: Path) -> str:
     '''Shell snippet that waits for this process to exit, then deletes the
-    uninstaller bundle. Detached and with its output redirected so that, run
-    through ``osascript``, it does not keep the elevated call waiting.'''
+    uninstaller bundle. Run unprivileged only: a background job started from
+    ``do shell script ... with administrator privileges`` is killed as soon as
+    the elevated call returns, so it never gets to the ``rm``.'''
     return (f'/usr/bin/nohup /bin/sh -c '
             f'{shlex.quote(f"while /bin/kill -0 {os.getpid()} 2>/dev/null; do /bin/sleep 0.5; done; /bin/rm -rf {shlex.quote(str(app))}")} '
             f'>/dev/null 2>&1 &')
@@ -317,7 +334,10 @@ def _schedule_self_delete(app: Path) -> str:
 
 def _elevated_macos(targets: list[Path], forget_receipt: bool,
                     me: Path | None) -> None:
-    '''One authorization prompt for every root-owned leftover.'''
+    '''One authorization prompt for every root-owned leftover.
+
+    ``me`` (the running uninstaller) is not deleted here but handed back to the
+    user, so the unprivileged watcher can delete it once this process exits.'''
     from . import installer           # local import: installer imports us lazily too
 
     parts = [f'/bin/rm -rf {shlex.quote(str(p))}' for p in targets]
@@ -325,7 +345,8 @@ def _elevated_macos(targets: list[Path], forget_receipt: bool,
         # A missing receipt must not fail the batch.
         parts.append(f'/usr/sbin/pkgutil --forget {shlex.quote(PKG_IDENTIFIER)} || true')
     if me is not None:
-        parts.append(_schedule_self_delete(me))
+        parts.append(f'/usr/sbin/chown -R {os.getuid()}:{os.getgid()} '
+                     f'{shlex.quote(str(me))}')
     installer._run_elevated_macos(
         ' ; '.join(parts),
         'BabelBrain needs administrator privileges to finish removing itself.',
@@ -372,7 +393,8 @@ def purge(include_settings: bool = False,
     Unprivileged removals happen first; whatever is left (root-owned stores and
     apps on macOS, a machine-wide store on Windows) is done in one elevated
     batch. The running uninstaller bundle is always deleted last, from a
-    detached watcher process.
+    detached, unprivileged watcher process; if it is root-owned, the elevated
+    batch first hands it back to the user.
 
     ``allow_elevation=False`` is used by the Windows uninstaller, which must
     never pop a UAC prompt of its own: it reports what it could not remove
@@ -399,9 +421,11 @@ def purge(include_settings: bool = False,
     need_self = me is not None and me.exists()
 
     if paths.IS_MAC:
-        # Does deleting the uninstaller itself need root? /Applications is
-        # root-owned after a PKG install; a hand-copied ~/Applications is not.
-        self_needs_root = need_self and not os.access(str(me.parent), os.W_OK)
+        # Does the uninstaller itself need root? Checking the parent alone is
+        # not enough: /Applications is group-writable by admins, but the PKG
+        # installs the bundle's *contents* as root:wheel, so an admin can
+        # unlink nothing inside it.
+        self_needs_root = need_self and not _user_can_remove(me)
         if pending or need_receipt or self_needs_root:
             if not allow_elevation:
                 report.failed.extend(
@@ -413,12 +437,18 @@ def purge(include_settings: bool = False,
                                   me if self_needs_root else None))
                 if report.ok:
                     report.receipt_forgotten = need_receipt
-                    report.self_delete_scheduled = self_needs_root
-        if need_self and not report.self_delete_scheduled:
-            # Unprivileged case: same watcher, just not behind a prompt.
-            subprocess.Popen(['/bin/sh', '-c', _schedule_self_delete(me)],
-                             start_new_session=True)
-            report.self_delete_scheduled = True
+        if need_self and report.ok:
+            # Only once everything else is gone: an incomplete uninstall must
+            # keep the uninstaller around to retry. Re-checked rather than
+            # assumed: the chown may have failed, and a non-admin cannot
+            # unlink anything in a root-owned /Applications even once the
+            # bundle is theirs.
+            if _user_can_remove(me):
+                subprocess.Popen(['/bin/sh', '-c', _schedule_self_delete(me)],
+                                 start_new_session=True)
+                report.self_delete_scheduled = True
+            else:
+                report.self_left_behind = True
     elif pending:
         if not allow_elevation:
             report.failed.extend(
