@@ -72,6 +72,7 @@ from ConvMatTransform import (
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
 import BrainsightSync
+from BrainsightTrajectory import BrainsightTrajectory
 from GUIComponents.custom_transducer_dialog import CUSTOM_TRANSDUCER_PREFIX
 
 from Options.Options import AdvancedOptions, OptionalParams, ApplyAdvancedConfig
@@ -1227,30 +1228,15 @@ class BabelBrain(QWidget):
                 
         if self.Config['TrajectoryType']=='brainsight':
             if self._bTrajAlreadyModified:
-                with open(newFName,'r') as f:
-                    allLines=f.readlines()
+                BTraj=BrainsightTrajectory.from_file(newFName)
             else:
-                with open(self.Config['Mat4Trajectory'],'r') as f:
-                    allLines=f.readlines()
-            nTrajCount=0
-            bCountingTraj = False
-            for n,l in enumerate(allLines):
-                if 'Created by: ' in l:
-                    allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] 
-                if l[0]!='#' or bCountingTraj:
-                    if nTrajCount==Ntraj:
-                        break
-                    bCountingTraj=True
-                    nTrajCount+=1
-            assert(nTrajCount==Ntraj)
-            LastLine=l.split('\t')
-            LastLine[0]='_mod_'+LastLine[0]
-            LastLine[1]='%4.3f' %(OrigTraj[0,3])
-            LastLine[2]='%4.3f' %(OrigTraj[1,3])
-            LastLine[3]='%4.3f' %(OrigTraj[2,3])
-            allLines[n]='\t'.join(LastLine)
-            with open(newFName,'w') as f:
-                f.writelines(allLines)
+                BTraj=BrainsightTrajectory.from_file(self.Config['Mat4Trajectory'])
+            BTraj.set_metadata('Created by','BabelBrain ' + self.Config['version'].strip())
+            BTraj.set_location(Ntraj,OrigTraj[:3,3])
+            name=BTraj.get_name(Ntraj)
+            if not name.startswith('_mod_'):
+                BTraj.rename(Ntraj,'_mod_'+name)
+            BTraj.to_file(newFName)
         elif self.Config['TrajectoryType']=='slicer':
             transform = BSight_to_itk(OrigTraj)
             transform[:3,:3]=transform[:3,:3].T
