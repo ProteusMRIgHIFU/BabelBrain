@@ -1236,7 +1236,7 @@ class BabelBrain(QWidget):
             bCountingTraj = False
             for n,l in enumerate(allLines):
                 if 'Created by: ' in l:
-                    allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] +'\n' 
+                    allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] 
                 if l[0]!='#' or bCountingTraj:
                     if nTrajCount==Ntraj:
                         break
