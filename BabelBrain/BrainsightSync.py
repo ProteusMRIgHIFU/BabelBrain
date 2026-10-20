@@ -44,9 +44,9 @@ LEGACY_OUTPUT_FILES = ['Output.txt',
                        'Output_Thermal.txt',
                        'Output_Thermal.json']
 
-# Number of entries used for positions in the output: a 3x4 [R|t] matrix in
-# row-major order, the same layout Brainsight uses for "position" in the input
-POSITION_LENGTH = 12
+# Number of entries used for positions in the output: the full 4x4 matrix in
+# row-major order ([R|t] rows followed by [0, 0, 0, 1]), as expected by Brainsight
+POSITION_LENGTH = 16
 
 # Characters in target names that would break the Brainsight trajectory text
 # file (tab-separated) or the output file names built from them
