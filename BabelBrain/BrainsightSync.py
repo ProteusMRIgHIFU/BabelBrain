@@ -48,9 +48,6 @@ LEGACY_OUTPUT_FILES = ['Output.txt',
 # row-major order, the same layout Brainsight uses for "position" in the input
 POSITION_LENGTH = 12
 
-# Mechanical corrections below this norm (mm) are considered as no correction
-_MIN_CORRECTION = 1e-6
-
 # Characters in target names that would break the Brainsight trajectory text
 # file (tab-separated) or the output file names built from them
 _INVALID_NAME_CHARS = re.compile(r'[\t\r\n/\\]')
@@ -264,6 +261,7 @@ def WriteJSONAtomic(fname, data):
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
+        os.chmod(tmpname, 0o644)  # mkstemp creates the file as 0o600
         os.replace(tmpname, fname)
     except BaseException:
         if os.path.isfile(tmpname):
@@ -287,6 +285,10 @@ class BrainsightJSONSync:
                         reduced by this correction. It is always applied to the
                         base pose, so repeated exports never accumulate.
 
+    The pose of each target is reported only through its result entries
+    (modifiedPosition), as in the schema agreed with Brainsight; a trajectory
+    replaced in PlanTUS is reported once Steps 1 and 2 are executed again.
+
     The whole output file is rewritten on every change.
     '''
 
@@ -296,7 +298,6 @@ class BrainsightJSONSync:
         self.created_by = created_by
         n = len(BrainsightIn.targets)
         self._base = [t.mat4.copy() for t in BrainsightIn.targets]
-        self._base_sources = [[] for _ in range(n)]
         self._correction = [np.zeros(3) for _ in range(n)]
         self._acoustic = [''] * n
         self._thermal = [''] * n
@@ -311,12 +312,6 @@ class BrainsightJSONSync:
         Mat4 = self._base[idx].copy()
         Mat4[:3, 3] -= self._correction[idx]
         return Mat4
-
-    def ModifiedBy(self, idx):
-        sources = list(self._base_sources[idx])
-        if np.linalg.norm(self._correction[idx]) > _MIN_CORRECTION:
-            sources.append('MechanicalCorrection')
-        return sources
 
     def _SplitResults(self, paths):
         '''
@@ -342,14 +337,13 @@ class BrainsightJSONSync:
         self._correction[idx] = np.asarray(correction_ras, dtype=float).ravel()[:3].copy()
         self.Write()
 
-    def ReplaceTrajectory(self, idx, Mat4, source):
+    def ReplaceTrajectory(self, idx, Mat4):
         '''
         A new base pose for target idx (e.g. selected in PlanTUS). Results
         for that target and the merged results are discarded, as they no longer
         correspond to the trajectory; Step 1 and Step 2 need to be run again.
         '''
         self._base[idx] = np.asarray(Mat4, dtype=float).copy()
-        self._base_sources[idx] = [source]
         self._correction[idx] = np.zeros(3)
         self._acoustic[idx] = ''
         self._thermal[idx] = ''
@@ -357,21 +351,15 @@ class BrainsightJSONSync:
         self._thermal_combined = ''
         self.Write()
 
-    def _TargetEntry(self, idx):
-        t = self._input.targets[idx]
-        return {'targetName': t.name,
-                'targetUUID': t.uuid,
-                'modifiedPosition': Mat4ToPosition(self.CurrentMat4(idx))}
-
     def _ResultEntries(self, paths):
         res = []
         for idx, p in enumerate(paths):
             if p:
-                entry = self._TargetEntry(idx)
-                res.append({'targetName': entry['targetName'],
-                            'targetUUID': entry['targetUUID'],
+                t = self._input.targets[idx]
+                res.append({'targetName': t.name,
+                            'targetUUID': t.uuid,
                             'imagePath': p,
-                            'modifiedPosition': entry['modifiedPosition']})
+                            'modifiedPosition': Mat4ToPosition(self.CurrentMat4(idx))})
         return res
 
     def _CombinedEntries(self, path):
@@ -380,15 +368,9 @@ class BrainsightJSONSync:
         return [{'targetUUIDList': self._input.uuids, 'imagePath': path}]
 
     def BuildOutput(self):
-        targets = []
-        for idx in range(self.NumberTargets):
-            entry = self._TargetEntry(idx)
-            entry['modifiedBy'] = self.ModifiedBy(idx)
-            targets.append(entry)
         return {'schemaVersion': self._input.schema_version,
                 'createdBy': self.created_by,
                 'coordinateSystem': self._input.coordinate_system,
-                'targets': targets,
                 'acousticResults': self._ResultEntries(self._acoustic),
                 'acousticCombinedResults': self._CombinedEntries(self._acoustic_combined),
                 'thermalResults': self._ResultEntries(self._thermal),

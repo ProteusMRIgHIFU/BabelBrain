@@ -1349,12 +1349,12 @@ class BabelBrain(QWidget):
         self._bTrajAlreadyModified=True
         return newFName
 
-    def NotifyBrainsightTrajectoryReplaced(self,Ntraj,Mat4,source):
+    def NotifyBrainsightTrajectoryReplaced(self,Ntraj,Mat4):
         '''
-        Report to Brainsight (JSON scheme only) that trajectory Ntraj was
+        Notify the Brainsight sync (JSON scheme only) that trajectory Ntraj was
         replaced (e.g. by PlanTUS), keeping its UUID. Results previously
-        reported for it, and the merged results, are withdrawn until
-        Steps 1 and 2 are executed again.
+        reported for it, and the merged results, are withdrawn; the new pose
+        is reported with the results once Steps 1 and 2 are executed again.
         '''
         if self.Config.get('BrainsightProtocol')!='json' or self.BrainsightSync is None:
             return
@@ -1363,7 +1363,7 @@ class BabelBrain(QWidget):
         if len(self._BrainsightOutput)>1:
             self._BrainsightOutput[-1]=''
             self._BrainsightThermalOutput[-1]=''
-        self.BrainsightSync.ReplaceTrajectory(Ntraj,Mat4,source)
+        self.BrainsightSync.ReplaceTrajectory(Ntraj,Mat4)
 
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()

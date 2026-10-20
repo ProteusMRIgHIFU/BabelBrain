@@ -484,9 +484,9 @@ class RUN_PLAN_TUS(QObject):
                         # exports must start again from it (not from a previous _mod_ file)
                         self.MainApp._bTrajAlreadyModified = False
                         if TrajectoryType =='brainsight':
-                            # Brainsight 2.6+ (JSON scheme): report the PlanTUS trajectory
-                            # with the UUID of the target it replaces
-                            self.MainApp.NotifyBrainsightTrajectoryReplaced(self.IDIndex,TT,'PlanTUS')
+                            # Brainsight 2.6+ (JSON scheme): the PlanTUS trajectory keeps the
+                            # UUID of the target it replaces
+                            self.MainApp.NotifyBrainsightTrajectoryReplaced(self.IDIndex,TT)
                         self.MainApp.UpdateWindowTitle()
                         QMessageBox.information(self.OptionsDlg,'', "Be sure of running Step 1 to update simulation state")
                                             
