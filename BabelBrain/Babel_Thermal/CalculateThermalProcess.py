@@ -6,6 +6,12 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream, SaveToH5py
 from scipy.io import savemat
 import numpy as np
 
+# Artifact recording (see ArtifactIO.py); no-op unless BABEL_ARTIFACT_LOG is set.
+try:
+    from ArtifactIO import record as _rec_artifact
+except Exception:
+    def _rec_artifact(_p, **_k):
+        return _p
 from ThermalModeling.CalculateTemperatureEffects import CalculateTemperatureEffects, GetProcessResult
 from multiprocessing import Process,Queue
 
@@ -122,6 +128,8 @@ def CalculateThermalProcess(queueMsg,case,AllDC_PRF_Duration,ExtraData,**kargs):
         ConsolodidateName=fname.split('-Duration-')[0]+'_AllCombinations'
         savemat(ConsolodidateName+'.mat',Data)
         SaveToH5py(Data,ConsolodidateName+'.h5')
+        _rec_artifact(ConsolodidateName+'.mat')
+        _rec_artifact(ConsolodidateName+'.h5')
 
     except BaseException:
         queueMsg.put('--Babel-Brain-Low-Error\n')

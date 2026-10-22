@@ -297,9 +297,14 @@ class RUN_PLAN_TUS(QObject):
         
         mshPath=glob.glob(self.MainApp.Config['simbnibs_path'] + os.sep + "*.msh")[0]
         maskPath=os.path.splitext(Mat4Trajectory)[0]+f'_PlanTUSMask_T{self.IDIndex}.nii.gz'
-        self.PlanOutputPath=os.path.split(mshPath)[0]+os.sep+'PlanTUS'+os.sep+Path(maskPath).name.replace('.nii.gz','')
+        self.PlanTUSRoot=os.path.split(mshPath)[0]+os.sep+'PlanTUS' +os.sep
+        self.PlanOutputPath=self.PlanTUSRoot+Path(maskPath).name.replace('.nii.gz','')
+        self.PlanTUSBabelBrainResult=self.PlanTUSRoot + 'BabelBrain_trajectory.txt'
         print('self.PlanOutputPath', self.PlanOutputPath)
 
+        if os.path.isfile(self.PlanTUSBabelBrainResult):
+            os.remove(self.PlanTUSBabelBrainResult)
+        
         #if a user define mask is specified , we use that for input
         if len(VolumeROIPlanTUS)>0 and VolumeROIPlanTUS!='...':
             if os.path.isfile(VolumeROIPlanTUS):
@@ -311,26 +316,24 @@ class RUN_PLAN_TUS(QObject):
         queue=Queue()
         self.CalQueue=queue
 
-        self.planTUSargs=(queue,
-                         scriptbase,
-                         SimbNINBSRoot,
-                         PlanTUSRoot,
-                         t1Path,
-                         mshPath,
-                         maskPath,
-                         TxConfigName)
-        
         #we check if files are already generated, in case the user may just want to refine the location
 
-        if os.path.isfile(self.PlanOutputPath+os.sep+'distances_skin.func.gii'):
-            ret = QMessageBox.question(self.OptionsDlg,'', TR("PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
-            if ret == QMessageBox.No:
-                if not self.showTUSPlanViewer():
-                    return #we stop here
-                print('Generating trajectory for ID', self.select_vortex)
-                self.GenerateTrajectory(self.select_vortex)
-                return
+        bOnlyReload=False
 
+        if os.path.isfile(self.PlanOutputPath+os.sep+'distances_skin.func.gii'):
+            ret = QMessageBox.question(self.OptionsDlg,'', "PlanTUS results already exist for this target.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
+            bOnlyReload = ret == QMessageBox.No
+
+        self.planTUSargs=(queue,
+                                 scriptbase,
+                                 SimbNINBSRoot,
+                                 PlanTUSRoot,
+                                 t1Path,
+                                 mshPath,
+                                 maskPath,
+                                 TxConfigName,
+                                 bOnlyReload)
+                
         print('Starting PlanTUS for target', self.ID)
         self.RunningTUSPlan = True
 
@@ -406,21 +409,12 @@ class RUN_PLAN_TUS(QObject):
                     print("*"*40)
                     print("*"*5+" DONE PlanTUS.")
                     print("*"*40)
-                    if not self.showTUSPlanViewer():
-                        return
 
-                    print('Generating trajectory for ID', self.select_vortex)
-
-                    self.GenerateTrajectory(self.select_vortex)
-                    #now we re run to generate the trajectory
+                if not os.path.isfile(self.PlanTUSBabelBrainResult):
+                    print('No trajectory was selected in PlanTUS')
                     return
 
-                #this means we are completing the trajectory
-                print('Total time',TotalTime)
-                print("*"*40)
-                print("*"*5+" DONE Trajectory generation.")
-                print("*"*40)
-                
+
                 basepath=self.PlanOutputPath            
 
                 #we look for new trajectory files
@@ -487,6 +481,13 @@ class RUN_PLAN_TUS(QObject):
      
                         self.MainApp.Config['Mat4Trajectory'] = finalfname
                         self.MainApp.Config['ID'][self.IDIndex] = id
+                        # the trajectory file changed, so later mechanical-correction
+                        # exports must start again from it (not from a previous _mod_ file)
+                        self.MainApp._bTrajAlreadyModified = False
+                        if TrajectoryType =='brainsight':
+                            # Brainsight 2.6+ (JSON scheme): the PlanTUS trajectory keeps the
+                            # UUID of the target it replaces
+                            self.MainApp.NotifyBrainsightTrajectoryReplaced(self.IDIndex,TT)
                         self.MainApp.UpdateWindowTitle()
                         QMessageBox.information(self.OptionsDlg,'', TR("Be sure of running Step 1 to update simulation state"))
                                             
@@ -588,6 +589,7 @@ def RunPlanTUSBackground(queue,
                         mshPath,
                         maskPath,
                         TxConfigName,
+                        bOnlyReload,
                         runOnlyTrajectory=-1):
     class InOutputWrapper(object):
        
@@ -617,7 +619,13 @@ def RunPlanTUSBackground(queue,
                 pass
 
     stdout = InOutputWrapper(queue,True)
-  
+
+
+    if bOnlyReload:
+        argOverwriteOrReload = '--reuse_existing'
+    else:
+        argOverwriteOrReload = '--overwrite'
+
     try:
         if sys.platform == 'linux' or _IS_MAC:
             if sys.platform == 'linux':
@@ -636,7 +644,7 @@ def RunPlanTUSBackground(queue,
                     mshPath,
                     maskPath,
                     TxConfigName,
-                    '--overwrite']
+                    argOverwriteOrReload]
             if runOnlyTrajectory>-1:
                 args.append('--placement_only')
                 args.append(str(runOnlyTrajectory))
@@ -656,7 +664,7 @@ def RunPlanTUSBackground(queue,
                     mshPath,
                     maskPath,
                     TxConfigName,
-                    '--overwrite']
+                    argOverwriteOrReload]
             if runOnlyTrajectory>-1:
                     args.append('--placement_only')
                     args.append(str(runOnlyTrajectory))

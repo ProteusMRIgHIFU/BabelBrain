@@ -65,6 +65,7 @@ from CTZTEProcessing import ConfirmPseudoCT
 from ConvMatTransform import (
     BSight_to_itk,
     ReadTrajectoryBrainsight,
+    WriteTrajectoryBrainsight,
     GetBrainSightHeader,
     templateSlicer,
     read_itk_affine_transform,
@@ -72,6 +73,8 @@ from ConvMatTransform import (
     LocaliteTargeting
 )
 from SelFiles.SelFiles import SelFiles,ValidThermalProfile
+import BrainsightSync
+from BrainsightTrajectory import BrainsightTrajectory
 from GUIComponents.custom_transducer_dialog import CUSTOM_TRANSDUCER_PREFIX
 
 from Options.Options import AdvancedOptions, OptionalParams, ApplyAdvancedConfig
@@ -301,35 +304,7 @@ def GetInputFromBrainsight():
                 msgBox.setIcon(QMessageBox.Warning)
                 msgBox.setText(TR("Version of export trajectory not officially supported.\nBabelBrain will continue but issues may occur"))
                 msgBox.exec()
-            if 'NIfTI' not in header['Coordinate system']:
-                EndWithError("BabelBrain only supports Nifti convention for trajectory")
-            InputT1 = nibabel.load(res['T1W'])
-            qformcode=int(InputT1.header['qform_code'])
-            sformcode=int(InputT1.header['sform_code'])
-            bValidT1W=False
-            #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
-            if header['Coordinate system'] == 'NIfTI:Q:Scanner':
-                bValidT1W = qformcode==1
-            elif header['Coordinate system'] == 'NIfTI:Q:Aligned':
-                bValidT1W = qformcode==2
-            elif header['Coordinate system'] == 'NIfTI:Q:MNI-152':
-                bValidT1W = qformcode==3
-            elif header['Coordinate system'] == 'NIfTI:Q:Talairach':
-                bValidT1W = qformcode==4
-            elif header['Coordinate system'] == 'NIfTI:Q:Other-Template':
-                bValidT1W = qformcode==5
-            elif header['Coordinate system'] == 'NIfTI:S:Scanner':
-                bValidT1W = sformcode==1 
-            elif header['Coordinate system'] == 'NIfTI:S:Aligned':
-                bValidT1W = sformcode==2 
-            elif header['Coordinate system'] == 'NIfTI:S:MNI-152':
-                bValidT1W = sformcode==3 
-            elif header['Coordinate system'] == 'NIfTI:S:Talairach':
-                bValidT1W = sformcode==4 
-            elif header['Coordinate system'] == 'NIfTI:S:Other-Template':
-                bValidT1W = sformcode==5 
-            if not bValidT1W:
-                EndWithError("Header coordinate system ("+header['Coordinate system'] +") does not match T1W Nifti header\n qformcode and sformcode [%i,%i]" %(qformcode,sformcode))
+            ValidateNiftiCoordinateSystem(header['Coordinate system'],res['T1W'])
                         
 
         if res['outputfiles_path'] is not None:
@@ -366,6 +341,100 @@ def GetInputFromBrainsight():
             os.remove(fpath)
         
     return res,header
+
+def ValidateNiftiCoordinateSystem(CoordinateSystem,T1W_fname):
+    '''
+    Validate that a Brainsight coordinate system (e.g. 'NIfTI:S:Aligned') agrees
+    with the qform/sform codes of the T1W Nifti file; ends execution if not.
+    '''
+    if 'NIfTI' not in CoordinateSystem:
+        EndWithError("BabelBrain only supports Nifti convention for trajectory")
+    InputT1 = nibabel.load(T1W_fname)
+    qformcode=int(InputT1.header['qform_code'])
+    sformcode=int(InputT1.header['sform_code'])
+    bValidT1W=False
+    #we validate agreement between header of Brainsight trajectory and qform and sform codes in the Nifti file
+    if CoordinateSystem == 'NIfTI:Q:Scanner':
+        bValidT1W = qformcode==1
+    elif CoordinateSystem == 'NIfTI:Q:Aligned':
+        bValidT1W = qformcode==2
+    elif CoordinateSystem == 'NIfTI:Q:MNI-152':
+        bValidT1W = qformcode==3
+    elif CoordinateSystem == 'NIfTI:Q:Talairach':
+        bValidT1W = qformcode==4
+    elif CoordinateSystem == 'NIfTI:Q:Other-Template':
+        bValidT1W = qformcode==5
+    elif CoordinateSystem == 'NIfTI:S:Scanner':
+        bValidT1W = sformcode==1
+    elif CoordinateSystem == 'NIfTI:S:Aligned':
+        bValidT1W = sformcode==2
+    elif CoordinateSystem == 'NIfTI:S:MNI-152':
+        bValidT1W = sformcode==3
+    elif CoordinateSystem == 'NIfTI:S:Talairach':
+        bValidT1W = sformcode==4
+    elif CoordinateSystem == 'NIfTI:S:Other-Template':
+        bValidT1W = sformcode==5
+    if not bValidT1W:
+        EndWithError("Header coordinate system ("+CoordinateSystem +") does not match T1W Nifti header\n qformcode and sformcode [%i,%i]" %(qformcode,sformcode))
+
+def GetInputFromBrainsightJSON():
+    '''
+    Reads and validates the JSON input exported by Brainsight 2.6 and newer
+    (~/.BabelBrainSync/BabelBrainInput.json). Only called when that file exists.
+
+    The file is first renamed to BabelBrainInput-read.json, so it is consumed
+    once, even if invalid. The targets are written into a Brainsight trajectory
+    text file next to the outputs, so the rest of BabelBrain (Step 1,
+    ExportTrajectory, PlanTUS, ...) works as with the legacy text input. Target
+    UUIDs are kept in the returned BrainsightInput object.
+
+    Returns
+    -------
+    tuple
+        res : dict
+            Same entries as the dictionary returned by GetInputFromBrainsight.
+        BrainsightIn : BrainsightSync.BrainsightInput
+            Parsed JSON input (targets, UUIDs, coordinate system).
+    '''
+    ReadFName = BrainsightSync.ClaimInputJSON(_BrainsightSyncPath)
+    try:
+        BrainsightIn = BrainsightSync.ReadInputFile(ReadFName)
+    except BrainsightSync.BrainsightSyncError as e:
+        EndWithError("Invalid Brainsight input file\n" + ReadFName + "\n\n" + str(e))
+
+    if not os.path.isdir(BrainsightIn.segmentation_path):
+        EndWithError("Segmentation folder indicated by Brainsight does not exist:\n" + BrainsightIn.segmentation_path)
+    if not os.path.isfile(BrainsightIn.anatomical_path):
+        EndWithError("Anatomical file indicated by Brainsight does not exist:\n" + BrainsightIn.anatomical_path)
+
+    ValidateNiftiCoordinateSystem(BrainsightIn.coordinate_system,BrainsightIn.anatomical_path)
+
+    res={}
+    res['T1W']=BrainsightIn.anatomical_path
+    res['simbnibs_path']=BrainsightIn.segmentation_path
+    res['outputfiles_path']=BrainsightIn.output_path
+    if res['outputfiles_path'] is not None:
+        outpath = res['outputfiles_path']
+        os.makedirs(outpath,exist_ok=True)
+    else:
+        outpath = os.path.dirname(res['T1W'])
+
+    IdStr='+'.join(BrainsightIn.names)
+    RPath=outpath+os.sep+IdStr+'.txt'
+    WriteTrajectoryBrainsight(RPath,
+                              [t.mat4 for t in BrainsightIn.targets],
+                              BrainsightIn.names,
+                              BrainsightIn.coordinate_system,
+                              CreatedBy=BrainsightIn.created_by)
+    #we keep a copy of the input of this session next to the outputs
+    shutil.copyfile(ReadFName,outpath+os.sep+IdStr+'_'+BrainsightSync.INPUT_JSON_READ)
+
+    print('ID,RPath',IdStr,RPath)
+    res['Mat4Trajectory']=RPath
+
+    BrainsightSync.RemoveStaleOutputs(_BrainsightSyncPath)
+
+    return res,BrainsightIn
 
 def EndWithError(msg):
     '''
@@ -424,7 +493,7 @@ class BabelBrain(QWidget):
 
     '''
 
-    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,bTVUS_OPERATION=False):
+    def __init__(self,widget,bInUseWithBrainsight=False,AltOutputFilesPath=None,BrainsightJSONInput=None,bTVUS_OPERATION=False):
         super(BabelBrain, self).__init__()
         #This file will store the last config selected
 
@@ -523,7 +592,7 @@ class BabelBrain(QWidget):
             nEntries=self.Config['NumberTransducers']+1
         self._BrainsightOutput=['']*nEntries
         self._BrainsightThermalOutput=['']*nEntries
-                
+
         if AltOutputFilesPath is not None:
             self.Config['OutputFilesPath']=AltOutputFilesPath
         else:
@@ -538,6 +607,27 @@ class BabelBrain(QWidget):
         # - including the Brainsight "Created by:" header, which has to stay a
         # bare approved version number - is unaffected.
         self.Config['BuildLabel'] = GetBuildLabel()
+
+        #Brainsight 2.6+ communicates with JSON files; the only trigger is finding
+        #BabelBrainInput.json, otherwise we use the legacy text files
+        self.BrainsightSync=None
+        if not bInUseWithBrainsight:
+            self.Config['BrainsightProtocol']=None
+        elif BrainsightJSONInput is None:
+            self.Config['BrainsightProtocol']='legacy'
+        else:
+            self.Config['BrainsightProtocol']='json'
+            self.Config['Brainsight-OutputJSONSync'] = _BrainsightSyncPath+ os.sep+BrainsightSync.OUTPUT_JSON
+            if TrajectoryType=='brainsight' and [str(i) for i in ID]==BrainsightJSONInput.names:
+                self.BrainsightSync=BrainsightSync.BrainsightJSONSync(BrainsightJSONInput,
+                                                    self.Config['Brainsight-OutputJSONSync'],
+                                                    'BabelBrain v'+self.Config['version'].strip())
+            else:
+                msgBox = QMessageBox(_styled_dialog_parent())
+                msgBox.setIcon(QMessageBox.Warning)
+                msgBox.setText("The selected trajectory is not the one provided by Brainsight.\n"
+                               "Results will not be reported back to Brainsight.")
+                msgBox.exec()
 
         self.Config['MultiPoint']=''
         self.Config['EnableMultiPoint']=False
@@ -594,6 +684,8 @@ class BabelBrain(QWidget):
                             'Calculation time thermal':0.0}
         self._NiftiCT = None
         self._NiftiAirMask = None
+
+        self._bTrajAlreadyModified=False
 
         self._TelmetryMsgs=[]
         self._TimeStart = time.time()
@@ -1157,7 +1249,10 @@ class BabelBrain(QWidget):
             MultiYaml = os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
         newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(prevName)[1])
 
-        OrigTraj=self.ReadTrajectory()
+        if self._bTrajAlreadyModified:
+            OrigTraj=self.ReadTrajectory(sel_fname=newFName)
+        else:
+            OrigTraj=self.ReadTrajectory()
         if len(OrigTraj.shape)==3:
             OrigTraj=OrigTraj[:,:,Ntraj]
         OrigTraj[0,3]-=CorR
@@ -1165,21 +1260,16 @@ class BabelBrain(QWidget):
         OrigTraj[2,3]-=CorS
                 
         if self.Config['TrajectoryType']=='brainsight':
-            with open(self.Config['Mat4Trajectory'],'r') as f:
-                allLines=f.readlines()
-            for n,l in enumerate(allLines):
-                if 'Created by: ' in l:
-                    allLines[n] = '# Created by: BabelBrain ' + self.Config['version'] +'\n' 
-                if l[0]!='#':
-                    break
-            LastLine=l.split('\t')
-            LastLine[0]='_mod_'+LastLine[0]
-            LastLine[1]='%4.3f' %(OrigTraj[0,3])
-            LastLine[2]='%4.3f' %(OrigTraj[1,3])
-            LastLine[3]='%4.3f' %(OrigTraj[2,3])
-            allLines[n]='\t'.join(LastLine)
-            with open(newFName,'w') as f:
-                f.writelines(allLines)
+            if self._bTrajAlreadyModified:
+                BTraj=BrainsightTrajectory.from_file(newFName)
+            else:
+                BTraj=BrainsightTrajectory.from_file(self.Config['Mat4Trajectory'])
+            BTraj.set_metadata('Created by','BabelBrain ' + self.Config['version'].strip())
+            BTraj.set_location(Ntraj,OrigTraj[:3,3])
+            name=BTraj.get_name(Ntraj)
+            if not name.startswith('_mod_'):
+                BTraj.rename(Ntraj,'_mod_'+name)
+            BTraj.to_file(newFName)
         elif self.Config['TrajectoryType']=='slicer':
             transform = BSight_to_itk(OrigTraj)
             transform[:3,:3]=transform[:3,:3].T
@@ -1207,63 +1297,115 @@ class BabelBrain(QWidget):
             #For Localite, we need a different approach
             #We calculate the difference in in the initial mechanical corrections and the current one
             #then we calculate that difference to 
-            AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
-            LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
-            prevSteering=LocTraj[self._TrajectoryNumber].steering
+            AcWidget=self.AcSim._Widgets[Ntraj]
+            if self._bTrajAlreadyModified: 
+                LocTraj=LocaliteTargeting.from_file(newFName)
+            else:
+                LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            
+            InitTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
+            prevSteering=InitTraj[Ntraj].steering
             InitCorrecX=0.0
             InitCorrecY=0.0
             InitCorrecZ=0.0
-            if self.Config['TxSystem']=='REMOPD':
+
+            CurrentMechanicalX=0.0
+            CurrentMechanicalY=0.0
+            CurrentMechanicalZ=0.0
+                        
+
+            if self.Config['TxType'] in ['flat_array_2D','focused_array']:
                 InitCorrecX=np.round(prevSteering[2],1) #we emulate the rounding in the controls
                 InitCorrecY=np.round(prevSteering[1],1)
-                InitCorrecZ=prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData')
+                if self.Config['TxType'] == 'flat_array_2D':
+                    InitCorrecZ=np.round(prevSteering[0]-AcWidget.DistanceSkinLabel.property('UserData'),1)
+                else:
+                    InitCorrecZ=np.round(AcWidget.DistanceSkinLabel.property('UserData')-prevSteering[0],1)
+            
+            CurrentMechanicalX=AcWidget.XMechanicSpinBox.value()
+            CurrentMechanicalY=AcWidget.YMechanicSpinBox.value()
 
+            if hasattr(AcWidget,'DistanceConeToFocusSpinBox'):
+                CurrentMechanicalZ=AcWidget.DistanceSkinLabel.property('UserData')-AcWidget.DistanceConeToFocusSpinBox.value()
+            elif  hasattr(AcWidget,'SkinDistanceSpinBox'):
+                CurrentMechanicalZ=AcWidget.SkinDistanceSpinBox.value()
+    
             FocIJK=np.ones((4,1))
-            FocIJK[:3,0]=np.array(np.where(self._FinalMask[self._TrajectoryNumber]==5)).flatten()
+            FocIJK[:3,0]=np.array(np.where(self._FinalMask[Ntraj]==5)).flatten()
             
             FocIJKInit=FocIJK.copy()
             #we adjust in steps
             FocIJKInit[0,0]+=InitCorrecX/self._MaskNib[0].header.get_zooms()[0]
             FocIJKInit[1,0]+=InitCorrecY/self._MaskNib[0].header.get_zooms()[1]
-            FocIJKInit[1,0]+=InitCorrecZ/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKInit[2,0]+=InitCorrecZ/self._MaskNib[0].header.get_zooms()[2]
 
-            FocRASInit=self._MaskNib[self._TrajectoryNumber].affine@FocIJKInit
+            FocRASInit=self._MaskNib[Ntraj].affine@FocIJKInit
 
             FocIJKAdjust=FocIJK.copy()
             #we adjust in steps
-            FocIJKAdjust[0,0]+=AcWidget.XMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[0]
-            FocIJKAdjust[1,0]+=AcWidget.YMechanicSpinBox.value()/self._MaskNib[0].header.get_zooms()[1]
+            FocIJKAdjust[0,0]+=CurrentMechanicalX/self._MaskNib[Ntraj].header.get_zooms()[0]
+            FocIJKAdjust[1,0]+=CurrentMechanicalY/self._MaskNib[Ntraj].header.get_zooms()[1]
+            FocIJKAdjust[2,0]+=CurrentMechanicalZ/self._MaskNib[Ntraj].header.get_zooms()[2]
             
-            FocRASAdjust=self._MaskNib[self._TrajectoryNumber].affine@FocIJKAdjust
+            FocRASAdjust=self._MaskNib[Ntraj].affine@FocIJKAdjust
 
             FocRASAdjust-=FocRASInit
 
             #The difference in RAS is converted to the Localite convention and added to the pose translation vector
-            LocTraj[self._TrajectoryNumber].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
+            #first we copy the pose matrix to avoid accumulating changes
+            LocTraj[Ntraj].pose=InitTraj[Ntraj].pose
+            LocTraj[Ntraj].update_localite_pose(FocRASAdjust[0],FocRASAdjust[1],FocRASAdjust[2])
 
             if hasattr(AcWidget,'ZSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[0]=AcWidget.ZSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[0]=AcWidget.ZSteeringSpinBox.value()
+            elif  hasattr(AcWidget,'TPODistanceSpinBox'):
+                LocTraj[Ntraj].steering[0]=AcWidget.TPODistanceSpinBox.value()
             if hasattr(AcWidget,'YSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[1]=-AcWidget.YSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[1]=-AcWidget.YSteeringSpinBox.value()
             if hasattr(AcWidget,'XSteeringSpinBox'):
-                LocTraj[self._TrajectoryNumber].steering[2]=-AcWidget.XSteeringSpinBox.value()
+                LocTraj[Ntraj].steering[2]=-AcWidget.XSteeringSpinBox.value()
             LocTraj.to_file(newFName)
+        self._bTrajAlreadyModified=True
         return newFName
+
+    def NotifyBrainsightTrajectoryReplaced(self,Ntraj,Mat4):
+        '''
+        Notify the Brainsight sync (JSON scheme only) that trajectory Ntraj was
+        replaced (e.g. by PlanTUS), keeping its UUID. Results previously
+        reported for it, and the merged results, are withdrawn; the new pose
+        is reported with the results once Steps 1 and 2 are executed again.
+        '''
+        if self.Config.get('BrainsightProtocol')!='json' or self.BrainsightSync is None:
+            return
+        self._BrainsightOutput[Ntraj]=''
+        self._BrainsightThermalOutput[Ntraj]=''
+        if len(self._BrainsightOutput)>1:
+            self._BrainsightOutput[-1]=''
+            self._BrainsightThermalOutput[-1]=''
+        self.BrainsightSync.ReplaceTrajectory(Ntraj,Mat4)
 
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
         #once UI elements are updated, we handle here special cases
-        if self.Config['TrajectoryType']=='localite' and self.Config['TxSystem']=='REMOPD':
+        if self.Config['TrajectoryType']=='localite':
             LocTraj = LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
             Steering=LocTraj[self._TrajectoryNumber].steering
             AcWidget=self.AcSim._Widgets[self._TrajectoryNumber]
-            AcWidget.XSteeringSpinBox.setValue(-Steering[2])
-            AcWidget.YSteeringSpinBox.setValue(-Steering[1])
-            AcWidget.ZSteeringSpinBox.setValue(Steering[0])
-            AcWidget.XMechanicSpinBox.setValue(Steering[2])
-            AcWidget.YMechanicSpinBox.setValue(Steering[1])
-            AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
-            
+            if self.Config['TxType'] in ['focused_array','flat_array_2D']:
+                AcWidget.XSteeringSpinBox.setValue(-Steering[2])
+                AcWidget.YSteeringSpinBox.setValue(-Steering[1])
+                AcWidget.XMechanicSpinBox.setValue(Steering[2])
+                AcWidget.YMechanicSpinBox.setValue(Steering[1])
+            if self.Config['TxType'] in ['focused_array','flat_array_2D','focused_annular_array']:
+                if self.Config['TxType'] == 'focused_annular_array':
+                    AcWidget.TPODistanceSpinBox.setValue(Steering[0]) #TODO: Need to verify with Localite if for CTX type devices this is relative to the natural focus or the outplane - for the time being, we are assuming it is relative to the out plane
+                else:
+                    AcWidget.ZSteeringSpinBox.setValue(Steering[0]) #TODO: Need to verify with Localite if for focused array this is relative to the natural focus or the outplane - for the time being, we are assuming it is relative to the natural focus 
+                if hasattr(AcWidget,'SkinDistanceSpinBox'):
+                    AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
+                elif hasattr(AcWidget,'DistanceConeToFocusSpinBox'):
+                    AcWidget.DistanceConeToFocusSpinBox.setValue(self.AcSim.CalculateDistanceFromSkin()-Steering[0])
+
 
     def NotifyError(self):
         self.SetErrorDomainCode()
@@ -2376,9 +2518,14 @@ def main():
                 selwidget.ui.MultiPointlineEdit.setText(prevConfig['MultiPoint'])
                 
     AltOutputFilesPath=None
+    BrainsightJSONInput=None
     if args.bInUseWithBrainsight:
         bINUSE_INSIDE_BRAINSIGHT = True
-        Brainsight,header=GetInputFromBrainsight()
+        #Brainsight 2.6+ leaves BabelBrainInput.json; older versions use the legacy text files
+        if BrainsightSync.IsJSONSyncRequested(_BrainsightSyncPath):
+            Brainsight,BrainsightJSONInput=GetInputFromBrainsightJSON()
+        else:
+            Brainsight,header=GetInputFromBrainsight()
         assert(Brainsight is not None)
         selwidget.ui.SimbNIBSlineEdit.setText(Brainsight['simbnibs_path'])
         selwidget.ui.T1WlineEdit.setText(Brainsight['T1W'])
@@ -2397,6 +2544,7 @@ def main():
     widget = BabelBrain(selwidget,
                         bInUseWithBrainsight=args.bInUseWithBrainsight,
                         AltOutputFilesPath=AltOutputFilesPath,
+                        BrainsightJSONInput=BrainsightJSONInput,
                         bTVUS_OPERATION=bTVUS_OPERATION)
     widget.show()
     retcode=app.exec()

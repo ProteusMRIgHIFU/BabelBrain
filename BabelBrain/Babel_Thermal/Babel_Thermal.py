@@ -1470,7 +1470,12 @@ class Babel_Thermal(QWidget):
         _rec_artifact(OutName4)
             
         #If running with Brainsight, we save the path of thermal map
-        if self._MainApp.Config['bInUseWithBrainsight']:
+        if self._MainApp.Config.get('BrainsightProtocol')=='json':
+            #Brainsight 2.6+: legacy output files are not written
+            self._MainApp._BrainsightThermalOutput[self._txTabs.currentIndex()]=OutName
+            if self._MainApp.BrainsightSync is not None:
+                self._MainApp.BrainsightSync.UpdateThermalResults(self._MainApp._BrainsightThermalOutput)
+        elif self._MainApp.Config['bInUseWithBrainsight']:
             self._MainApp._BrainsightThermalOutput[self._txTabs.currentIndex()]=OutName
             with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
                 f.write('\n'.join(self._MainApp._BrainsightThermalOutput))

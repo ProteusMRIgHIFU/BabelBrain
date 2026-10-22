@@ -249,6 +249,9 @@ class UninstallDialog(QDialog):
                     f'{paths.config_dir()}.')
         if report.self_delete_scheduled:
             msg += '\n\nThis uninstaller deletes itself when you close this window.'
+        elif report.self_left_behind:
+            msg += ('\n\nTo finish, drag BabelBrain-Uninstaller from your '
+                    'Applications folder to the Trash.')
         QMessageBox.information(self, 'Uninstall complete', msg)
         self._completed = True
         self.accept()
