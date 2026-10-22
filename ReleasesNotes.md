@@ -6,7 +6,7 @@
   - **New**: Custom transducers. Users can now define their own transducer in a YAML file, starting from the templates provided for single-element, annular, focused-array and flat 2D-array devices. BabelBrain validates the definition, generates the geometry, and shows a verification dialog with the element layout, the focal spot and a water-only Rayleigh simulation before the device is added. A management dialog lists, reloads and removes custom transducers. Custom transducers also work in client-server mode and with PlanTUS.
   - **New**: Brainsight 2.6 integration using the new JSON-based synchronization protocol. The previous protocol is still supported for older versions of Brainsight.
   - **New**: Brainsight feasible-trajectory workflow for REMOPD. For phased arrays, an "Apply feasible trajectory" action adjusts the trajectory to stay inside the steering limits of the device.
-  - **New**: Localite integration (experimental). Localite trajectories can be read, and modified trajectories exported back. Support for array transducers is still partial, and PlanTUS is disabled in this mode.
+  - **New**: Localite integration (for REMOPD). Localite trajectories can be read, and modified trajectories exported back. Support for other transducers is still partial.
   - **New**: BabelBrain Hub. A small launcher, installed next to BabelBrain, to install, switch between and uninstall versions of the standalone application, including a full uninstall flow on macOS.
   - **New**: User-specified ROI for PlanTUS, plus manual windowing controls and an automatic range for the intersection heatmap.
   - **New**: Skull density ratio (SDR) shown in Step 2 and included in exports.
@@ -18,8 +18,7 @@
   - **Improvement**: MTT/MTB entries in Step 3 are now flagged in red when CEM ≥ 2.0 in brain tissue, in addition to the existing temperature threshold, following ITRUSST safety guidelines.
   - **Improvement**: Transducer definitions reorganized into common templates, with all device parameters (element positions, steering and mechanical limits) in YAML files. Element coordinates of H317, ATAC and REMOPD were updated with more precision.
   - **Improvement**: PlanTUS is now pinned to a specific upstream version for better stability.
-  - **Improvement**: More conservative GPU memory usage, so Step 1 can run on CUDA GPUs with 4 GB of memory or less.
-  - **Improvement**: GPUs that show up in both CUDA and OpenCL are listed only once, and device numbers are added to GPU names.
+  - **Improvement**: More conservative GPU memory usage, so Step 1 can run on CUDA GPUs with 4 GB of memory.
   - **Fix**: REMOPD element positions now follow the correct coordinate convention between BabelBrain and the REMOPD device (#144).
   - **Fix**: Step 2 reloaded the wrong Z steering value for ring transducers (#129).
   - **Fix**: Error in the BHTE calculation when the number of iterations was larger than the limit per process (#143).
