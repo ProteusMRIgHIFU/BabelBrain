@@ -689,12 +689,25 @@ class CustomTransducer:
             return
         
         tx_elements = self._get_param('elements', dict, tx_params)
-        for dim_var in self.coordinate_vars:
+
+        # Flat 2D arrays lie in the array plane, so only x and y are given and z is fixed at 0
+        dim_vars = self.coordinate_vars
+        if self.geometry_type == 'flat_array_2D':
+            if 'z' in tx_elements:
+                raise YAMLParameterError(
+                    "elements.z cannot be specified for flat_array_2D, elements lie in the array plane (z = 0). Only give elements.x and elements.y",
+                    full_key='elements.z'
+                )
+            dim_vars = ('x', 'y')
+
+        for dim_var in dim_vars:
             _ = self._get_param(dim_var, list, tx_elements, parent_key='elements', list_type=(int,float))
         self._validate_numeric_list_dict(tx_elements,self.num_elements,'elements')
 
         # Store with PascalCase keys (e.g. X, Theta) to match default.yaml convention
-        self.elements = {get_class_name(dim_var): tx_elements[dim_var] for dim_var in self.coordinate_vars}
+        self.elements = {get_class_name(dim_var): tx_elements[dim_var] for dim_var in dim_vars}
+        if self.geometry_type == 'flat_array_2D':
+            self.elements['Z'] = [0.0] * self.num_elements
         for dim_key,dim_values in self.elements.items():
             logger.debug(f"Transducer Element {dim_key} Values:\n{dim_values}")
     
