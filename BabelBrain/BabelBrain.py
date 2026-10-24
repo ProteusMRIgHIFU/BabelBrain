@@ -2315,7 +2315,10 @@ def main():
                         help='Run an inline Python snippet against the app, then exit.')
     parser.add_argument('--headless', action='store_true',
                         help='Run without a visible window (Qt offscreen platform). '
-                             'Without this flag the GUI is shown while the script runs.')
+                             'Without this flag the GUI is shown while the script runs. '
+                             'The VTK viewer renders offscreen, so scripted screenshots '
+                             '(grab_screenshot) still work; set QT_SCALE_FACTOR=2 for '
+                             'Retina-resolution captures.')
     parser.add_argument('--keep-open', action='store_true',
                         help='Leave BabelBrain open and interactive after the script '
                              'finishes (default: close and exit). Ignored with --headless.')

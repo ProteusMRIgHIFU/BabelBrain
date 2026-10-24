@@ -702,6 +702,51 @@ def _make_wl_style(on_wl_drag, on_wl_end, on_scroll, on_zoom) -> vtk.vtkInteract
     return style
 
 
+# ── Offscreen stand-in for QVTKRenderWindowInteractor ─────────────────────
+
+def _qt_is_offscreen() -> bool:
+    """True when Qt runs without a display (--headless sets QT_QPA_PLATFORM=offscreen)."""
+    app = QApplication.instance()
+    return app is not None and app.platformName() in ('offscreen', 'minimal')
+
+
+class _OffscreenVTKWidget(QWidget):
+    """
+    Drop-in replacement for QVTKRenderWindowInteractor under Qt's offscreen
+    platform. QVTKRenderWindowInteractor binds VTK to the widget's native window
+    handle, which the offscreen platform does not provide (it segfaults on macOS).
+    Here VTK renders into its own offscreen render window instead, sized to follow
+    this placeholder widget, so the pipeline, camera and grab_screenshot() keep
+    working without a display. There is no mouse interaction, which is fine as
+    nobody can see the window anyway.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._rw = vtk.vtkRenderWindow()
+        self._rw.SetOffScreenRendering(1)
+        self._rw.SetSize(300, 300)
+        # Interactor attached (never started) so GetInteractor()/SetInteractorStyle work
+        self._iren = vtk.vtkRenderWindowInteractor()
+        self._iren.SetRenderWindow(self._rw)
+
+    def GetRenderWindow(self):
+        return self._rw
+
+    def Initialize(self):
+        pass
+
+    def Start(self):
+        pass
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        # physical pixels, as QVTKRenderWindowInteractor does (offscreen DPR is 1
+        # unless QT_SCALE_FACTOR is set, e.g. QT_SCALE_FACTOR=2 for Retina-like captures)
+        dpr = self.devicePixelRatioF()
+        self._rw.SetSize(max(1, round(self.width() * dpr)), max(1, round(self.height() * dpr)))
+
+
 # ── SliceViewport ──────────────────────────────────────────────────────────
 
 class SliceViewport(QFrame):
@@ -747,7 +792,10 @@ class SliceViewport(QFrame):
         hl.addWidget(self._lbl_title); hl.addStretch(); hl.addWidget(self._lbl_slice)
         lay.addWidget(hdr)
 
-        self.vtk_widget = QVTKRenderWindowInteractor(self)
+        if _qt_is_offscreen():
+            self.vtk_widget = _OffscreenVTKWidget(self)
+        else:
+            self.vtk_widget = QVTKRenderWindowInteractor(self)
         self.vtk_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         lay.addWidget(self.vtk_widget)
 
