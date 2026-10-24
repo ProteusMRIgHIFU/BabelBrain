@@ -2033,6 +2033,7 @@ class BabelBrain(QWidget):
             elif self.Config['CTType']==4:
                 kargs['bDensity']=True
         kargs['OptimizedWeightsFile']=self.Config['TxOptimizedWeights'][self.Config['TxSystem']]
+        kargs['bTVUS_OPERATION']=self.Config['bTVUS_OPERATION']
         return kargs
     
     def LogTelemetry(self,entry):

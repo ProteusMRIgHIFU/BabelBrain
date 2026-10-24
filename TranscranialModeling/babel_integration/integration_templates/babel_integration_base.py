@@ -98,6 +98,7 @@ class RUN_SIM_BASE(object):
                                     'ShearAtt':0.0}, #Np/m
                 InputFocusStart='',
                 TxSystem='',
+                bTVUS_OPERATION=False,  #enable TVUS pre-processing mode
                 **kargs):
         
         global bGPU_INITIALIZED
@@ -121,11 +122,7 @@ class RUN_SIM_BASE(object):
                 AlphaCFL=0.5
                 for PPW in basePPW:
                     ppws='%iPPW_' % PPW
-                    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
-                        print('BABELBRAIN_TSUS_EXVIVO capturing signal with no subsampling')
-                        SensorSubSampling=1
-                    else:
-                        SensorSubSampling=0 #this will force to recalculaet
+                    SensorSubSampling=0 #this will force to recalculaet
 
                     prefix=basedir+ID+os.sep
                     MASKFNAME=prefix+target+fstr+ppws+ 'BabelViscoInput.nii.gz'
@@ -182,6 +179,7 @@ class RUN_SIM_BASE(object):
                                                     OptimizedWeightsFile=OptimizedWeightsFile,
                                                     AIRMASK=AIRMASK,
                                                     TxSystem=TxSystem,
+                                                    bTVUS_OPERATION=bTVUS_OPERATION,
                                                     **kargs)
                     print('  Step 1')
 
@@ -304,6 +302,7 @@ class BabelFTD_Simulations_BASE(object):
                  OptimizedWeightsFile='',
                  AIRMASK=None,
                  TxSystem='',
+                 bTVUS_OPERATION=False, # transvertebra operation
                  **kargs):
         self._MASKFNAME=MASKFNAME
 
@@ -350,6 +349,11 @@ class BabelFTD_Simulations_BASE(object):
         self._OptimizedWeightsFile=OptimizedWeightsFile
         self._AIRMASK=AIRMASK
         self._TxSystem = TxSystem
+        self._bTVUS_OPERATION=bTVUS_OPERATION
+
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='2': #we test dedicated mapping function
+            print('BABELBRAIN_TSUS_EXVIVO changing mapping method')
+            self._MappingMethod='VertebraMapping'
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -375,7 +379,7 @@ class BabelFTD_Simulations_BASE(object):
         if self._CTFNAME is not None and not self._bWaterOnly\
                                      and not self._bForceHomogenousMedium\
                                      and len(self._BenchmarkTestFile)==0:
-            DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT=CalculateCTDerivedInfo(
+            DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT,SSosIT,SAttIT=CalculateCTDerivedInfo(
                 self._CTFNAME,
                 self._Frequency,
                 bBrainSegmentation,
@@ -409,7 +413,14 @@ class BabelFTD_Simulations_BASE(object):
                 QCorrArr[6:]=self._QCorrection
             else:
                 QCorrArr=np.ones(3+len(DensityCTIT))
-                QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                if not self._bTVUS_OPERATION:
+                    QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                else:
+                    if  os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')!='2': #for the time being if doing exvivo test type 2 (using Rui Xu mapping) we do not do any supplementary correction, otherwise we do as for skull bone
+                        QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                    else:
+                        print('BABELBRAIN_TSUS_EXVIVO leaving QCorrArr as 1.0')
+
 
 
         self._SIM_SETTINGS = self.CreateSimConditions(baseMaterial=Material['Water'],
@@ -460,10 +471,10 @@ class BabelFTD_Simulations_BASE(object):
                                            entry['LongAtt'],
                                            entry['ShearAtt'])
         elif self._CTFNAME is not None and not self._bWaterOnly:
-            if 'BABEL_PYTEST_PAPER' in os.environ or os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            if 'BABEL_PYTEST_PAPER' in os.environ or os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
                 #we skin and Brain as water
                 print('*'*30)
-                if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+                if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
                     print('BABELBRAIN_TSUS_EXVIVO')
                 print('Modeling soft tissue as water')
                 print('*'*30)
@@ -486,13 +497,13 @@ class BabelFTD_Simulations_BASE(object):
                                             0) 
             #we disable shear when doing mapping as we need to develop in tandem, otherwise it can end with unrealistic
             # Poison coefficient
-            for d,lSoS,lAtt in zip(DensityCTIT,LSoSIT,LAttIT):
+            for d,lSoS,lAtt,sSoS,sAtt in zip(DensityCTIT,LSoSIT,LAttIT,SSosIT,SAttIT):
 
                 self._SIM_SETTINGS.AddMaterial(d, #den
                                         lSoS,
-                                        0,
+                                        sSoS,
                                         lAtt,
-                                        0)
+                                        sAtt)
 
             
             print('Total MAterials',self._SIM_SETTINGS.ReturnArrayMaterial().shape[0])
@@ -1266,7 +1277,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         print('PPP, Subsampling, PPP for sensors ', self._PPP,self._SensorSubSampling, self._PPP/self._SensorSubSampling)
         assert((self._PPP%self._SensorSubSampling)==0)
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
             print('BABELBRAIN_TSUS_EXVIVO capturing all time data')
             self._SensorStart=0 # 
         else:
@@ -2009,7 +2020,7 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         DataForSim['SpatialStep']=self._SpatialStep
         DataForSim['TargetLocation']=TargetLocation
         DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
             print('BABELBRAIN_TSUS_EXVIVO Saving Sensor data')
             DataForSim['Sensor']=self._Sensor
             DataForSim['SensorMap']=self._SensorMap

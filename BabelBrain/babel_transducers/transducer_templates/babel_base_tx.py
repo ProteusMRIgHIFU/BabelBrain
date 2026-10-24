@@ -1081,7 +1081,7 @@ class RunCombineTrajectories(QObject):
                     AIRMASK=processing.resample_from_to(AIRMASK,MergedNifti,order=0,cval=0)
                     AIRMASK=np.transpose(AIRMASK.get_fdata(),[2,0,1])
 
-                DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT=CalculateCTDerivedInfo(
+                DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT,SSosIT,SAttIT=CalculateCTDerivedInfo(
                     [CtData,AllBoneHU],
                     self._MainApp._Frequency,
                     bBrainSegmentation,

@@ -25,6 +25,7 @@ import SimpleITK as sitk
 from scipy import interpolate
 
 from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
+from BabelViscoFDTD.tools.RayleighAndBHTE import SpeedofSoundWater
 
 # Artifact recording (see BabelBrain/ArtifactIO.py). Guarded so this module still
 # imports if ArtifactIO isn't on the path; a no-op unless BABEL_ARTIFACT_LOG is set.
@@ -181,6 +182,13 @@ def GetSmallestSOS(frequency,bShear=False):
     
     if bShear:
         SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
+
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')  =='2':
+        SoS=954.58370048
+        print(('*'*80+'\n')*5)
+        print(f'BABELBRAIN_TSUS_EXVIVO setting SoS manually for ExVivo Test')
+        print(('*'*80+'\n')*5)
+        
     print('GetSmallestSOS',SoS)
     return SoS
 
@@ -324,6 +332,30 @@ def HUtoDensityMarsac(hu_in):
     rhomin=1000.0
     rhomax=2700.0
     return rhomin+ (rhomax-rhomin)*hu_in/hu_in.max()
+
+def HUtoDensityXu(hu_in):
+    '''
+        Convert Hounsfield Units to density using Marsac model.
+        
+        using Rui Xu's air-water based calibration
+        
+        Parameters
+        ----------
+        hu_in : array-like or float
+            Hounsfield Unit values.
+        
+        Returns
+        -------
+        float or np.ndarray
+            Density values (kg/m³).
+        '''
+
+    h_water = 1.523 
+    h_air = -1000.21
+    Beta=1.0/(h_water-h_air)
+    Gamma=-h_air/(h_water-h_air)
+    return ( Beta * hu_in + Gamma) *1000.0
+
 
 def HUtoDensityUCLLowEnergy(hu_in):
     '''
@@ -588,6 +620,30 @@ def HUtoLongSpeedofSoundWebb(hu, params=['GE','120','B','','0.5, 0.6']):
           sel.iloc[0]['Intercept']*1000.0)
 
     return sel.iloc[0]['Slope']*hu + sel.iloc[0]['Intercept']*1000.0
+
+def DensitytoLSOSXu(density):
+    '''
+    Convert tissue density to longitudinal speed of sound using Rui Xu papers.
+    
+    Linear mapping between minimum and maximum sound velocities based on density range.
+    
+    Parameters
+    ----------
+    density : array-like or float
+        Tissue density (kg/m³).
+    
+    Returns
+    -------
+    float or np.ndarray
+        Longitudinal speed of sound (m/s).
+    '''
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')!='0': #if ex vivo we use 20 degrees wateter temperatyer
+        WaterTemp=20.0
+    else:
+        WaterTemp=37.0
+
+    c_Water=SpeedofSoundWater(WaterTemp)
+    return 0.35*(density-1000.0)+c_Water
 
 
 def DensityToLSOSPichardo(density, frequency):
@@ -966,6 +1022,8 @@ def CalculateCTDerivedInfo(CTFNAME,
         AllBoneHU = DensityToHUBony(DensityCTIT)
         print('min, max HU',AllBoneHU.min(),AllBoneHU.max())
 
+    SSosIT=np.zeros(len(AllBoneHU))
+    SAttIT=np.zeros(len(AllBoneHU))
 
     Porosity=HUtoPorosity(AllBoneHU)
     if MappingMethod=='Webb-Marsac':
@@ -1013,6 +1071,12 @@ def CalculateCTDerivedInfo(CTFNAME,
             DensityCTIT=HUtoDensityMarsac(AllBoneHU)
         LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
         LAttIT=DensityToLAttMcDannold(DensityCTIT,Frequency)
+    elif MappingMethod == 'VertebraMapping':
+        DensityCTIT=HUtoDensityXu(AllBoneHU)
+        LSoSIT=DensitytoLSOSXu(DensityCTIT)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
+        SSosIT=1400/2250 * LSoSIT
+        SAttIT=90/85*LAttIT
     else:
         raise ValueError('Unknown mapping method -' +MappingMethod )
 
@@ -1023,7 +1087,7 @@ def CalculateCTDerivedInfo(CTFNAME,
     print("maximum CT index map value",DensityCTMap.max())
     print(" CT Map unique values",np.unique(DensityCTMap).shape)
 
-    return DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT
+    return DensityCTMap,DensitCTMapOrig,AirRegions,AllBoneHU,DensityCTIT,LSoSIT,LAttIT,SSosIT,SAttIT
 
 def CreateMaterialMaps(N1,N2,N3,
                        SkullMaskDataOrig,

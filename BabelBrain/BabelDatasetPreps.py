@@ -86,7 +86,7 @@ def MaskToStl(binmask,affine):
     #marching cubes does not cap the isosurface at the limits of the array, so a mask
     #touching the array boundary produces an open surface. Pad with one empty voxel layer
     #so there is always background to close against, and compensate the shift below.
-    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
         #we just do this for the exact case of TSUS testing
         binmask=np.pad(binmask.astype(np.float32),1,mode='constant',constant_values=0.0)
         pvvol=pv.wrap(binmask)
@@ -110,7 +110,7 @@ def MaskToStl(binmask,affine):
         writer.Write()
 
         meshsurface=trimesh.load_mesh(tmpdirname+os.sep+'__t.stl')
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
             if not meshsurface.is_watertight:
                 nOpen=len(trimesh.grouping.group_rows(meshsurface.edges_sorted,require_count=1))
                 print('BABELBRAIN_TSUS_EXVIVO Warning: MaskToStl produced a non-watertight mesh, %i open edges' % nOpen)
@@ -520,7 +520,7 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
             BoneRegion=(charmdata>0) & (charmdata!=5) #this mimics what the old headreco does for bone
             CSFRegion=(charmdata==1) | (charmdata==2) | (charmdata==3) | (charmdata==9) #this mimics what the old headreco does for skin
             print('bTVUS_OPERATION',bTVUS_OPERATION,os.environ.get('BABELBRAIN_TSUS_EXVIVO','0'))
-            if bTVUS_OPERATION and os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='1':
+            if bTVUS_OPERATION and os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') in ['1','2']:
                 print('BABELBRAIN_TSUS_EXVIVO:Using eroded AllTissueRegion for CSF region')
                 CSFRegion=ndimage.binary_erosion(AllTissueRegion,iterations=10) # for ex vivo, we just do a dummy region
             with CodeTimer("CTS:L3:S1: charm surface recon",unit='s'):
@@ -836,25 +836,29 @@ def GetSkullMaskFromSimbNIBSSTL(SimbNIBSDir='4007/4007_keep/m2m_4007_keep/',
     else:
         if bReuseFiles:
             # Grab previously generated mask
-            fct = S1_file_manager.load_file(prevoutputfilenames['ReuseMask'])
-
-            # Load in appropriate rCT and resave fct under current file name
-            if CTType in [2,3]:
-                rCT = S1_file_manager.load_file(outputfilenames['pCTfname'])
-                S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['pCTfname'])
-            else:
-                if CoregCT_MRI == 0:
-                    rCT = S1_file_manager.load_file(inputfilenames['ExtraScan'])
-                    S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=[outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']])
-                elif CoregCT_MRI == 1:
-                    rCT = S1_file_manager.load_file(outputfilenames['CTInT1W'])
-                    S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['CTInT1W'])
+            try:
+                fct = S1_file_manager.load_file(prevoutputfilenames['ReuseMask'])
+        
+                # Load in appropriate rCT and resave fct under current file name
+                if CTType in [2,3]:
+                    rCT = S1_file_manager.load_file(outputfilenames['pCTfname'])
+                    S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['pCTfname'])
                 else:
-                    rCT = S1_file_manager.load_file(outputfilenames['T1WinCT'])
-                    S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['T1WinCT'])
+                    if CoregCT_MRI == 0:
+                        rCT = S1_file_manager.load_file(inputfilenames['ExtraScan'])
+                        S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=[outputfilenames['ReuseSimbNIBS'],outputfilenames['Skull_STL'],outputfilenames['CSF_STL'],outputfilenames['Skin_STL']])
+                    elif CoregCT_MRI == 1:
+                        rCT = S1_file_manager.load_file(outputfilenames['CTInT1W'])
+                        S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['CTInT1W'])
+                    else:
+                        rCT = S1_file_manager.load_file(outputfilenames['T1WinCT'])
+                        S1_file_manager.save_file(file_data=fct,filename=outputfilenames['ReuseMask'],precursor_files=outputfilenames['T1WinCT'])
 
-            rCTdata=rCT.get_fdata(dtype=np.float32)
-        else:
+                rCTdata=rCT.get_fdata(dtype=np.float32)
+            except:
+                print('Unable to reuse files, recalculating')
+                bReuseFiles=False
+        if not bReuseFiles:
             if CTType in [2,3]:
                 print('Processing ZTE/PETRA to pCT')
                 bIsPetra = CTType==3
