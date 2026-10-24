@@ -183,7 +183,7 @@ def GetSmallestSOS(frequency,bShear=False):
     if bShear:
         SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
 
-    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')  in ['2','3']:
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')  in ['2','3','4']:
         SoS=954.58370048
         print(('*'*80+'\n')*5)
         print(f'BABELBRAIN_TSUS_EXVIVO setting SoS manually for ExVivo Test')
@@ -1026,7 +1026,7 @@ def CalculateCTDerivedInfo(CTFNAME,
     SAttIT=np.zeros(len(AllBoneHU))
 
     Porosity=HUtoPorosity(AllBoneHU)
-    if MappingMethod=='Webb-Marsac':
+    if MappingMethod in ['Webb-Marsac','VertebraMappingV1','VertebraMappingV5']:
         if bDensity == False:
             if bPETRA: #we use Bjorn's formula to convert to Density
                 print('Using SimNIBS petra to density')
@@ -1059,30 +1059,34 @@ def CalculateCTDerivedInfo(CTFNAME,
             DensityCTIT=HUtoDensityMarsac(AllBoneHU)
         LSoSIT=DensitytoLSOSMarsac(DensityCTIT)
         LAttIT = PorositytoLAtt(AllBoneHU,Frequency)
-    elif MappingMethod=='Pichardo-Marsac':
+    elif MappingMethod in ['Pichardo-Marsac','VertebraMappingV6']:
         #Marsac did not calculate attenuation... we use Aubry's old
         if bDensity == False:
             DensityCTIT=HUtoDensityMarsac(AllBoneHU)
-        LSoSIT=DensityToLSOSPichardo(DensityCTIT,Frequency)
-        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency)
+        LSoSIT=DensityToLSOSPichardo(DensityCTIT,Frequency).flatten()
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
     elif MappingMethod=='McDannold-Marsac':
         #Marsac did not calculate attenuation... we use Aubry's old
         if bDensity == False:
             DensityCTIT=HUtoDensityMarsac(AllBoneHU)
         LSoSIT=DensityToLSOSMcDannold(DensityCTIT)
         LAttIT=DensityToLAttMcDannold(DensityCTIT,Frequency)
-    elif MappingMethod == 'VertebraMapping':
-        DensityCTIT=HUtoDensityXu(AllBoneHU)
-        LSoSIT=DensitytoLSOSXu(DensityCTIT)
-        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
-        SSosIT=1400/2250 * LSoSIT
-        SAttIT=90/85*LAttIT
     elif MappingMethod == 'VertebraMappingV2':
         DensityCTIT=HUtoDensityXu(AllBoneHU)
         LSoSIT=DensitytoLSOSXu(DensityCTIT)
         LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
         SSosIT=1400/2250 * LSoSIT
+        SAttIT=90/85*LAttIT
+    elif MappingMethod == 'VertebraMappingV3':
+        DensityCTIT=HUtoDensityXu(AllBoneHU)
+        LSoSIT=DensitytoLSOSXu(DensityCTIT)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
+        SSosIT=1400/2250 * LSoSIT
         SAttIT=np.ones(LAttIT.shape)*FitAttBoneShear(Frequency) #using now as shear paper
+    elif MappingMethod == 'VertebraMappingV4':
+        DensityCTIT=HUtoDensityXu(AllBoneHU)
+        LSoSIT=DensitytoLSOSXu(DensityCTIT)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
     else:
         raise ValueError('Unknown mapping method -' +MappingMethod )
 

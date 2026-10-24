@@ -277,6 +277,7 @@ def _post_construct(bb, inputs):
             w.USMaskkHzDropDown.setCurrentIndex(idx)
     if inputs.get('ppw') is not None:
         w.USPPWSpinBox.setProperty('UserData', int(inputs['ppw']))
+        w.USPPWSpinBox.setValue(int(inputs['ppw']))
     if inputs.get('hu_threshold') is not None and hasattr(w, 'HUThresholdSpinBox'):
         w.HUThresholdSpinBox.setValue(int(inputs['hu_threshold']))
 

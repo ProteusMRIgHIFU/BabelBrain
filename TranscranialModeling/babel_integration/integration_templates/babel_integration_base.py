@@ -351,12 +351,9 @@ class BabelFTD_Simulations_BASE(object):
         self._TxSystem = TxSystem
         self._bTVUS_OPERATION=bTVUS_OPERATION
 
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='2': #we test dedicated mapping function
-            print('BABELBRAIN_TSUS_EXVIVO changing mapping method to Riu Xu conditions')
-            self._MappingMethod='VertebraMapping'
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')=='3': #we test dedicated mapping function
-            print('BABELBRAIN_TSUS_EXVIVO changing mapping method to Riu Xu conditions but using shear attenuation as in 2017 PMB papaer')
-            self._MappingMethod='VertebraMappingV2'
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') != '0':
+            self._MappingMethod='VertebraMappingV' +os.environ['BABELBRAIN_TSUS_EXVIVO'].strip()
+
 
     def CreateSimConditions(self,**kargs):
         raise NotImplementedError("Need to implement this")
@@ -419,7 +416,13 @@ class BabelFTD_Simulations_BASE(object):
                 if not self._bTVUS_OPERATION:
                     QCorrArr[2:]=self._QCorrection #This will match r0.4.3
                 else:
-                    if  os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') == '1': #for the time being if doing exvivo test type 2 (using Rui Xu mapping) we do not do any supplementary correction, otherwise we do as for skull bone
+                    if self._MappingMethod in ['Webb-Marsac','VertebraMappingV1']:
+                        QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                    elif self._MappingMethod in ['VertebraMappingV5']:
+                        self._QCorrection=1.5
+                        QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                    elif self._MappingMethod in ['VertebraMappingV6']:
+                        self._QCorrection=0.5
                         QCorrArr[2:]=self._QCorrection #This will match r0.4.3
                     else:
                         print('BABELBRAIN_TSUS_EXVIVO leaving QCorrArr as 1.0')
