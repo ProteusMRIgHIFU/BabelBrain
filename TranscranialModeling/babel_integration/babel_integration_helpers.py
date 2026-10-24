@@ -183,7 +183,7 @@ def GetSmallestSOS(frequency,bShear=False):
     if bShear:
         SoS=np.min([SoS,DensityToSSoSPichardo(1000.0)])
 
-    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')  =='2':
+    if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0')  in ['2','3']:
         SoS=954.58370048
         print(('*'*80+'\n')*5)
         print(f'BABELBRAIN_TSUS_EXVIVO setting SoS manually for ExVivo Test')
@@ -1077,6 +1077,12 @@ def CalculateCTDerivedInfo(CTFNAME,
         LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
         SSosIT=1400/2250 * LSoSIT
         SAttIT=90/85*LAttIT
+    elif MappingMethod == 'VertebraMappingV2':
+        DensityCTIT=HUtoDensityXu(AllBoneHU)
+        LSoSIT=DensitytoLSOSXu(DensityCTIT)
+        LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency).flatten()
+        SSosIT=1400/2250 * LSoSIT
+        SAttIT=np.ones(LAttIT.shape)*FitAttBoneShear(Frequency) #using now as shear paper
     else:
         raise ValueError('Unknown mapping method -' +MappingMethod )
 
