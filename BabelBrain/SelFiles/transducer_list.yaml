@@ -22,7 +22,7 @@
 - {name: H317,        module_name: H317,          custom: false, steering: true,  transducer_type: focused_array}
 - {name: H246,        module_name: H246,          custom: false, steering: false, transducer_type: flat_annular_array}
 - {name: BSonix,      module_name: BSonix,        custom: false, steering: false, transducer_type: simple_focused}
-- {name: REMOPD,      module_name: REMOPD,        custom: false, steering: false, transducer_type: flat_array_2D}
+- {name: TheraPhas,      module_name: TheraPhas,        custom: false, steering: false, transducer_type: flat_array_2D}
 - {name: I12378,      module_name: I12378,        custom: false, steering: true,  transducer_type: focused_array}
 - {name: ATAC,        module_name: ATAC,          custom: false, steering: true,  transducer_type: focused_array}
 - {name: R15148,      module_name: R15148,        custom: false, steering: true,  transducer_type: focused_array}

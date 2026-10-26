@@ -1,4 +1,4 @@
-"""Programmatic Step-2 form for the REMOPD transducer.
+"""Programmatic Step-2 form for the TheraPhas transducer.
 
 The common bottom half is built by TxPanelBase._build_mech_and_actions().
 """
@@ -15,7 +15,7 @@ from GUIComponents.TxPanelBase import (
 from PySide6.QtWidgets import QCheckBox
 
 
-class REMOPDForm(TxPanelBase):
+class TheraPhasForm(TxPanelBase):
     def _build_left_panel(self):
         frame, lay = self._make_left_frame()
         # Densest of the Step-2 columns (6 geometry rows + 3 action buttons):
@@ -71,7 +71,7 @@ class REMOPDForm(TxPanelBase):
             tissue_warning="Tissue layers\nwill be removed!")
         # feasible-traj: Sam's SOP — park the array on a Brainsight
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
-        # Shown when TrajectoryType is Brainsight (wired in Babel_REMOPD).
+        # Shown when TrajectoryType is Brainsight (wired in babel_TheraPhas).
         self.ApplyFeasibleTraj = make_button(
             "ApplyFeasibleTraj", "Apply feasible trajectory",
             bold=True, min_height=40)

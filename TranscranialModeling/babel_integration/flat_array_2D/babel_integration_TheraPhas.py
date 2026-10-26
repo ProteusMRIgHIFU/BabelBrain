@@ -16,13 +16,13 @@ from TranscranialModeling.babel_integration.integration_templates import (
 from TranscranialModeling.babel_integration.integration_templates.babel_integration_base import Material
 
 # Sector1 = first 128 elements, Sector2 = last 128 elements
-REMOPD_SUBSETS = {
+TheraPhas_SUBSETS = {
     "Sector1": np.arange(0, 128),
     "Sector2": np.arange(128, 256),
 }
 
 def DeviceFrameSteering(XSteering, YSteering, flip_y=False):
-    """Map GUI electronic steering into REMOPD simulation-domain axes.
+    """Map GUI electronic steering into TheraPhas simulation-domain axes.
 
     Changed on remopd/feasible-traj (TW / Brainsight): hydrophone checks showed
     GUI +Y is opposite the device/domain +Y. Sam asked that this swap apply
@@ -92,9 +92,9 @@ class SimulationConditions(babel_integration_flat_array_2D.SimulationConditions)
         self._bFlipSteeringY = bFlipSteeringY
 
     def GenTx(self):
-        indices = REMOPD_SUBSETS.get(self._TxSet)  # None when TxSet == 'Total'
+        indices = TheraPhas_SUBSETS.get(self._TxSet)  # None when TxSet == 'Total'
         
-        # REMOPD specific z rotation
+        # TheraPhas specific z rotation
         phi = np.deg2rad(self._RotationZ)
         rotation_matrix_z = np.array([
             [np.cos(phi),-np.sin(phi),0],

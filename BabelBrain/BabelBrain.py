@@ -1372,6 +1372,8 @@ class BabelBrain(QWidget):
                     AcWidget.SkinDistanceSpinBox.setValue(Steering[0]-AcWidget.DistanceSkinLabel.property('UserData'))
                 elif hasattr(AcWidget,'DistanceConeToFocusSpinBox'):
                     AcWidget.DistanceConeToFocusSpinBox.setValue(self.AcSim.CalculateDistanceFromSkin()-Steering[0])
+            if self.Config['TxSystem'] == 'TheraPhas':
+                AcWidget.RefocusingcheckBox.setChecked(True)
 
 
     def NotifyError(self):

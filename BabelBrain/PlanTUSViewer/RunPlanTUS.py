@@ -232,7 +232,7 @@ class RUN_PLAN_TUS(QObject):
                 assert(max_distance_plane>=BabelTxConfig['MaximalDistanceConeToFocus']*1e3)
                 plane_offset=Focus*1e3-BabelTxConfig['MaximalDistanceConeToFocus']*1e3
                 additional_offset=BabelTxConfig['MaximalDistanceConeToFocus']*1e3-self.OptionsDlg.ui.SkinDistanceSpinBox.value()
-            else: #flat array as the REMOPD
+            else: #flat array as the TheraPhas
                 plane_offset=0.0
                 additional_offset=self.OptionsDlg.ui.SkinDistanceSpinBox.value()
             transducer_diameter=BabelTxConfig['TxDiam']*1e3

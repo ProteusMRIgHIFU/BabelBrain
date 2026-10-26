@@ -1,12 +1,13 @@
 # BabelBrain release notes
 
 - 0.8.8 - Oct XXth, 2026
+  - **Change**: The REMOPD transducer was renamed to TheraPhas. Previously saved sessions that selected REMOPD load TheraPhas automatically.
   - **New**: Client-server operation. BabelBrain can now run its calculations (Steps 1, 2 and 3) on a remote server while the GUI runs locally. This is useful when the local computer doesn't have a powerful GPU, for example a laptop running the neuronavigation, while a workstation does the heavy lifting. Input files are sent to the server, and the results are sent back and shown in the local GUI as usual. The server accepts several client connections and uses TLS with a self-signed certificate for basic security. Remote servers can be configured and managed from the GUI.
   - **New**: Multiple trajectories. Several trajectories can now be planned and simulated in a single session, with Brainsight, 3D Slicer and PlanTUS. Each trajectory has its own tab in Steps 1, 2 and 3. A new "Calculate merged fields" action in Step 3 combines the acoustic fields of all trajectories, including the Isppa adjustments of each one, and runs a thermal simulation of the combined exposure. Merged results can be shown, exported and synced to Brainsight.
   - **New**: Custom transducers. Users can now define their own transducer in a YAML file, starting from the templates provided for single-element, annular, focused-array and flat 2D-array devices. BabelBrain validates the definition, generates the geometry, and shows a verification dialog with the element layout, the focal spot and a water-only Rayleigh simulation before the device is added. A management dialog lists, reloads and removes custom transducers. Custom transducers also work in client-server mode and with PlanTUS.
   - **New**: Brainsight 2.6 integration using the new JSON-based synchronization protocol. The previous protocol is still supported for older versions of Brainsight.
-  - **New**: Brainsight feasible-trajectory workflow for REMOPD. For phased arrays, an "Apply feasible trajectory" action adjusts the trajectory to stay inside the steering limits of the device.
-  - **New**: Localite integration (for REMOPD). Localite trajectories can be read, and modified trajectories exported back. Support for other transducers is still partial.
+  - **New**: Brainsight feasible-trajectory workflow for TheraPhas. For phased arrays, an "Apply feasible trajectory" action adjusts the trajectory to stay inside the steering limits of the device.
+  - **New**: Localite integration (for TheraPhas). Localite trajectories can be read, and modified trajectories exported back. Support for other transducers is still partial.
   - **New**: BabelBrain Hub. A small launcher, installed next to BabelBrain, to install, switch between and uninstall versions of the standalone application, including a full uninstall flow on macOS.
   - **New**: User-specified ROI for PlanTUS, plus manual windowing controls and an automatic range for the intersection heatmap.
   - **New**: Skull density ratio (SDR) shown in Step 2 and included in exports.
@@ -16,10 +17,10 @@
   - **Improvement**: Reworked user interface. The Qt Designer UI files were replaced by code-built widgets, with a consistent style across dialogs, a better dark mode, highlighted toolbar toggles and interactive FLHM plots.
   - **Improvement**: Transducer orientation cue in the toolbar, and choice of view plane in the Step 3 plots.
   - **Improvement**: MTT/MTB entries in Step 3 are now flagged in red when CEM ≥ 2.0 in brain tissue, in addition to the existing temperature threshold, following ITRUSST safety guidelines.
-  - **Improvement**: Transducer definitions reorganized into common templates, with all device parameters (element positions, steering and mechanical limits) in YAML files. Element coordinates of H317, ATAC and REMOPD were updated with more precision.
+  - **Improvement**: Transducer definitions reorganized into common templates, with all device parameters (element positions, steering and mechanical limits) in YAML files. Element coordinates of H317, ATAC and TheraPhas were updated with more precision.
   - **Improvement**: PlanTUS is now pinned to a specific upstream version for better stability.
   - **Improvement**: More conservative GPU memory usage, so Step 1 can run on CUDA GPUs with 4 GB of memory.
-  - **Fix**: REMOPD element positions now follow the correct coordinate convention between BabelBrain and the REMOPD device (#144).
+  - **Fix**: TheraPhas element positions now follow the correct coordinate convention between BabelBrain and the TheraPhas device (#144).
   - **Fix**: Step 2 reloaded the wrong Z steering value for ring transducers (#129).
   - **Fix**: Error in the BHTE calculation when the number of iterations was larger than the limit per process (#143).
   - **Fix**: Maximal temperatures were not accumulated across cycles in thermal simulations.
