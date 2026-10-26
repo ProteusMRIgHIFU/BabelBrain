@@ -1037,7 +1037,7 @@ def CalculateCTDerivedInfo(CTFNAME,
         print('Using CT combination', CTMapCombo)
         LSoSIT = HUtoLongSpeedofSoundWebb(AllBoneHU,params=CTMapCombo)
         LAttIT = HUtoAttenuationWebb(AllBoneHU,Frequency,params=CTMapCombo)
-    elif MappingMethod=='Aubry':
+    elif MappingMethod in ['Aubry','VertebraMappingV7']:
         if bDensity == False:
             DensityCTIT = PorositytoDensity(Porosity)
         LSoSIT = PorositytoLSOS(Porosity)
@@ -1047,7 +1047,7 @@ def CalculateCTDerivedInfo(CTFNAME,
             DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
         LSoSIT=DensityToLSOSPichardo(DensityCTIT,Frequency)
         LAttIT=DensityToLAttPichardo(DensityCTIT,Frequency)
-    elif MappingMethod=='McDannold':
+    elif MappingMethod in ['McDannold','VertebraMappingV8']:
         if bDensity == False:
             DensityCTIT=HUtoDensityAirTissue(AllBoneHU)
         LSoSIT=DensityToLSOSMcDannold(DensityCTIT)

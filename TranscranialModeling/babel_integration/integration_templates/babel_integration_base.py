@@ -424,6 +424,9 @@ class BabelFTD_Simulations_BASE(object):
                     elif self._MappingMethod in ['VertebraMappingV6']:
                         self._QCorrection=0.5
                         QCorrArr[2:]=self._QCorrection #This will match r0.4.3
+                    elif self._MappingMethod in ['VertebraMappingV7']:
+                        self._QCorrection=0.125
+                        QCorrArr[2:]=self._QCorrection #This will match r0.4.3
                     else:
                         print('BABELBRAIN_TSUS_EXVIVO leaving QCorrArr as 1.0')
 
