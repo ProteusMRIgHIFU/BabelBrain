@@ -68,7 +68,7 @@ class FocusedArrayForm(TxPanelBase):
             tissue_warning=None)
         # feasible-traj: Sam's SOP — park the array on a Brainsight
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
-        # Shown when TrajectoryType is Brainsight (wired in Babel_REMOPD).
+        # Shown when TrajectoryType is Brainsight (wired in babel_TheraPhas).
         self.ApplyFeasibleTraj = make_button(
             "ApplyFeasibleTraj", "Apply feasible trajectory",
             bold=True, min_height=40)

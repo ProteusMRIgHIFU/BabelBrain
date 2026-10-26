@@ -57,7 +57,7 @@ if __name__ == "__main__":
             "acoustic": [
                 {"action": "select_trajectory", "index": 0},
                 # Steering control is transducer-specific:
-                #   phased arrays (H317/DomeTx/REMOPD) -> "ZSteeringSpinBox"
+                #   phased arrays (H317/DomeTx/TheraPhas) -> "ZSteeringSpinBox"
                 #   ring transducers (CTX/DPX)         -> "TPODistanceSpinBox"
                 #     (GUI label "Z Steering (mm)"; a distance in mm within the
                 #      device's post-Step-1 range). Omit to use the auto default.

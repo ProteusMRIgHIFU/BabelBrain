@@ -482,6 +482,8 @@ class SelFiles(QDialog):
                     return
 
     def SelectTxSystem(self, TxSystem='CTX_500', is_custom_tx=False):
+        if not is_custom_tx and TxSystem == 'REMOPD':
+            TxSystem = 'TheraPhas' # Renamed device, keeps older saved sessions loading
         if is_custom_tx:
             TxSystem = CUSTOM_TRANSDUCER_PREFIX + TxSystem
         index = self.ui.TransducerTypecomboBox.findText(TxSystem)

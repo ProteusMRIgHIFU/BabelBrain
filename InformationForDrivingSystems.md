@@ -20,7 +20,7 @@ To read data from the file, be sure of importing both libraries as in the exampl
 ```Python
 import h5py
 import hdf5plugin
-with h5py.File('Superficial_REMOPD_300kHz_9PPW_DataForSim-ThermalField_AllCombinations.h5') as F:
+with h5py.File('Superficial_TheraPhas_300kHz_9PPW_DataForSim-ThermalField_AllCombinations.h5') as F:
     Frequency=F['/Frequency'][()]
 ```
 
@@ -37,7 +37,7 @@ These are the main components that can be used to program the driving equipment:
 
 # Operating frequency and transducer model
 * The `/Frequency`  entry (in Hz) indicates the ultrasound carrier frequency.
-* The `/TxSystem` entry (string) indicates the transducer model used in simulations (i.e., CTX-500, H317, REMOPD, etc.)
+* The `/TxSystem` entry (string) indicates the transducer model used in simulations (i.e., CTX-500, H317, TheraPhas, etc.)
 
 # Intensity calibration
 The  `/RatioLosses` entry is a scalar value between 0.0 and 1.0 describing the energy loss  after considering all mechanisms (reflection and attenuation) that is used in BabelBrain to calculate the $I_{\text{SPPA Water}}$ needed to achieve a desired $I_{\text{SPPA Brain}}$. For example, let's assume the user is aiming to achieve $I_{\text{SPPA Brain}} = 5 \text{ W/cm}^2$ and that the `/RatioLosses` entry has a value of 0.105. In that case,
@@ -61,7 +61,7 @@ The `/ZSteering` entry is relative to the natural focus. If `/ZSteering` is posi
 The `/ZSteering` entry is relative to the surface of the device, and it is always positive following the same convention as for the spherical cap.
 
 ## Phased arrays
-Phased arrays can steer in 3 directions and follow an analogous convention as for the concentric annular arrays. They can also a spherical cap (i.e. H317) or flat device (i.e. REMOPD)
+Phased arrays can steer in 3 directions and follow an analogous convention as for the concentric annular arrays. They can also a spherical cap (i.e. H317) or flat device (i.e. TheraPhas)
 
 ### Spherical cap
 * `/ZSteering` (in meters) is relative to the natural focus. If `/ZSteering` is positive, that means the steering is deeper, farther away from the transducer. If `/ZSteering` is negative, that means the steering is shallower, closer to the transducer. 
