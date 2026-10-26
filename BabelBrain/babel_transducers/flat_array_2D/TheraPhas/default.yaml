@@ -8,13 +8,9 @@ MaximalZSteering:      100.0e-3  # in m
 DefaultZSteering:      30.0e-3  # in m
 USFrequencies:
     - 285000.0
-    - 300000.0
     - 465000.0
     - 476000.0
-    - 480000.0 
     - 487000.0
-    - 490000.0 
-    - 500000.0
 MaxNegativeDistance:          10.0 #mm
 MaxDistanceToSkin:            50.00 #mm
 DistanceTxBottomToOutplane: 1.2e-3 # m, fabrication dead space between element surface and device edge
