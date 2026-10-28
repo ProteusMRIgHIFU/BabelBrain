@@ -1215,8 +1215,10 @@ class BabelBrain(QWidget):
             prevName=multi[self.Config['ID'][Ntraj]]
             MultiYaml = os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(self.Config['Mat4Trajectory'])[1])
         newFName=os.path.join(self.Config['OutputFilesPath'],'_mod_'+os.path.split(prevName)[1])
+        # with a multi-trajectory yaml (slicer), this trajectory's file may not exist yet and throw an error
+        bUseModified=self._bTrajAlreadyModified and os.path.isfile(newFName)
 
-        if self._bTrajAlreadyModified:
+        if bUseModified:
             OrigTraj=self.ReadTrajectory(sel_fname=newFName)
         else:
             OrigTraj=self.ReadTrajectory()
@@ -1227,7 +1229,7 @@ class BabelBrain(QWidget):
         OrigTraj[2,3]-=CorS
                 
         if self.Config['TrajectoryType']=='brainsight':
-            if self._bTrajAlreadyModified:
+            if bUseModified:
                 BTraj=BrainsightTrajectory.from_file(newFName)
             else:
                 BTraj=BrainsightTrajectory.from_file(self.Config['Mat4Trajectory'])
@@ -1256,6 +1258,9 @@ class BabelBrain(QWidget):
             with open(newFName,'w') as f:
                 f.write(outString)
             if MultiYaml is not None:
+                # keep entries of trajectories already exported
+                with open(MultiYaml) as f:
+                    multi=yaml.safe_load(f)
                 multi[self.Config['ID'][Ntraj]]=newFName
                 with open(MultiYaml,'w') as f:
                     yaml.dump(multi,f)
@@ -1265,7 +1270,7 @@ class BabelBrain(QWidget):
             #We calculate the difference in in the initial mechanical corrections and the current one
             #then we calculate that difference to 
             AcWidget=self.AcSim._Widgets[Ntraj]
-            if self._bTrajAlreadyModified: 
+            if bUseModified:
                 LocTraj=LocaliteTargeting.from_file(newFName)
             else:
                 LocTraj=LocaliteTargeting.from_file(self.Config['Mat4Trajectory'])
@@ -1350,6 +1355,47 @@ class BabelBrain(QWidget):
             self._BrainsightOutput[-1]=''
             self._BrainsightThermalOutput[-1]=''
         self.BrainsightSync.ReplaceTrajectory(Ntraj,Mat4)
+
+    def ClearThermalOutputs(self,Ntraj=None):
+        '''Withdraw stale Step-3 results of Ntraj (if any) and the merged ones, incl. from VTK and Brainsight.'''
+        lTraj=[] if Ntraj is None else [Ntraj]
+        for n in lTraj:
+            self._NiftiIntensity[n]=None
+            self._NiftiTemperature[n]=None
+            self._BrainsightThermalOutput[n]=''
+        for a in ['_NiftiMergedIntensity','_NiftiMergedTemperature']:
+            if hasattr(self,a):
+                delattr(self,a)
+        if len(self._BrainsightThermalOutput)>1:
+            self._BrainsightThermalOutput[-1]=''
+
+        if hasattr(self,'_vtk_visualization'):
+            for n,viewer in enumerate(self._vtk_visualization.viewer):
+                lid=['MergedTemperature','MergedIntensity']
+                if n in lTraj:
+                    lid+=['Intensity','Temperature']
+                for id in lid:
+                    nrow,row=self._FindViewerRow(viewer,id)
+                    if nrow>=0:
+                        viewer._on_remove_requested(nrow)
+        self.ThermalSim.UpdateBSightThermalOutputs()
+
+    def ClearMergedAcResults(self):
+        '''Withdraw the stale combined Step-2 field, incl. from VTK and Brainsight.'''
+        if hasattr(self,'_NiftiMergeAc'):
+            delattr(self,'_NiftiMergeAc')
+        if hasattr(self,'_vtk_visualization'):
+            for viewer in self._vtk_visualization.viewer:
+                nrow,row=self._FindViewerRow(viewer,'MergedAc')
+                if nrow>=0:
+                    viewer._on_remove_requested(nrow)
+        if len(self._BrainsightOutput)>1 and self._BrainsightOutput[-1]!='':
+            self._BrainsightOutput[-1]=''
+            self.AcSim.UpdateBSightOutputs()
+        self.ThermalSim.UpdateCombineResultsButton()
+
+    def MergedAcResultsAvailable(self):
+        return hasattr(self,'_NiftiMergeAc')
 
     def UpdateAcousticTab(self):
         self.AcSim.NotifyGeneratedMask()
