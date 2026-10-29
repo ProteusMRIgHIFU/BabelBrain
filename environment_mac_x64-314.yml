@@ -225,7 +225,7 @@ dependencies:
       - markdown-it-py==4.0.0
       - markupsafe==3.0.3
       - mdurl==0.1.2
-      - metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@08a6b3ad19d0787c9f69b678f0f8521156bbae23
+      - metalcomputebabel @ git+https://github.com/ProteusMRIgHIFU/py-metal-compute.git@0dba71073abc742fb5bdc91dcaaaf6ae8e57d360
       - networkx==3.6.1
       - nibabel==5.4.2
       - numpy-stl==3.2.0
