@@ -128,6 +128,10 @@ class Babel_Thermal(QWidget):
         self._MainApp=MainApp
         self._bMultiPoint = False
         self.bDisableUpdate=False
+        # See InvalidateResults; the merged tab is keyed 'merged'
+        self._PendingAcoustic=set() # tabs hidden until their Step 2 finishes
+        self._ForceRecalc=set()     # tabs whose thermal files must not be reloaded
+        self._ThermalSource={}      # acoustic files each tab's results came from
         self.static_canvas=None
         self.load_ui()
         self.DefaultConfig()
@@ -431,7 +435,7 @@ class Babel_Thermal(QWidget):
             # The Merged tab is not a trajectory: its visibility is driven by
             # combining thermal results (_AddMergedResultsTab), not by an acoustic
             # field, so leave it out of the per-trajectory reveal.
-            if self._IsMergedTab(i):
+            if self._IsMergedTab(i) or i in self._PendingAcoustic: # Don't show thermal tabs for acoustic tabs still being calculated
                 continue
             if self._AcFieldDone(i) and not self._txTabs.isTabVisible(i):
                 self._txTabs.setTabVisible(i, True)
@@ -452,11 +456,107 @@ class Babel_Thermal(QWidget):
         '''
         if not hasattr(self, '_txTabs') or not (0 <= idx < self._txTabs.count()):
             return
+        self._PendingAcoustic.discard(idx) # Remove finished sim from pending tab list
         self._txTabs.setTabVisible(idx, True)
         # Also pick up any other trajectories already computed (belt-and-braces
         # with showEvent), then land on the first tab.
         self.RefreshTrajectoryTabs()
         self._txTabs.setCurrentIndex(0)
+
+    def InvalidateResults(self, idx=None, bForceRecalc=True):
+        '''
+        Step 2 is re-run for trajectory *idx* (None: only its combination):
+        reset that Step-3 tab and the merged one to their start-up state and
+        withdraw their results, until EnableTrajectoryTab shows the tab again.
+        bForceRecalc: Step 2 recomputes, so existing thermal files can't be reloaded.
+        '''
+        if not hasattr(self, '_txTabs'):
+            return
+        if not bForceRecalc:
+            # reloading the results Step 3 was computed from: nothing is stale
+            if idx is not None:
+                key, AcFiles = idx, self._MainApp.AcSim._FullSolName
+            else:
+                key, AcFiles = 'merged', self._MainApp._merged_prefix_path + 'Merged_DataForSim.h5'
+            if key in self._ThermalSource and \
+                    self._ThermalSource[key] == self._AcousticSignature(AcFiles):
+                return
+        self._ThermalSource.pop('merged', None)
+        if idx is not None:
+            self._ThermalSource.pop(idx, None)
+        lTabs = []
+        if idx is not None:
+            lTabs.append(idx)
+            self._PendingAcoustic.add(idx)
+            if bForceRecalc:
+                self._ForceRecalc.add(idx)
+        if bForceRecalc:
+            # (reloading different results forces it via Step 2's recombination)
+            self._ForceRecalc.add('merged')
+        if getattr(self, '_mergedTabIndex', None) is not None:
+            lTabs.append(self._mergedTabIndex)
+
+        for i in lTabs:
+            self._ResetThermalPanel(i)
+        for i in lTabs:
+            self._txTabs.setTabVisible(i, False)
+        if not any(self._txTabs.isTabVisible(i) for i in range(self._txTabs.count())):
+            self.setEnabled(False)
+
+        self._MainApp.ClearThermalOutputs(idx)
+        self.UpdateCombineResultsButton()
+
+    def _ResetThermalPanel(self, idx):
+        '''Return tab *idx* to its start-up state.'''
+        if idx == self._TrajectoryNumber:
+            self._SaveThermalPanelState(idx)
+        layout = self._thPanels[idx].get('_layout', _MISSING)
+        panel = self._NewThermalPanel()
+        if layout is not _MISSING:
+            # keep the layout (it belongs to the plot host), drop its plots
+            while (child := layout.takeAt(0)) is not None:
+                w = child.widget()
+                if w is not None:
+                    w.deleteLater()
+            panel['_layout'] = layout
+        self._thPanels[idx] = panel
+        if idx == self._TrajectoryNumber:
+            self._LoadThermalPanelState(idx)
+
+        w = self._Widgets[idx]
+        for c in [w.ExportSummary, w.ExportMaps, w.SelCombinationDropDown,
+                  w.IsppaSpinBox, w.IsppaWaterSpinBox, w.IsppaScrollBar,
+                  w.LocMTB, w.LocMTC, w.LocMTS, w.LocTargets,
+                  w.DisplayDropDown, w.SelViewDropDown]:
+            c.setEnabled(False)
+        if hasattr(w, 'CombineTrajectories'):
+            w.CombineTrajectories.setEnabled(False)
+        for n in range(w.tableWidget.rowCount()):
+            w.tableWidget.takeItem(n, 1)
+        w.SliceLabel.setText('-')
+
+    @staticmethod
+    def _AcousticSignature(AcFiles):
+        '''(path, mtime) of a Step-2 result's acoustic file(s).'''
+        if type(AcFiles) is not list:
+            AcFiles = [AcFiles]
+        return tuple((f, os.path.getmtime(f) if os.path.isfile(f) else None) for f in AcFiles)
+
+    def _ThermalFilesAreStale(self, ThermalFiles, bMergedSimulation):
+        '''True if Step 2 was recomputed since, or a thermal file is older than its acoustic field.'''
+        if ('merged' if bMergedSimulation else self._TrajectoryNumber) in self._ForceRecalc:
+            return True
+        if not bMergedSimulation:
+            AcFiles = self._AcSimFullSolName()
+        else:
+            AcFiles = self._AcSimFullMergedSolName()
+        if type(AcFiles) is not list:
+            AcFiles = [AcFiles]
+        AcFiles = [f for f in AcFiles if os.path.isfile(f)]
+        if len(AcFiles) == 0:
+            return False
+        LatestAc = max(os.path.getmtime(f) for f in AcFiles)
+        return any(os.path.getmtime(f) < LatestAc for f in ThermalFiles)
 
     def DefaultConfig(self):
         #Specific parameters for the thermal simulation - to be configured  via a yaml
@@ -542,7 +642,12 @@ class Babel_Thermal(QWidget):
 
             if os.path.isfile(ThermalName):
                 PrevFiles.append(ThermalName)
-        if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
+        if len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']) and \
+                self._ThermalFilesAreStale(PrevFiles,bMergedSimulation):
+            # computed from a previous Step-2 field: never reload them
+            print('Thermal sim files predate the current acoustic results, recalculating')
+            bCalcFields=True
+        elif len(PrevFiles)==len(self.Config['AllDC_PRF_Duration']):
             ret = QMessageBox.question(self,'', "Thermal sim files already exist\n" +
                                 "Do you want to recalculate?\nSelect No to reload",
             QMessageBox.Yes | QMessageBox.No)
@@ -559,6 +664,7 @@ class Babel_Thermal(QWidget):
             # up front (case file, refocus selection, device extra-data), so the
             # off-thread worker never reads AcSim's live/active state.
             t = self._TrajectoryNumber
+            self._ForceRecalc.discard('merged' if bMergedSimulation else t)
 
             if not bMergedSimulation:
                 case = self._AcSimFullSolName(t)
@@ -738,6 +844,10 @@ class Babel_Thermal(QWidget):
                     return
                 self._NiftiThermalNames.append(os.path.splitext(ThermalName)[0])
                 self._ThermalResults.append(ReadFromH5py(ThermalName))
+            if not self._IsMergedTab():
+                self._ThermalSource[self._TrajectoryNumber]=self._AcousticSignature(self._AcSimFullSolName())
+            else:
+                self._ThermalSource['merged']=self._AcousticSignature(self._AcSimFullMergedSolName())
             if self.Config['bConcatenateSimulations']:
                 DataThermal=self._ThermalResults[-1] #we pick the latest one as that has the concatenated results
             else:
@@ -1248,8 +1358,9 @@ class Babel_Thermal(QWidget):
             self.Widget, self._TrajectoryNumber = prevW, prevT
             if hasattr(form, 'CombineTrajectories'):
                 form.CombineTrajectories.setEnabled(False)
-            self._txTabs.setTabVisible(idx, True)
         idx = self._mergedTabIndex
+        # InvalidateResults may have hidden it
+        self._txTabs.setTabVisible(idx, True)
 
         # Point the controller at the merged tab and (re)render the combined
         # result.  We do NOT stash the current (post-run, emptied) self state into
@@ -1266,7 +1377,7 @@ class Babel_Thermal(QWidget):
     def UpdateCombineResultsButton(self):
         if hasattr(self.Widget,'CombineTrajectories'):
             for n in range(len(self._MainApp.Config['ID'])):
-                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllThermalFieldsDone() and len(self._MainApp.AcSim._Widgets)>len(self._MainApp.Config['ID']))
+                self._Widgets[n].CombineTrajectories.setEnabled(self._MainApp.AllThermalFieldsDone() and self._MainApp.MergedAcResultsAvailable())
 
     def _AxisSel(self):
         view = self.Widget.SelViewDropDown.currentIndex()
@@ -1455,17 +1566,9 @@ class Babel_Thermal(QWidget):
         _rec_artifact(OutName4)
             
         #If running with Brainsight, we save the path of thermal map
-        if self._MainApp.Config.get('BrainsightProtocol')=='json':
-            #Brainsight 2.6+: legacy output files are not written
+        if self._MainApp.Config.get('BrainsightProtocol')=='json' or self._MainApp.Config['bInUseWithBrainsight']:
             self._MainApp._BrainsightThermalOutput[self._txTabs.currentIndex()]=OutName
-            if self._MainApp.BrainsightSync is not None:
-                self._MainApp.BrainsightSync.UpdateThermalResults(self._MainApp._BrainsightThermalOutput)
-        elif self._MainApp.Config['bInUseWithBrainsight']:
-            self._MainApp._BrainsightThermalOutput[self._txTabs.currentIndex()]=OutName
-            with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
-                f.write('\n'.join(self._MainApp._BrainsightThermalOutput))
-            with open(self._MainApp.Config['Brainsight-ThermalOutputJSON'],'w') as f:
-                json.dump(self._MainApp._BrainsightThermalOutput,f)
+            self.UpdateBSightThermalOutputs()
         txt =  'Thermal map file\n' + os.path.basename(OutName) +',\n'
         txt += 'Pressure map file\n' + os.path.basename(OutName2) +',\n'
         txt += 'Intensiy map file\n' + os.path.basename(OutName3) +',\n'
@@ -1476,6 +1579,23 @@ class Babel_Thermal(QWidget):
         if 'BABEL_PYTEST' not in os.environ:
             msgBox = DialogShowText(txt,"Saved maps")
             msgBox.exec()
+
+    def UpdateBSightThermalOutputs(self):
+        if self._MainApp.Config.get('BrainsightProtocol')=='json':
+            #Brainsight 2.6+: legacy output files are not written
+            if self._MainApp.BrainsightSync is not None:
+                self._MainApp.BrainsightSync.UpdateThermalResults(self._MainApp._BrainsightThermalOutput)
+        elif self._MainApp.Config['bInUseWithBrainsight']:
+            if all(p=='' for p in self._MainApp._BrainsightThermalOutput):
+                #nothing to report, same as at start-up
+                for k in ['Brainsight-ThermalOutput','Brainsight-ThermalOutputJSON']:
+                    if os.path.isfile(self._MainApp.Config[k]):
+                        os.remove(self._MainApp.Config[k])
+                return
+            with open(self._MainApp.Config['Brainsight-ThermalOutput'],'w') as f:
+                f.write('\n'.join(self._MainApp._BrainsightThermalOutput))
+            with open(self._MainApp.Config['Brainsight-ThermalOutputJSON'],'w') as f:
+                json.dump(self._MainApp._BrainsightThermalOutput,f)
 
 
 class DialogShowText(QDialog):
