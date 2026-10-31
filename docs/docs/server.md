@@ -19,18 +19,22 @@ job queue.
   [Transport security (TLS)](#transport-security-tls).
 
 ## Starting the server
+The server can be initiated using the binary distribution or the source code. For example
+```bash
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless # localhost:8760, no GUI shown
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
+```
 
 ```bash
 python BabelBrain/BabelBrain.py --serve --headless               # localhost:8760, no GUI shown
-python BabelBrain/BabelBrain.py --serve --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
-python BabelBrain/BabelBrain.py --serve --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
+python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
+python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
 ```
 
 Token use is **HIGHLY RECOMMENDED**, and often required by IT, when using in a large network
-### Running from the binary distribution
-The frozen application works the same way (`BabelBrain.exe --serve …` /
-`BabelBrain.app/Contents/MacOS/BabelBrain --serve …`). Stop the server with
-`Ctrl-C`.
+
+Stop the server with `Ctrl-C`.
 
 ### Server mode options
 

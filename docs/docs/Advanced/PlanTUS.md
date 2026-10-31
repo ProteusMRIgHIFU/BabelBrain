@@ -1,6 +1,6 @@
 PlanTUS integration 
 -----
-Starting in r0.8.0, there is an experimental feature to integrate with the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University that helps to refine trajectories using heatmaps of incident angles, distance, degree of intersection and skin-skull angle.
+BabelBrain integrates with the excellent tool [PlanTUS](https://doi.org/10.1016/j.brs.2025.08.013) developed by Maximilian Lueckel, Suhas Vijayakumar and Til Ole Bergmann from Mainz University that helps to refine trajectories using heatmaps of incident angles, distance, degree of intersection and skin-skull angle.
 
 <img src="PlanTUS-1.png" height=350px>
 
@@ -8,36 +8,22 @@ This procedure in BabelBrain can update the trajectory defined originally in 3DS
 
 PlanTUS works the best when a volume mask of a target ROI is provided as input. If no ROI is provided, a 3 mm diameter ROI will be generated at the original target generated in Brainsight or 3DSlicer.
 
+Since version v0.8.8, a complete copy of the PlanTUS code is shipped with BabelBrain. If a user decides to use an updated version of PlanTUS, they can specied in the advanced dialog PlanTUS section.
+
 
 # Requirements
-In this initial integration, the integration needs:
+* Identify location path of SimNIBS - for example `/Users/spichardo/Applications/SimNIBS-4.6`
+* Add extra dependencies to SimNIBS enviroment - consult PlanTUS [main page](https://github.com/mlueckel/PlanTUS) for details.
 
-* Clone of [PlanTUS](https://github.com/mlueckel/PlanTUS)
-* [Workbench connectome](https://humanconnectome.org/software/connectome-workbench). If on macOS **follow the instructions regarding resigning the binaries**.
-
-
-Download all the tools above and take note of paths for PlanTUS location and binary files of Workbench (location of `wb_command` binary).
-
-Take also note of path to SimNIBS root path; for example `/Users/spichardo/Applications/SimNIBS-4.5`.
-
-## Extra libraries in SimNIBS environment
-Activate SimNIBS Python environment, for example:
-```bash
-source <path_to_SimNIBS_root>/simnibs_env/bin/activate
-```
-Install extra libraries with
-```bash
-pip install nilearn vtk 
-```
 
 ## Execution of PlanTUS
-* Define location in Brainsight/Slicer and export trajectory/linear transformation.
-* Do not worry to adjust the trajectory manually as is usually done, as we expect to use the one calculated with PlanTUS. Just focus on the **target location**.
+* Ideally, have an ROI mask of your region of interest in the same space of the T1w file used for simulations. If no ROI is provided, a 3 mm diameter ROI will be generated at the original target generated in Brainsight or 3DSlicer.
+* Define location in Brainsight/Slicer and export trajectory/linear transformation. Do not worry to adjust the trajectory manually as is usually done, as we expect to use the one calculated with PlanTUS. Just focus on the **target location**. 
 
 <img src="PlanTUS-2.png" height=450px>
 
 * Specify paths to tools in the Advanced Dialog
-<img src="advanced-2-PlanTUS.png" height=250px>
+<img src="advanced-2-PlanTUS.png" height=200px>
 
 * These paths will remain saved between BabelBrain sessions.
 
@@ -45,13 +31,11 @@ pip install nilearn vtk
 
 <img src="PlanTUS-3.png" height=350px>
 
-* All views are linked to inspect all heatmaps simultaneously (similar as in connectome workbench).
+* All views are linked to inspect all heatmaps simultaneously.
 
-* Click on “Selection Mode” and select a feasible location on the head’s surface. For example, one that minimizes incident angle. A small spherical marker will appear on the selected location as shown below
+* Use right click action on mouse/trackpad and select a feasible location on the head’s surface. For example, one that minimizes incident angle.
+* Click on `Save Placement` and confirm to use this location for BabelBrain.
 
-<img src="PlanTUS-4.png" height=350px>
-
-* Click on `Click on Generate Trajectory`.
 * A visualization of the transducer at the selected location will be shown
 
 <img src="PlanTUS-5.png" height=300px>
