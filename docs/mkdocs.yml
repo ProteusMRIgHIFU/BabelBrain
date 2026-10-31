@@ -43,6 +43,7 @@ nav:
   - Home:
       - Overview: index.md
       - Presentations: presentations.md
+      - Telemetry: telemetry.md
   - Installation: installation.md
   - Simulation pipeline:
       - Overall description: pipeline/pipeline.md
