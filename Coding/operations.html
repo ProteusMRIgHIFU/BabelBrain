@@ -1,194 +1,1312 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Prospective modeling of transcranial focused ultrasound for neuromodulation">
+      
+      
+      
+        <link rel="canonical" href="https://proteusmrighifu.github.io/BabelBrain/Coding/operations.html">
+      
+      
+      
+        <link rel="prev" href="./scripting.html">
+      
+      
+        <link rel="next" href="./advanced_config.html">
+      
+      
         
-        
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Coding/operations.html">
-        <link rel="shortcut icon" href="../img/favicon.ico">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.74">
+    
+    
+      
         <title>Scriptable operations - BabelBrain</title>
-        <link href="../css/bootstrap.min.css" rel="stylesheet">
-        <link href="../css/fontawesome.min.css" rel="stylesheet">
-        <link href="../css/brands.min.css" rel="stylesheet">
-        <link href="../css/solid.min.css" rel="stylesheet">
-        <link href="../css/v4-font-face.min.css" rel="stylesheet">
-        <link href="../css/base.css" rel="stylesheet">
-        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
-        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
-        <script>hljs.highlightAll();</script> 
-    </head>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
 
-    <body>
-        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
-            <div class="container">
-                <a class="navbar-brand" href="../index.html">BabelBrain</a>
-                <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <!-- Expanded navigation -->
-                <div id="navbar-collapse" class="navbar-collapse collapse">
-                        <!-- Main navigation -->
-                        <ul class="nav navbar-nav">
-                            <li class="nav-item">
-                                <a href="../index.html" class="nav-link">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../presentations.html" class="nav-link">Presentations</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../installation.html" class="nav-link">Installation</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="../pipeline/pipeline.html" class="dropdown-item">Overall description</a>
-</li>
-                                    
-<li>
-    <a href="../pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
-</li>
-                                    
-<li>
-    <a href="../pipeline/Planning.html" class="dropdown-item">Planning</a>
-</li>
-                                    
-<li>
-    <a href="../pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
-</li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../results/results.html" class="nav-link">Results files</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../server.html" class="nav-link">Client/Server mode</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../CustomTransducers/CustomTransducers.html" class="nav-link">Custom transducers</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="scripting.html" class="dropdown-item">Scripting BabelBrain</a>
-</li>
-                                    
-<li>
-    <a href="operations.html" class="dropdown-item active" aria-current="page">Scriptable operations</a>
-</li>
-                                    
-<li>
-    <a href="advanced_config.html" class="dropdown-item">Advanced configuration</a>
-</li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
-                            </li>
-                        </ul>
-
-                    <ul class="nav navbar-nav ms-md-auto">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
-                                <i class="fa fa-search"></i> Search
-                            </a>
-                        </li>
-                            <li class="nav-item">
-                                <a rel="prev" href="scripting.html" class="nav-link">
-                                    <i class="fa fa-arrow-left"></i> Previous
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a rel="next" href="advanced_config.html" class="nav-link">
-                                    Next <i class="fa fa-arrow-right"></i>
-                                </a>
-                            </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="container">
-            <div class="row">
-                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
-    <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
-            <span class="fa fa-angle-down"></span>
-        </button>
-    </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
-        <ul class="nav flex-column">
-            
-            <li class="nav-item" data-bs-level="1"><a href="#scriptable-operations" class="nav-link">Scriptable operations</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#conventions" class="nav-link">Conventions</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="3"><a href="#multiple-trajectories" class="nav-link">Multiple trajectories</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#step-1-planning-domain-generation" class="nav-link">Step 1 — Planning / domain generation</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#step-2-acoustic-simulation" class="nav-link">Step 2 — Acoustic simulation</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="3"><a href="#reading-values-back" class="nav-link">Reading values back</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#step-3-thermal-simulation" class="nav-link">Step 3 — Thermal simulation</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#full-multi-step-example" class="nav-link">Full multi-step example</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-        </ul>
-    </div>
-</div></div>
-                    <div class="col-md-9" role="main">
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
 
-<h1 id="scriptable-operations">Scriptable operations</h1>
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      <header class="md-header md-header--shadow md-header--inline-tabs" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="BabelBrain" class="md-header__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title md-header__title--static">
+      <a href="./.." class="md-header__sitename">BabelBrain</a>
+    </div>
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../index.html" class="md-tabs__link">
+          
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation.html" class="md-tabs__link">
+        
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pipeline/pipeline.html" class="md-tabs__link">
+          
+  
+  Simulation pipeline
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Advanced/PlanTUS.html" class="md-tabs__link">
+        
+  
+  PlanTUS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Advanced/TransducerCalibration.html" class="md-tabs__link">
+        
+  
+  Tx calibration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../CustomTransducers/CustomTransducers.html" class="md-tabs__link">
+        
+  
+  Custom transducers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../server.html" class="md-tabs__link">
+        
+  
+  Client/Server mode
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Advanced/advanced.html" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./scripting.html" class="md-tabs__link">
+          
+  
+  Coding / API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Appendix/Appendix.html" class="md-tabs__link">
+        
+  
+  Appendix
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="BabelBrain" class="md-nav__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    BabelBrain
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Home
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../presentations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Presentations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Simulation pipeline
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Simulation pipeline
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/pipeline.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overall description
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/Preliminary_steps.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Preliminary steps
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/Planning.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline/BabelBrain.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  BabelBrain simulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MRISequences/MRISequences.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MRI sequences
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../results/results.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Results files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Advanced/PlanTUS.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PlanTUS
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Advanced/TransducerCalibration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Tx calibration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CustomTransducers/CustomTransducers.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Custom transducers
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../server.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Client/Server mode
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_8">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Advanced
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Advanced/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced options
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Coding / API
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_9">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Coding / API
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./scripting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scripting BabelBrain
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scriptable operations
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="operations.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scriptable operations
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Conventions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multiple-trajectories" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Multiple trajectories
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-planning-domain-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 1 — Planning / domain generation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-acoustic-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 2 — Acoustic simulation
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2 — Acoustic simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reading-values-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Reading values back
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-thermal-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Step 3 — Thermal simulation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-multi-step-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Full multi-step example
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./advanced_config.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced configuration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Appendix/Appendix.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Appendix
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="scriptable-operations">Scriptable operations<a class="headerlink" href="#scriptable-operations" title="Permanent link">&para;</a></h1>
 <p>This page lists the high-level operations that can be automated from a script,
 grouped by the three pipeline steps. Each entry maps a <strong>GUI action</strong> to the
 equivalent <strong>scripting call</strong>. See
 <strong><a href="scripting.html">Scripting BabelBrain</a></strong> for how to run a script and obtain the
 <code>bb</code> object.</p>
-<h2 id="conventions">Conventions</h2>
+<h2 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Controls are reached through <code>bb.Widget</code> (Step 1), <code>bb.AcSim.Widget</code>
   (Step 2), and <code>bb.ThermalSim.Widget</code> (Step 3).</li>
@@ -202,33 +1320,33 @@ equivalent <strong>scripting call</strong>. See
 <li>
 <p>After triggering a step, <strong>always</strong> wait for it to finish and check for
   errors:</p>
-<p><code>python
-bb.Widget.CalculatePlanningMask.click()
-wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
-check_no_error(bb)</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculatePlanningMask</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">900_000</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+</code></pre></div>
 </li>
 </ul>
-<p>!!! warning "Step-2 controls are transducer-specific"
-    The acoustic-step controls depend on the selected transducer (a single-element
-    device has no electronic steering, a phased array does, etc.). Guard optional
-    controls with <code>hasattr</code> so one script works across devices:</p>
-<pre><code>```python
-if hasattr(bb.AcSim.Widget, 'ZSteeringSpinBox'):
-    bb.AcSim.Widget.ZSteeringSpinBox.setValue(0.0)
-```
-</code></pre>
-<h3 id="multiple-trajectories">Multiple trajectories</h3>
+<div class="admonition warning">
+<p class="admonition-title">Step-2 controls are transducer-specific</p>
+<p>The acoustic-step controls depend on the selected transducer (a single-element
+device has no electronic steering, a phased array does, etc.). Guard optional
+controls with <code>hasattr</code> so one script works across devices:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="p">,</span> <span class="s1">'ZSteeringSpinBox'</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">ZSteeringSpinBox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</code></pre></div>
+</div>
+<h3 id="multiple-trajectories">Multiple trajectories<a class="headerlink" href="#multiple-trajectories" title="Permanent link">&para;</a></h3>
 <p>When a plan contains several trajectories, Step 2 and Step 3 present one tab per
 trajectory. Select a tab before acting on it:</p>
-<pre><code class="language-python">for i in range(bb.AcSim._txTabs.count()):        # Step 2 tabs
-    bb.AcSim._txTabs.setCurrentIndex(i)
-    bb.AcSim.Widget.CalculateAcField.click()
-    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3_600_000)
-    check_no_error(bb)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>        <span class="c1"># Step 2 tabs</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculateAcField</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">3_600_000</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+</code></pre></div>
 <p>Step 3 uses <code>bb.ThermalSim._txTabs</code> in the same way.</p>
 <hr />
-<h2 id="step-1-planning-domain-generation">Step 1 — Planning / domain generation</h2>
+<h2 id="step-1-planning-domain-generation">Step 1 — Planning / domain generation<a class="headerlink" href="#step-1-planning-domain-generation" title="Permanent link">&para;</a></h2>
 <p>Controls are on <code>bb.Widget</code>.</p>
 <table>
 <thead>
@@ -271,15 +1389,15 @@ trajectory. Select a tab before acting on it:</p>
 <p>Frequency, PPW and the HU threshold are best set through <code>launch()</code> (they are
 applied before Step 1 runs). Setting them on <code>bb.Widget</code> afterwards is
 equivalent and useful if you re-run Step 1 with different values in one script.</p>
-<pre><code class="language-python"># Sweep the bone threshold and re-run Step 1
-for hu in (200, 300, 400):
-    bb.Widget.HUThresholdSpinBox.setValue(hu)
-    bb.Widget.CalculatePlanningMask.click()
-    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
-    check_no_error(bb)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Sweep the bone threshold and re-run Step 1</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">for</span> <span class="n">hu</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">400</span><span class="p">):</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">HUThresholdSpinBox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="n">hu</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculatePlanningMask</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">900_000</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+</code></pre></div>
 <hr />
-<h2 id="step-2-acoustic-simulation">Step 2 — Acoustic simulation</h2>
+<h2 id="step-2-acoustic-simulation">Step 2 — Acoustic simulation<a class="headerlink" href="#step-2-acoustic-simulation" title="Permanent link">&para;</a></h2>
 <p>Controls are on <code>bb.AcSim.Widget</code>; select the trajectory tab with
 <code>bb.AcSim._txTabs</code>. Availability depends on the transducer (see the warning
 above).</p>
@@ -339,19 +1457,19 @@ above).</p>
 </table>
 <p><code>CombineTrajectories</code> only exists / is enabled once the acoustic field of every
 trajectory has been computed:</p>
-<pre><code class="language-python">if hasattr(bb.AcSim.Widget, 'CombineTrajectories') \
-        and bb.AcSim.Widget.CombineTrajectories.isEnabled():
-    bb.AcSim.Widget.CombineTrajectories.click()
-    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3_600_000)
-    check_no_error(bb)
-</code></pre>
-<h3 id="reading-values-back">Reading values back</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="p">,</span> <span class="s1">'CombineTrajectories'</span><span class="p">)</span> \
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>        <span class="ow">and</span> <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CombineTrajectories</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">():</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CombineTrajectories</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">3_600_000</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="reading-values-back">Reading values back<a class="headerlink" href="#reading-values-back" title="Permanent link">&para;</a></h3>
 <p>Some read-outs are exposed as label "UserData" — e.g. the skin-to-target
 distance used to set a cone position:</p>
-<pre><code class="language-python">skin_to_target = bb.AcSim.Widget.DistanceSkinLabel.property('UserData')
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">skin_to_target</span> <span class="o">=</span> <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">DistanceSkinLabel</span><span class="o">.</span><span class="n">property</span><span class="p">(</span><span class="s1">'UserData'</span><span class="p">)</span>
+</code></pre></div>
 <hr />
-<h2 id="step-3-thermal-simulation">Step 3 — Thermal simulation</h2>
+<h2 id="step-3-thermal-simulation">Step 3 — Thermal simulation<a class="headerlink" href="#step-3-thermal-simulation" title="Permanent link">&para;</a></h2>
 <p>Controls are on <code>bb.ThermalSim.Widget</code>; select the trajectory tab with
 <code>bb.ThermalSim._txTabs</code>.</p>
 <table>
@@ -408,129 +1526,162 @@ distance used to set a cone position:</p>
 </tr>
 </tbody>
 </table>
-<p>!!! note "Exports in an unattended run"
-    In scripting mode the "save file" dialogs of <code>ExportSummary</code> / <code>ExportMaps</code>
-    are bypassed and the files are written into the run's output folder
-    automatically, so an unattended export never blocks.</p>
-<hr />
-<h2 id="full-multi-step-example">Full multi-step example</h2>
-<pre><code class="language-python">bb = launch(
-    t1w=&quot;/data/sub-01/T1W.nii.gz&quot;,
-    simbnibs=&quot;/data/sub-01/m2m_sub-01/&quot;,
-    trajectory=&quot;/data/sub-01/target.txt&quot;,
-    thermal_profile=&quot;/data/profile.yaml&quot;,
-    transducer=&quot;CTX_500&quot;,
-    ct_type=&quot;CT&quot;, ct=&quot;/data/sub-01/CT.nii.gz&quot;,
-    frequency_khz=500, ppw=6, hu_threshold=300,
-    output_path=&quot;/data/sub-01/output/&quot;,
-)
-auto_answer_dialogs(question=QMessageBox.Yes)
-
-# Step 1
-bb.testing_error = False
-bb.Widget.CalculatePlanningMask.click()
-wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
-check_no_error(bb)
-
-# Step 2 (all trajectories)
-bb.Widget.tabWidget.setCurrentIndex(1)
-for i in range(bb.AcSim._txTabs.count()):
-    bb.AcSim._txTabs.setCurrentIndex(i)
-    if hasattr(bb.AcSim.Widget, 'ZSteeringSpinBox'):
-        bb.AcSim.Widget.ZSteeringSpinBox.setValue(0.0)
-    bb.AcSim.Widget.CalculateAcField.click()
-    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3_600_000)
-    check_no_error(bb)
-
-# Step 3 (all trajectories) + export
-bb.Widget.tabWidget.setCurrentIndex(2)
-for i in range(bb.ThermalSim._txTabs.count()):
-    bb.ThermalSim._txTabs.setCurrentIndex(i)
-    bb.ThermalSim.Widget.CalculateThermal.click()
-    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
-    check_no_error(bb)
-    bb.ThermalSim.Widget.ExportSummary.click()
-    bb.ThermalSim.Widget.ExportMaps.click()
-
-print(&quot;Done.&quot;)
-</code></pre></div>
-            </div>
-        </div>
-
-        <footer class="col-md-12">
-            <hr>
-            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
-        </footer>
-        <script src="../js/bootstrap.bundle.min.js"></script>
-        <script>
-            var base_url = "..",
-                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
-        </script>
-        <script src="../js/base.js"></script>
-        <script src="../mathjax-config.js"></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script src="../search/main.js"></script>
-
-        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>From here you can search these documents. Enter your search terms below.</p>
-                <form>
-                    <div class="form-group">
-                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
-                    </div>
-                </form>
-                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
-            </div>
-            <div class="modal-footer">
-            </div>
-        </div>
-    </div>
-</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th style="width: 20%;">Keys</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="help shortcut"><kbd>?</kbd></td>
-                    <td>Open this help</td>
-                  </tr>
-                  <tr>
-                    <td class="next shortcut"><kbd>n</kbd></td>
-                    <td>Next page</td>
-                  </tr>
-                  <tr>
-                    <td class="prev shortcut"><kbd>p</kbd></td>
-                    <td>Previous page</td>
-                  </tr>
-                  <tr>
-                    <td class="search shortcut"><kbd>s</kbd></td>
-                    <td>Search</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="modal-footer">
-            </div>
-        </div>
-    </div>
+<div class="admonition note">
+<p class="admonition-title">Exports in an unattended run</p>
+<p>In scripting mode the "save file" dialogs of <code>ExportSummary</code> / <code>ExportMaps</code>
+are bypassed and the files are written into the run's output folder
+automatically, so an unattended export never blocks.</p>
 </div>
+<hr />
+<h2 id="full-multi-step-example">Full multi-step example<a class="headerlink" href="#full-multi-step-example" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">bb</span> <span class="o">=</span> <span class="n">launch</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">t1w</span><span class="o">=</span><span class="s2">"/data/sub-01/T1W.nii.gz"</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">simbnibs</span><span class="o">=</span><span class="s2">"/data/sub-01/m2m_sub-01/"</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">trajectory</span><span class="o">=</span><span class="s2">"/data/sub-01/target.txt"</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">thermal_profile</span><span class="o">=</span><span class="s2">"/data/profile.yaml"</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">transducer</span><span class="o">=</span><span class="s2">"CTX_500"</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">ct_type</span><span class="o">=</span><span class="s2">"CT"</span><span class="p">,</span> <span class="n">ct</span><span class="o">=</span><span class="s2">"/data/sub-01/CT.nii.gz"</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">frequency_khz</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ppw</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">hu_threshold</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">output_path</span><span class="o">=</span><span class="s2">"/data/sub-01/output/"</span><span class="p">,</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">auto_answer_dialogs</span><span class="p">(</span><span class="n">question</span><span class="o">=</span><span class="n">QMessageBox</span><span class="o">.</span><span class="n">Yes</span><span class="p">)</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># Step 1</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">bb</span><span class="o">.</span><span class="n">testing_error</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculatePlanningMask</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">900_000</span><span class="p">)</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="c1"># Step 2 (all trajectories)</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="p">,</span> <span class="s1">'ZSteeringSpinBox'</span><span class="p">):</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">ZSteeringSpinBox</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">AcSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculateAcField</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>    <span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">3_600_000</span><span class="p">)</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>    <span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="c1"># Step 3 (all trajectories) + export</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">ThermalSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">count</span><span class="p">()):</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">ThermalSim</span><span class="o">.</span><span class="n">_txTabs</span><span class="o">.</span><span class="n">setCurrentIndex</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">ThermalSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">CalculateThermal</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>    <span class="n">wait_until</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">tabWidget</span><span class="o">.</span><span class="n">isEnabled</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="o">=</span><span class="mi">900_000</span><span class="p">)</span>
+<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    <span class="n">check_no_error</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">ThermalSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">ExportSummary</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>    <span class="n">bb</span><span class="o">.</span><span class="n">ThermalSim</span><span class="o">.</span><span class="n">Widget</span><span class="o">.</span><span class="n">ExportMaps</span><span class="o">.</span><span class="n">click</span><span class="p">()</span>
+<a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>
+<a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Done."</span><span class="p">)</span>
+</code></pre></div>
 
-    </body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="./scripting.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Scripting BabelBrain">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Scripting BabelBrain
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="./advanced_config.html" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced configuration">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Advanced configuration
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.top","navigation.footer","toc.integrate","search.highlight","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d31f0ffa.min.js"></script>
+      
+        <script src="../javascripts/header-height.js"></script>
+      
+    
+  </body>
 </html>

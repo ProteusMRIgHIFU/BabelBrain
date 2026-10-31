@@ -1,231 +1,1436 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Prospective modeling of transcranial focused ultrasound for neuromodulation">
+      
+      
+      
+        <link rel="canonical" href="https://proteusmrighifu.github.io/BabelBrain/server.html">
+      
+      
+      
+        <link rel="prev" href="./CustomTransducers/CustomTransducers.html">
+      
+      
+        <link rel="next" href="./Advanced/advanced.html">
+      
+      
         
-        
-        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/server.html">
-        <link rel="shortcut icon" href="img/favicon.ico">
+      
+      
+      <link rel="icon" href="./assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.74">
+    
+    
+      
         <title>Client/Server mode - BabelBrain</title>
-        <link href="css/bootstrap.min.css" rel="stylesheet">
-        <link href="css/fontawesome.min.css" rel="stylesheet">
-        <link href="css/brands.min.css" rel="stylesheet">
-        <link href="css/solid.min.css" rel="stylesheet">
-        <link href="css/v4-font-face.min.css" rel="stylesheet">
-        <link href="css/base.css" rel="stylesheet">
-        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
-        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
-        <script>hljs.highlightAll();</script> 
-    </head>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="./assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="./assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
 
-    <body>
-        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
-            <div class="container">
-                <a class="navbar-brand" href="index.html">BabelBrain</a>
-                <!-- Expander button -->
-                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <!-- Expanded navigation -->
-                <div id="navbar-collapse" class="navbar-collapse collapse">
-                        <!-- Main navigation -->
-                        <ul class="nav navbar-nav">
-                            <li class="nav-item">
-                                <a href="index.html" class="nav-link">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="presentations.html" class="nav-link">Presentations</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="installation.html" class="nav-link">Installation</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="pipeline/pipeline.html" class="dropdown-item">Overall description</a>
-</li>
-                                    
-<li>
-    <a href="pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
-</li>
-                                    
-<li>
-    <a href="pipeline/Planning.html" class="dropdown-item">Planning</a>
-</li>
-                                    
-<li>
-    <a href="pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
-</li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="results/results.html" class="nav-link">Results files</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="Advanced/advanced.html" class="nav-link">Advanced options</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="server.html" class="nav-link active" aria-current="page">Client/Server mode</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="CustomTransducers/CustomTransducers.html" class="nav-link">Custom transducers</a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
-                                <ul class="dropdown-menu">
-                                    
-<li>
-    <a href="Coding/scripting.html" class="dropdown-item">Scripting BabelBrain</a>
-</li>
-                                    
-<li>
-    <a href="Coding/operations.html" class="dropdown-item">Scriptable operations</a>
-</li>
-                                    
-<li>
-    <a href="Coding/advanced_config.html" class="dropdown-item">Advanced configuration</a>
-</li>
-                                </ul>
-                            </li>
-                            <li class="nav-item">
-                                <a href="Appendix/Appendix.html" class="nav-link">Appendix</a>
-                            </li>
-                        </ul>
-
-                    <ul class="nav navbar-nav ms-md-auto">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
-                                <i class="fa fa-search"></i> Search
-                            </a>
-                        </li>
-                            <li class="nav-item">
-                                <a rel="prev" href="Advanced/TransducerCalibration.html" class="nav-link">
-                                    <i class="fa fa-arrow-left"></i> Previous
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a rel="next" href="CustomTransducers/CustomTransducers.html" class="nav-link">
-                                    Next <i class="fa fa-arrow-right"></i>
-                                </a>
-                            </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="container">
-            <div class="row">
-                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
-    <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
-            <span class="fa fa-angle-down"></span>
-        </button>
-    </div>
 
     
-    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
-        <ul class="nav flex-column">
-            
-            <li class="nav-item" data-bs-level="1"><a href="#server-mode" class="nav-link">Server mode</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#starting-the-server" class="nav-link">Starting the server</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="3"><a href="#server-mode-options" class="nav-link">Server mode options</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-bs-level="1"><a href="#client-configuration" class="nav-link">Client configuration</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-bs-level="1"><a href="#server-api" class="nav-link">Server API</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="3"><a href="#configuration-is-client-owned-and-mandatory" class="nav-link">Configuration is client-owned and mandatory</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#jobspec" class="nav-link">JobSpec</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#actions" class="nav-link">Actions</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#job-lifecycle" class="nav-link">Job lifecycle</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#client-examples" class="nav-link">Client examples</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            
-            <li class="nav-item" data-bs-level="1"><a href="#transport-security-tls" class="nav-link">Transport security (TLS)</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="2"><a href="#recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network" class="nav-link">Recipe A — a self-signed certificate for a trusted box on the same network</a>
-              <ul class="nav flex-column">
-            <li class="nav-item" data-bs-level="3"><a href="#the-one-thing-that-must-be-right-the-servers-address-the-san" class="nav-link">The one thing that must be right: the server's address (the "SAN")</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#generate-the-key-certificate" class="nav-link">Generate the key + certificate</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#start-the-server-with-tls" class="nav-link">Start the server with TLS</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="3"><a href="#configure-the-client-to-trust-it" class="nav-link">Configure the client to trust it</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#reaching-a-remote-server-over-ssh" class="nav-link">Reaching a remote server over SSH</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-bs-level="2"><a href="#reverse-proxy-public-facing-servers" class="nav-link">Reverse proxy (public-facing servers)</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-              </ul>
-            </li>
-        </ul>
-    </div>
-</div></div>
-                    <div class="col-md-9" role="main">
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="./stylesheets/extra.css">
+    
+    <script>__md_scope=new URL(".",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
 
-<h1 id="server-mode">Server mode</h1>
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      <header class="md-header md-header--shadow md-header--inline-tabs" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="" title="BabelBrain" class="md-header__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title md-header__title--static">
+      <a href="" class="md-header__sitename">BabelBrain</a>
+    </div>
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="./index.html" class="md-tabs__link">
+          
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./installation.html" class="md-tabs__link">
+        
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="./pipeline/pipeline.html" class="md-tabs__link">
+          
+  
+  Simulation pipeline
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./Advanced/PlanTUS.html" class="md-tabs__link">
+        
+  
+  PlanTUS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./Advanced/TransducerCalibration.html" class="md-tabs__link">
+        
+  
+  Tx calibration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./CustomTransducers/CustomTransducers.html" class="md-tabs__link">
+        
+  
+  Custom transducers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="server.html" class="md-tabs__link">
+        
+  
+  Client/Server mode
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="./Advanced/advanced.html" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="./Coding/scripting.html" class="md-tabs__link">
+          
+  
+  Coding / API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./Appendix/Appendix.html" class="md-tabs__link">
+        
+  
+  Appendix
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="" title="BabelBrain" class="md-nav__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    BabelBrain
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Home
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./presentations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Presentations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Simulation pipeline
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Simulation pipeline
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./pipeline/pipeline.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overall description
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./pipeline/Preliminary_steps.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Preliminary steps
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./pipeline/Planning.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./pipeline/BabelBrain.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  BabelBrain simulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./MRISequences/MRISequences.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MRI sequences
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./results/results.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Results files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Advanced/PlanTUS.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PlanTUS
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Advanced/TransducerCalibration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Tx calibration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./CustomTransducers/CustomTransducers.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Custom transducers
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Client/Server mode
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="server.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Client/Server mode
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#server-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Server mode
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#starting-the-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Starting the server
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Starting the server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-mode-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Server mode options
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#client-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Client configuration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Server API
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configuration-is-client-owned-and-mandatory" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Configuration is client-owned and mandatory
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jobspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        JobSpec
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Actions
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Job lifecycle
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Client examples
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transport-security-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Transport security (TLS)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transport security (TLS)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Recipe A — a self-signed certificate for a trusted box on the same network
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recipe A — a self-signed certificate for a trusted box on the same network">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-one-thing-that-must-be-right-the-servers-address-the-san" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The one thing that must be right: the server's address (the "SAN")
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generate-the-key-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Generate the key + certificate
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-the-server-with-tls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Start the server with TLS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-the-client-to-trust-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Configure the client to trust it
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reaching-a-remote-server-over-ssh" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Reaching a remote server over SSH
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reverse-proxy-public-facing-servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Reverse proxy (public-facing servers)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_8">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Advanced
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Advanced/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced options
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Coding / API
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_9">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Coding / API
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Coding/scripting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scripting BabelBrain
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Coding/operations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scriptable operations
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Coding/advanced_config.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced configuration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./Appendix/Appendix.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Appendix
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="server-mode">Server mode<a class="headerlink" href="#server-mode" title="Permanent link">&para;</a></h1>
 <p>BabelBrain can run as a <strong>job server</strong>: it exposes the pipeline over a small
 HTTP/JSON API so language-agnostic clients (Python, C#, C++, <code>curl</code>, …) can
 submit jobs, follow progress, and collect results over the network. It is the
@@ -242,19 +1447,19 @@ job queue.</p>
   local machine, configure a token and encrypt the traffic: see
   <a href="#transport-security-tls">Transport security (TLS)</a>.</li>
 </ul>
-<h2 id="starting-the-server">Starting the server</h2>
-<p>The server can be initiated using the binary distribution or the source code. For example</p>
-<pre><code class="language-bash">/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless # localhost:8760, no GUI shown
-/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
-/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
-</code></pre>
-<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless               # localhost:8760, no GUI shown
-python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
-python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
-</code></pre>
+<h2 id="starting-the-server">Starting the server<a class="headerlink" href="#starting-the-server" title="Permanent link">&para;</a></h2>
+<p>The server can be initiated using the binary distribution or the source code. For example
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/Applications/BabelBrain.app/Contents/MacOS/BabelBrain<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span><span class="c1"># localhost:8760, no GUI shown</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>/Applications/BabelBrain.app/Contents/MacOS/BabelBrain<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span>--serve-host<span class="w"> </span><span class="m">164</span>.5.34.1<span class="w">  </span><span class="c1"># specify IP address of exposed network interface to accept requests</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>/Applications/BabelBrain.app/Contents/MacOS/BabelBrain<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span>--serve-host<span class="w"> </span><span class="m">164</span>.5.34.1<span class="w"> </span>--serve-port<span class="w"> </span><span class="m">9000</span><span class="w"> </span>--serve-token<span class="w"> </span>SECRET<span class="w"> </span><span class="c1"># specify also different port number and secret TOKEN </span>
+</code></pre></div></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>BabelBrain/BabelBrain.py<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w">               </span><span class="c1"># localhost:8760, no GUI shown</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python<span class="w"> </span>BabelBrain/BabelBrain.py<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span>--serve-host<span class="w"> </span><span class="m">164</span>.5.34.1<span class="w">  </span><span class="c1"># specify IP address of exposed network interface to accept requests</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>python<span class="w"> </span>BabelBrain/BabelBrain.py<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span>--serve-host<span class="w"> </span><span class="m">164</span>.5.34.1<span class="w"> </span>--serve-port<span class="w"> </span><span class="m">9000</span><span class="w"> </span>--serve-token<span class="w"> </span>SECRET<span class="w"> </span><span class="c1"># specify also different port number and secret TOKEN </span>
+</code></pre></div>
 <p>Token use is <strong>HIGHLY RECOMMENDED</strong>, and often required by IT, when using in a large network</p>
 <p>Stop the server with <code>Ctrl-C</code>.</p>
-<h3 id="server-mode-options">Server mode options</h3>
+<h3 id="server-mode-options">Server mode options<a class="headerlink" href="#server-mode-options" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -304,7 +1509,7 @@ than <code>127.0.0.1</code>/<code>localhost</code>) it will <strong>refuse to st
 cleartext). Set the environment variable <code>BABEL_SERVER_ALLOW_INSECURE=1</code> to override
 the guard — for example when a reverse proxy terminates TLS in front of BabelBrain.</p>
 </blockquote>
-<h1 id="client-configuration">Client configuration</h1>
+<h1 id="client-configuration">Client configuration<a class="headerlink" href="#client-configuration" title="Permanent link">&para;</a></h1>
 <p>In BabelBrain client operation (normal GUI mode), the uer can use a remote server in the same way as it would be a local GPU. No data will be preserved in the server. Be aware that during the execution of a session, files will be transferred back and forth between the client and server. Files will be deleted once the client closes its session or the server is stopped.</p>
 <p>The user can configure a remote server in the list of "Computing Backends":</p>
 <p><img src="server_config_1.png" height=350px></p>
@@ -313,7 +1518,7 @@ the guard — for example when a reverse proxy terminates TLS in front of BabelB
 <p>Be aware that multiple server entries can be created.</p>
 <p>Once defined, the configured servers will be available as a list of computing backend:</p>
 <p><img src="server_config_3.png" height=350px></p>
-<h1 id="server-api">Server API</h1>
+<h1 id="server-api">Server API<a class="headerlink" href="#server-api" title="Permanent link">&para;</a></h1>
 <table>
 <thead>
 <tr>
@@ -364,7 +1569,7 @@ the guard — for example when a reverse proxy terminates TLS in front of BabelB
 </tr>
 </tbody>
 </table>
-<h3 id="configuration-is-client-owned-and-mandatory">Configuration is client-owned and mandatory</h3>
+<h3 id="configuration-is-client-owned-and-mandatory">Configuration is client-owned and mandatory<a class="headerlink" href="#configuration-is-client-owned-and-mandatory" title="Permanent link">&para;</a></h3>
 <p>The <a href="Coding/advanced_config.html">advanced configuration</a> is <strong>owned by the client</strong>, not
 stored per-session on the server. Every job <strong>must</strong> carry its own <code>config</code>
 object; a submission without it is rejected (<code>400</code>).</p>
@@ -378,47 +1583,47 @@ object; a submission without it is rejected (<code>400</code>).</p>
 <p>In <strong>server mode the configuration is memory-only</strong>: the server never writes
 <code>lastselection.yaml</code>, and a job's config affects only that job. (Persisting is
 allowed only for a normal, local non-server session.)</p>
-<h3 id="jobspec">JobSpec</h3>
+<h3 id="jobspec">JobSpec<a class="headerlink" href="#jobspec" title="Permanent link">&para;</a></h3>
 <p>A <code>JobSpec</code> (POST body, JSON) has three parts: input-selection fields, the
 mandatory <code>config</code>, and <code>steps</code>.</p>
-<pre><code class="language-json">{
-  &quot;t1w&quot;: &quot;/data/sub-01/T1W.nii.gz&quot;,
-  &quot;simbnibs&quot;: &quot;/data/sub-01/m2m_sub-01/&quot;,
-  &quot;trajectory&quot;: &quot;/data/sub-01/target.txt&quot;,
-  &quot;thermal_profile&quot;: &quot;/data/profile.yaml&quot;,
-  &quot;transducer&quot;: &quot;CTX_500&quot;,
-  &quot;ct_type&quot;: &quot;CT&quot;,
-  &quot;ct&quot;: &quot;/data/sub-01/CT.nii.gz&quot;,
-  &quot;output_path&quot;: &quot;/data/sub-01/output/&quot;,
-  &quot;recalculate&quot;: true,
-
-  &quot;config&quot;: { &quot;...&quot;: &quot;the full advanced-config object from /defaultconfig&quot; },
-
-  &quot;steps&quot;: {
-    &quot;planning&quot;: [
-      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;USMaskkHzDropDown&quot;, &quot;value&quot;: &quot;500&quot;},
-      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;USPPWSpinBox&quot;, &quot;value&quot;: 6},
-      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;HUThresholdSpinBox&quot;, &quot;value&quot;: 300},
-      {&quot;action&quot;: &quot;run&quot;}
-    ],
-    &quot;acoustic&quot;: [
-      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 0},
-      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;ZSteeringSpinBox&quot;, &quot;value&quot;: 3.0},
-      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;XSteeringSpinBox&quot;, &quot;value&quot;: 0.0},
-      {&quot;action&quot;: &quot;run&quot;},
-      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 1},
-      {&quot;action&quot;: &quot;run&quot;},
-      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;CombineTrajectories&quot;}
-    ],
-    &quot;thermal&quot;: [
-      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 0},
-      {&quot;action&quot;: &quot;run&quot;},
-      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;ExportSummary&quot;, &quot;wait&quot;: false},
-      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;ExportMaps&quot;, &quot;wait&quot;: false}
-    ]
-  }
-}
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"t1w"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/sub-01/T1W.nii.gz"</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"simbnibs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/sub-01/m2m_sub-01/"</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">"trajectory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/sub-01/target.txt"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">"thermal_profile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/profile.yaml"</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">"transducer"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CTX_500"</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">"ct_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CT"</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">"ct"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/sub-01/CT.nii.gz"</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">"output_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/data/sub-01/output/"</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="nt">"recalculate"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="nt">"config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"..."</span><span class="p">:</span><span class="w"> </span><span class="s2">"the full advanced-config object from /defaultconfig"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">"steps"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">"planning"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"set"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USMaskkHzDropDown"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"500"</span><span class="p">},</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"set"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USPPWSpinBox"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">},</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"set"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"HUThresholdSpinBox"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">},</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"run"</span><span class="p">}</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">    </span><span class="nt">"acoustic"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"select_trajectory"</span><span class="p">,</span><span class="w"> </span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"set"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ZSteeringSpinBox"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">},</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"set"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"XSteeringSpinBox"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"run"</span><span class="p">},</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"select_trajectory"</span><span class="p">,</span><span class="w"> </span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"run"</span><span class="p">},</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"click"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CombineTrajectories"</span><span class="p">}</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">    </span><span class="nt">"thermal"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"select_trajectory"</span><span class="p">,</span><span class="w"> </span><span class="nt">"index"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"run"</span><span class="p">},</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"click"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ExportSummary"</span><span class="p">,</span><span class="w"> </span><span class="nt">"wait"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">},</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">      </span><span class="p">{</span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"click"</span><span class="p">,</span><span class="w"> </span><span class="nt">"control"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ExportMaps"</span><span class="p">,</span><span class="w"> </span><span class="nt">"wait"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">}</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="p">}</span>
+</code></pre></div>
 <ul>
 <li><strong>Input fields</strong> (<code>t1w</code>, <code>simbnibs</code>, <code>transducer</code>, <code>ct_type</code>, …) are the
   <a href="Coding/scripting.html#launch-selecting-inputs"><code>launch()</code> inputs</a> — the SelFiles-level
@@ -431,7 +1636,7 @@ mandatory <code>config</code>, and <code>steps</code>.</p>
   <strong>ordered list of actions</strong>. Steps run in pipeline order; actions run exactly
   in the order given.</li>
 </ul>
-<h3 id="actions">Actions</h3>
+<h3 id="actions">Actions<a class="headerlink" href="#actions" title="Permanent link">&para;</a></h3>
 <p>Each action targets the controls of its step (<code>planning</code> → the main window,
 <code>acoustic</code>/<code>thermal</code> → the current trajectory tab). Control names are the same
 as in <a href="Coding/operations.html">Scriptable operations</a>.</p>
@@ -469,26 +1674,26 @@ as in <a href="Coding/operations.html">Scriptable operations</a>.</p>
 <p>This gives full, ordered control — e.g. <em>select trajectory 0 → set Z-steering →
 run → select trajectory 1 → run → combine</em> — mirroring what you'd do in the GUI
 or in a <a href="Coding/operations.html">script</a>.</p>
-<h3 id="job-lifecycle">Job lifecycle</h3>
+<h3 id="job-lifecycle">Job lifecycle<a class="headerlink" href="#job-lifecycle" title="Permanent link">&para;</a></h3>
 <p><code>QUEUED → RUNNING → SUCCEEDED | FAILED | CANCELLED</code>. On <code>SUCCEEDED</code>, <code>artifacts</code>
 lists the produced files (<code>.h5</code>, <code>.nii.gz</code>, <code>.csv</code>) under <code>output_path</code>; on
 <code>FAILED</code>, <code>error</code> carries the traceback and <code>exit_code</code> is non-zero.</p>
-<h2 id="client-examples">Client examples</h2>
+<h2 id="client-examples">Client examples<a class="headerlink" href="#client-examples" title="Permanent link">&para;</a></h2>
 <p><code>curl</code> (remember <code>config</code> is mandatory — fetch a baseline first):</p>
-<pre><code class="language-bash">curl -s localhost:8760/capabilities
-curl -s localhost:8760/defaultconfig &gt; config.json      # baseline to embed in the job
-# ...build a JobSpec (with &quot;config&quot;: &lt;config.json&gt;) as spec.json, then:
-JOB=$(curl -s -XPOST localhost:8760/jobs --data @spec.json | python -c &quot;import sys,json;print(json.load(sys.stdin)['job_id'])&quot;)
-curl -s localhost:8760/jobs/$JOB            # poll status
-curl -sN localhost:8760/jobs/$JOB/stream    # follow progress (SSE)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>localhost:8760/capabilities
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>curl<span class="w"> </span>-s<span class="w"> </span>localhost:8760/defaultconfig<span class="w"> </span>&gt;<span class="w"> </span>config.json<span class="w">      </span><span class="c1"># baseline to embed in the job</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># ...build a JobSpec (with "config": &lt;config.json&gt;) as spec.json, then:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">JOB</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>-XPOST<span class="w"> </span>localhost:8760/jobs<span class="w"> </span>--data<span class="w"> </span>@spec.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import sys,json;print(json.load(sys.stdin)['job_id'])"</span><span class="k">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>curl<span class="w"> </span>-s<span class="w"> </span>localhost:8760/jobs/<span class="nv">$JOB</span><span class="w">            </span><span class="c1"># poll status</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>curl<span class="w"> </span>-sN<span class="w"> </span>localhost:8760/jobs/<span class="nv">$JOB</span>/stream<span class="w">    </span><span class="c1"># follow progress (SSE)</span>
+</code></pre></div>
 <p>A complete, dependency-free <strong>Python reference client</strong> ships with the source at</p>
 <ul>
 <li><code>BabelBrain/client_server_remote.py</code> - This mimics how the GUI client BabelBrain operates, where local temporary directories at the server are used to store files during the session life, the client sends input files to the server, then artifacts (results files) are recovered from the server.</li>
 <li><code>BabelBrain/client_server_session.py</code> - This shows how to keep the session alive between Steps 1 to 3, which can be needed when some temporary state persistance is needed. The complete GUI client combines this session mode and the remote temporary file storage shown in <code>client_server_remote.py</code>.</li>
 <li><code>BabelBrain/client_server_persistent.py</code> - This shows the case where file paths refer to local locations in the server, showing how to run simulations in the case results are desired to remain in the filesystem of the server.</li>
 </ul>
-<h1 id="transport-security-tls">Transport security (TLS)</h1>
+<h1 id="transport-security-tls">Transport security (TLS)<a class="headerlink" href="#transport-security-tls" title="Permanent link">&para;</a></h1>
 <p>The server drives a GPU and reads/writes files, so treat it as an attack surface
 from the outset. Plain HTTP is fine only for <code>localhost</code>. As soon as another
 machine talks to it, the traffic — including the bearer token — should be
@@ -517,7 +1722,7 @@ saves a lot of certificate pain:</p>
 certificate, and is <em>more</em> secure because BabelBrain's port is never exposed to
 the network at all.</p>
 </blockquote>
-<h2 id="recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network">Recipe A — a self-signed certificate for a trusted box on the same network</h2>
+<h2 id="recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network">Recipe A — a self-signed certificate for a trusted box on the same network<a class="headerlink" href="#recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network" title="Permanent link">&para;</a></h2>
 <p>This is the intended setup for a GPU workstation sitting on your lab/clinic LAN
 that a handful of trusted clients connect to directly. You generate the
 certificate once on the server and copy it to each client so they can trust it.</p>
@@ -527,7 +1732,7 @@ need <strong>both</strong>:</p>
 <li>a <strong>private key</strong> (<code>babelbrain-key.pem</code>) — secret, stays on the server;</li>
 <li>a <strong>certificate</strong> (<code>babelbrain-cert.pem</code>) — public, copied to every client.</li>
 </ul>
-<h3 id="the-one-thing-that-must-be-right-the-servers-address-the-san">The one thing that must be right: the server's address (the "SAN")</h3>
+<h3 id="the-one-thing-that-must-be-right-the-servers-address-the-san">The one thing that must be right: the server's address (the "SAN")<a class="headerlink" href="#the-one-thing-that-must-be-right-the-servers-address-the-san" title="Permanent link">&para;</a></h3>
 <p>A certificate is bound to the <strong>address(es) by which clients reach the server</strong>.
 This list lives in a certificate field called the <strong>SAN</strong> (<em>Subject Alternative
 Name</em> — nothing to do with storage networks). When a client connects to, say,
@@ -541,16 +1746,16 @@ use for this server (e.g. both a DNS name and a raw IP, or several interface
 IPs if the box is multi-homed). The clients' own addresses never appear in the
 certificate.</p>
 </blockquote>
-<h3 id="generate-the-key-certificate">Generate the key + certificate</h3>
+<h3 id="generate-the-key-certificate">Generate the key + certificate<a class="headerlink" href="#generate-the-key-certificate" title="Permanent link">&para;</a></h3>
 <p>Run this <strong>on the server</strong>, replacing the hostname/IP with how <em>this server</em> is
 reached on your network. <code>openssl</code> ships with the BabelBrain conda environment,
 so run it from an activated environment (works identically on Linux, macOS and
 the Windows <em>Anaconda Prompt</em>):</p>
-<pre><code class="language-bash">openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
-  -keyout babelbrain-key.pem -out babelbrain-cert.pem \
-  -subj &quot;/CN=gpu-box&quot; \
-  -addext &quot;subjectAltName=DNS:gpu-box.mylab.local,IP:10.0.0.5&quot;
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>openssl<span class="w"> </span>req<span class="w"> </span>-x509<span class="w"> </span>-newkey<span class="w"> </span>rsa:2048<span class="w"> </span>-nodes<span class="w"> </span>-days<span class="w"> </span><span class="m">825</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-keyout<span class="w"> </span>babelbrain-key.pem<span class="w"> </span>-out<span class="w"> </span>babelbrain-cert.pem<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-subj<span class="w"> </span><span class="s2">"/CN=gpu-box"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span>-addext<span class="w"> </span><span class="s2">"subjectAltName=DNS:gpu-box.mylab.local,IP:10.0.0.5"</span>
+</code></pre></div>
 <ul>
 <li><code>subjectAltName=...</code> — <strong>the critical part.</strong> Put <strong>every</strong> address clients use
   for this server here. Use <code>DNS:</code> for hostnames and <code>IP:</code> for raw IP addresses,
@@ -566,14 +1771,14 @@ the Windows <em>Anaconda Prompt</em>):</p>
   certificates valid for longer). Regenerate when it expires.</li>
 <li>Keep the key private: on Linux/macOS run <code>chmod 600 babelbrain-key.pem</code>.</li>
 </ul>
-<h3 id="start-the-server-with-tls">Start the server with TLS</h3>
-<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless \
-  --serve-host 10.0.0.5 --serve-token SECRET \
-  --serve-certfile babelbrain-cert.pem --serve-keyfile babelbrain-key.pem
-</code></pre>
+<h3 id="start-the-server-with-tls">Start the server with TLS<a class="headerlink" href="#start-the-server-with-tls" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>BabelBrain/BabelBrain.py<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--serve-host<span class="w"> </span><span class="m">10</span>.0.0.5<span class="w"> </span>--serve-token<span class="w"> </span>SECRET<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--serve-certfile<span class="w"> </span>babelbrain-cert.pem<span class="w"> </span>--serve-keyfile<span class="w"> </span>babelbrain-key.pem
+</code></pre></div>
 <p>The startup banner will now read <code>https://…</code> and <code>TLS</code>. (Because the bind is
 non-loopback, a token is required — see the safety guard above.)</p>
-<h3 id="configure-the-client-to-trust-it">Configure the client to trust it</h3>
+<h3 id="configure-the-client-to-trust-it">Configure the client to trust it<a class="headerlink" href="#configure-the-client-to-trust-it" title="Permanent link">&para;</a></h3>
 <p>Copy <strong>only</strong> <code>babelbrain-cert.pem</code> (never the key) to each client machine. In
 BabelBrain's remote-server dialog:</p>
 <ul>
@@ -584,18 +1789,18 @@ BabelBrain's remote-server dialog:</p>
 </ul>
 <p><img src="server_config_2.png" height=250px></p>
 <p>For the Python reference clients, point them at the copied certificate:</p>
-<pre><code class="language-python">import client_functions as cf
-cf.BASE = &quot;https://10.0.0.5:8760&quot;     # must match a SAN entry
-cf.TOKEN = &quot;SECRET&quot;
-cf.CA    = &quot;babelbrain-cert.pem&quot;      # trust our self-signed cert
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">client_functions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cf</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">cf</span><span class="o">.</span><span class="n">BASE</span> <span class="o">=</span> <span class="s2">"https://10.0.0.5:8760"</span>     <span class="c1"># must match a SAN entry</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">cf</span><span class="o">.</span><span class="n">TOKEN</span> <span class="o">=</span> <span class="s2">"SECRET"</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">cf</span><span class="o">.</span><span class="n">CA</span>    <span class="o">=</span> <span class="s2">"babelbrain-cert.pem"</span>      <span class="c1"># trust our self-signed cert</span>
+</code></pre></div>
 <blockquote>
 <p><strong>Last resort only:</strong> ticking <em>Skip certificate verification</em> on the client (or
 <code>cf.INSECURE = True</code>) disables all verification. It removes the protection TLS
 is meant to provide and invites a man-in-the-middle — use it only for a throwaway
 local test, never in routine operation.</p>
 </blockquote>
-<h2 id="reaching-a-remote-server-over-ssh">Reaching a remote server over SSH</h2>
+<h2 id="reaching-a-remote-server-over-ssh">Reaching a remote server over SSH<a class="headerlink" href="#reaching-a-remote-server-over-ssh" title="Permanent link">&para;</a></h2>
 <p>For a server on a <strong>separate/remote network</strong> that is not (and should not be)
 exposed, do <strong>not</strong> generate a certificate. Leave BabelBrain on its default
 loopback bind and reach it through an SSH tunnel — SSH already provides the
@@ -603,18 +1808,18 @@ encryption, server authentication and user authentication that TLS would, so
 adding TLS inside the tunnel is redundant.</p>
 <p><strong>On the server</strong> — bind to loopback (the default), no certificate, nothing
 exposed:</p>
-<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless      # listens on 127.0.0.1:8760 only
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>BabelBrain/BabelBrain.py<span class="w"> </span>--serve<span class="w"> </span>--headless<span class="w">      </span><span class="c1"># listens on 127.0.0.1:8760 only</span>
+</code></pre></div>
 <p><strong>On the client</strong> — forward a local port to the server's loopback over SSH:</p>
-<pre><code class="language-bash">ssh -N -L 8760:127.0.0.1:8760 user@remote-gpu-box
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ssh<span class="w"> </span>-N<span class="w"> </span>-L<span class="w"> </span><span class="m">8760</span>:127.0.0.1:8760<span class="w"> </span>user@remote-gpu-box
+</code></pre></div>
 <p>Now configure a remote server in BabelBrain with <strong>Host <code>127.0.0.1</code></strong>, <strong>Port
 <code>8760</code></strong>, <strong>HTTPS off</strong>. The client talks to <code>http://127.0.0.1:8760</code> locally and
 SSH carries it, encrypted, to the server. There is no certificate to manage and
 no SAN to get wrong (a tunnelled cert would have to be issued for <code>localhost</code>,
 which is more awkward, not less). Add <code>--serve-token</code> if you want jobs gated
 beyond "has an SSH account" — it travels safely inside the tunnel.</p>
-<h2 id="reverse-proxy-public-facing-servers">Reverse proxy (public-facing servers)</h2>
+<h2 id="reverse-proxy-public-facing-servers">Reverse proxy (public-facing servers)<a class="headerlink" href="#reverse-proxy-public-facing-servers" title="Permanent link">&para;</a></h2>
 <p>For a genuinely public server with a DNS name, the lowest-maintenance option is a
 TLS-terminating reverse proxy (e.g. <strong>Caddy</strong>, which obtains and renews a
 real Let's Encrypt certificate automatically) with BabelBrain bound to
@@ -622,84 +1827,115 @@ real Let's Encrypt certificate automatically) with BabelBrain bound to
 <code>BABEL_SERVER_ALLOW_INSECURE=1</code> so the loopback-bound BabelBrain does not warn
 about serving plain HTTP behind the proxy. This is outside the scope of the
 recipes above but is the recommended shape if you must expose the service to the
-open internet.</p></div>
-            </div>
-        </div>
+open internet.</p>
 
-        <footer class="col-md-12">
-            <hr>
-            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
-        </footer>
-        <script src="js/bootstrap.bundle.min.js"></script>
-        <script>
-            var base_url = ".",
-                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
-        </script>
-        <script src="js/base.js"></script>
-        <script src="mathjax-config.js"></script>
-        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script src="search/main.js"></script>
 
-        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="searchModalLabel">Search</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
             </div>
-            <div class="modal-body">
-                <p>From here you can search these documents. Enter your search terms below.</p>
-                <form>
-                    <div class="form-group">
-                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
-                    </div>
-                </form>
-                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
-            </div>
-            <div class="modal-footer">
-            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
-    </div>
-</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="./CustomTransducers/CustomTransducers.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Custom transducers">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
             </div>
-            <div class="modal-body">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th style="width: 20%;">Keys</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="help shortcut"><kbd>?</kbd></td>
-                    <td>Open this help</td>
-                  </tr>
-                  <tr>
-                    <td class="next shortcut"><kbd>n</kbd></td>
-                    <td>Next page</td>
-                  </tr>
-                  <tr>
-                    <td class="prev shortcut"><kbd>p</kbd></td>
-                    <td>Previous page</td>
-                  </tr>
-                  <tr>
-                    <td class="search shortcut"><kbd>s</kbd></td>
-                    <td>Search</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Custom transducers
+              </div>
             </div>
-            <div class="modal-footer">
+          </a>
+        
+        
+          
+          <a href="./Advanced/advanced.html" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced options">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Advanced options
+              </div>
             </div>
-        </div>
-    </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
 </div>
-
-    </body>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":".","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.top","navigation.footer","toc.integrate","search.highlight","content.code.copy","toc.follow"],"redirect":null,"search":"./assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="./assets/javascripts/bundle.d31f0ffa.min.js"></script>
+      
+        <script src="./javascripts/header-height.js"></script>
+      
+    
+  </body>
 </html>
