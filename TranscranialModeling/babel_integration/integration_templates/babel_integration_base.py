@@ -1478,9 +1478,10 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
             Oz=np.array([1])
         else:
             TypeSource=0 #particle source
-            Ox=np.zeros(self._MaterialMap.shape) 
-            Oy=np.zeros(self._MaterialMap.shape) 
-            Oz=np.ones(self._MaterialMap.shape)/self._FactorConvPtoU
+            # float32, as used by the solver, so the arrays are passed without conversion copies
+            Ox=np.zeros(self._MaterialMap.shape,np.float32)
+            Oy=np.zeros(self._MaterialMap.shape,np.float32)
+            Oz=np.full(self._MaterialMap.shape,1.0/self._FactorConvPtoU,np.float32)
 
         if bRefocused==False:      
             self._Sensor,LastMap,self._DictPeakValue,InputParam=PModel.StaggeredFDTD_3D_with_relaxation(
