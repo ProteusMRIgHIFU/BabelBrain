@@ -11,19 +11,21 @@ h help:
 
 install:
 	pip install pip --upgrade
-	pip install -r requirements.txt
+	pip install -r requirements-docs.txt
 
 upgrade:
 	pip install pip --upgrade
-	pip install -r requirements.txt --upgrade
+	pip install -r requirements-docs.txt --upgrade
 
 
 s serve:
-	mkdocs serve --strict
+	zensical serve
 
 
 b build:
-	mkdocs build --strict
+	zensical build --clean --strict
 
-d deploy:
-	mkdocs gh-deploy --strict --force
+# Zensical has no gh-deploy; build, then force-push site/ to the gh-pages branch
+# (-n adds .nojekyll, -f forces, -p pushes to origin).
+d deploy: build
+	ghp-import -n -p -f -m "Deployed $$(git rev-parse --short HEAD) with Zensical $$(zensical --version)" site

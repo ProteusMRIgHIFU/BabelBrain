@@ -1,0 +1,3 @@
+# Documentation build dependencies (Python >= 3.11; tested with 3.14 in conda env BabelDoc2)
+zensical==0.0.74
+ghp-import==2.1.0

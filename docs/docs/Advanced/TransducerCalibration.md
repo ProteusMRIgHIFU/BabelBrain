@@ -12,7 +12,7 @@ Obtain from the vendor an Excel file with the intensity profile data used to pro
 <img src="TxCalibration-2.png" height=450px>
 
 # Procedure
-## 1. Identify range of data
+## Identify range of data
 Identify the range of cells for intensity data needed to produce the plot. The selected table should contain the Z axis distance from the outplane in the first column and the intensity values in the next columns corresponding to each steering in Z. 
 
 On the example above, the first cell would be **T20**:
@@ -24,7 +24,7 @@ and the last cell would be **AJ81**:
 <img src="TxCalibration-4.png" height=250px>
 
 **VERY IMPORTANT**: Be sure of selecting the cell matching the last steering condition at the deepest Z value, **and nothing else**.
-## 2. Prepare YAML file with input information for calibration
+## Prepare YAML file with input information for calibration
 Details of the Excel sheet and cell range is specified via a simple YAML file as the one shown below
 
 ```YAML
@@ -45,7 +45,7 @@ where `Device` is the device type to calibrate; this should match the device sel
 
 Be sure that the `OutputResultsPath` is unique per transducer and serial number basis, in case more than one transducer of the same model is available.
 
-## 3. Run transducer calibration in BabelBrain
+## Run transducer calibration in BabelBrain
 Open BabelBrain and select the correct transducer model
 
 <img src="TxCalibration-5.png" height=250px>
@@ -60,7 +60,7 @@ Run the calibration with the `Execute` button and wait for a 1 or 2 min. Once co
 
 If results are satisfactory, select `confirm and accept calibration`. The Advanced Options dialog will populate the path to the calibration file (`CALIBRATION.h5`) indicated in the `OutputResultsPath` path. Select `Ok` in the Advanced Options dialog to store this calibration info. 
 
-## 4. Important notes
+##  Important notes
 Once accepted and saved as an option, any new acoustic simulation in Step 2 will use the fitted transducer response. This calibration information will be preserved between BabelBrain sessions. If there is need to reset the calibration to the default transducer response, open the Advance Options dialog and clear the path to the calibration file and save with `Ok`.
 
 BabelBrain will manage the calibration per transducer model basis. For example, if more than one transducer model is available (for example, CTX 500 and DPX 500), individual calibrations can be run and saved. Every time BabelBrain is opened with the different transducer model, BabelBrain will load the specific calibration file for each transducer.

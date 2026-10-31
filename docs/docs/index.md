@@ -11,7 +11,7 @@ University of Calgary
 samuel.pichardo@ucalgary.ca  
 [www.neurofus.ca](https://www.neurofus.ca)
 
-[![License: BSD-3](https://img.shields.io/badge/BSD-3-Clause.svg)](LICENSE)
+[![License: BSD-3](https://img.shields.io/badge/BSD-3-Clause.svg)](https://github.com/ProteusMRIgHIFU/BabelBrain/blob/main/LICENSE)
 
 **GUI application for the modeling of transcranial ultrasound for neuromodulation applications**
 

@@ -1,0 +1,105 @@
+/* ------------------------------------------------------------------
+   BabelBrain: main navigation tabs in the same row as the site title
+   (works together with overrides/partials/header.html)
+   ------------------------------------------------------------------ */
+
+/* Breakpoint below which tabs collapse into the hamburger menu.
+   Theme default is 1220px; we keep tabs visible down to 720px. */
+
+/* Site title: size to its content instead of filling the row */
+.md-header__title--static {
+  flex: 0 0 auto;
+  margin-right: 0.6rem;
+}
+.md-header__sitename {
+  color: inherit;
+  font-weight: 700;
+}
+
+/* Tabs inside the header row */
+.md-header--inline-tabs .md-tabs {
+  display: block;            /* theme hides tabs below 1220px; undo that */
+  flex: 1 1 auto;
+  min-width: 0;              /* allow shrinking */
+  width: auto;
+  overflow: visible;         /* theme default scrolls sideways; we wrap */
+  background-color: transparent;
+  box-shadow: none;          /* modern variant: no grey line under the tabs */
+}
+.md-header--inline-tabs .md-tabs .md-grid {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+/* Wrap the tabs onto extra rows when they don't fit in one line */
+.md-header--inline-tabs .md-tabs__list {
+  flex-wrap: wrap;
+  overflow: visible;
+  white-space: normal;
+  padding: 0.2rem 0;
+}
+.md-header--inline-tabs .md-tabs__item {
+  display: flex;
+  align-items: center;
+  height: 1.8rem;            /* row height of each line of tabs */
+  padding: 0 0.5rem;
+  white-space: nowrap;       /* never break a single tab label */
+}
+
+/* The header grows when tabs wrap; keep sidebars and anchor jumps below it.
+   --bb-header-height is measured by javascripts/header-height.js */
+.md-header--inline-tabs ~ .md-container .md-sidebar {
+  top: var(--bb-header-height, 2.4rem);
+}
+.md-typeset :target {
+  --md-scroll-margin: calc(var(--bb-header-height, 2.4rem) + 1.2rem);
+}
+.md-header--inline-tabs .md-tabs__link {
+  margin-top: 0;
+  font-size: 0.75rem;
+}
+/* Modern variant draws its own thin line under the active tab; drop it so
+   only the thick underline below is shown (no-op in the classic variant) */
+.md-header--inline-tabs .md-tabs__item--active,
+.md-header--inline-tabs .md-tabs[hidden] .md-tabs__item--active {
+  border-bottom: none;
+}
+.md-header--inline-tabs .md-tabs__item--active .md-tabs__link {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.35rem;
+  text-decoration-thickness: 2px;
+}
+
+/* Keep the logo visible at medium widths too (theme hides it < 1220px) */
+@media screen and (min-width: 45em) {
+  .md-header--inline-tabs .md-header__button.md-logo {
+    display: block;
+  }
+}
+
+/* GitHub repo box: icon only (name/stats take too much room in one row) */
+.md-header--inline-tabs .md-header__source {
+  width: auto;
+  max-width: none;
+}
+.md-header--inline-tabs .md-source__repository {
+  display: none;
+}
+
+/* Medium widths: hide the GitHub repo box to leave room for the tabs */
+@media screen and (max-width: 76.234375em) {
+  .md-header--inline-tabs .md-header__source {
+    display: none;
+  }
+}
+
+/* Small screens / phones: hide tabs, use the hamburger drawer instead */
+@media screen and (max-width: 44.984375em) {
+  .md-header--inline-tabs .md-tabs {
+    display: none;
+  }
+  .md-header--inline-tabs .md-header__title--static {
+    flex: 1 1 auto;
+  }
+}

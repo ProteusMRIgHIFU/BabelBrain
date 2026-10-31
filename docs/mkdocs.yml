@@ -1,53 +1,84 @@
 ### Site metadata ###
 
 site_name: BabelBrain
-site_description: BabelBrain 
-site_url: https://proteusmrghifu.github.io/BabelBrain/
-use_directory_urls: false
+site_description: Prospective modeling of transcranial focused ultrasound for neuromodulation
+site_url: https://proteusmrighifu.github.io/BabelBrain/
+repo_url: https://github.com/ProteusMRIgHIFU/BabelBrain
+repo_name: ProteusMRIgHIFU/BabelBrain
+edit_uri: ""
+use_directory_urls: false   # keep existing *.html links working
 
-### Build settings ###
+### Build settings (Zensical) ###
 theme:
-    name: mkdocs
-    highlightjs: true
-    hljs_languages:
-        - yaml
-        - rust
-        - python
-        - bash
-    navigation_depth: 4
+  name: material
+  variant: modern
+  custom_dir: overrides          # header.html override: tabs in the title row
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.integrate              # page headings shown in the left panel (old MkDocs style)
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
 
 nav:
-  - Home: index.md
-  - Presentations: presentations.md
+  - Home:
+      - Overview: index.md
+      - Presentations: presentations.md
   - Installation: installation.md
-  - Simulation pipeline: 
-     - Overall description : pipeline/pipeline.md
-     - Preliminary steps: pipeline/Preliminary_steps.md
-     - Planning: pipeline/Planning.md
-     - BabelBrain simulation : pipeline/BabelBrain.md
-  - MRI sequences : MRISequences/MRISequences.md
-  - Results files : results/results.md
-  - Advanced options: Advanced/advanced.md
+  - Simulation pipeline:
+      - Overall description: pipeline/pipeline.md
+      - Preliminary steps: pipeline/Preliminary_steps.md
+      - Planning: pipeline/Planning.md
+      - BabelBrain simulation: pipeline/BabelBrain.md
+      - MRI sequences: MRISequences/MRISequences.md
+      - Results files: results/results.md
   - PlanTUS: Advanced/PlanTUS.md
   - Tx calibration: Advanced/TransducerCalibration.md
-  - Client/Server mode: server.md
   - Custom transducers: CustomTransducers/CustomTransducers.md
+  - Client/Server mode: server.md
+  - Advanced:
+      - Advanced options: Advanced/advanced.md
   - Coding / API:
-    - Scripting BabelBrain: Coding/scripting.md
-    - Scriptable operations: Coding/operations.md
-    - Advanced configuration: Coding/advanced_config.md
-  - Appendix : Appendix/Appendix.md
+      - Scripting BabelBrain: Coding/scripting.md
+      - Scriptable operations: Coding/operations.md
+      - Advanced configuration: Coding/advanced_config.md
+  - Appendix: Appendix/Appendix.md
 
-markdown_extensions:
-    - md4mathjax
-    - footnotes
-    - pymdownx.arithmatex
+extra_css:
+  - stylesheets/extra.css
 
 extra_javascript:
-  - mathjax-config.js
-  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML
-plugins:
-  - search
-  - bibtex:
-      bib_file: "refs.bib"
-      csl_file: "the-journal-of-the-acoustical-society-of-america.csl"
+  - javascripts/header-height.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
