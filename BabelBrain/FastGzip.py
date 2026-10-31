@@ -39,8 +39,11 @@ def save_nifti(img, path):
     """Save a nibabel image; .gz paths are compressed with multi-threaded ISA-L."""
     path = str(path)
     if HAVE_ISAL and _is_gz(path):
+        # Serialize before opening the output: the image data may still be lazily read from this same file
+        # (e.g. an image loaded from `path` and saved back with a new header), and opening truncates it
+        data = img.to_bytes()
         with igzip_threaded.open(path, 'wb', compresslevel=COMPRESSLEVEL, threads=-1) as f:
-            f.write(img.to_bytes())
+            f.write(data)
     else:
         img.to_filename(path)
     return path
