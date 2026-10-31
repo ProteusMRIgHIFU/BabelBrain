@@ -702,7 +702,7 @@ class RunServerCalculation(QObject):
     def _acoustic_out_files(self):
         """The `OutFiles` payload phased-array devices expect on `finished`.
 
-        Devices deriving from BabelBasePhaseArray (REMOPD included) connect
+        Devices deriving from BabelBasePhaseArray (TheraPhas included) connect
         finished -> EndSimulation(OutFiles) instead of the plain UpdateAcResults,
         and that slot needs the per-focus lists of skull/water result files
         ({'FilesSkull': [...], 'FilesWater': [...]}, one entry per multifocus

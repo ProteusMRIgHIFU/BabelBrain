@@ -58,7 +58,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                 raise
             raise ValueError("TX system " + TxSystem + " is not yet supported") from e
 
-    if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+    if TxSystem in ['H317','TheraPhas','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
         if kargs['bDryRun']==False:
             stdout = InOutputWrapper(queue,True)
     else:
@@ -77,7 +77,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
         if 'bDryRun' in kargs:
             bDryRun=kargs['bDryRun']
         if kargs['bUseRayleighForWater']==False or bDryRun:
-            if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+            if TxSystem in ['H317','TheraPhas','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
                 kargs['bDoRefocusing']=False
                 if kargs['XSteering']==0.0:
                     kargs['XSteering']=1e-6
@@ -128,7 +128,7 @@ def CalculateFieldProcess(queue,Target,TxSystem,**kargs):
                             save_nifti(combinedNifti,finalName)
                             _rec_artifact(finalName)
 
-        if TxSystem in ['H317','REMOPD','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
+        if TxSystem in ['H317','TheraPhas','I12378','ATAC','R15148','R15646','R16081','IGT64_500','H301','DomeTx'] or geometry_type in ['flat_array_2D','focused_array']:
             kargs['bDryRun'] = True
             FilesWater=R.RunCases(targets=Target, 
                             bTightNarrowBeamDomain=True,

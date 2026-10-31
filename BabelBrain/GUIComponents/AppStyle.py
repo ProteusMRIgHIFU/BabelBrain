@@ -95,11 +95,10 @@ def apply_native_spinbox_style(root):
     """
     if not _IS_WINDOWS:
         return
-    global _fusion_style
-    if _fusion_style is None:
-        _fusion_style = QStyleFactory.create("Fusion")
+    _fusion_style = QStyleFactory.create("Fusion")
     if _fusion_style is None:
         return
+    _fusion_style.setParent(root)   # Give each widget its own instance of style instead of sharing one so GUI doesn't crash if it accidentally gets deleted
     for sb in root.findChildren(QAbstractSpinBox):
         sb.setStyle(_fusion_style)
 

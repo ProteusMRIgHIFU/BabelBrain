@@ -9,17 +9,17 @@ from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
-from babel_transducers.flat_array_2D.REMOPD.REMOPD_form import REMOPDForm
+from babel_transducers.flat_array_2D.TheraPhas.TheraPhas_form import TheraPhasForm
 from babel_transducers.transducer_templates import babel_flat_array_2D_tx
 from CalculateFieldProcess import CalculateFieldProcess
 from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
 from Utils.paths import resource_path
 
 
-class REMOPD(babel_flat_array_2D_tx.FlatArray2DTx): 
+class TheraPhas(babel_flat_array_2D_tx.FlatArray2DTx): 
     def __init__(self, parent=None, MainApp=None):
         config_file = os.path.join(resource_path(__file__), "default.yaml")
-        super().__init__(parent,MainApp,config_file,REMOPDForm)
+        super().__init__(parent,MainApp,config_file,TheraPhasForm)
     
     @property
     def FlipSteeringY(self):
@@ -134,7 +134,7 @@ class RunAcousticSim(babel_flat_array_2D_tx.RunAcousticSim):
         # GUI Y stays as typed; flip Y in the solver for Brainsight trajectories.
         # kargs['bFlipSteeringY']= self._mainApp.AcSim.FlipSteeringY
         # if kargs['bFlipSteeringY']:
-        #     print('Flipping Y Steering for brainsight operation for REMOPD')
+        #     print('Flipping Y Steering for brainsight operation for TheraPhas')
         kargs['Frequencies']=Frequencies
         kargs['zLengthBeyonFocalPointWhenNarrow']=self._mainApp.AcSim.Widget.MaxDepthSpinBox.value()/1e3
         kargs['bDoRefocusing']=bRefocus
@@ -205,6 +205,6 @@ class RunAcousticSim(babel_flat_array_2D_tx.RunAcousticSim):
 
 if __name__ == "__main__":
     app = QApplication([])
-    widget = REMOPD()
+    widget = TheraPhas()
     widget.show()
     sys.exit(app.exec_())

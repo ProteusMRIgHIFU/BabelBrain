@@ -11,7 +11,7 @@
 # =============================================================================
 
 # ---------- Common parameters ------------------------------------------------
-# Example values reproduce the built-in REMOPD transducer (256 elements, 58 mm aperture).
+# Example values reproduce the built-in TheraPhas transducer (256 elements, 58 mm aperture).
 name: MyFlatArray2DTx                   # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
 geometry_type: flat_array_2D
 frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
@@ -26,7 +26,7 @@ element_size: 0.00258                   # Side length of each square element (m)
 
 # Element centre positions (m) in the array plane, num_elements entries each.
 # Only x and y: elements lie in the array plane (z = 0), so elements.z is not accepted.
-# This example is the REMOPD layout
+# This example is the TheraPhas layout
 elements:
     x: [-0.00154,  0.00154, -0.00770, -0.00462, -0.00154,  0.00154,  0.00462,  0.00770,
         -0.01078, -0.00770, -0.00462, -0.00154,  0.00154,  0.00462,  0.00770,  0.01078,

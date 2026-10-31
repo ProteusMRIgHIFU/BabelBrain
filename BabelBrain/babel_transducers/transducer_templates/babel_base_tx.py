@@ -317,6 +317,12 @@ class BabelBaseTx(QWidget):
         else:
             bCalcFields = True
         self._bRecalculated = True
+        # Step-3 and combined results may no longer match this trajectory; a
+        # first reload this session is checked by file dates (_MergedFilesAreStale)
+        self._MainApp.ThermalSim.InvalidateResults(self._TrajectoryNumber, bForceRecalc=bCalcFields)
+        panel = self._acPanels[self._TrajectoryNumber]
+        if bCalcFields or (panel is not None and panel.get('FullSolName') != self._FullSolName):
+            self.InvalidateMergedResults()
         if bCalcFields:
             CloseAllH5Streams()
             if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
@@ -768,6 +774,8 @@ class BabelBaseTx(QWidget):
             # this tab's cached panel so it is rebuilt from the new data.
             idx = self._mergedTabIndex
             self._acPanels[idx] = None
+            # InvalidateMergedResults may have hidden it
+            self._txTabs.setTabVisible(idx, True)
         else:
             from GUIComponents.ScrollBars import ScrollBars as WidgetScrollBars
             from GUIComponents.TxPanelBase import MergedResultsForm
@@ -794,6 +802,35 @@ class BabelBaseTx(QWidget):
         # tab-changed handler) finds a ready panel to re-activate.
         self._showMergedVisualization()
         self._txTabs.setCurrentIndex(idx)
+
+    def InvalidateMergedResults(self):
+        '''A trajectory is re-run: hide/clear the Merged tab and force the next combination to recompute.'''
+        self._bMergedStale = True
+        idx = getattr(self, '_mergedTabIndex', None)
+        if idx is not None:
+            panel = self._acPanels[idx]
+            if panel is not None:
+                while (child := panel['layout'].takeAt(0)) is not None:
+                    w = child.widget()
+                    if w is not None:
+                        w.deleteLater()
+            self._acPanels[idx] = None
+            self._txTabs.setTabVisible(idx, False)
+        self._MainApp.ClearMergedAcResults()
+
+    def _MergedFilesAreStale(self, MergedFile):
+        '''True if a trajectory was re-run since, or MergedFile is older than a trajectory's field.'''
+        if getattr(self, '_bMergedStale', False):
+            return True
+        AcFiles = []
+        for panel in self._acPanels[:len(self._MainApp.Config['ID'])]:
+            if panel is None or 'FullSolName' not in panel:
+                continue
+            f = panel['FullSolName']
+            AcFiles += f if type(f) is list else [f]
+        AcFiles = [f for f in AcFiles if os.path.isfile(f)]
+        return len(AcFiles) > 0 and \
+            os.path.getmtime(MergedFile) < max(os.path.getmtime(f) for f in AcFiles)
 
     def _showMergedVisualization(self, *args):
         '''(Re)draw the combined acoustic field in the Merged tab.'''
@@ -903,12 +940,18 @@ class BabelBaseTx(QWidget):
         # user declines to recalculate. (Mirrors Step-3 thermal RunSimulation;
         # the previous default reloaded a non-existent file on a fresh combine.)
         bCalcMerge=True
-        if os.path.isfile(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'):
-            ret = QMessageBox.question(self.Widget,'', TR("Combined results exists.\nDo you want to recalculate?\nSelect No to reload"), QMessageBox.Yes | QMessageBox.No)
+        MergedFile = self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz'
+        if os.path.isfile(MergedFile) and self._MergedFilesAreStale(MergedFile):
+            # never reload a stale combination
+            print('Combined results predate the current trajectory results, recalculating')
+        elif os.path.isfile(MergedFile):
+            ret = QMessageBox.question(self.Widget,'', "Combined results exists.\nDo you want to recalculate?\nSelect No to reload", QMessageBox.Yes | QMessageBox.No)
 
             if ret == QMessageBox.No:
                 bCalcMerge=False
 
+        # merged Step-3 results depend on the merged acoustic field
+        self._MainApp.ThermalSim.InvalidateResults(None, bForceRecalc=bCalcMerge)
         if bCalcMerge:
             CloseAllH5Streams()
             if getattr(self._MainApp, 'IsRemoteBackend', lambda: False)():
@@ -929,6 +972,7 @@ class BabelBaseTx(QWidget):
         visualization and show the read-only "Merged" results tab.'''
         self._MainApp.hideClockDialog()
         self._MainApp.Widget.tabWidget.setEnabled(True)
+        self._bMergedStale = False
         MergedNifti = nibabel.load(self._MainApp._merged_prefix_path + 'Merged_NORM.nii.gz')
         self._MainApp.UpdateNiftiMergedAcResults(MergedNifti)
         #show the combined Skull/Water results in a dedicated read-only tab
