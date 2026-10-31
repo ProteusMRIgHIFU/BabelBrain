@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/CustomTransducers/CustomTransducers.html">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Custom transducers - BabelBrain</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../presentations.html" class="nav-link">Presentations</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../pipeline/pipeline.html" class="dropdown-item">Overall description</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Planning.html" class="dropdown-item">Planning</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../server.html" class="nav-link">Client/Server mode</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="CustomTransducers.html" class="nav-link active" aria-current="page">Custom transducers</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../Coding/scripting.html" class="dropdown-item">Scripting BabelBrain</a>
+</li>
+                                    
+<li>
+    <a href="../Coding/operations.html" class="dropdown-item">Scriptable operations</a>
+</li>
+                                    
+<li>
+    <a href="../Coding/advanced_config.html" class="dropdown-item">Advanced configuration</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../server.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../Coding/scripting.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#custom-transducers" class="nav-link">Custom Transducers</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#workflow" class="nav-link">Workflow</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#units-and-conventions" class="nav-link">Units and conventions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#templates" class="nav-link">Templates</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#common-parameters" class="nav-link">Common parameters</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#type-specific-parameters" class="nav-link">Type-specific parameters</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#simple-focused" class="nav-link">Simple Focused</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#flat-annular-array" class="nav-link">Flat Annular Array</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#focused-annular-array" class="nav-link">Focused Annular Array</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#flat-array-2d" class="nav-link">Flat Array 2D</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#focused-array" class="nav-link">Focused Array</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#optional-parameters" class="nav-link">Optional parameters</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#plantus" class="nav-link">PlanTUS</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="custom-transducers">Custom Transducers</h1>
+<p>BabelBrain can load your own transducer designs alongside its built-in devices. You describe the transducer in a YAML file then BabelBrain:</p>
+<ul>
+<li>Validates file</li>
+<li>Generates necessary transducer files</li>
+<li>Runs a Rayleigh simulation in water so you can check the geometry and the beam before using it.</li>
+</ul>
+<h2 id="workflow">Workflow</h2>
+<ol>
+<li>
+<p>In the file-selection dialog, choose the <strong>computing engine</strong> (local GPU or remote server). It is used for the Rayleigh simulations during creation.</p>
+</li>
+<li>
+<p>In the <strong>Transducer</strong> drop-down, choose <code>➕ Add / remove custom transducer…</code>
+    &emsp;&emsp;<img src="custom_tx_pictures/custom_tx_add_option.png" height=350px></p>
+</li>
+<li>
+<p>The <strong>Manage Custom Transducers</strong> dialog lists the custom transducers already installed. From here you can:</p>
+<ul>
+<li><strong>Add…</strong> a new transducer (next step).</li>
+<li><strong>Remove</strong> the selected transducer. After confirmation its folder is deleted.</li>
+<li><strong>Move up</strong> / <strong>Move down</strong> to change the order in which custom transducers appear in the drop-down</li>
+</ul>
+<p><img src="custom_tx_pictures/custom_tx_manager_dialog.png" height=350px></p>
+</li>
+<li>
+<p>In the <strong>Add Custom Transducer</strong> dialog, click <strong>Select Config file</strong>, choose your YAML file and click <strong>Create Transducer</strong>.
+   <img src="custom_tx_pictures/custom_tx_config_file_input.png" height=200px></p>
+</li>
+<li>BabelBrain validates the file:<ul>
+<li>If there is a problem, an error dialog shows the offending YAML line and the reason. After you close it, the <strong>Add Custom Transducer</strong> dialog reopens with the same file selected, so you can fix the file and click <strong>Create Transducer</strong> again.</li>
+<li>If a custom transducer with the same <code>&lt;ClassName&gt;</code> already exists, you are asked whether to overwrite it.</li>
+</ul>
+</li>
+<li>
+<p>If the file has no <code>PlanTUS</code> tables, BabelBrain estimates them with Rayleigh simulations (see <a href="#plantus">PlanTUS parameters</a>). This can take a while for transducers with many frequencies or a wide steering range.</p>
+</li>
+<li>
+<p>The verification window shows the transducer geometry (with the focal spot and the out-plane marked) next to the simulated water field. Click <strong>Continue</strong> to keep the transducer, or <strong>Cancel</strong> to discard it. If you were overwriting an existing transducer, cancelling restores the previous version.</p>
+<p><img src="custom_tx_pictures/custom_tx_verification.png" height=450px></p>
+</li>
+</ol>
+<p>The transducer then appears in the drop-down as <code>Custom: &lt;ClassName&gt;</code>, where <code>&lt;ClassName&gt;</code> is the PascalCase form of <code>name</code> (e.g. <code>my-tx_500</code> → <code>MyTx500</code>). Its generated files are saved in <code>~/.config/BabelBrain/Transducers/babel_&lt;ClassName&gt;/</code>. Do not edit these files by hand; change the YAML file and add the transducer again instead.</p>
+<h2 id="units-and-conventions">Units and conventions</h2>
+<table style="width:100%">
+  <colgroup><col style="width:60%"><col style="width:40%"></colgroup>
+  <thead>
+    <tr><th>Quantity</th><th>Unit</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Lengths, diameters, positions, steering limits, PlanTUS distances</td><td><strong>metres</strong> (m)</td></tr>
+    <tr><td>Frequencies</td><td><strong>hertz</strong> (Hz)</td></tr>
+    <tr><td>Spherical angles (<code>theta</code>, <code>phi</code>)</td><td><strong>degrees</strong></td></tr>
+  </tbody>
+</table>
+
+<p>PyYAML only reads scientific notation as a number if it has a decimal point <strong>and</strong> a signed exponent. Anything else is read as text and fails validation:</p>
+<table style="width:100%">
+  <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+  <thead>
+    <tr><th>You write</th><th>PyYAML reads</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>64.0e-3</code></td><td><code>0.064</code> ✅</td></tr>
+    <tr><td style="white-space:nowrap"><code>5.0e+5</code></td><td><code>500000.0</code> ✅</td></tr>
+    <tr><td style="white-space:nowrap"><code>64e-3</code></td><td><code>"64e-3"</code> (text) ❌</td></tr>
+    <tr><td style="white-space:nowrap"><code>500.0e3</code></td><td><code>"500.0e3"</code> (text) ❌</td></tr>
+  </tbody>
+</table>
+
+<p>Plain decimals (<code>0.064</code>, <code>500000.0</code>) are safest.</p>
+<h2 id="templates">Templates</h2>
+<p>Ready-to-edit templates are available in <a href="https://github.com/ProteusMRIgHIFU/BabelBrain/tree/main/custom_tx_templates"><code>custom_tx_templates/</code></a>. Each is a valid file that reproduces a built-in device, with every parameter explained inline. Copy one, rename the transducer and replace the values.</p>
+<table style="width:100%">
+  <colgroup><col style="width:30%"><col style="width:40%"><col style="width:12%"><col style="width:18%"></colgroup>
+  <thead>
+    <tr><th><code>geometry_type</code> / template</th><th>Description</th><th>Steering</th><th>Reproduces</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><a href="#simple-focused"><code>simple_focused</code></a></td><td>Single-element spherical cap</td><td>none</td><td>Single (500 kHz)</td></tr>
+    <tr><td style="white-space:nowrap"><a href="#flat-annular-array"><code>flat_annular_array</code></a></td><td>Concentric flat rings</td><td>z</td><td>H246</td></tr>
+    <tr><td style="white-space:nowrap"><a href="#focused-annular-array"><code>focused_annular_array</code></a></td><td>Concentric rings on a spherical cap</td><td>z</td><td>CTX500</td></tr>
+    <tr><td style="white-space:nowrap"><a href="#flat-array-2d"><code>flat_array_2D</code></a></td><td>Square elements in a flat plane</td><td>x, y, z</td><td>REMOPD</td></tr>
+    <tr><td style="white-space:nowrap"><a href="#focused-array"><code>focused_array</code></a></td><td>Circular elements on a spherical cap, aimed at the focus</td><td>x, y, z</td><td>H317</td></tr>
+  </tbody>
+</table>
+
+<p>Every file must contain a <code>Template Version: &lt;number&gt;</code> line (e.g. <code># Template Version: 1.0</code>).</p>
+<h2 id="common-parameters">Common parameters</h2>
+<table style="width:100%">
+  <colgroup><col style="width:32%"><col style="width:16%"><col style="width:52%"></colgroup>
+  <thead>
+    <tr><th>Parameter</th><th>Required</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>name</code></td><td>yes</td><td>Starts with a letter; letters, digits, <code>_</code> and <code>-</code> only (no spaces). Its <code>&lt;ClassName&gt;</code> cannot match a built-in transducer.</td></tr>
+    <tr><td style="white-space:nowrap"><code>geometry_type</code></td><td>yes</td><td>One of the five types above.</td></tr>
+    <tr><td style="white-space:nowrap"><code>frequencies</code></td><td>yes</td><td>List of whole numbers (Hz), 200–1000 kHz in 5 kHz steps, no duplicates. The first is used for the verification simulation.</td></tr>
+    <tr><td style="white-space:nowrap"><code>aperture_size</code></td><td>yes</td><td>Aperture diameter, or full width of the active surface for arrays (m).</td></tr>
+    <tr><td style="white-space:nowrap"><code>focal_length</code></td><td>focused types</td><td>Radius of curvature (m). Not used by flat types, which have no natural focus.</td></tr>
+    <tr><td style="white-space:nowrap"><code>distance_tx_bottom_to_outplane</code></td><td>no (default <code>0</code>)</td><td>Fabrication dead space (m) between the rim of the transducer surface and the edge of the device (the out-plane), e.g. housing or coupling membrane. Must be ≥ 0. Not applied for <code>simple_focused</code> transducers</td></tr>
+    <tr><td style="white-space:nowrap"><code>distance_outplane_to_focus</code></td><td>no, focused types only</td><td>Distance (m) from the out-plane to the focal spot. Not allowed for flat types.</td></tr>
+    <tr><td style="white-space:nowrap"><code>mechanical_adjustment</code></td><td>no</td><td>Lateral X/Y mechanical adjustment limits <code>[min, max]</code> (m) in Step 2. Defaults to <code>[-0.010, 0.010]</code>.</td></tr>
+    <tr><td style="white-space:nowrap"><code>PlanTUS</code></td><td>no</td><td>See <a href="#plantus">PlanTUS parameters</a>.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="type-specific-parameters">Type-specific parameters</h2>
+<h3 id="simple-focused">Simple Focused</h3>
+<p>No extra parameters. There is no electronic steering, and the focal length and diameter shown in Step 2 are fixed to the values in the file.</p>
+<p>Dead space is not supported for this type: Step 2 always places the out-plane at the rim, so its out-plane distance is <code>focal_length − h</code>. Leave <code>distance_tx_bottom_to_outplane</code> and <code>distance_outplane_to_focus</code> out of the file.</p>
+<p>Transducer Diagram:
+<img alt="" src="custom_tx_pictures/simple_focused_geometry.svg" /></p>
+<p>Example Transducer Yaml:</p>
+<pre><code class="language-yaml"># Template Version: 1.0
+name: MySingleTx
+geometry_type: simple_focused
+frequencies:
+    - 500000
+aperture_size: 0.050
+focal_length: 0.050
+</code></pre>
+<p><br>Corresponding Plot:<br>
+<img src="custom_tx_pictures/simple_focused_mesh.png" height=350px></p>
+<!-- PLACEHOLDER: screenshot of the "simple focused generated mesh plot" dialog -->
+
+<h3 id="flat-annular-array">Flat Annular Array</h3>
+<table style="width:100%">
+  <colgroup><col style="width:35%"><col style="width:65%"></colgroup>
+  <thead>
+    <tr><th>Parameter</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>num_elements</code></td><td>Number of rings.</td></tr>
+    <tr><td style="white-space:nowrap"><code>annular.inner_ring_diameters</code></td><td>Inner diameter of each ring (m), innermost first. <code>0.0</code> for a solid central disc.</td></tr>
+    <tr><td style="white-space:nowrap"><code>annular.outer_ring_diameters</code></td><td>Outer diameter of each ring (m); each larger than its inner diameter.</td></tr>
+    <tr><td style="white-space:nowrap"><code>steering.z</code></td><td>Focal depths <code>[min, max]</code> (m) measured from the array plane, <code>min</code> &gt; 0. Also the TPO distance range in the GUI.</td></tr>
+  </tbody>
+</table>
+
+<ul>
+<li>There is no natural focus: <code>focal_length</code> and <code>distance_outplane_to_focus</code> are not used. The verification simulation focuses at the middle of <code>steering.z</code>.</li>
+<li>Automatic PlanTUS estimation is not available for this type; enter the <code>PlanTUS</code> tables yourself to use PlanTUS.</li>
+</ul>
+<p>Transducer Diagram:
+<img alt="" src="custom_tx_pictures/focused_annular_array_geometry.svg" /></p>
+<p>Example Transducer Yaml:</p>
+<pre><code class="language-yaml"># Template Version: 1.0
+name: MyFlatAnnular
+geometry_type: flat_annular_array
+frequencies:
+    - 500000
+aperture_size: 0.0336
+num_elements: 2
+annular:
+    inner_ring_diameters: [0.0,     0.0240]
+    outer_ring_diameters: [0.0233,  0.0336]
+steering:
+    z: [0.025, 0.095]
+</code></pre>
+<p><br>Corresponding Plot:<br>
+<img src="custom_tx_pictures/flat_annular_array_mesh.png" height=350px></p>
+<!-- PLACEHOLDER: screenshot of the "flat annular array generated mesh plot" dialog -->
+
+<h3 id="focused-annular-array">Focused Annular Array</h3>
+<table style="width:100%">
+  <colgroup><col style="width:35%"><col style="width:65%"></colgroup>
+  <thead>
+    <tr><th>Parameter</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>num_elements</code></td><td>Number of rings.</td></tr>
+    <tr><td style="white-space:nowrap"><code>annular.inner_ring_diameters</code></td><td>Inner diameter of each ring (m), innermost first. <code>0.0</code> for a solid central disc.</td></tr>
+    <tr><td style="white-space:nowrap"><code>annular.outer_ring_diameters</code></td><td>Outer diameter of each ring (m); each larger than its inner diameter.</td></tr>
+    <tr><td style="white-space:nowrap"><code>steering.z</code></td><td>Focal depths <code>[min, max]</code> (m) measured from the array plane, <code>min</code> &gt; 0. Also the TPO distance range in the GUI.</td></tr>
+  </tbody>
+</table>
+
+<p>Same parameters as <code>flat_annular_array</code>, with two differences:</p>
+<ul>
+<li>Ring diameters are measured <strong>in projection onto the x-y plane</strong>, not along the curved surface. <code>focal_length</code> must be ≥ half the largest outer diameter.</li>
+<li><code>steering.z</code> is an offset from the natural focus; negative moves towards the transducer and <code>abs(min)</code> ≤ <code>focal_length</code>. The GUI's TPO range is <code>focal_length + steering.z</code> (30–82.5 mm below).</li>
+</ul>
+<p>Transducer Diagram:
+<img alt="" src="custom_tx_pictures/focused_annular_array_geometry.svg" /></p>
+<p>Example Transducer Yaml:</p>
+<pre><code class="language-yaml"># Template Version: 1.0
+name: MyFocusedAnnular
+geometry_type: focused_annular_array
+frequencies:
+    - 500000
+    - 545000
+aperture_size: 0.064
+focal_length: 0.06294
+distance_outplane_to_focus: 0.05238
+num_elements: 4
+annular:
+    inner_ring_diameters: [0.0,     0.0316988, 0.0442688, 0.0536688]
+    outer_ring_diameters: [0.03114, 0.04371,   0.05311,   0.06083]
+steering:
+    z: [-0.03294, 0.01956]
+</code></pre>
+<p><br>Corresponding Plot:<br>
+<img src="custom_tx_pictures/focused_annular_array_mesh.png" height=350px></p>
+<!-- PLACEHOLDER: screenshot of the "focused annular array generated mesh plot" dialog -->
+
+<h3 id="flat-array-2d">Flat Array 2D</h3>
+<table style="width:100%">
+  <colgroup><col style="width:35%"><col style="width:65%"></colgroup>
+  <thead>
+    <tr><th>Parameter</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>num_elements</code></td><td>Number of elements.</td></tr>
+    <tr><td style="white-space:nowrap"><code>element_size</code></td><td>Side length of each square element (m). Centres must be at least this far apart.</td></tr>
+    <tr><td style="white-space:nowrap"><code>elements.x</code>, <code>.y</code></td><td>Element centre positions (m) in the array plane, <code>num_elements</code> entries each. <code>elements.z</code> is not accepted: all elements lie at z = 0.</td></tr>
+    <tr><td style="white-space:nowrap"><code>steering.x</code>, <code>steering.y</code></td><td>Lateral steering ranges <code>[min, max]</code> (m).</td></tr>
+    <tr><td style="white-space:nowrap"><code>steering.z</code></td><td>Focal depths <code>[min, max]</code> (m) measured from the array plane, <code>min</code> &gt; 0.</td></tr>
+  </tbody>
+</table>
+
+<ul>
+<li><strong>Origin:</strong> the centre of the array, in the plane of the element faces.</li>
+<li><code>distance_tx_bottom_to_outplane</code> is applied automatically to move the out-plane away from the element plane.</li>
+<li>There is no natural focus: <code>focal_length</code> and <code>distance_outplane_to_focus</code> are not used. The verification simulation focuses at the middle of <code>steering.z</code>.</li>
+<li>Keep the pitch close to one wavelength (3 mm at 500 kHz) to avoid grating lobes. The 4 × 4 example below only shows the format.</li>
+</ul>
+<p>Transducer Diagram:
+<img alt="" src="custom_tx_pictures/flat_array_2D_geometry.svg" /></p>
+<p>Example Transducer Yaml:</p>
+<pre><code class="language-yaml"># Template Version: 1.0
+name: MyFlatMatrix
+geometry_type: flat_array_2D
+frequencies:
+    - 500000
+aperture_size: 0.040
+distance_tx_bottom_to_outplane: 0.0012
+num_elements: 16
+element_size: 0.0095
+elements:   # 4 x 4 grid, 10 mm pitch, centred on the origin
+    x: [-0.015, -0.005, 0.005, 0.015, -0.015, -0.005, 0.005, 0.015, -0.015, -0.005, 0.005, 0.015, -0.015, -0.005, 0.005, 0.015]
+    y: [-0.015, -0.015, -0.015, -0.015, -0.005, -0.005, -0.005, -0.005, 0.005, 0.005, 0.005, 0.005, 0.015, 0.015, 0.015, 0.015]steering:
+    x: [-0.020, 0.020]
+    y: [-0.020, 0.020]
+    z: [0.020, 0.090]
+</code></pre>
+<p><br>Corresponding Plot:<br>
+<img src="custom_tx_pictures/flat_array_2D_mesh.png" height=350px></p>
+<!-- PLACEHOLDER: screenshot of the "flat 2D array generated mesh plot" dialog -->
+
+<h3 id="focused-array">Focused Array</h3>
+<table style="width:100%">
+  <colgroup><col style="width:35%"><col style="width:65%"></colgroup>
+  <thead>
+    <tr><th>Parameter</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="white-space:nowrap"><code>num_elements</code></td><td>Number of elements.</td></tr>
+    <tr><td style="white-space:nowrap"><code>element_size</code></td><td>Diameter of each circular element (m). Centres must be at least <code>element_size / focal_length</code> radians apart.</td></tr>
+    <tr><td style="white-space:nowrap"><code>element_coordinate_system</code></td><td><code>cartesian</code> or <code>spherical</code>.</td></tr>
+    <tr><td style="white-space:nowrap"><code>elements.x</code>, <code>.y</code>, <code>.z</code></td><td>Cartesian element centres (m) relative to the focus.</td></tr>
+    <tr><td style="white-space:nowrap"><code>elements.r</code>, <code>.theta</code>, <code>.phi</code></td><td>Spherical element centres: radius (m), polar angle (deg), azimuth (deg).</td></tr>
+    <tr><td style="white-space:nowrap"><code>steering.x</code>, <code>.y</code>, <code>.z</code></td><td>Steering ranges <code>[min, max]</code> (m). <code>z</code> is an offset from the natural focus, <code>abs(min)</code> ≤ <code>focal_length</code>.</td></tr>
+  </tbody>
+</table>
+
+<ul>
+<li><strong>Origin:</strong> the geometric focus. Elements lie on a sphere of radius <code>focal_length</code> and face the focus; the bowl apex is at <code>(0, 0, focal_length)</code>, so element <code>z</code> values are <strong>positive</strong>.</li>
+<li><strong>Steering uses a different frame:</strong> <code>steering.x</code>, <code>.y</code>, <code>.z</code> are offsets from the natural focus with +z pointing from the transducer <strong>towards the target</strong>, the opposite of the element +z. A negative <code>steering.z</code> moves the focus towards the transducer, as for <code>focused_annular_array</code>.</li>
+<li><strong>Cartesian:</strong> <code>x² + y² + z² = focal_length²</code>.</li>
+<li><strong>Spherical:</strong> <code>theta</code> is the polar angle from the beam axis (0° = apex, increasing towards the rim); <code>phi</code> is the azimuth from +x towards +y. <code>x = r·sin(theta)·cos(phi)</code>, <code>y = r·sin(theta)·sin(phi)</code>, <code>z = r·cos(theta)</code>.</li>
+<li>Only the <strong>direction</strong> of each position is used to place the element; its distance from the focus (including <code>r</code>) is not checked. Positions in mm or from the wrong origin give a wrong layout without an error, so check the verification window.</li>
+<li><code>distance_outplane_to_focus</code> is the default <strong>Distance Cone to Focus</strong> in Step 2.</li>
+</ul>
+<p>Transducer Diagram:
+<img alt="" src="custom_tx_pictures/focused_array_geometry.svg" /></p>
+<p>Example Transducer Yaml:</p>
+<pre><code class="language-yaml"># Template Version: 1.0
+name: MyFocusedArray
+geometry_type: focused_array
+frequencies:
+    - 500000
+aperture_size: 0.064
+focal_length: 0.070
+num_elements: 7
+element_size: 0.015
+element_coordinate_system: spherical
+elements:   # centre element plus a ring of six at 20 degrees
+    r:     [0.070, 0.070, 0.070, 0.070, 0.070, 0.070, 0.070]
+    theta: [0.0,   20.0,  20.0,  20.0,  20.0,  20.0,  20.0]
+    phi:   [0.0,   0.0,   60.0,  120.0, 180.0, 240.0, 300.0]
+steering:
+    x: [-0.010, 0.010]
+    y: [-0.010, 0.010]
+    z: [-0.015, 0.015]
+</code></pre>
+<p>The same elements in cartesian coordinates:</p>
+<pre><code class="language-yaml">element_coordinate_system: cartesian
+elements:
+    x: [0.0,     0.02394, 0.01197, -0.01197, -0.02394, -0.01197,  0.01197]
+    y: [0.0,     0.0,     0.02073,  0.02073,  0.0,     -0.02073, -0.02073]
+    z: [0.070,   0.06578, 0.06578,  0.06578,  0.06578,  0.06578,  0.06578]
+</code></pre>
+<p><br>Corresponding Plot:<br>
+<img src="custom_tx_pictures/focused_array_mesh.png" height=450px></p>
+<!-- PLACEHOLDER: screenshot of the "focused array generated mesh plot" dialog -->
+
+<h2 id="optional-parameters">Optional parameters</h2>
+<h3 id="plantus">PlanTUS</h3>
+<p><code>PlanTUS</code> is optional and gives the PlanTUS integration focal distances and matching FHML (full-length at half maximum) values, in metres, for <strong>every</strong> frequency in <code>frequencies</code>. Both lists must be the same length and contain no negative values.</p>
+<pre><code class="language-yaml">PlanTUS:
+    500000:
+        FocalDistanceList: [0.030, 0.035, 0.040, 0.045, 0.050]
+        FHMLList:          [0.018, 0.030, 0.038, 0.050, 0.060]
+</code></pre>
+<p>If <code>PlanTUS</code> is omitted, BabelBrain estimates the tables with Rayleigh simulations in water for each frequency (except for <code>flat_annular_array</code>):</p>
+<ul>
+<li>Steerable types are swept in 2 mm steps over the <code>steering.z</code> range (as absolute depths for flat types, or <code>focal_length + steering.z</code> for focused types).</li>
+<li><code>simple_focused</code> uses a single point at <code>focal_length</code>.</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

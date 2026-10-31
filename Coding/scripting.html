@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Coding/scripting.html">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Scripting BabelBrain - BabelBrain</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../presentations.html" class="nav-link">Presentations</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../pipeline/pipeline.html" class="dropdown-item">Overall description</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Planning.html" class="dropdown-item">Planning</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../server.html" class="nav-link">Client/Server mode</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../CustomTransducers/CustomTransducers.html" class="nav-link">Custom transducers</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="scripting.html" class="dropdown-item active" aria-current="page">Scripting BabelBrain</a>
+</li>
+                                    
+<li>
+    <a href="operations.html" class="dropdown-item">Scriptable operations</a>
+</li>
+                                    
+<li>
+    <a href="advanced_config.html" class="dropdown-item">Advanced configuration</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../CustomTransducers/CustomTransducers.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="operations.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#scripting-babelbrain-coding-api" class="nav-link">Scripting BabelBrain (Coding / API)</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#running-a-script" class="nav-link">Running a script</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#command-line-options" class="nav-link">Command-line options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#exit-codes" class="nav-link">Exit codes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#the-scripting-api" class="nav-link">The scripting API</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#launch-selecting-inputs" class="nav-link">launch() — selecting inputs</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#handling-pop-up-dialogs" class="nav-link">Handling pop-up dialogs</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#a-complete-example" class="nav-link">A complete example</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#how-a-script-is-structured" class="nav-link">How a script is structured</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="scripting-babelbrain-coding-api">Scripting BabelBrain (Coding / API)</h1>
+<p>BabelBrain can be driven from a Python script, so the whole planning →
+acoustic → thermal pipeline can be <strong>automated</strong> without clicking through the
+GUI. This is meant for batch processing, reproducible runs, and integration
+testing by third parties.</p>
+<p>A script drives the <em>same</em> operations you would perform by hand in the GUI —
+selecting inputs, adjusting the frequency, setting the steering, running each
+step — so this section documents those high-level, GUI-equivalent actions
+rather than the internal solver functions.</p>
+<p>!!! note
+    Scripting requires a GPU-capable machine, exactly like the interactive
+    application. The script runs <em>inside</em> BabelBrain, so it has full access to
+    the live application objects.</p>
+<h2 id="running-a-script">Running a script</h2>
+<p>Use the <code>--execute</code> option, both in a source checkout and in the packaged
+(frozen) application:</p>
+<pre><code class="language-bash"># Source checkout
+python BabelBrain/BabelBrain.py --execute my_script.py
+
+# Frozen distribution
+#   Windows
+BabelBrain.exe --execute my_script.py
+#   macOS
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --execute my_script.py
+</code></pre>
+<p>An inline snippet can be run with <code>--code</code> instead of a file:</p>
+<pre><code class="language-bash">python BabelBrain/BabelBrain.py --code &quot;print('hello from BabelBrain')&quot;
+</code></pre>
+<h3 id="command-line-options">Command-line options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--execute SCRIPT.py</code></td>
+<td>Run a Python script against the application, then exit.</td>
+</tr>
+<tr>
+<td><code>--code "…"</code></td>
+<td>Run an inline Python snippet, then exit.</td>
+</tr>
+<tr>
+<td><code>--headless</code></td>
+<td>Run with no visible window (Qt <em>offscreen</em> platform). For CI on a GPU runner.</td>
+</tr>
+<tr>
+<td><code>--keep-open</code></td>
+<td>Leave BabelBrain open and interactive <strong>after</strong> the script finishes (ignored with <code>--headless</code>). By default the application closes when the script ends.</td>
+</tr>
+<tr>
+<td><code>--do-not-use-last-selection</code></td>
+<td>Do <strong>not</strong> seed inputs from the last GUI session. By default a script is seeded from your last selection and any explicit <code>launch()</code> inputs override it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="exit-codes">Exit codes</h3>
+<p>A scripted run returns a process <strong>exit code</strong>, so it drops straight into a CI
+pipeline or a shell test:</p>
+<ul>
+<li><code>0</code> — the script ran to completion with no error.</li>
+<li>non-zero — an uncaught exception, a failed <code>assert</code>, <code>fail(...)</code>, or
+  <code>check_no_error(...)</code> (a full traceback is printed to <code>stderr</code>).</li>
+</ul>
+<pre><code class="language-bash">python BabelBrain/BabelBrain.py --headless --execute integration_test.py &amp;&amp; echo PASS || echo FAIL
+</code></pre>
+<h2 id="the-scripting-api">The scripting API</h2>
+<p>When your script runs, the following names are already available in its global
+scope (no imports needed):</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>launch(**inputs)</code></td>
+<td>Build a ready-to-drive BabelBrain window from a set of inputs. Returns the application object, referred to below as <code>bb</code>.</td>
+</tr>
+<tr>
+<td><code>launch_from_last_selection(**overrides)</code></td>
+<td>Same, but seeded from your last GUI selection; <code>**overrides</code> win.</td>
+</tr>
+<tr>
+<td><code>wait_until(cond, timeout_ms=…)</code></td>
+<td>Run the event loop until <code>cond()</code> is true (e.g. a step finished). Raises <code>TimeoutError</code> on timeout.</td>
+</tr>
+<tr>
+<td><code>wait(ms)</code></td>
+<td>Run the event loop for a fixed time (e.g. let a plot render).</td>
+</tr>
+<tr>
+<td><code>auto_answer_dialogs(question=…)</code></td>
+<td>Auto-answer pop-up dialogs so an unattended run never blocks (see below).</td>
+</tr>
+<tr>
+<td><code>restore_dialogs()</code></td>
+<td>Restore normal (interactive) dialog behaviour.</td>
+</tr>
+<tr>
+<td><code>check_no_error(bb)</code></td>
+<td>Raise if a BabelBrain worker flagged an error (<code>bb.testing_error</code>). Call after each step.</td>
+</tr>
+<tr>
+<td><code>reset_advanced_config(bb)</code></td>
+<td>Reset all advanced-configuration parameters in <code>bb.Config</code> to their defaults (see <a href="advanced_config.html">Advanced configuration</a>). Opt-in; by default the previous session's values are kept.</td>
+</tr>
+<tr>
+<td><code>fail(msg)</code></td>
+<td>Abort the script (non-zero exit) with a message.</td>
+</tr>
+<tr>
+<td><code>QMessageBox</code></td>
+<td>The Qt message-box enum, for <code>auto_answer_dialogs</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="launch-selecting-inputs"><code>launch()</code> — selecting inputs</h3>
+<p><code>launch()</code> mirrors the <strong>input-selection dialog</strong> of the GUI. Every field is
+optional; anything you omit falls back to your last GUI selection (unless you
+passed <code>--do-not-use-last-selection</code>).</p>
+<pre><code class="language-python">bb = launch(
+    t1w=&quot;/data/sub-01/T1W.nii.gz&quot;,
+    simbnibs=&quot;/data/sub-01/m2m_sub-01/&quot;,   # SimNIBS output folder
+    simbnibs_type=&quot;charm&quot;,                 # &quot;charm&quot; | &quot;headreco&quot;
+    trajectory=&quot;/data/sub-01/target.txt&quot;,
+    trajectory_type=&quot;brainsight&quot;,          # &quot;brainsight&quot; | &quot;slicer&quot;
+    thermal_profile=&quot;/data/profile.yaml&quot;,
+    transducer=&quot;CTX_500&quot;,                  # transducer name as in the GUI list
+    ct_type=&quot;CT&quot;,                          # &quot;NONE&quot; | &quot;CT&quot; | &quot;ZTE&quot; | &quot;PETRA&quot;
+    ct=&quot;/data/sub-01/CT.nii.gz&quot;,
+    coreg_ct=True,
+    frequency_khz=500,                     # Step-1 frequency
+    ppw=6,                                 # Step-1 points-per-wavelength
+    hu_threshold=300,                      # Step-1 bone threshold (CT only)
+    # gpu=&quot;Apple M3 Max&quot;, backend=&quot;Metal&quot;, # else the auto-selected GPU is used
+    output_path=&quot;/data/sub-01/output/&quot;,
+)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th><code>launch()</code> argument</th>
+<th>GUI equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>t1w</code></td>
+<td>T1W NIfTI file</td>
+</tr>
+<tr>
+<td><code>simbnibs</code>, <code>simbnibs_type</code></td>
+<td>SimNIBS folder + tool (<code>charm</code>/<code>headreco</code>)</td>
+</tr>
+<tr>
+<td><code>trajectory</code>, <code>trajectory_type</code></td>
+<td>Trajectory file + source (<code>brainsight</code>/<code>slicer</code>)</td>
+</tr>
+<tr>
+<td><code>ct_type</code>, <code>ct</code>, <code>coreg_ct</code></td>
+<td>CT/ZTE/PETRA selection, file, and coregistration toggle</td>
+</tr>
+<tr>
+<td><code>ct_mapping</code></td>
+<td>CT mapping profile (tuple as shown in the CT-mapping list)</td>
+</tr>
+<tr>
+<td><code>thermal_profile</code></td>
+<td>Thermal profile YAML</td>
+</tr>
+<tr>
+<td><code>transducer</code></td>
+<td>Transducer model</td>
+</tr>
+<tr>
+<td><code>gpu</code>, <code>backend</code> / <code>computing</code></td>
+<td>Computing engine (GPU + backend)</td>
+</tr>
+<tr>
+<td><code>multipoint_type</code>, <code>multipoint</code></td>
+<td>Multi-point steering selection + profile</td>
+</tr>
+<tr>
+<td><code>frequency_khz</code>, <code>ppw</code>, <code>hu_threshold</code></td>
+<td>Step-1 frequency / PPW / bone threshold</td>
+</tr>
+<tr>
+<td><code>output_path</code></td>
+<td>Output folder</td>
+</tr>
+</tbody>
+</table>
+<h3 id="handling-pop-up-dialogs">Handling pop-up dialogs</h3>
+<p>When a result already exists, BabelBrain asks whether to <em>recalculate</em> or
+<em>reload</em>. In an unattended run you answer these once, up front:</p>
+<pre><code class="language-python">auto_answer_dialogs(question=QMessageBox.Yes)  # always recalculate
+auto_answer_dialogs(question=QMessageBox.No)   # always reload existing results
+</code></pre>
+<h2 id="a-complete-example">A complete example</h2>
+<p>The following script runs the full pipeline for one target and exits <code>0</code> if it
+succeeds. See <strong><a href="operations.html">Scriptable operations</a></strong> for the full catalogue
+of GUI actions used here.</p>
+<pre><code class="language-python"># full_pipeline.py  —  python BabelBrain/BabelBrain.py --execute full_pipeline.py
+bb = launch(
+    t1w=&quot;/data/sub-01/T1W.nii.gz&quot;,
+    simbnibs=&quot;/data/sub-01/m2m_sub-01/&quot;,
+    trajectory=&quot;/data/sub-01/target.txt&quot;,
+    thermal_profile=&quot;/data/profile.yaml&quot;,
+    transducer=&quot;CTX_500&quot;,
+    ct_type=&quot;CT&quot;, ct=&quot;/data/sub-01/CT.nii.gz&quot;,
+    frequency_khz=500, ppw=6, hu_threshold=300,
+    output_path=&quot;/data/sub-01/output/&quot;,
+)
+auto_answer_dialogs(question=QMessageBox.Yes)  # deterministic: recalculate
+
+# --- Step 1: domain generation ---
+bb.testing_error = False
+bb.Widget.CalculatePlanningMask.click()
+wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
+check_no_error(bb)
+
+# --- Step 2: acoustic field (every trajectory tab) ---
+bb.Widget.tabWidget.setCurrentIndex(1)
+for i in range(bb.AcSim._txTabs.count()):
+    bb.AcSim._txTabs.setCurrentIndex(i)
+    # (optional) adjust steering before running — see Scriptable operations
+    if hasattr(bb.AcSim.Widget, 'ZSteeringSpinBox'):
+        bb.AcSim.Widget.ZSteeringSpinBox.setValue(0.0)
+    bb.AcSim.Widget.CalculateAcField.click()
+    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=3_600_000)
+    check_no_error(bb)
+
+# --- Step 3: thermal ---
+bb.Widget.tabWidget.setCurrentIndex(2)
+for i in range(bb.ThermalSim._txTabs.count()):
+    bb.ThermalSim._txTabs.setCurrentIndex(i)
+    bb.ThermalSim.Widget.CalculateThermal.click()
+    wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
+    check_no_error(bb)
+
+print(&quot;Pipeline OK.&quot;)   # falling off the end -&gt; exit code 0
+</code></pre>
+<h2 id="how-a-script-is-structured">How a script is structured</h2>
+<p>Every script follows the same three moves:</p>
+<ol>
+<li><strong><code>launch(...)</code></strong> to open BabelBrain with your inputs and get the <code>bb</code> object.</li>
+<li><strong>Trigger an action</strong> by clicking a button or setting a control, exactly as
+   the GUI does — e.g. <code>bb.Widget.CalculatePlanningMask.click()</code>.</li>
+<li><strong><code>wait_until(...)</code></strong> for the step to finish (the step tabs re-enable when a
+   worker completes), then <code>check_no_error(bb)</code>.</li>
+</ol>
+<p>The three "steps" of the GUI are reached through three objects on <code>bb</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Object</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Step 1 — Planning / domain</td>
+<td><code>bb.Widget</code></td>
+<td>The main window controls.</td>
+</tr>
+<tr>
+<td>Step 2 — Acoustic simulation</td>
+<td><code>bb.AcSim</code></td>
+<td><code>bb.AcSim.Widget</code> for controls; <code>bb.AcSim._txTabs</code> selects the trajectory tab.</td>
+</tr>
+<tr>
+<td>Step 3 — Thermal simulation</td>
+<td><code>bb.ThermalSim</code></td>
+<td><code>bb.ThermalSim.Widget</code> for controls; <code>bb.ThermalSim._txTabs</code> selects the trajectory tab.</td>
+</tr>
+</tbody>
+</table>
+<p>The exact controls available for each step are listed in
+<strong><a href="operations.html">Scriptable operations</a></strong>.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

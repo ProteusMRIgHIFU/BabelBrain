@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/Coding/advanced_config.html">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Advanced configuration - BabelBrain</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../css/brands.min.css" rel="stylesheet">
+        <link href="../css/solid.min.css" rel="stylesheet">
+        <link href="../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../presentations.html" class="nav-link">Presentations</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../pipeline/pipeline.html" class="dropdown-item">Overall description</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/Planning.html" class="dropdown-item">Planning</a>
+</li>
+                                    
+<li>
+    <a href="../pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../server.html" class="nav-link">Client/Server mode</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../CustomTransducers/CustomTransducers.html" class="nav-link">Custom transducers</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="scripting.html" class="dropdown-item">Scripting BabelBrain</a>
+</li>
+                                    
+<li>
+    <a href="operations.html" class="dropdown-item">Scriptable operations</a>
+</li>
+                                    
+<li>
+    <a href="advanced_config.html" class="dropdown-item active" aria-current="page">Advanced configuration</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="operations.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../Appendix/Appendix.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#advanced-configuration" class="nav-link">Advanced configuration</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#when-to-set-a-parameter" class="nav-link">When to set a parameter</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#resetting-to-defaults" class="nav-link">Resetting to defaults</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#domain-generation-step-1" class="nav-link">Domain generation (Step 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#pseudo-ct-mapping-ct-zte-petra-step-1" class="nav-link">Pseudo-CT mapping — CT / ZTE / PETRA (Step 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#simulation-thermal" class="nav-link">Simulation &amp; thermal</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#homogeneous-medium-verification-benchmarking" class="nav-link">Homogeneous medium (verification / benchmarking)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#output-debugging" class="nav-link">Output / debugging</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#external-tool-roots" class="nav-link">External-tool roots</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="advanced-configuration">Advanced configuration</h1>
+<p>The <strong>Advanced Options</strong> dialog of the GUI controls a large set of low-level
+parameters (domain generation, pseudo-CT mapping, thermal modelling, …). When
+scripting, you do <strong>not</strong> open that dialog — every one of those parameters is a
+plain entry in the <code>bb.Config</code> dictionary, so you set it directly:</p>
+<pre><code class="language-python">bb = launch(...)
+bb.Config['TrabecularProportion'] = 0.2       # override one advanced parameter
+bb.Config['ElastixOptimizer'] = 'FiniteDifferenceGradientDescent'
+</code></pre>
+<p>!!! note "Out of scope"
+    Two operations reachable from the Advanced Options dialog — running the
+    external <strong>PlanTUS</strong> tool and <strong>transducer calibration</strong> — need heavy user
+    interaction and are <em>not</em> scriptable for now. The path/parameters they use
+    (<code>PlanTUSRoot</code>, <code>ConnectomeRoot</code>, <code>TxOptimizedWeights</code>) are still ordinary
+    <code>bb.Config</code> entries and are listed below for completeness.</p>
+<h2 id="when-to-set-a-parameter">When to set a parameter</h2>
+<p>Each parameter affects one of the pipeline steps. Set it <strong>before</strong> you trigger
+that step. The simplest, always-correct approach is to apply all your overrides
+right after <code>launch()</code> and before Step 1:</p>
+<pre><code class="language-python">bb = launch(t1w=..., simbnibs=..., trajectory=..., transducer=&quot;CTX_500&quot;,
+            frequency_khz=500, output_path=&quot;/data/out/&quot;)
+
+# --- advanced overrides ---
+bb.Config['bExtractAirRegions'] = True
+bb.Config['TrabecularProportion'] = 0.2
+bb.Config['BaselineTemperature'] = 37.0
+bb.Config['HomogenousMediumValues']['Perfusion'] = 500.0
+
+# --- then run the pipeline as usual ---
+bb.Widget.CalculatePlanningMask.click()
+wait_until(bb.Widget.tabWidget.isEnabled, timeout_ms=900_000)
+check_no_error(bb)
+</code></pre>
+<p><code>bb.Config</code> already contains every key below (initialised to the default value
+shown, or to the value you last saved in the GUI). You only assign the ones you
+want to change. The <code>HomogenousMediumValues</code> entry is a <strong>nested dictionary</strong> —
+set its members individually, e.g. <code>bb.Config['HomogenousMediumValues']['Density'] = 1010.0</code>.</p>
+<p>!!! note "Persistence"
+    In the GUI, changing an advanced option persists to the next session. In a
+    script, assigning to <code>bb.Config</code> only affects the current run.</p>
+<h2 id="resetting-to-defaults">Resetting to defaults</h2>
+<p>By default a scripted run <strong>inherits the advanced parameters from your previous
+session</strong> (the same values the GUI would show), so behaviour stays consistent
+with what you last configured. This is the default and nothing resets on its
+own.</p>
+<p>When you instead want a <strong>deterministic, known state</strong> — e.g. for regression
+testing — reset every advanced parameter to its default with
+<code>reset_advanced_config(bb)</code>. It is <strong>opt-in</strong>: you must call it explicitly.</p>
+<pre><code class="language-python">bb = launch(...)
+reset_advanced_config(bb)                 # every advanced param -&gt; its default
+bb.Config['TrabecularProportion'] = 0.2   # then apply only the overrides you need
+</code></pre>
+<p><code>reset_advanced_config</code> restores every key listed on this page (including the
+nested <code>HomogenousMediumValues</code> and the per-transducer <code>TxOptimizedWeights</code>) to
+the defaults shown, mirroring the dialog's <strong>Reset to defaults</strong> button.</p>
+<hr />
+<h2 id="domain-generation-step-1">Domain generation (Step 1)</h2>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ElastixOptimizer</code></td>
+<td><code>'AdaptiveStochasticGradientDescent'</code></td>
+<td>Elastix optimizer for CT/ZTE/PETRA → T1W coregistration. Alternatives that help difficult CT→T1W cases: <code>'FiniteDifferenceGradientDescent'</code>, <code>'QuasiNewtonLBFGS'</code>.</td>
+</tr>
+<tr>
+<td><code>TrabecularProportion</code></td>
+<td><code>0.8</code></td>
+<td>Fraction of bone (along the line of sight) modelled as trabecular. Lower it (e.g. <code>0.1</code>–<code>0.2</code>) for thin bone such as the parietal.</td>
+</tr>
+<tr>
+<td><code>bSegmentBrainTissue</code></td>
+<td><code>False</code></td>
+<td>Use SimNIBS segmentation of white/grey matter and CSF with tissue-specific acoustic/thermal properties. Requires <code>SimbNINBSRoot</code>.</td>
+</tr>
+<tr>
+<td><code>bForceUseBlender</code></td>
+<td><code>False</code></td>
+<td>Force Blender for constructive solid geometry instead of pycork (works around rare pycork crashes).</td>
+</tr>
+<tr>
+<td><code>bApplyBOXFOV</code></td>
+<td><code>False</code></td>
+<td>Enable a manual sub-volume (box field of view) instead of the automatic one.</td>
+</tr>
+<tr>
+<td><code>FOVDiameter</code></td>
+<td><code>200.0</code></td>
+<td>Manual FOV diameter (mm); used when <code>bApplyBOXFOV</code> is <code>True</code>.</td>
+</tr>
+<tr>
+<td><code>FOVLength</code></td>
+<td><code>400.0</code></td>
+<td>Manual FOV length (mm); used when <code>bApplyBOXFOV</code> is <code>True</code>.</td>
+</tr>
+<tr>
+<td><code>bExtractAirRegions</code></td>
+<td><code>True</code></td>
+<td>Create air-region masks (CT/PETRA/ZTE). Recommended to model far-field standing waves.</td>
+</tr>
+<tr>
+<td><code>bDisableCTMedianFilter</code></td>
+<td><code>False</code></td>
+<td>Disable the median filter applied to the CT during processing.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="pseudo-ct-mapping-ct-zte-petra-step-1">Pseudo-CT mapping — CT / ZTE / PETRA (Step 1)</h2>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bInvertZTE</code></td>
+<td><code>False</code></td>
+<td>Set <code>True</code> for inverted ZTE images (e.g. GE <code>oZTEo</code>), otherwise processing errors.</td>
+</tr>
+<tr>
+<td><code>PetraNPeaks</code></td>
+<td><code>2</code></td>
+<td>Number of histogram bins used in PETRA bone selection (matches UCL's <em>petra-to-ct</em>).</td>
+</tr>
+<tr>
+<td><code>PetraMRIPeakDistance</code></td>
+<td><code>50</code></td>
+<td>Minimal distance between PETRA histogram bins.</td>
+</tr>
+<tr>
+<td><code>bGeneratePETRAHistogram</code></td>
+<td><code>False</code></td>
+<td>Also generate the PETRA histogram (as in <em>petra-to-ct</em>).</td>
+</tr>
+<tr>
+<td><code>ZTESlope</code></td>
+<td><code>-2085.0</code></td>
+<td>Slope of the linear ZTE-signal → pseudo-CT (HU) conversion.</td>
+</tr>
+<tr>
+<td><code>ZTEOffset</code></td>
+<td><code>2329.0</code></td>
+<td>Offset of the linear ZTE → pseudo-CT conversion.</td>
+</tr>
+<tr>
+<td><code>PETRASlope</code></td>
+<td><code>-2080.0</code></td>
+<td>Slope of the linear PETRA-signal → pseudo-CT conversion.</td>
+</tr>
+<tr>
+<td><code>PETRAOffset</code></td>
+<td><code>2133.2</code></td>
+<td>Offset of the linear PETRA → pseudo-CT conversion.</td>
+</tr>
+</tbody>
+</table>
+<p>Adjust the slope/offset only if you have re-fitted the ZTE/PETRA → pseudo-CT
+relationship for your site.</p>
+<hr />
+<h2 id="simulation-thermal">Simulation &amp; thermal</h2>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Affects</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BaselineTemperature</code></td>
+<td><code>37.0</code></td>
+<td>Step 3</td>
+<td>Baseline (body) temperature in °C for the thermal simulation.</td>
+</tr>
+<tr>
+<td><code>LimitBHTEIterationsPerProcess</code></td>
+<td><code>100</code></td>
+<td>Step 3</td>
+<td>Cap on bio-heat-transfer-equation iterations per process (memory/performance tuning).</td>
+</tr>
+<tr>
+<td><code>bForceNoAbsorptionSkullScalp</code></td>
+<td><code>False</code></td>
+<td>Step 2/3</td>
+<td>Force zero acoustic absorption in skull and scalp (verification/benchmarking).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="homogeneous-medium-verification-benchmarking">Homogeneous medium (verification / benchmarking)</h2>
+<p>Replace the segmented head with a single homogeneous medium — useful for
+verification and benchmarking against analytical or reference solutions.</p>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bForceHomogenousMedium</code></td>
+<td><code>False</code></td>
+<td>Enable the homogeneous medium. When <code>False</code>, the values below are ignored.</td>
+</tr>
+</tbody>
+</table>
+<p>When enabled, the medium properties come from the nested
+<code>bb.Config['HomogenousMediumValues']</code> dictionary:</p>
+<table>
+<thead>
+<tr>
+<th><code>HomogenousMediumValues[...]</code></th>
+<th>Default</th>
+<th>Units</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'Density'</code></td>
+<td><code>1000.0</code></td>
+<td>kg/m³</td>
+<td>Mass density.</td>
+</tr>
+<tr>
+<td><code>'LongSoS'</code></td>
+<td><code>1500.0</code></td>
+<td>m/s</td>
+<td>Longitudinal speed of sound.</td>
+</tr>
+<tr>
+<td><code>'LongAtt'</code></td>
+<td><code>5.0</code></td>
+<td>Np/m/MHz</td>
+<td>Longitudinal attenuation.</td>
+</tr>
+<tr>
+<td><code>'ShearSoS'</code></td>
+<td><code>0.0</code></td>
+<td>m/s</td>
+<td>Shear speed of sound.</td>
+</tr>
+<tr>
+<td><code>'ShearAtt'</code></td>
+<td><code>0.0</code></td>
+<td>Np/m/MHz</td>
+<td>Shear attenuation.</td>
+</tr>
+<tr>
+<td><code>'ThermalConductivity'</code></td>
+<td><code>0.5</code></td>
+<td>W/m/°C</td>
+<td>Thermal conductivity.</td>
+</tr>
+<tr>
+<td><code>'SpecificHeat'</code></td>
+<td><code>3583.0</code></td>
+<td>J/kg/°C</td>
+<td>Specific heat capacity.</td>
+</tr>
+<tr>
+<td><code>'Perfusion'</code></td>
+<td><code>555.0</code></td>
+<td>ml/min/kg</td>
+<td>Blood perfusion.</td>
+</tr>
+<tr>
+<td><code>'Absorption'</code></td>
+<td><code>0.85</code></td>
+<td>–</td>
+<td>Absorption fraction (of attenuation converted to heat).</td>
+</tr>
+<tr>
+<td><code>'InitTemperature'</code></td>
+<td><code>37.0</code></td>
+<td>°C</td>
+<td>Initial temperature.</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">bb.Config['bForceHomogenousMedium'] = True
+hm = bb.Config['HomogenousMediumValues']
+hm['Density'] = 1000.0
+hm['LongSoS'] = 1500.0
+hm['LongAtt'] = 5.0
+</code></pre>
+<hr />
+<h2 id="output-debugging">Output / debugging</h2>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bSaveStress</code></td>
+<td><code>False</code></td>
+<td>Also save the acoustic <strong>stress</strong> field from Step 2.</td>
+</tr>
+<tr>
+<td><code>bSaveDisplacement</code></td>
+<td><code>False</code></td>
+<td>Also save the acoustic <strong>displacement</strong> field from Step 2.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="external-tool-roots">External-tool roots</h2>
+<p>These are folder paths used by optional integrations. The <em>operations</em> that use
+them (PlanTUS, brain segmentation, calibration) are not scriptable here, but the
+paths are ordinary <code>bb.Config</code> entries.</p>
+<table>
+<thead>
+<tr>
+<th><code>bb.Config</code> key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SimbNINBSRoot</code></td>
+<td><code>'...'</code></td>
+<td>SimNIBS installation root, required when <code>bSegmentBrainTissue</code> is <code>True</code>.</td>
+</tr>
+<tr>
+<td><code>PlanTUSRoot</code></td>
+<td><code>'...'</code></td>
+<td>PlanTUS installation root (PlanTUS operation not scriptable).</td>
+</tr>
+<tr>
+<td><code>ConnectomeRoot</code></td>
+<td><code>'...'</code></td>
+<td>Connectome Workbench root (used by PlanTUS).</td>
+</tr>
+<tr>
+<td><code>TxOptimizedWeights</code></td>
+<td><code>{tx: '' , …}</code></td>
+<td>Per-transducer path to a calibration <code>.h5</code> file. Dictionary keyed by transducer name; see <a href="../Advanced/TransducerCalibration.html">Tx calibration</a>.</td>
+</tr>
+</tbody>
+</table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1000 560"
+   width="1000"
+   height="560"
+   role="img"
+   aria-label="simple_focused geometry"
+   version="1.1"
+   id="svg34"
+   sodipodi:docname="geom_simple_focused.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview34"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.95176573"
+     inkscape:cx="546.35294"
+     inkscape:cy="306.27285"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="2551"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg34" />
+  <title
+     id="title1">simple_focused geometry</title>
+  <defs
+     id="defs7">
+    <marker
+       id="ar-2563eb"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#2563eb"
+         id="path1" />
+    </marker>
+    <marker
+       id="ar-16a34a"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#16a34a"
+         id="path2" />
+    </marker>
+    <marker
+       id="ar-dc2626"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#dc2626"
+         id="path3" />
+    </marker>
+    <marker
+       id="ar-d97706"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#d97706"
+         id="path4" />
+    </marker>
+    <marker
+       id="ar-0f172a"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#0f172a"
+         id="path5" />
+    </marker>
+    <marker
+       id="ar-94a3b8"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#94a3b8"
+         id="path6" />
+    </marker>
+    <marker
+       id="ar-64748b"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#64748b"
+         id="path7" />
+    </marker>
+  </defs>
+  <rect
+     x="0.5"
+     y="0.5"
+     width="999.0"
+     height="559.0"
+     rx="12"
+     fill="#ffffff"
+     stroke="#e2e8f0"
+     stroke-width="1"
+     id="rect7" />
+  <text
+     x="24.0"
+     y="34.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="19"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="bold"
+     id="text7">simple_focused</text>
+  <text
+     x="24.0"
+     y="54.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     id="text8">Single-element spherical cap. No electronic steering: the focus is fixed by focal_length.</text>
+  <rect
+     x="20.0"
+     y="64.0"
+     width="670.0"
+     height="406.0"
+     rx="8"
+     fill="#f8fafc"
+     stroke="none"
+     stroke-width="1"
+     id="rect8" />
+  <rect
+     x="706.0"
+     y="64.0"
+     width="274.0"
+     height="406.0"
+     rx="8"
+     fill="#f8fafc"
+     stroke="none"
+     stroke-width="1"
+     id="rect9" />
+  <text
+     x="32.0"
+     y="84.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="10.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="bold"
+     id="text9">SIDE VIEW (CROSS-SECTION)</text>
+  <text
+     x="718.0"
+     y="84.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="10.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="bold"
+     id="text10">FACE-ON VIEW (X-Y PLANE)</text>
+  <text
+     x="24.0"
+     y="496.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text11">distance_outplane_to_focus = focal_length - h   (out-plane at the rim, no dead space)</text>
+  <line
+     x1="24.0"
+     y1="526.0"
+     x2="48.0"
+     y2="526.0"
+     stroke="#2563eb"
+     stroke-width="4"
+     stroke-linecap="round"
+     id="line11" />
+  <text
+     x="56.0"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text12">transducer element surface</text>
+  <line
+     x1="239.3"
+     y1="526.0"
+     x2="263.3"
+     y2="526.0"
+     stroke="#16a34a"
+     stroke-width="1.5"
+     stroke-linecap="round"
+     stroke-dasharray="5 5"
+     id="line12" />
+  <text
+     x="271.3"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text13">out-plane (plane through the rim)</text>
+  <circle
+     cx="494.9"
+     cy="526.0"
+     r="5.0"
+     fill="#dc2626"
+     stroke="none"
+     stroke-width="1"
+     id="circle13" />
+  <text
+     x="514.9"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text14">focal spot</text>
+  <text
+     x="976.0"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#94a3b8"
+     text-anchor="end"
+     font-weight="normal"
+     font-style="italic"
+     id="text15">schematic, not to scale</text>
+  <line
+     x1="260.0"
+     y1="150.0"
+     x2="260.0"
+     y2="420.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line15" />
+  <path
+     d="M407.8,203.8 A230,230 0 0 1 486.5,419.9"
+     stroke="#94a3b8"
+     stroke-width="1.2"
+     fill="none"
+     stroke-dasharray="5 5"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path15" />
+  <path
+     d="M112.2,203.8 A230,230 0 0 0 33.5,419.9"
+     stroke="#94a3b8"
+     stroke-width="1.2"
+     fill="none"
+     stroke-dasharray="5 5"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path16" />
+  <line
+     x1="112.2"
+     y1="203.8"
+     x2="407.8"
+     y2="203.8"
+     stroke="#16a34a"
+     stroke-width="1.5"
+     stroke-linecap="round"
+     stroke-dasharray="5 5"
+     id="line16" />
+  <path
+     d="M112.2,203.8 A230,230 0 0 1 407.8,203.8"
+     stroke="#2563eb"
+     stroke-width="5"
+     fill="none"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path17" />
+  <line
+     x1="112.2"
+     y1="108.0"
+     x2="112.2"
+     y2="199.8"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line17" />
+  <line
+     x1="407.8"
+     y1="108.0"
+     x2="407.8"
+     y2="199.8"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line18" />
+  <line
+     x1="112.2"
+     y1="114.0"
+     x2="407.8"
+     y2="114.0"
+     stroke="#0f172a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-0f172a)"
+     marker-end="url(#ar-0f172a)"
+     id="line19" />
+  <text
+     x="260.0"
+     y="106.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="middle"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text19">aperture_size</text>
+  <line
+     x1="266.0"
+     y1="150.0"
+     x2="439.8"
+     y2="150.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line20" />
+  <line
+     x1="411.8"
+     y1="203.8"
+     x2="439.8"
+     y2="203.8"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line21" />
+  <line
+     x1="433.8"
+     y1="150.0"
+     x2="433.8"
+     y2="203.8"
+     stroke="#2563eb"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-2563eb)"
+     marker-end="url(#ar-2563eb)"
+     id="line22" />
+  <text
+     x="443.8"
+     y="168.9"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#2563eb"
+     text-anchor="start"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text22">h</text>
+  <text
+     x="443.8"
+     y="183.9"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text23">max element height</text>
+  <text
+     x="443.8"
+     y="197.9"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text24">(calculated)</text>
+  <text
+     x="104.2"
+     y="207.8"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#16a34a"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text25">out-plane</text>
+  <line
+     x1="246.0"
+     y1="150.0"
+     x2="246.0"
+     y2="380.0"
+     stroke="#0f172a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-0f172a)"
+     marker-end="url(#ar-0f172a)"
+     id="line25" />
+  <text
+     x="238.0"
+     y="247.8"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text26">focal_length</text>
+  <text
+     x="238.0"
+     y="262.8"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="end"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text27">radius of curvature</text>
+  <line
+     x1="124.2"
+     y1="380.0"
+     x2="252.0"
+     y2="380.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line27" />
+  <line
+     x1="130.2"
+     y1="203.8"
+     x2="130.2"
+     y2="380.0"
+     stroke="#dc2626"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-dc2626)"
+     marker-end="url(#ar-dc2626)"
+     id="line28" />
+  <text
+     x="122.2"
+     y="291.9"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="9.33"
+     fill="#dc2626"
+     text-anchor="middle"
+     font-weight="bold"
+     transform="rotate(-90 122.2 291.9)"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text28">distance_outplane_to_focus</text>
+  <circle
+     cx="260.0"
+     cy="380.0"
+     r="6.0"
+     fill="#dc2626"
+     stroke="#ffffff"
+     stroke-width="2"
+     id="circle28" />
+  <text
+     x="327.69592"
+     y="383.13184"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12px"
+     fill="#dc2626"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text29">focal spot</text>
+  <line
+     x1="725.0"
+     y1="250.0"
+     x2="961.0"
+     y2="250.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line29" />
+  <line
+     x1="843.0"
+     y1="132.0"
+     x2="843.0"
+     y2="368.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line30" />
+  <text
+     x="963.0"
+     y="245.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="end"
+     font-weight="normal"
+     id="text30">+x</text>
+  <text
+     x="848.0"
+     y="142.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     id="text31">+y</text>
+  <circle
+     cx="843.0"
+     cy="250.0"
+     r="100.0"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="3"
+     id="circle31" />
+  <text
+     x="843.0"
+     y="254.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#2563eb"
+     text-anchor="middle"
+     font-weight="bold"
+     id="text32">1 element</text>
+  <line
+     x1="743.0"
+     y1="250.0"
+     x2="743.0"
+     y2="380.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line32" />
+  <line
+     x1="943.0"
+     y1="250.0"
+     x2="943.0"
+     y2="380.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line33" />
+  <line
+     x1="743.0"
+     y1="376.0"
+     x2="943.0"
+     y2="376.0"
+     stroke="#0f172a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-0f172a)"
+     marker-end="url(#ar-0f172a)"
+     id="line34" />
+  <text
+     x="843.0"
+     y="394.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="middle"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text34">aperture_size</text>
+</svg>

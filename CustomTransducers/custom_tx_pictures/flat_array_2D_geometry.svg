@@ -1,0 +1,1092 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 1000 560"
+   width="1000"
+   height="560"
+   role="img"
+   aria-label="flat_array_2D geometry"
+   version="1.1"
+   id="svg64"
+   sodipodi:docname="geom_flat_array_2D.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview64"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.346"
+     inkscape:cx="471.7682"
+     inkscape:cy="375.55721"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="2551"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg64" />
+  <title
+     id="title1">flat_array_2D geometry</title>
+  <defs
+     id="defs7">
+    <marker
+       id="ar-2563eb"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#2563eb"
+         id="path1" />
+    </marker>
+    <marker
+       id="ar-16a34a"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#16a34a"
+         id="path2" />
+    </marker>
+    <marker
+       id="ar-dc2626"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#dc2626"
+         id="path3" />
+    </marker>
+    <marker
+       id="ar-d97706"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#d97706"
+         id="path4" />
+    </marker>
+    <marker
+       id="ar-0f172a"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#0f172a"
+         id="path5" />
+    </marker>
+    <marker
+       id="ar-94a3b8"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#94a3b8"
+         id="path6" />
+    </marker>
+    <marker
+       id="ar-64748b"
+       viewBox="0 0 10 10"
+       refX="9"
+       refY="5"
+       markerWidth="7"
+       markerHeight="7"
+       orient="auto-start-reverse">
+      <path
+         d="M0,1 L9,5 L0,9 z"
+         fill="#64748b"
+         id="path7" />
+    </marker>
+  </defs>
+  <rect
+     x="0.5"
+     y="0.5"
+     width="999.0"
+     height="559.0"
+     rx="12"
+     fill="#ffffff"
+     stroke="#e2e8f0"
+     stroke-width="1"
+     id="rect7" />
+  <text
+     x="24.0"
+     y="34.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="19"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="bold"
+     id="text7">flat_array_2D</text>
+  <text
+     x="24.0"
+     y="54.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     id="text8">Square elements in one plane, steered in x, y and z. Origin = array centre, in the plane of the element faces.</text>
+  <rect
+     x="20.0"
+     y="64.0"
+     width="670.0"
+     height="406.0"
+     rx="8"
+     fill="#f8fafc"
+     stroke="none"
+     stroke-width="1"
+     id="rect8" />
+  <rect
+     x="706.0"
+     y="64.0"
+     width="274.0"
+     height="406.0"
+     rx="8"
+     fill="#f8fafc"
+     stroke="none"
+     stroke-width="1"
+     id="rect9" />
+  <text
+     x="32.0"
+     y="84.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="10.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="bold"
+     id="text9">SIDE VIEW (CROSS-SECTION)</text>
+  <text
+     x="718.0"
+     y="84.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="10.5"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="bold"
+     id="text10">FACE-ON VIEW (X-Y PLANE)</text>
+  <text
+     x="24.0"
+     y="496.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text11">Elements are given as (x, y) only: all lie in the array plane. Dead space is applied automatically.</text>
+  <line
+     x1="24.0"
+     y1="526.0"
+     x2="48.0"
+     y2="526.0"
+     stroke="#2563eb"
+     stroke-width="4"
+     stroke-linecap="round"
+     id="line11" />
+  <text
+     x="56.0"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text12">transducer element surface</text>
+  <line
+     x1="239.3"
+     y1="526.0"
+     x2="263.3"
+     y2="526.0"
+     stroke="#16a34a"
+     stroke-width="4"
+     stroke-linecap="round"
+     id="line12" />
+  <text
+     x="271.3"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text13">device surface (casing) / out-plane</text>
+  <circle
+     cx="498.2"
+     cy="526.0"
+     r="5.0"
+     fill="#dc2626"
+     stroke="none"
+     stroke-width="1"
+     id="circle13" />
+  <text
+     x="518.2"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text14">focal spot</text>
+  <rect
+     x="610.1"
+     y="519.0"
+     width="20.0"
+     height="14.0"
+     rx="2"
+     fill="#fef3c7"
+     stroke="#d97706"
+     stroke-width="1"
+     stroke-dasharray="4 3"
+     id="rect14" />
+  <text
+     x="640.1"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="normal"
+     id="text15">electronic steering range</text>
+  <text
+     x="976.0"
+     y="530.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#94a3b8"
+     text-anchor="end"
+     font-weight="normal"
+     font-style="italic"
+     id="text16">schematic, not to scale</text>
+  <line
+     x1="260.0"
+     y1="98.0"
+     x2="260.0"
+     y2="458.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line16" />
+  <path
+     d="M110.0,150.0 L110.0,178.0 L410.0,178.0 L410.0,150.0"
+     stroke="#16a34a"
+     stroke-width="2.6"
+     fill="none"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     id="path16" />
+  <path
+     d="M114.5,150 L155.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path17" />
+  <path
+     d="M164.5,150 L205.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path18" />
+  <path
+     d="M214.5,150 L255.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path19" />
+  <path
+     d="M264.5,150 L305.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path20" />
+  <path
+     d="M314.5,150 L355.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path21" />
+  <path
+     d="M364.5,150 L405.5,150"
+     stroke="#2563eb"
+     stroke-width="6"
+     fill="none"
+     stroke-linecap="butt"
+     stroke-linejoin="round"
+     id="path22" />
+  <line
+     x1="110.0"
+     y1="108.0"
+     x2="110.0"
+     y2="144.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line22" />
+  <line
+     x1="410.0"
+     y1="108.0"
+     x2="410.0"
+     y2="144.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line23" />
+  <line
+     x1="110.0"
+     y1="114.0"
+     x2="410.0"
+     y2="114.0"
+     stroke="#0f172a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-0f172a)"
+     marker-end="url(#ar-0f172a)"
+     id="line24" />
+  <text
+     x="260.0"
+     y="106.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="12.5"
+     fill="#0f172a"
+     text-anchor="middle"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text24">aperture_size</text>
+  <line
+     x1="414.0"
+     y1="150.0"
+     x2="442.0"
+     y2="150.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line25" />
+  <line
+     x1="414.0"
+     y1="178.0"
+     x2="442.0"
+     y2="178.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line26" />
+  <line
+     x1="436.0"
+     y1="150.0"
+     x2="436.0"
+     y2="178.0"
+     stroke="#16a34a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-16a34a)"
+     marker-end="url(#ar-16a34a)"
+     id="line27" />
+  <text
+     x="446.0"
+     y="156.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11.5"
+     fill="#16a34a"
+     text-anchor="start"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text27">distance_tx_bottom_to_outplane</text>
+  <text
+     x="446.0"
+     y="171.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text28">dead space (default 0)</text>
+  <text
+     x="102.0"
+     y="182.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#16a34a"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text29">out-plane</text>
+  <text
+     x="102.0"
+     y="154.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="12"
+     fill="#2563eb"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text30">array plane</text>
+  <rect
+     x="225.0"
+     y="260.0"
+     width="70.0"
+     height="170.0"
+     rx="3"
+     fill="#fef3c7"
+     stroke="#d97706"
+     stroke-width="1.3"
+     stroke-dasharray="4 3"
+     id="rect30" />
+  <line
+     x1="134.0"
+     y1="260.0"
+     x2="225.0"
+     y2="260.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line30" />
+  <line
+     x1="134.0"
+     y1="430.0"
+     x2="225.0"
+     y2="430.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line31" />
+  <line
+     x1="134.0"
+     y1="150.0"
+     x2="114.0"
+     y2="150.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line32" />
+  <line
+     x1="140.0"
+     y1="150.0"
+     x2="140.0"
+     y2="260.0"
+     stroke="#d97706"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-d97706)"
+     marker-end="url(#ar-d97706)"
+     id="line33" />
+  <line
+     x1="162.0"
+     y1="150.0"
+     x2="162.0"
+     y2="430.0"
+     stroke="#d97706"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-d97706)"
+     marker-end="url(#ar-d97706)"
+     id="line34" />
+  <text
+     x="134.0"
+     y="209.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#d97706"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text34">steering.z[0]</text>
+  <text
+     x="156.0"
+     y="422.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#d97706"
+     text-anchor="end"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text35">steering.z[1]</text>
+  <text
+     x="307.0"
+     y="274.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11.5"
+     fill="#d97706"
+     text-anchor="start"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text36">steering.z</text>
+  <text
+     x="307.0"
+     y="289.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text37">focal depths [min, max] measured</text>
+  <text
+     x="307.0"
+     y="303.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text38">from the array plane, min &gt; 0</text>
+  <line
+     x1="225.0"
+     y1="446.0"
+     x2="295.0"
+     y2="446.0"
+     stroke="#d97706"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-d97706)"
+     marker-end="url(#ar-d97706)"
+     id="line38" />
+  <text
+     x="307.0"
+     y="450.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#d97706"
+     text-anchor="start"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text39">steering.x (steering.y alike)</text>
+  <circle
+     cx="260.0"
+     cy="345.0"
+     r="6.0"
+     fill="#dc2626"
+     stroke="#ffffff"
+     stroke-width="2"
+     id="circle39" />
+  <text
+     x="306.51123"
+     y="349.00366"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11px"
+     fill="#dc2626"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text40">initial focus</text>
+  <text
+     x="306.51123"
+     y="363.00366"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11px"
+     fill="#dc2626"
+     text-anchor="start"
+     font-weight="normal"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text41">(mean of steering.z)</text>
+  <rect
+     x="752.3"
+     y="159.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect41" />
+  <circle
+     cx="771.8"
+     cy="178.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle41" />
+  <rect
+     x="799.8"
+     y="159.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect42" />
+  <circle
+     cx="819.2"
+     cy="178.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle42" />
+  <rect
+     x="847.3"
+     y="159.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect43" />
+  <circle
+     cx="866.8"
+     cy="178.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle43" />
+  <rect
+     x="894.8"
+     y="159.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect44" />
+  <circle
+     cx="914.2"
+     cy="178.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle44" />
+  <rect
+     x="752.3"
+     y="206.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect45" />
+  <circle
+     cx="771.8"
+     cy="226.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle45" />
+  <rect
+     x="799.8"
+     y="206.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect46" />
+  <circle
+     cx="819.2"
+     cy="226.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle46" />
+  <rect
+     x="847.3"
+     y="206.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect47" />
+  <circle
+     cx="866.8"
+     cy="226.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle47" />
+  <rect
+     x="894.8"
+     y="206.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect48" />
+  <circle
+     cx="914.2"
+     cy="226.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle48" />
+  <rect
+     x="752.3"
+     y="254.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect49" />
+  <circle
+     cx="771.8"
+     cy="273.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle49" />
+  <rect
+     x="799.8"
+     y="254.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect50" />
+  <circle
+     cx="819.2"
+     cy="273.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle50" />
+  <rect
+     x="847.3"
+     y="254.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect51" />
+  <circle
+     cx="866.8"
+     cy="273.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle51" />
+  <rect
+     x="894.8"
+     y="254.3"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect52" />
+  <circle
+     cx="914.2"
+     cy="273.8"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle52" />
+  <rect
+     x="752.3"
+     y="301.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect53" />
+  <circle
+     cx="771.8"
+     cy="321.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle53" />
+  <rect
+     x="799.8"
+     y="301.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect54" />
+  <circle
+     cx="819.2"
+     cy="321.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle54" />
+  <rect
+     x="847.3"
+     y="301.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect55" />
+  <circle
+     cx="866.8"
+     cy="321.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle55" />
+  <rect
+     x="894.8"
+     y="301.8"
+     width="38.9"
+     height="38.9"
+     rx="2"
+     fill="#dbeafe"
+     stroke="#2563eb"
+     stroke-width="2"
+     id="rect56" />
+  <circle
+     cx="914.2"
+     cy="321.2"
+     r="2.0"
+     fill="#2563eb"
+     stroke="none"
+     stroke-width="1"
+     id="circle56" />
+  <line
+     x1="730.0"
+     y1="250.0"
+     x2="956.0"
+     y2="250.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line56" />
+  <line
+     x1="843.0"
+     y1="137.0"
+     x2="843.0"
+     y2="363.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="8 4 2 4"
+     id="line57" />
+  <text
+     x="958.0"
+     y="245.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="end"
+     font-weight="normal"
+     id="text57">+x</text>
+  <text
+     x="848.0"
+     y="147.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="start"
+     font-weight="normal"
+     id="text58">+y</text>
+  <circle
+     cx="843.0"
+     cy="250.0"
+     r="3.5"
+     fill="#0f172a"
+     stroke="none"
+     stroke-width="1"
+     id="circle58" />
+  <line
+     x1="752.3"
+     y1="141.0"
+     x2="791.2"
+     y2="141.0"
+     stroke="#2563eb"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-2563eb)"
+     marker-end="url(#ar-2563eb)"
+     id="line58" />
+  <text
+     x="752.3"
+     y="133.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#2563eb"
+     text-anchor="start"
+     font-weight="bold"
+     paint-order="stroke"
+     stroke="#ffffff"
+     stroke-width="4"
+     stroke-linejoin="round"
+     id="text59">element_size</text>
+  <line
+     x1="771.8"
+     y1="321.2"
+     x2="771.8"
+     y2="367.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line59" />
+  <line
+     x1="819.2"
+     y1="321.2"
+     x2="819.2"
+     y2="367.0"
+     stroke="#94a3b8"
+     stroke-width="1"
+     stroke-linecap="round"
+     stroke-dasharray="3 3"
+     id="line60" />
+  <line
+     x1="771.8"
+     y1="363.0"
+     x2="819.2"
+     y2="363.0"
+     stroke="#0f172a"
+     stroke-width="1.3"
+     stroke-linecap="round"
+     marker-start="url(#ar-0f172a)"
+     marker-end="url(#ar-0f172a)"
+     id="line61" />
+  <text
+     x="827.2"
+     y="367.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#0f172a"
+     text-anchor="start"
+     font-weight="bold"
+     id="text61">pitch</text>
+  <text
+     x="843.0"
+     y="387.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="middle"
+     font-weight="normal"
+     id="text62">keep pitch close to one wavelength</text>
+  <text
+     x="843.0"
+     y="407.0"
+     font-family="Consolas, 'SFMono-Regular', Menlo, monospace"
+     font-size="11"
+     fill="#2563eb"
+     text-anchor="middle"
+     font-weight="bold"
+     id="text63">(elements.x[i], elements.y[i])</text>
+  <text
+     x="843.0"
+     y="421.0"
+     font-family="'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="11"
+     fill="#64748b"
+     text-anchor="middle"
+     font-weight="normal"
+     id="text64">element centre from the elements origin (black dot)</text>
+</svg>

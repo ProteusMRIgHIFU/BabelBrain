@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://proteusmrghifu.github.io/BabelBrain/server.html">
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>Client/Server mode - BabelBrain</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/fontawesome.min.css" rel="stylesheet">
+        <link href="css/brands.min.css" rel="stylesheet">
+        <link href="css/solid.min.css" rel="stylesheet">
+        <link href="css/v4-font-face.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">BabelBrain</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="index.html" class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="presentations.html" class="nav-link">Presentations</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="installation.html" class="nav-link">Installation</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Simulation pipeline</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="pipeline/pipeline.html" class="dropdown-item">Overall description</a>
+</li>
+                                    
+<li>
+    <a href="pipeline/Preliminary_steps.html" class="dropdown-item">Preliminary steps</a>
+</li>
+                                    
+<li>
+    <a href="pipeline/Planning.html" class="dropdown-item">Planning</a>
+</li>
+                                    
+<li>
+    <a href="pipeline/BabelBrain.html" class="dropdown-item">BabelBrain simulation</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="MRISequences/MRISequences.html" class="nav-link">MRI sequences</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="results/results.html" class="nav-link">Results files</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="Advanced/advanced.html" class="nav-link">Advanced options</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="Advanced/PlanTUS.html" class="nav-link">PlanTUS</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="Advanced/TransducerCalibration.html" class="nav-link">Tx calibration</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="server.html" class="nav-link active" aria-current="page">Client/Server mode</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="CustomTransducers/CustomTransducers.html" class="nav-link">Custom transducers</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Coding / API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="Coding/scripting.html" class="dropdown-item">Scripting BabelBrain</a>
+</li>
+                                    
+<li>
+    <a href="Coding/operations.html" class="dropdown-item">Scriptable operations</a>
+</li>
+                                    
+<li>
+    <a href="Coding/advanced_config.html" class="dropdown-item">Advanced configuration</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="Appendix/Appendix.html" class="nav-link">Appendix</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="Advanced/TransducerCalibration.html" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="CustomTransducers/CustomTransducers.html" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#server-mode" class="nav-link">Server mode</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#starting-the-server" class="nav-link">Starting the server</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#server-mode-options" class="nav-link">Server mode options</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#client-configuration" class="nav-link">Client configuration</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#server-api" class="nav-link">Server API</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#configuration-is-client-owned-and-mandatory" class="nav-link">Configuration is client-owned and mandatory</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#jobspec" class="nav-link">JobSpec</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#actions" class="nav-link">Actions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#job-lifecycle" class="nav-link">Job lifecycle</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#client-examples" class="nav-link">Client examples</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#transport-security-tls" class="nav-link">Transport security (TLS)</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network" class="nav-link">Recipe A — a self-signed certificate for a trusted box on the same network</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="3"><a href="#the-one-thing-that-must-be-right-the-servers-address-the-san" class="nav-link">The one thing that must be right: the server's address (the "SAN")</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#generate-the-key-certificate" class="nav-link">Generate the key + certificate</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#start-the-server-with-tls" class="nav-link">Start the server with TLS</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="3"><a href="#configure-the-client-to-trust-it" class="nav-link">Configure the client to trust it</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#reaching-a-remote-server-over-ssh" class="nav-link">Reaching a remote server over SSH</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#reverse-proxy-public-facing-servers" class="nav-link">Reverse proxy (public-facing servers)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="server-mode">Server mode</h1>
+<p>BabelBrain can run as a <strong>job server</strong>: it exposes the pipeline over a small
+HTTP/JSON API so language-agnostic clients (Python, C#, C++, <code>curl</code>, …) can
+submit jobs, follow progress, and collect results over the network. It is the
+same engine used by <a href="Coding/scripting.html">scripting</a>, with a network front-end and a
+job queue.</p>
+<p><strong>Important notes:</strong></p>
+<ul>
+<li><strong>Multiple workers</strong> — one BabelBrain process drives per GPU available in the server, so
+  jobs are processed simultaneously as many GPU are available.</li>
+<li><strong>Stateless server operation mode</strong> - while persistant mode (data permanently stored in server) is feasible, the recommended operation is to use the server as stateless, where the client sends the data needed for calculations and recovers the artifacts.</li>
+<li><strong>Declarative jobs</strong> — a job specifies inputs, which steps to run, and
+  parameter overrides (no arbitrary remote code).</li>
+<li><strong>Local first</strong> — binds to <code>localhost</code> by default. For any access beyond the
+  local machine, configure a token and encrypt the traffic: see
+  <a href="#transport-security-tls">Transport security (TLS)</a>.</li>
+</ul>
+<h2 id="starting-the-server">Starting the server</h2>
+<p>The server can be initiated using the binary distribution or the source code. For example</p>
+<pre><code class="language-bash">/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless # localhost:8760, no GUI shown
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
+/Applications/BabelBrain.app/Contents/MacOS/BabelBrain --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
+</code></pre>
+<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless               # localhost:8760, no GUI shown
+python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1  # specify IP address of exposed network interface to accept requests
+python BabelBrain/BabelBrain.py --serve --headless --serve-host 164.5.34.1 --serve-port 9000 --serve-token SECRET # specify also different port number and secret TOKEN 
+</code></pre>
+<p>Token use is <strong>HIGHLY RECOMMENDED</strong>, and often required by IT, when using in a large network</p>
+<p>Stop the server with <code>Ctrl-C</code>.</p>
+<h3 id="server-mode-options">Server mode options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--serve</code></td>
+<td>Run as a job server.</td>
+</tr>
+<tr>
+<td><code>--serve-host</code></td>
+<td>Bind address (default <code>127.0.0.1</code>).</td>
+</tr>
+<tr>
+<td><code>--serve-port</code></td>
+<td>Port (default <code>8760</code>).</td>
+</tr>
+<tr>
+<td><code>--serve-token</code></td>
+<td>Require <code>Authorization: Bearer &lt;token&gt;</code> on every endpoint (or set <code>BABEL_SERVER_TOKEN</code>).</td>
+</tr>
+<tr>
+<td><code>--serve-certfile</code></td>
+<td>PEM <strong>certificate</strong> to serve over HTTPS instead of plain HTTP (or <code>BABEL_SERVER_CERTFILE</code>). See <a href="#transport-security-tls">Transport security</a>.</td>
+</tr>
+<tr>
+<td><code>--serve-keyfile</code></td>
+<td>PEM <strong>private key</strong> that pairs with <code>--serve-certfile</code> (or <code>BABEL_SERVER_KEYFILE</code>).</td>
+</tr>
+<tr>
+<td><code>--serve-cafile</code></td>
+<td>CA bundle used to <strong>require and verify client certificates</strong> (mutual TLS; or <code>BABEL_SERVER_CAFILE</code>). Advanced — most setups leave this off.</td>
+</tr>
+<tr>
+<td><code>--headless</code></td>
+<td>Run with no window (for a remote/headless GPU box).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Safety guard.</strong> When the server binds a <strong>non-loopback</strong> address (anything other
+than <code>127.0.0.1</code>/<code>localhost</code>) it will <strong>refuse to start without a token</strong>, and will
+<strong>warn</strong> if TLS is not enabled (the token would otherwise cross the network in
+cleartext). Set the environment variable <code>BABEL_SERVER_ALLOW_INSECURE=1</code> to override
+the guard — for example when a reverse proxy terminates TLS in front of BabelBrain.</p>
+</blockquote>
+<h1 id="client-configuration">Client configuration</h1>
+<p>In BabelBrain client operation (normal GUI mode), the uer can use a remote server in the same way as it would be a local GPU. No data will be preserved in the server. Be aware that during the execution of a session, files will be transferred back and forth between the client and server. Files will be deleted once the client closes its session or the server is stopped.</p>
+<p>The user can configure a remote server in the list of "Computing Backends":</p>
+<p><img src="server_config_1.png" height=350px></p>
+<p>this will show a small dialog where the user can add a new server where IP address, port and optional secret token can be specified</p>
+<p><img src="server_config_2.png" height=250px></p>
+<p>Be aware that multiple server entries can be created.</p>
+<p>Once defined, the configured servers will be available as a list of computing backend:</p>
+<p><img src="server_config_3.png" height=350px></p>
+<h1 id="server-api">Server API</h1>
+<table>
+<thead>
+<tr>
+<th>Method &amp; path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /healthz</code></td>
+<td>Liveness + <code>{busy, queued}</code>. The only endpoint that never needs auth.</td>
+</tr>
+<tr>
+<td><code>GET /capabilities</code></td>
+<td>Server info, incl. the list of available <code>transducers</code>.</td>
+</tr>
+<tr>
+<td><code>GET /defaultconfig</code></td>
+<td>BabelBrain's <strong>default</strong> advanced configuration (clean baseline).</td>
+</tr>
+<tr>
+<td><code>GET /currentconfig</code></td>
+<td>The server's <strong>current</strong> advanced configuration (which may be needed to recover some paths for tools like SimNIBS).</td>
+</tr>
+<tr>
+<td><code>POST /jobs</code></td>
+<td>Submit a <a href="#jobspec">JobSpec</a> (the <code>config</code> field is <strong>mandatory</strong>); returns <code>{job_id}</code> (<code>202</code>).</td>
+</tr>
+<tr>
+<td><code>GET /jobs</code></td>
+<td>List all jobs (summaries).</td>
+</tr>
+<tr>
+<td><code>GET /jobs/{id}</code></td>
+<td>Job status: <code>state</code>, <code>phase</code>, <code>percent</code>, <code>error</code>, <code>artifacts</code>, <code>exit_code</code>.</td>
+</tr>
+<tr>
+<td><code>GET /jobs/{id}/events?since=N</code></td>
+<td>Progress events from index <code>N</code> (polling).</td>
+</tr>
+<tr>
+<td><code>GET /jobs/{id}/stream</code></td>
+<td>Same events as <strong>Server-Sent Events</strong> (push).</td>
+</tr>
+<tr>
+<td><code>POST /jobs/{id}/cancel</code></td>
+<td>Cancel a queued job, or request cancellation of the running one (honored between steps).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration-is-client-owned-and-mandatory">Configuration is client-owned and mandatory</h3>
+<p>The <a href="Coding/advanced_config.html">advanced configuration</a> is <strong>owned by the client</strong>, not
+stored per-session on the server. Every job <strong>must</strong> carry its own <code>config</code>
+object; a submission without it is rejected (<code>400</code>).</p>
+<p>The usual flow is: fetch a baseline, tweak, and send the whole dictionary back:</p>
+<ul>
+<li><code>GET /defaultconfig</code> — BabelBrain's pristine defaults (what the immense
+  majority of clients want: a clean, deterministic starting point).</li>
+<li><code>GET /currentconfig</code> — the server's current values (e.g. a sanitized site
+  baseline an operator configured). Read-only.</li>
+</ul>
+<p>In <strong>server mode the configuration is memory-only</strong>: the server never writes
+<code>lastselection.yaml</code>, and a job's config affects only that job. (Persisting is
+allowed only for a normal, local non-server session.)</p>
+<h3 id="jobspec">JobSpec</h3>
+<p>A <code>JobSpec</code> (POST body, JSON) has three parts: input-selection fields, the
+mandatory <code>config</code>, and <code>steps</code>.</p>
+<pre><code class="language-json">{
+  &quot;t1w&quot;: &quot;/data/sub-01/T1W.nii.gz&quot;,
+  &quot;simbnibs&quot;: &quot;/data/sub-01/m2m_sub-01/&quot;,
+  &quot;trajectory&quot;: &quot;/data/sub-01/target.txt&quot;,
+  &quot;thermal_profile&quot;: &quot;/data/profile.yaml&quot;,
+  &quot;transducer&quot;: &quot;CTX_500&quot;,
+  &quot;ct_type&quot;: &quot;CT&quot;,
+  &quot;ct&quot;: &quot;/data/sub-01/CT.nii.gz&quot;,
+  &quot;output_path&quot;: &quot;/data/sub-01/output/&quot;,
+  &quot;recalculate&quot;: true,
+
+  &quot;config&quot;: { &quot;...&quot;: &quot;the full advanced-config object from /defaultconfig&quot; },
+
+  &quot;steps&quot;: {
+    &quot;planning&quot;: [
+      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;USMaskkHzDropDown&quot;, &quot;value&quot;: &quot;500&quot;},
+      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;USPPWSpinBox&quot;, &quot;value&quot;: 6},
+      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;HUThresholdSpinBox&quot;, &quot;value&quot;: 300},
+      {&quot;action&quot;: &quot;run&quot;}
+    ],
+    &quot;acoustic&quot;: [
+      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 0},
+      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;ZSteeringSpinBox&quot;, &quot;value&quot;: 3.0},
+      {&quot;action&quot;: &quot;set&quot;, &quot;control&quot;: &quot;XSteeringSpinBox&quot;, &quot;value&quot;: 0.0},
+      {&quot;action&quot;: &quot;run&quot;},
+      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 1},
+      {&quot;action&quot;: &quot;run&quot;},
+      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;CombineTrajectories&quot;}
+    ],
+    &quot;thermal&quot;: [
+      {&quot;action&quot;: &quot;select_trajectory&quot;, &quot;index&quot;: 0},
+      {&quot;action&quot;: &quot;run&quot;},
+      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;ExportSummary&quot;, &quot;wait&quot;: false},
+      {&quot;action&quot;: &quot;click&quot;, &quot;control&quot;: &quot;ExportMaps&quot;, &quot;wait&quot;: false}
+    ]
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Input fields</strong> (<code>t1w</code>, <code>simbnibs</code>, <code>transducer</code>, <code>ct_type</code>, …) are the
+  <a href="Coding/scripting.html#launch-selecting-inputs"><code>launch()</code> inputs</a> — the SelFiles-level
+  selections. Step-1 controls (frequency, PPW, HU threshold) are <strong>not</strong> here;
+  they are <code>planning</code> actions, so the client controls them and their order.</li>
+<li><code>config</code> — <strong>mandatory</strong> advanced configuration (see above).</li>
+<li><code>recalculate</code> — <code>true</code> recomputes; <code>false</code> reloads cached results.</li>
+<li><code>use_last_selection</code> — seed omitted input fields from the last GUI session.</li>
+<li><code>steps</code> — an object with any of <code>planning</code> / <code>acoustic</code> / <code>thermal</code>, each an
+  <strong>ordered list of actions</strong>. Steps run in pipeline order; actions run exactly
+  in the order given.</li>
+</ul>
+<h3 id="actions">Actions</h3>
+<p>Each action targets the controls of its step (<code>planning</code> → the main window,
+<code>acoustic</code>/<code>thermal</code> → the current trajectory tab). Control names are the same
+as in <a href="Coding/operations.html">Scriptable operations</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Fields</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set</code></td>
+<td><code>control</code>, <code>value</code></td>
+<td>Set a control (spin box / check box / drop-down / <code>USPPWSpinBox</code>).</td>
+</tr>
+<tr>
+<td><code>select_trajectory</code></td>
+<td><code>index</code></td>
+<td>Select a trajectory tab (<code>acoustic</code>/<code>thermal</code> only).</td>
+</tr>
+<tr>
+<td><code>run</code></td>
+<td><em>(optional)</em> <code>timeout_ms</code></td>
+<td>Click the step's run button and wait for completion.</td>
+</tr>
+<tr>
+<td><code>click</code></td>
+<td><code>control</code>, <em>(optional)</em> <code>wait</code> (default <code>true</code>), <code>timeout_ms</code></td>
+<td>Click any button (e.g. <code>CombineTrajectories</code>, <code>CalculateMechAdj</code>, <code>ExportSummary</code>); use <code>"wait": false</code> for exports.</td>
+</tr>
+</tbody>
+</table>
+<p>This gives full, ordered control — e.g. <em>select trajectory 0 → set Z-steering →
+run → select trajectory 1 → run → combine</em> — mirroring what you'd do in the GUI
+or in a <a href="Coding/operations.html">script</a>.</p>
+<h3 id="job-lifecycle">Job lifecycle</h3>
+<p><code>QUEUED → RUNNING → SUCCEEDED | FAILED | CANCELLED</code>. On <code>SUCCEEDED</code>, <code>artifacts</code>
+lists the produced files (<code>.h5</code>, <code>.nii.gz</code>, <code>.csv</code>) under <code>output_path</code>; on
+<code>FAILED</code>, <code>error</code> carries the traceback and <code>exit_code</code> is non-zero.</p>
+<h2 id="client-examples">Client examples</h2>
+<p><code>curl</code> (remember <code>config</code> is mandatory — fetch a baseline first):</p>
+<pre><code class="language-bash">curl -s localhost:8760/capabilities
+curl -s localhost:8760/defaultconfig &gt; config.json      # baseline to embed in the job
+# ...build a JobSpec (with &quot;config&quot;: &lt;config.json&gt;) as spec.json, then:
+JOB=$(curl -s -XPOST localhost:8760/jobs --data @spec.json | python -c &quot;import sys,json;print(json.load(sys.stdin)['job_id'])&quot;)
+curl -s localhost:8760/jobs/$JOB            # poll status
+curl -sN localhost:8760/jobs/$JOB/stream    # follow progress (SSE)
+</code></pre>
+<p>A complete, dependency-free <strong>Python reference client</strong> ships with the source at</p>
+<ul>
+<li><code>BabelBrain/client_server_remote.py</code> - This mimics how the GUI client BabelBrain operates, where local temporary directories at the server are used to store files during the session life, the client sends input files to the server, then artifacts (results files) are recovered from the server.</li>
+<li><code>BabelBrain/client_server_session.py</code> - This shows how to keep the session alive between Steps 1 to 3, which can be needed when some temporary state persistance is needed. The complete GUI client combines this session mode and the remote temporary file storage shown in <code>client_server_remote.py</code>.</li>
+<li><code>BabelBrain/client_server_persistent.py</code> - This shows the case where file paths refer to local locations in the server, showing how to run simulations in the case results are desired to remain in the filesystem of the server.</li>
+</ul>
+<h1 id="transport-security-tls">Transport security (TLS)</h1>
+<p>The server drives a GPU and reads/writes files, so treat it as an attack surface
+from the outset. Plain HTTP is fine only for <code>localhost</code>. As soon as another
+machine talks to it, the traffic — including the bearer token — should be
+encrypted. There are <strong>two supported shapes</strong>, and picking the right one first
+saves a lot of certificate pain:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Recommended approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A <strong>trusted box on the same network</strong> (Linux / Windows / macOS) that clients reach directly by IP or hostname.</td>
+<td><strong>Self-signed TLS certificate</strong> — <em>Recipe A</em> below.</td>
+</tr>
+<tr>
+<td>A <strong>remote / more serious server</strong> on another network, behind a firewall, not meant to be exposed.</td>
+<td><strong>SSH tunnelling</strong> — no certificate at all. See <a href="#reaching-a-remote-server-over-ssh">Reaching a remote server over SSH</a>.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>If you can use SSH to reach the box, prefer the tunnel: it is simpler, needs no
+certificate, and is <em>more</em> secure because BabelBrain's port is never exposed to
+the network at all.</p>
+</blockquote>
+<h2 id="recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network">Recipe A — a self-signed certificate for a trusted box on the same network</h2>
+<p>This is the intended setup for a GPU workstation sitting on your lab/clinic LAN
+that a handful of trusted clients connect to directly. You generate the
+certificate once on the server and copy it to each client so they can trust it.</p>
+<p>TLS on the server always needs <strong>two files</strong> — they are a matched pair and you
+need <strong>both</strong>:</p>
+<ul>
+<li>a <strong>private key</strong> (<code>babelbrain-key.pem</code>) — secret, stays on the server;</li>
+<li>a <strong>certificate</strong> (<code>babelbrain-cert.pem</code>) — public, copied to every client.</li>
+</ul>
+<h3 id="the-one-thing-that-must-be-right-the-servers-address-the-san">The one thing that must be right: the server's address (the "SAN")</h3>
+<p>A certificate is bound to the <strong>address(es) by which clients reach the server</strong>.
+This list lives in a certificate field called the <strong>SAN</strong> (<em>Subject Alternative
+Name</em> — nothing to do with storage networks). When a client connects to, say,
+<code>https://10.0.0.5:8760</code>, it checks that <code>10.0.0.5</code> is listed in the certificate's
+SAN. If it is not, the connection is refused with a <em>hostname/IP mismatch</em> error,
+<strong>even if the certificate is otherwise perfectly valid</strong>.</p>
+<blockquote>
+<p><strong>This is the server's own address — the address a client types to reach it —
+not the address of the clients.</strong> List every hostname and/or IP a client might
+use for this server (e.g. both a DNS name and a raw IP, or several interface
+IPs if the box is multi-homed). The clients' own addresses never appear in the
+certificate.</p>
+</blockquote>
+<h3 id="generate-the-key-certificate">Generate the key + certificate</h3>
+<p>Run this <strong>on the server</strong>, replacing the hostname/IP with how <em>this server</em> is
+reached on your network. <code>openssl</code> ships with the BabelBrain conda environment,
+so run it from an activated environment (works identically on Linux, macOS and
+the Windows <em>Anaconda Prompt</em>):</p>
+<pre><code class="language-bash">openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+  -keyout babelbrain-key.pem -out babelbrain-cert.pem \
+  -subj &quot;/CN=gpu-box&quot; \
+  -addext &quot;subjectAltName=DNS:gpu-box.mylab.local,IP:10.0.0.5&quot;
+</code></pre>
+<ul>
+<li><code>subjectAltName=...</code> — <strong>the critical part.</strong> Put <strong>every</strong> address clients use
+  for this server here. Use <code>DNS:</code> for hostnames and <code>IP:</code> for raw IP addresses,
+  comma-separated. Examples:<ul>
+<li>clients connect by IP only → <code>subjectAltName=IP:10.0.0.5</code></li>
+<li>clients connect by name only → <code>subjectAltName=DNS:gpu-box.mylab.local</code></li>
+<li>some use each, or the box has two NICs → <code>subjectAltName=DNS:gpu-box.mylab.local,IP:10.0.0.5,IP:192.168.1.5</code></li>
+</ul>
+</li>
+<li><code>-nodes</code> — do <strong>not</strong> password-protect the key, so the server can start
+  unattended.</li>
+<li><code>-days 825</code> — validity in days (~2 years; many clients reject self-signed
+  certificates valid for longer). Regenerate when it expires.</li>
+<li>Keep the key private: on Linux/macOS run <code>chmod 600 babelbrain-key.pem</code>.</li>
+</ul>
+<h3 id="start-the-server-with-tls">Start the server with TLS</h3>
+<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless \
+  --serve-host 10.0.0.5 --serve-token SECRET \
+  --serve-certfile babelbrain-cert.pem --serve-keyfile babelbrain-key.pem
+</code></pre>
+<p>The startup banner will now read <code>https://…</code> and <code>TLS</code>. (Because the bind is
+non-loopback, a token is required — see the safety guard above.)</p>
+<h3 id="configure-the-client-to-trust-it">Configure the client to trust it</h3>
+<p>Copy <strong>only</strong> <code>babelbrain-cert.pem</code> (never the key) to each client machine. In
+BabelBrain's remote-server dialog:</p>
+<ul>
+<li><strong>Host / IP</strong> — must be one of the addresses listed in the SAN (e.g. <code>10.0.0.5</code>
+  <em>or</em> <code>gpu-box.mylab.local</code>; whichever you type must be in the certificate).</li>
+<li><strong>Port</strong>, <strong>Token</strong> — as configured on the server.</li>
+<li>Tick <strong>Use HTTPS (TLS)</strong> and set <strong>CA file</strong> to the copied <code>babelbrain-cert.pem</code>.</li>
+</ul>
+<p><img src="server_config_2.png" height=250px></p>
+<p>For the Python reference clients, point them at the copied certificate:</p>
+<pre><code class="language-python">import client_functions as cf
+cf.BASE = &quot;https://10.0.0.5:8760&quot;     # must match a SAN entry
+cf.TOKEN = &quot;SECRET&quot;
+cf.CA    = &quot;babelbrain-cert.pem&quot;      # trust our self-signed cert
+</code></pre>
+<blockquote>
+<p><strong>Last resort only:</strong> ticking <em>Skip certificate verification</em> on the client (or
+<code>cf.INSECURE = True</code>) disables all verification. It removes the protection TLS
+is meant to provide and invites a man-in-the-middle — use it only for a throwaway
+local test, never in routine operation.</p>
+</blockquote>
+<h2 id="reaching-a-remote-server-over-ssh">Reaching a remote server over SSH</h2>
+<p>For a server on a <strong>separate/remote network</strong> that is not (and should not be)
+exposed, do <strong>not</strong> generate a certificate. Leave BabelBrain on its default
+loopback bind and reach it through an SSH tunnel — SSH already provides the
+encryption, server authentication and user authentication that TLS would, so
+adding TLS inside the tunnel is redundant.</p>
+<p><strong>On the server</strong> — bind to loopback (the default), no certificate, nothing
+exposed:</p>
+<pre><code class="language-bash">python BabelBrain/BabelBrain.py --serve --headless      # listens on 127.0.0.1:8760 only
+</code></pre>
+<p><strong>On the client</strong> — forward a local port to the server's loopback over SSH:</p>
+<pre><code class="language-bash">ssh -N -L 8760:127.0.0.1:8760 user@remote-gpu-box
+</code></pre>
+<p>Now configure a remote server in BabelBrain with <strong>Host <code>127.0.0.1</code></strong>, <strong>Port
+<code>8760</code></strong>, <strong>HTTPS off</strong>. The client talks to <code>http://127.0.0.1:8760</code> locally and
+SSH carries it, encrypted, to the server. There is no certificate to manage and
+no SAN to get wrong (a tunnelled cert would have to be issued for <code>localhost</code>,
+which is more awkward, not less). Add <code>--serve-token</code> if you want jobs gated
+beyond "has an SSH account" — it travels safely inside the tunnel.</p>
+<h2 id="reverse-proxy-public-facing-servers">Reverse proxy (public-facing servers)</h2>
+<p>For a genuinely public server with a DNS name, the lowest-maintenance option is a
+TLS-terminating reverse proxy (e.g. <strong>Caddy</strong>, which obtains and renews a
+real Let's Encrypt certificate automatically) with BabelBrain bound to
+<code>127.0.0.1</code>. Clients then need no certificate configuration at all. Set
+<code>BABEL_SERVER_ALLOW_INSECURE=1</code> so the loopback-bound BabelBrain does not warn
+about serving plain HTTP behind the proxy. This is outside the scope of the
+recipes above but is the recommended shape if you must expose the service to the
+open internet.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js"></script>
+        <script src="mathjax-config.js"></script>
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
