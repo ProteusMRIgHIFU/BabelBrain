@@ -103,3 +103,28 @@
     flex: 1 1 auto;
   }
 }
+
+/* ------------------------------------------------------------------
+   Compact "pandas DataFrame"-like tables.
+   Usage in Markdown:  <div class="bb-dataframe" markdown> ...table... </div>
+   ------------------------------------------------------------------ */
+.md-typeset .bb-dataframe table:not([class]) {
+  font-size: 0.62rem;
+  border: none;
+  border-radius: 0;
+}
+.md-typeset .bb-dataframe table:not([class]) th,
+.md-typeset .bb-dataframe table:not([class]) td {
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;               /* one line per row, scroll sideways */
+  border-top: none;
+}
+.md-typeset .bb-dataframe table:not([class]) th {
+  border-bottom: 1px solid var(--md-default-fg-color--light);
+}
+.md-typeset .bb-dataframe table:not([class]) tbody tr:nth-child(odd) {
+  background-color: var(--md-default-fg-color--lightest);   /* zebra rows */
+}
+.md-typeset .bb-dataframe table:not([class]) td:nth-child(3) {
+  font-variant-numeric: tabular-nums;   /* align digits in the time column */
+}
