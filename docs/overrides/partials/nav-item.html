@@ -2,6 +2,8 @@
   BabelBrain override of zensical_ui partials/nav-item.html (zensical 0.0.74).
   Change vs. upstream: only drop the top H1 from the page TOC when it is the
   ONLY H1; pages with several '#' headings keep all of them (and children).
+  Also: non-active pages list their headings too, from the generated
+  partials/page-tocs.html (see gen_page_tocs.py).
 -#}
 {% macro render_status(nav_item, type) %}
   {% set class = "md-status md-status--" ~ type %}
@@ -163,10 +165,13 @@
       {% endif %}
     </li>
   {% else %}
+    {% import "partials/page-tocs.html" as page_tocs %}
     <li class="{{ class }}">
       <a href="{{ nav_item.url | url }}" class="md-nav__link">
         {{ render_content(nav_item) }}
       </a>
+      {#- BabelBrain: also list the headings of non-active pages (generated) -#}
+      {{ page_tocs.render(nav_item.url, nav_item.url | url) }}
     </li>
   {% endif %}
 {% endmacro %}

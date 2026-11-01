@@ -193,10 +193,13 @@ These transducers assume that a coupling cone is in contact with the skin. The u
 <img src="Simulation-10.png" height=450px>
 
 
-####  REMOPD
-This transducer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.
+####  TheraPhase
+This transducer from IBMT-Franhaufer is a flat device that shows features that combine functionalities similar to the H246 and phased arrays.
 
 <img src="Simulation-14.png" height=450px>
+
+### Apply Feasible Trajectory
+Starting with v0.8.8, when using phased arrays for Brainsight and Slicer trajectories, we added an extra action to calculate mechanical and steering conditions when a second trajectory is provided. This second trajectory is intended to describe the **feasible** position of device - for example, if the ear is blocking the straight trajectory to the real intended target, the device needs to be placed a bit off. This second trajectory can be now provided and BabelBrain will calculate the initial steering and mechanical displacement conditions that match that feasible position.
 
 ## STEP 3 - Thermal simulation
 The third tab in the GUI of BabelBrain shows the thermal simulation step.  The diagram below shows a flowchart of this step.

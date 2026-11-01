@@ -2,7 +2,7 @@ Results files
 ----
 Multiple files are generated and will be saved in the same directory where the input T1W file is located. These are the most relevant files.
 
-# 1 - Input mask in Nifti format
+# Input mask in Nifti format
 
 `<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_BabelViscoInput.nii.gz`
 
@@ -18,7 +18,7 @@ If a ZTE or real CT scan was indicated as input, the files `<Target ID>_<Tx ID>_
 
 <img src="Results -3.png" height=350px> 
 
-# 2 - Acoustic pressure field results in Nifti format
+# Acoustic pressure field results in Nifti format
 
 `<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_FullElasticSolution.nii.gz`
 
@@ -38,7 +38,7 @@ This a sub-domain version with the original simulation resolution, normalized (0
 
 Supplementary Nifti files showing results for benchmarking are also saved. For example results in water-only conditions, including with Rayleigh integral. Water-conditions results are also needed to calculate the required $I_{SPPA}$ value to use to program devices during real experimentations. These acoustic maps should be considered **adimensional** and are mostly used for visualization purposes. 
 
-# 3 - STL files
+# STL files
 BabelBrain will generate STL files of the transducer that will be in T1W coordinates and aligned using the planning and simulation information. 
  If using 'charm' from Simbnibs 4.0, BabelBrain will generate STL files for skin, csf and skull 
 regions (`skin.stl`,`csf.stl`,`bone.stl`) in the directory specified for charm output.
@@ -47,7 +47,7 @@ Below there is an example of visualization of STL files of transducer, skin and 
 
 <img src="Results -1.png" height=550px>
 
-# 2 - Thermal and intensity maps:
+# Thermal and intensity maps:
 `<Target ID>_<Tx ID>_<Frequency ID>_<PPW ID>_DataForSim-ThermalField-<Timming IDs>.h5` 
 
 For example:

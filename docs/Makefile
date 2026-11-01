@@ -18,11 +18,14 @@ upgrade:
 	pip install -r requirements-docs.txt --upgrade
 
 
-s serve:
+toc:
+	python gen_page_tocs.py
+
+s serve: toc
 	zensical serve
 
 
-b build:
+b build: toc
 	zensical build --clean --strict
 
 # Zensical has no gh-deploy; build, then force-push site/ to the gh-pages branch
