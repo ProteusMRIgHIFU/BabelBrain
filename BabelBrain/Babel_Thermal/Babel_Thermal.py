@@ -973,7 +973,7 @@ class Babel_Thermal(QWidget):
 
         IsppaTarget = DataThermal['p_map'][tuple(Loc)]**2/2/ImpedanceTarget/1e4*IsppaRatio
 
-        LocMax=np.array(np.where(DataThermal['p_map']==DataThermal['p_map'][SelBrain].max())).flatten()
+        LocMax=np.array(np.where(DataThermal['p_map']==DataThermal['p_map'][SelBrain].max()))[:,0] #first one if several voxels share the max
         ImpedanceLocMax= DensityMap[LocMax[0],LocMax[1],LocMax[2]]*SoSMap[LocMax[0],LocMax[1],LocMax[2]]
         pMax=DataThermal['p_map'][tuple(LocMax)]
         IsppaMax=pMax**2/2/(DensityMap[tuple(LocMax)]*SoSMap[tuple(LocMax)])/1e4
