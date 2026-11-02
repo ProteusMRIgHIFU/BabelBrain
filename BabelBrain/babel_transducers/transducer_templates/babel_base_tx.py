@@ -1180,6 +1180,7 @@ class RunCombineTrajectories(QObject):
             DataForSim['SpatialStep']=np.mean(zs)
             DataForSim['TargetLocation']=TargetLocation
             DataForSim['TxElemCenters']=tx_element_locations
+            DataForSim['TransducerType']=BaseSimData['TransducerType'] #all trajectories use the same transducer
             #DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
             DataForSim['bDoRefocusing']=False
             DataForSim['affine']=MergedNifti.affine
