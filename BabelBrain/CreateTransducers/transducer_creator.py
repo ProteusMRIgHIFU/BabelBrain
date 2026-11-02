@@ -93,7 +93,7 @@ TX_GEOMETRIES = {
         "steering_axes": {"x", "y", "z"},  # full 3D steering
     },
 }
-VALID_FREQUENCIES = range(200000,1005000,5000)
+VALID_FREQUENCIES = range(200000,1001000,1000)
 FLAT_FOCAL_LENGTH = 1.0e3 # m, flat geometries have no natural focus
 OUTPLANE_DISTANCE_TOLERANCE = 1.0e-6 # m, tolerance when checking distance_tx_bottom_to_outplane against distance_outplane_to_focus
 
@@ -597,7 +597,7 @@ class CustomTransducer:
         
         Raises:
             ValueError: If frequencies is missing, not valid type (int or float), 
-            not in valid range (200-1000kHz), or isn't at valid frequency step (5kHz)
+            not in valid range (200-1000kHz), or isn't at valid frequency step (1kHz)
         
         Sets:
             self.frequencies (list): Validated transducer frequencies
@@ -618,7 +618,7 @@ class CustomTransducer:
             int_freq = int(freq)
             if int_freq not in VALID_FREQUENCIES:
                 raise YAMLParameterError(
-                    f"Invalid specified frequency ({int_freq} Hz), frequency must be at a 5kHz interval value within the 200-1000 kHz range",
+                    f"Invalid specified frequency ({int_freq} Hz), frequency must be at a 1kHz interval value within the 200-1000 kHz range",
                     full_key=f'frequencies[{i}]'
                 )
 

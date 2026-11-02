@@ -14,8 +14,8 @@
 # Example values reproduce the built-in TheraPhas transducer (256 elements, 58 mm aperture).
 name: MyFlatArray2DTx                   # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
 geometry_type: flat_array_2D
-frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
-    - 490000
+frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 1 kHz steps, no duplicates
+    - 487000
 aperture_size: 0.058                    # Aperture width (m), full extent of the active surface
 # focal_length is NOT needed: flat arrays have no natural focus (set internally to 1.0e3 m)
 
@@ -105,7 +105,7 @@ steering:
 # PlanTUS tables, one entry per frequency (distances in m).
 # If omitted, BabelBrain estimates them with Rayleigh simulations in water.
 # PlanTUS:
-#     490000:
+#     487000:
 #         FocalDistanceList: [ 0.00610,  0.01220,  0.01840,  0.02450,  0.03060,  0.03670,  0.04290,  0.04900,  0.05510,  0.06120,
 #                             0.06730,  0.07350,  0.07960,  0.08570,  0.09180,  0.09800,  0.10410,  0.11020,  0.11630,  0.12240,
 #                             0.12860,  0.13470,  0.14080,  0.14690,  0.15310,  0.15920]
