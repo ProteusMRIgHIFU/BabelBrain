@@ -1,7 +1,7 @@
 TxDiam:                   64.0e-3    #in m
 FocalLength:              62.94e-3  #in m
 NaturalOutPlaneDistance:  52.38e-3  # in m
-MinimalTPODistance:       30.0e-3  # in m
+MinimalTPODistance:       25.0e-3  # in m
 MaximalTPODistance:       82.5e-3  # in m
 USFrequencies:
     - 500000.0
@@ -16,6 +16,7 @@ Corrections:
 PlanTUS: #This information is to interface with the PlanTUS tool
     500000.0: #need to update for the 500 kHz transducer
         FocalDistanceList:
+            - 25.0
             - 33.1
             - 34.7
             - 36.8
@@ -28,6 +29,7 @@ PlanTUS: #This information is to interface with the PlanTUS tool
             - 68.5
             - 76.6
         FHMLList:
+            - 7.0
             - 8.4
             - 9.3
             - 10.3
@@ -41,6 +43,7 @@ PlanTUS: #This information is to interface with the PlanTUS tool
             - 34.5
     545000.0:
         FocalDistanceList:
+            - 25.0
             - 33.1
             - 34.7
             - 36.8
@@ -53,6 +56,7 @@ PlanTUS: #This information is to interface with the PlanTUS tool
             - 68.5
             - 76.6
         FHMLList:
+            - 7.0
             - 8.4
             - 9.3
             - 10.3
