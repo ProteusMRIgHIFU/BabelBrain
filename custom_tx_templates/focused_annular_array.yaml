@@ -33,9 +33,9 @@ annular:
     inner_ring_diameters: [0.0,     0.0316988, 0.0442688, 0.0536688]  # Use 0.0 for a solid central disc
     outer_ring_diameters: [0.03114, 0.04371,   0.05311,   0.06083]    # Each must be larger than its inner diameter
 
-# TPO distance range in the BabelBrain GUI = focal_length + z (here 30-82.5 mm).
+# TPO distance range in the BabelBrain GUI = focal_length + z (here 25-82.5 mm).
 steering:
-    z: [-0.03294, 0.01956]              # Axial offset [min, max] (m) from the natural focus; negative moves towards the transducer, abs(min) <= focal_length
+    z: [-0.03794, 0.01956]              # Axial offset [min, max] (m) from the natural focus; negative moves towards the transducer, abs(min) <= focal_length
 
 # ---------- Optional ---------------------------------------------------------
 # mechanical_adjustment: [-0.010, 0.010]  # Lateral X/Y mechanical adjustment limits [min, max] (m). Values shown are the defaults.
@@ -44,5 +44,5 @@ steering:
 # If omitted, BabelBrain estimates them with Rayleigh simulations in water.
 # PlanTUS:
 #     500000:
-#         FocalDistanceList: [0.0331, 0.0347, 0.0368, 0.0393, 0.0424, 0.0462, 0.0508, 0.0560, 0.0618, 0.0685, 0.0766]
-#         FHMLList:          [0.0084, 0.0093, 0.0103, 0.0116, 0.0135, 0.0161, 0.0192, 0.0228, 0.0263, 0.0302, 0.0345]
+#         FocalDistanceList: [0.0250, 0.0331, 0.0347, 0.0368, 0.0393, 0.0424, 0.0462, 0.0508, 0.0560, 0.0618, 0.0685, 0.0766]
+#         FHMLList:          [0.0070, 0.0084, 0.0093, 0.0103, 0.0116, 0.0135, 0.0161, 0.0192, 0.0228, 0.0263, 0.0302, 0.0345]
