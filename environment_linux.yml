@@ -30,6 +30,10 @@ dependencies:
   - pip=23.0.1=py310h06a4308_0
   - pyinstaller=5.6.2=py310h5eee18b_0
   - pyinstaller-hooks-contrib=2023.1=pyhd8ed1ab_0
+  - pytest=9.2.0=pyhc364b38_1
+  - pytest-html=4.2.0=pyhd8ed1ab_0
+  - pytest-metadata=3.1.1=pyhd8ed1ab_1
+  - pytest-qt=4.5.0=pyhdecd6ff_0
   - python=3.10.10=h7a1cb2a_2
   - python_abi=3.10=2_cp310
   - readline=8.2=h5eee18b_0
