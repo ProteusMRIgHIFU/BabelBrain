@@ -26,57 +26,12 @@ and
  as a function of CT scanning conditions. For most practical scenarios, if using GE, the most common scanner combination will **GE, 120, B,, 0.5, 0.6**. For Siemens scanners, it will be **Siemens,120,B,,0.4, 0.5**.
 
     When selecting **ZTE** or **PETRA** scans, the best CT combination will be selected automatically.
-    
-5. Select a thermal profile file for simulation. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
-
-    ```
-    BaseIsppa: 5.0 # W/cm2
-    AllDC_PRF_Duration: #All combinations of timing that will be considered
-    -   DC: 0.3
-        PRF: 10.0
-        Duration: 40.0
-        DurationOff: 40.0
-    ```
-
-    
-    This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
-
-
-    For scenarios where repeated exposures is required, the extra field `Repetitions` can be added. For example:
-
-    ```
-    BaseIsppa: 5.0 # W/cm2
-    AllDC_PRF_Duration: #All combinations of timing that will be considered
-    -   DC: 0.3
-        PRF: 10.0
-        Duration: 30.0
-        DurationOff: 30.0
-        Repetitions: 10
-    ```
-
-    In the previous case, the simulation will run for an exposure lasting 10 min, where ultrasound is turned on for 30s, followed by 30s with ultrasound off, and repeated 10 times.
-
-    More than one exposure can be specified. For example:
-    
-     ```
-     BaseIsppa: 5.0 # W/cm2
-     AllDC_PRF_Duration: #All combinations of timing that will be considered
-         -   DC: 0.3
-             PRF: 10.0
-             Duration: 40.0
-             DurationOff: 40.0
-         -   DC: 0.1
-             PRF: 5.0
-             Duration: 80.0
-             DurationOff: 50.0
-     ```
-
-    When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated.
      
+5. Select a thermal profile file for simulation. See details below.
 
-7. Select the type of transducer to be used in simulations.
+6. Select the type of transducer to be used in simulations.
 
-6. Optional. Select a multi-point profile file for simulations. BabelBrain offers the possibility to execute electronic steering over a list of points if a concave array is selected. If any of the three concave arrays is selected (H317, I12378 and ATAC), the user can select a profile definition specific to multi-point steering. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
+7. Optional. Select a multi-point profile file for simulations. BabelBrain offers the possibility to execute electronic steering over a list of points if a concave array is selected. If any of the three concave arrays is selected (H317, I12378 and ATAC), the user can select a profile definition specific to multi-point steering. This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
    
      ```
      MultiPoint:
@@ -94,6 +49,69 @@ and
     In this example, we create a 3-point steering list that makes a 3-point star with a radius from the origin of 2 mm.
 
 7. Once all inputs are set, then click on "CONTINUE"
+
+## Thermal profile - protocol    
+ This is a simple YAML file where the timings of transcranial ultrasound are specified. For example:
+
+```YAML
+BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+-   DC: 0.3
+    PRF: 10.0
+    Duration: 40.0
+    DurationOff: 40.0
+```
+
+    
+This definition helps in the step of thermal simulation with BabelBrain. `BaseIsspa` is the reference value of acoustic intensity for which the thermal equation will be solved. You can set this to 5 W/cm$^2$. Choices for other powers will be scaled (no recalculations) based on this value.
+
+
+For scenarios where repeated exposures is required, the extra field `Repetitions` can be added. For example:
+
+```YAML
+BaseIsppa: 5.0 # W/cm2
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+-   DC: 0.3
+    PRF: 10.0
+    Duration: 30.0
+    DurationOff: 30.0
+    Repetitions: 10
+```
+
+In the previous case, the simulation will run for an exposure lasting 10 min, where ultrasound is turned on for 30s, followed by 30s with ultrasound off, and repeated 10 times.
+
+More than one exposure can be specified. For example:
+
+```YAML
+    BaseIsppa: 5.0 # W/cm2
+    AllDC_PRF_Duration: #All combinations of timing that will be considered
+        -   DC: 0.3
+            PRF: 10.0
+            Duration: 40.0
+            DurationOff: 40.0
+        -   DC: 0.1
+            PRF: 5.0
+            Duration: 80.0
+            DurationOff: 50.0
+```
+
+We can also concatenate protocols - this will assume the experiment will execute them one afte the other one:
+
+```YAML
+BaseIsppa: 5.0 # W/cm2
+bConcatenateSimulations: True
+AllDC_PRF_Duration: #All combinations of timing that will be considered
+    -   DC: 0.1
+        PRF: 5.0
+        Duration: 40.0
+        DurationOff: 0.0
+    -   DC: 0.3
+        PRF: 10.0
+        Duration: 10.0
+        DurationOff: 0.0
+```
+
+When running the thermal simulation step, all the combinations specified in the thermal profile will be calculated.
    
 ## STEP 1 - Domain generation
 The diagram below shows flowchart describing the process for the domain generation.
