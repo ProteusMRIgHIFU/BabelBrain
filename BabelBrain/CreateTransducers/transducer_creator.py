@@ -608,7 +608,7 @@ class CustomTransducer:
         for i,freq in enumerate(tx_frequencies):
             
             # Ensure no decimal points in frequency
-            if not freq.is_integer():
+            if isinstance(freq, float) and not freq.is_integer(): # int.is_integer() needs Python 3.12+
                 raise YAMLParameterError(
                     f"Invalid specified frequency ({freq} Hz), frequency must be an integer value",
                     full_key=f'frequencies[{i}]'
