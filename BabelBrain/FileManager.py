@@ -58,7 +58,9 @@ class FileManager:
             if nifti_load_method == 'sitk':
                 return self.nibabel_to_sitk(value,sitk_dtype=sitk_dtype) # nibabel_to_sitk automatically makes a copy
             else:
-                data_copy = nibabel.Nifti1Image(value.get_fdata(dtype=np.float32), value.affine, value.header.copy())
+                # np.array copies: get_fdata returns the image's own array when it's already float32, and callers
+                # modifying the loaded data in place would otherwise change the saved object (and the file written from it)
+                data_copy = nibabel.Nifti1Image(np.array(value.get_fdata(dtype=np.float32)), value.affine, value.header.copy())
                 return data_copy
         
         # Handle sitk NIfti images 
