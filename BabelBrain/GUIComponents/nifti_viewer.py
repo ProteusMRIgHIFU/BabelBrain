@@ -1642,6 +1642,23 @@ class NiftiViewer(QWidget):
 
         root.addWidget(outer_spl)
 
+    # ── Teardown ──────────────────────────────────────────────────────────
+
+    def release_render_windows(self) -> None:
+        """Finalize each viewport's VTK render window while its native window still exists.
+
+        Qt destroys the native window (HWND on Windows) when the widget is deleted, but the
+        vtkRenderWindow can outlive it (held by Python reference cycles until the garbage
+        collector runs). Freeing it then makes VTK call wglMakeCurrent on a dead handle, which
+        floods "The handle is invalid" errors and can crash the process. Finalizing here releases
+        the OpenGL context first; a later Render() re-creates it if the viewer is shown again."""
+        for vp in self._vps:
+            vp.vtk_widget.Finalize()
+
+    def closeEvent(self, event):
+        self.release_render_windows()
+        super().closeEvent(event)
+
     # ── Public API ────────────────────────────────────────────────────────
 
     def load_base(self, ni_path: object, target:np.ndarray, name='',tissue_label=False) -> tuple:
@@ -2330,6 +2347,11 @@ class NiftiViewerTab(QWidget):
         # Guard: editingFinished fires twice sometimes; track last-committed value
         self._ras_committing = False
 
+    def closeEvent(self, event):
+        # Child widgets get no closeEvent of their own, see NiftiViewer.release_render_windows
+        self.viewer.release_render_windows()
+        super().closeEvent(event)
+
     def loaded_base(self):
         self._btn_overlay.setEnabled(True)
         self._btn_screenshot.setEnabled(True)
@@ -2489,6 +2511,9 @@ class NiftiViewerWindow(QWidget):
             self.viewer.append(panel.viewer)
 
     def closeEvent(self, event):
+        # Child widgets get no closeEvent of their own, see NiftiViewer.release_render_windows
+        for viewer in self.viewer:
+            viewer.release_render_windows()
         self.closed.emit()
         super().closeEvent(event)  # let the default close logic run
 
