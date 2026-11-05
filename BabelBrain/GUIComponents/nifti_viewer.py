@@ -382,7 +382,11 @@ def medical_plane_geoms(ras_min, ras_max, iso, neurogical) -> list[PlaneGeometry
     giving -(up × normal) — effectively mirroring left and right while keeping
     up unchanged.
     """
-    ctr  = (ras_min + ras_max) / 2.
+    def ns(axis): return max(2, int(np.ceil((ras_max[axis]-ras_min[axis])/iso))+1)  # number of iso-spaced slices covering the axis
+    def ps(a, b): return max(a, b) / 2.  # default camera zoom: half the larger plane side, so the plane fits
+
+    # middle slice of the grid ras_min + i*iso (iso = smallest voxel size)
+    ctr  = ras_min + (np.array([ns(0), ns(1), ns(2)]) - 1) / 2. * iso
     flip = neurogical
 
     ax_x  = np.array([1.,  0., 0.])   # right (always +X in world; flip is in camera)
@@ -390,8 +394,6 @@ def medical_plane_geoms(ras_min, ras_max, iso, neurogical) -> list[PlaneGeometry
     ax_z  = np.array([0.,  0., 1.])
     sa_r  = np.array([0., -1., 0.])   # sagittal screen-right = -Y (ant on screen-right)
 
-    def ns(axis): return max(2, int(np.ceil((ras_max[axis]-ras_min[axis])/iso))+1)
-    def ps(a, b): return max(a, b) / 2.
     ex = ras_max[0]-ras_min[0]; ey = ras_max[1]-ras_min[1]; ez = ras_max[2]-ras_min[2]
 
     return [
@@ -604,10 +606,19 @@ class SliceViewport(QFrame):
         self.renderer.SetBackground(0.05, 0.05, 0.06)
         rw.AddRenderer(self.renderer)
 
+        # Crosshairs live in a second layer sharing the camera, so they are
+        # always drawn over the image slices (same plane → no depth fighting)
+        rw.SetNumberOfLayers(2)
+        self._cross_ren = vtk.vtkRenderer()
+        self._cross_ren.SetLayer(1)
+        self._cross_ren.InteractiveOff()
+        self._cross_ren.SetActiveCamera(self.renderer.GetActiveCamera())
+        rw.AddRenderer(self._cross_ren)
+
         self._cross_h = _make_line_actor(ACCENT)
         self._cross_v = _make_line_actor(ACCENT)
-        self.renderer.AddActor(self._cross_h)
-        self.renderer.AddActor(self._cross_v)
+        self._cross_ren.AddActor(self._cross_h)
+        self._cross_ren.AddActor(self._cross_v)
 
         # Orientation label actors (L/R/A/P/S/I) — only shown in medical mode
         self._orient_actors: list[vtk.vtkTextActor] = []
@@ -753,12 +764,6 @@ class SliceViewport(QFrame):
         self._current_slice = mid
         self._lbl_slice.setText(f"{mid+1} / {pg.n}")
 
-        # Re-add crosshairs above image actors
-        self.renderer.RemoveActor(self._cross_h)
-        self.renderer.RemoveActor(self._cross_v)
-        self.renderer.AddActor(self._cross_h)
-        self.renderer.AddActor(self._cross_v)
-
         self._init_camera(mid)
         self.vtk_widget.Initialize()
         self.vtk_widget.Start()
@@ -770,12 +775,7 @@ class SliceViewport(QFrame):
         actor.SetUserTransform(rec.vtk_xform)
         self._apply_volume_property(prop, rec)
 
-        # Insert before crosshairs (which are the last two actors)
-        self.renderer.RemoveActor(self._cross_h)
-        self.renderer.RemoveActor(self._cross_v)
         self.renderer.AddActor(actor)
-        self.renderer.AddActor(self._cross_h)
-        self.renderer.AddActor(self._cross_v)
 
         self._layers.append((actor, prop))
         self.vtk_widget.GetRenderWindow().Render()
@@ -854,7 +854,7 @@ class SliceViewport(QFrame):
         prop.UseLookupTableScalarRangeOff()
 
     def _focal_for(self, index: int) -> np.ndarray:
-        mid = self._pg.n // 2
+        mid = (self._pg.n - 1) / 2.  # centre is slice (n-1)/2; n//2 is half a voxel off for even n
         return self._pg.centre + (index - mid) * self._pg.step * self._pg.normal
 
     def _init_camera(self, index: int) -> None:
@@ -1642,6 +1642,23 @@ class NiftiViewer(QWidget):
 
         root.addWidget(outer_spl)
 
+    # ── Teardown ──────────────────────────────────────────────────────────
+
+    def release_render_windows(self) -> None:
+        """Finalize each viewport's VTK render window while its native window still exists.
+
+        Qt destroys the native window (HWND on Windows) when the widget is deleted, but the
+        vtkRenderWindow can outlive it (held by Python reference cycles until the garbage
+        collector runs). Freeing it then makes VTK call wglMakeCurrent on a dead handle, which
+        floods "The handle is invalid" errors and can crash the process. Finalizing here releases
+        the OpenGL context first; a later Render() re-creates it if the viewer is shown again."""
+        for vp in self._vps:
+            vp.vtk_widget.Finalize()
+
+    def closeEvent(self, event):
+        self.release_render_windows()
+        super().closeEvent(event)
+
     # ── Public API ────────────────────────────────────────────────────────
 
     def load_base(self, ni_path: object, target:np.ndarray, name='',tissue_label=False) -> tuple:
@@ -1699,6 +1716,8 @@ class NiftiViewer(QWidget):
         self._crosshair_visible = visible
         for vp in self._vps:
             vp.set_crosshair_visible(visible)
+        if visible:
+            self._update_crosshairs()  # not moved while hidden, so redraw at current slices
 
     def reset_view(self) -> None:
         """
@@ -1739,6 +1758,8 @@ class NiftiViewer(QWidget):
             self._vps[0]._slider.setValue(int(target_med[0]))
             self._vps[1]._slider.setValue(int(target_med[1]))
             self._vps[2]._slider.setValue(int(target_med[2]))
+        # setValue sends no signal if the target is the middle slice reset_camera set
+        self._update_crosshairs()
 
         # 5. Refresh colorbar with reset WL
         if self._selected_vol < len(self._volumes):
@@ -2085,6 +2106,8 @@ class NiftiViewer(QWidget):
             self._vps[0]._slider.setValue(int(target_med[0]))
             self._vps[1]._slider.setValue(int(target_med[1]))
             self._vps[2]._slider.setValue(int(target_med[2]))
+        # setValue sends no signal if the target is the middle slice configure_base set
+        self._update_crosshairs()
 
     # ── Crosshair sync ────────────────────────────────────────────────────
 
@@ -2324,6 +2347,11 @@ class NiftiViewerTab(QWidget):
         # Guard: editingFinished fires twice sometimes; track last-committed value
         self._ras_committing = False
 
+    def closeEvent(self, event):
+        # Child widgets get no closeEvent of their own, see NiftiViewer.release_render_windows
+        self.viewer.release_render_windows()
+        super().closeEvent(event)
+
     def loaded_base(self):
         self._btn_overlay.setEnabled(True)
         self._btn_screenshot.setEnabled(True)
@@ -2350,6 +2378,11 @@ class NiftiViewerTab(QWidget):
             return
         self._ras_committing = True
         self.viewer.navigate_to_ras(*vals)
+        # show the snapped point (nearest slices) the crosshair actually sits on
+        for edit, val in zip(self._ras_edits, self.viewer.get_current_ras()):
+            edit.blockSignals(True)
+            edit.setText(f"{val:.2f}")
+            edit.blockSignals(False)
         # Clear the flag after a zero-delay timer so that any pending
         # editingFinished events in the same Qt event-loop cycle are ignored,
         # but the ras_changed signal (which fires synchronously from
@@ -2478,6 +2511,9 @@ class NiftiViewerWindow(QWidget):
             self.viewer.append(panel.viewer)
 
     def closeEvent(self, event):
+        # Child widgets get no closeEvent of their own, see NiftiViewer.release_render_windows
+        for viewer in self.viewer:
+            viewer.release_render_windows()
         self.closed.emit()
         super().closeEvent(event)  # let the default close logic run
 

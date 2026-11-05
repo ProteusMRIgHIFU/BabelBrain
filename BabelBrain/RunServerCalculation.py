@@ -603,7 +603,7 @@ class RunServerCalculation(QObject):
         if traj in sess['acoustic']:
             return
         m, cfg = self._mainApp, self._mainApp.Config
-        files = acoustic_carryover_files(cfg, m._prefix_path[traj])
+        files = acoustic_carryover_files(cfg, m.AcSim.GetAcResultsPrefixPath(traj))
         print('[remote] priming acoustic trajectory %d (reload from carry-over)' % traj)
         self._reload(sess, 'acoustic',
                      [{'action': 'select_trajectory', 'index': traj},

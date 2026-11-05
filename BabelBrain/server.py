@@ -2099,6 +2099,8 @@ def run_server(app, args):
     try:
         signal.signal(signal.SIGINT, _shutdown)
         signal.signal(signal.SIGTERM, _shutdown)
+        if hasattr(signal, 'SIGBREAK'):   # Windows Ctrl-Break / CTRL_BREAK_EVENT
+            signal.signal(signal.SIGBREAK, _shutdown)
     except Exception:
         pass
 
