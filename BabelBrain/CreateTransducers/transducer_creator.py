@@ -208,7 +208,7 @@ class CustomTransducer:
 
     def _get_yaml_line_numbers(self):
 
-        with open(self.yaml_file, "r") as f:
+        with open(self.yaml_file, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         root = yaml.compose("".join(lines))
@@ -295,7 +295,7 @@ class CustomTransducer:
         if not os.path.isfile(tx_yaml):
             raise ValueError(f'{tx_yaml} does not exist')
         
-        with open(tx_yaml, 'r') as file:
+        with open(tx_yaml, "r", encoding="utf-8") as file:
             custom_tx_params = yaml.safe_load(file)
             
         # Record custom tx template version
@@ -1156,7 +1156,7 @@ class CustomTransducer:
         )
         
         # Create Tx Main File
-        with open(self.tx_main_file, "w") as f:
+        with open(self.tx_main_file, "w", encoding="utf-8") as f:
             f.write(tx_main_file_output)
             
         # Create default.yaml File
@@ -1176,7 +1176,7 @@ class CustomTransducer:
             "\n"
         )
 
-        with open(self.tx_default_yaml, "w") as f:
+        with open(self.tx_default_yaml, "w", encoding="utf-8") as f:
             f.write(default_yaml_header)
             yaml.safe_dump(
                 self._make_yaml_safe(data),
@@ -1255,7 +1255,7 @@ class CustomTransducer:
         )
         
         # Create Tx Form File
-        with open(self.tx_form_file, "w") as f:
+        with open(self.tx_form_file, "w", encoding="utf-8") as f:
             f.write(tx_form_output)
     
     def _create_tx_integration_file(self):
@@ -1272,7 +1272,7 @@ class CustomTransducer:
         )
         
         # Create Tx Main File
-        with open(self.tx_integration_file, "w") as f:
+        with open(self.tx_integration_file, "w", encoding="utf-8") as f:
             f.write(tx_integration_output)
     
     def _format_transducer_config(self):
@@ -1372,7 +1372,7 @@ class CustomTransducer:
                     del self.PlanTUS[freq]['FocalDistanceListInitial']
                     
                 # Update default file
-                with open(self.tx_default_yaml, "r") as f:
+                with open(self.tx_default_yaml, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
 
                 data["PlanTUS"]= self.PlanTUS
