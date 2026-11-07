@@ -38,7 +38,7 @@ jobs:
       matrix:
         include:
           - label: macOS-arm64
-            os: macos-14
+            os: macos-15
             env_file: environment_mac_arm64-314.yml
             artifact_name: BabelBrain-macOS-arm64
           - label: macOS-x64

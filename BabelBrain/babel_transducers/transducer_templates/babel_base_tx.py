@@ -253,6 +253,20 @@ class BabelBaseTx(QWidget):
         #By default, it returns empty string, useful when dealing with user-specified geometry
         return ""
 
+    def GetAcResultsPrefixPath(self,n):
+        '''
+        Path prefix of trajectory *n*'s acoustic outputs (<prefix>DataForSim.h5,
+        <prefix>FullElasticSolution_Sub_NORM.nii.gz, ...). Some transducers add a
+        suffix to the trajectory prefix (e.g. Foc/Diam for simple focused ones), so
+        use the skull solution the trajectory was run with when it is a single file.
+        Phased arrays keep a list of per-focus files instead, and use the prefix.
+        '''
+        panel=self._acPanels[n] if n < len(self._acPanels) else None
+        FullSolName=panel.get('FullSolName') if panel is not None else None
+        if isinstance(FullSolName,str) and FullSolName.endswith('DataForSim.h5'):
+            return FullSolName[:-len('DataForSim.h5')]
+        return self._MainApp._prefix_path[n]+self.GetExtraSuffixAcFields()
+
     def load_ui(self):
         self._setupTrajectoryTabs()
                 
@@ -1023,14 +1037,15 @@ class RunCombineTrajectories(QObject):
             T0=time.time()
 
             AllInputs=[]
-            for p in self._MainApp._prefix_path:
+            for n in range(len(self._MainApp._prefix_path)):
+                base=self._MainApp.AcSim.GetAcResultsPrefixPath(n)
                 entry={}
-                entry['Sub_Norm']=p+'FullElasticSolution_Sub_NORM.nii.gz'
-                entry['PhaseSub_Norm']=p+'FullElasticSolutionPhase_Sub_NORM.nii.gz'
-                entry['Sub']=p+'FullElasticSolution_Sub.nii.gz'
-                entry['PhaseSub']=p+'FullElasticSolutionPhase_Sub.nii.gz'
-                entry['skullh5']=p+'DataForSim.h5'
-                entry['waterh5']=p+'Water_DataForSim.h5'
+                entry['Sub_Norm']=base+'FullElasticSolution_Sub_NORM.nii.gz'
+                entry['PhaseSub_Norm']=base+'FullElasticSolutionPhase_Sub_NORM.nii.gz'
+                entry['Sub']=base+'FullElasticSolution_Sub.nii.gz'
+                entry['PhaseSub']=base+'FullElasticSolutionPhase_Sub.nii.gz'
+                entry['skullh5']=base+'DataForSim.h5'
+                entry['waterh5']=base+'Water_DataForSim.h5'
                 AllInputs.append(entry)
 
             cfgBase={}
@@ -1134,7 +1149,7 @@ class RunCombineTrajectories(QObject):
                     bPETRA=AcOptions['bPETRA'],
                     AIRMASK=AIRMASK)
 
-            BaseSimData=ReadFromH5pyStream(self._MainApp._prefix_path[0]+'DataForSim.h5')
+            BaseSimData=ReadFromH5py(AllInputs[0]['skullh5'])
             N1,N2,N3=SkullMaskDataOrig.shape
             MaterialMap,MaterialMapRef,MaterialMapNoCT,SubAirRegions=CreateMaterialMaps(
                 N1,N2,N3,
@@ -1172,6 +1187,7 @@ class RunCombineTrajectories(QObject):
             DataForSim['SpatialStep']=np.mean(zs)
             DataForSim['TargetLocation']=TargetLocation
             DataForSim['TxElemCenters']=tx_element_locations
+            DataForSim['TransducerType']=BaseSimData['TransducerType'] #all trajectories use the same transducer
             #DataForSim['zLengthBeyonFocalPoint']=self._zLengthBeyonFocalPointWhenNarrow
             DataForSim['bDoRefocusing']=False
             DataForSim['affine']=MergedNifti.affine
@@ -1182,9 +1198,9 @@ class RunCombineTrajectories(QObject):
             DataForSim['ZIntoSkinPixels']=0
             DataForSim['ZSteering']=0.0
             if 'SDR' in BaseSimData:
-                SDRs=np.zeros(len(self._MainApp._prefix_path))
-                for n,p in  enumerate(self._MainApp._prefix_path):
-                    SDRs[n]=ReadFromH5pyStream(self._MainApp._prefix_path[0]+'DataForSim.h5')['SDR']
+                SDRs=np.zeros(len(AllInputs))
+                for n,entry in enumerate(AllInputs):
+                    SDRs[n]=ReadFromH5py(entry['skullh5'])['SDR']
                 DataForSim['SDR']=np.mean(SDRs)
             DataForSim['DistanceFromSkin']=0.0
             DataForSim['AdjustmentInRAS']=np.array([0.0,0.0,0.0])

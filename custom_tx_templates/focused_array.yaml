@@ -16,7 +16,7 @@
 # ---------- Common parameters ------------------------------------------------
 name: MyFocusedArrayTx                  # Unique name: must start with a letter; letters, digits, '_' and '-' only (no spaces)
 geometry_type: focused_array
-frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 5 kHz steps, no duplicates
+frequencies:                            # Operating frequencies (Hz): 200-1000 kHz in 1 kHz steps, no duplicates
     - 250000
     - 825000
 aperture_size: 0.160                    # Aperture width (m), full extent of the active surface

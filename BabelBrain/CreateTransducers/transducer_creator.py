@@ -93,7 +93,7 @@ TX_GEOMETRIES = {
         "steering_axes": {"x", "y", "z"},  # full 3D steering
     },
 }
-VALID_FREQUENCIES = range(200000,1005000,5000)
+VALID_FREQUENCIES = range(200000,1001000,1000)
 FLAT_FOCAL_LENGTH = 1.0e3 # m, flat geometries have no natural focus
 OUTPLANE_DISTANCE_TOLERANCE = 1.0e-6 # m, tolerance when checking distance_tx_bottom_to_outplane against distance_outplane_to_focus
 
@@ -208,7 +208,7 @@ class CustomTransducer:
 
     def _get_yaml_line_numbers(self):
 
-        with open(self.yaml_file, "r") as f:
+        with open(self.yaml_file, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         root = yaml.compose("".join(lines))
@@ -295,7 +295,7 @@ class CustomTransducer:
         if not os.path.isfile(tx_yaml):
             raise ValueError(f'{tx_yaml} does not exist')
         
-        with open(tx_yaml, 'r') as file:
+        with open(tx_yaml, "r", encoding="utf-8") as file:
             custom_tx_params = yaml.safe_load(file)
             
         # Record custom tx template version
@@ -597,7 +597,7 @@ class CustomTransducer:
         
         Raises:
             ValueError: If frequencies is missing, not valid type (int or float), 
-            not in valid range (200-1000kHz), or isn't at valid frequency step (5kHz)
+            not in valid range (200-1000kHz), or isn't at valid frequency step (1kHz)
         
         Sets:
             self.frequencies (list): Validated transducer frequencies
@@ -608,7 +608,7 @@ class CustomTransducer:
         for i,freq in enumerate(tx_frequencies):
             
             # Ensure no decimal points in frequency
-            if not freq.is_integer():
+            if isinstance(freq, float) and not freq.is_integer(): # int.is_integer() needs Python 3.12+
                 raise YAMLParameterError(
                     f"Invalid specified frequency ({freq} Hz), frequency must be an integer value",
                     full_key=f'frequencies[{i}]'
@@ -618,7 +618,7 @@ class CustomTransducer:
             int_freq = int(freq)
             if int_freq not in VALID_FREQUENCIES:
                 raise YAMLParameterError(
-                    f"Invalid specified frequency ({int_freq} Hz), frequency must be at a 5kHz interval value within the 200-1000 kHz range",
+                    f"Invalid specified frequency ({int_freq} Hz), frequency must be at a 1kHz interval value within the 200-1000 kHz range",
                     full_key=f'frequencies[{i}]'
                 )
 
@@ -1156,7 +1156,7 @@ class CustomTransducer:
         )
         
         # Create Tx Main File
-        with open(self.tx_main_file, "w") as f:
+        with open(self.tx_main_file, "w", encoding="utf-8") as f:
             f.write(tx_main_file_output)
             
         # Create default.yaml File
@@ -1176,7 +1176,7 @@ class CustomTransducer:
             "\n"
         )
 
-        with open(self.tx_default_yaml, "w") as f:
+        with open(self.tx_default_yaml, "w", encoding="utf-8") as f:
             f.write(default_yaml_header)
             yaml.safe_dump(
                 self._make_yaml_safe(data),
@@ -1255,7 +1255,7 @@ class CustomTransducer:
         )
         
         # Create Tx Form File
-        with open(self.tx_form_file, "w") as f:
+        with open(self.tx_form_file, "w", encoding="utf-8") as f:
             f.write(tx_form_output)
     
     def _create_tx_integration_file(self):
@@ -1272,7 +1272,7 @@ class CustomTransducer:
         )
         
         # Create Tx Main File
-        with open(self.tx_integration_file, "w") as f:
+        with open(self.tx_integration_file, "w", encoding="utf-8") as f:
             f.write(tx_integration_output)
     
     def _format_transducer_config(self):
@@ -1372,7 +1372,7 @@ class CustomTransducer:
                     del self.PlanTUS[freq]['FocalDistanceListInitial']
                     
                 # Update default file
-                with open(self.tx_default_yaml, "r") as f:
+                with open(self.tx_default_yaml, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
 
                 data["PlanTUS"]= self.PlanTUS

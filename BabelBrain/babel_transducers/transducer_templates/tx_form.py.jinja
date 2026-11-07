@@ -200,7 +200,7 @@ class {{ tx_name }}Form(TxPanelBase):
         )
 
         {% if steering_z_name == 'ZSteering' %}
-        # feasible-traj: Sam's SOP — park the array on a Brainsight
+        # feasible-traj: Sam's SOP - park the array on a Brainsight
         # feasible pose (mechanical X/Y) and ballpark-steer back to intended.
         # Shown when TrajectoryType is Brainsight (wired in babel_TheraPhas).
         self.ApplyFeasibleTraj = make_button(

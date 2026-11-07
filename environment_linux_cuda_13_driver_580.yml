@@ -144,6 +144,10 @@ dependencies:
   - pcre2=10.46=hf426167_0
   - pip=25.3=pyhc872135_0
   - pthread-stubs=0.3=h0ce48e5_1
+  - pytest=9.2.0=pyhc364b38_1
+  - pytest-html=4.2.0=pyhd8ed1ab_0
+  - pytest-metadata=3.1.1=pyhd8ed1ab_1
+  - pytest-qt=4.5.0=pyhdecd6ff_0
   - python=3.11.14=h6fa692b_0
   - python_abi=3.11=2_cp311
   - readline=8.3=hc2a1206_0

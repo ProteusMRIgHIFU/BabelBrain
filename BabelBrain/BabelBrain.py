@@ -1793,7 +1793,7 @@ class BabelBrain(QWidget):
                 return n,row
         return -1,None
 
-    def _UpdateVTKDomain(self,bFullyPopulate):
+    def _UpdateVTKDomain(self,bFullyPopulate=False):
 
         if bFullyPopulate:
             lTraj=np.arange(len(self.Config['ID']))
