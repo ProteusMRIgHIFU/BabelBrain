@@ -28,6 +28,8 @@ try:
 except ImportError:
     HAVE_ISAL = False
 
+HAVE_ISAL = False #overwriting as it is hanging
+
 COMPRESSLEVEL = 1  # nibabel's default; higher levels gain little on float fields
 
 

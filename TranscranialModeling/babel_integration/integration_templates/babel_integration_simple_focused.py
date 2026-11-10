@@ -254,8 +254,15 @@ class SimulationConditions(SimulationConditionsBASE):
     def CreateSources(self, ramp_length=4):
 
         # we create the list of functions sources taken from the Rayliegh incident field
+        bUseShortPulse=False
         if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') != '0':
-            print('BABELBRAIN_TSUS_EXVIVO: Single element CreateSources ')
+            if os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') != '0':
+                print('BABELBRAIN_TSUS_EXVIVO: LONG PULSES Single element CreateSources ')
+            else:
+                bUseShortPulse=True
+                print('BABELBRAIN_TSUS_EXVIVO: SHORT PULSES Single element CreateSources ')
+
+        if bUseShortPulse:
             ramp_length=1 #reducing the ramping - to fix later to something that matches better experiments
             period=1.0 / self._Frequency
             numberPulses=1.0+ramp_length*2

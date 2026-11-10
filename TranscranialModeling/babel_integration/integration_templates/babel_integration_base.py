@@ -1258,10 +1258,23 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         self._DimDomain[0]=self._N1*SpatialStep
         self._DimDomain[1]=self._N2*SpatialStep
         self._DimDomain[2]=self._N3*SpatialStep
+
+        OverWritePulseLength=0.0
         
         self._TimeSimulation=np.sqrt((self._DimDomain[0]-self._PMLThickness*2*SpatialStep)**2+
                                      (self._DimDomain[1]-self._PMLThickness*2*SpatialStep)**2+
                                      (self._DimDomain[2]-self._PMLThickness*2*SpatialStep)**2)/MatArray[0,1] #time to cross one corner to another
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') != '0':
+            OverWritePulseLength_ms=float(os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0'))
+            OverWritePulseLength=OverWritePulseLength_ms/1000.0
+
+        if OverWritePulseLength!=0.0:
+            if OverWritePulseLength>self._TimeSimulation:
+                print(f'OverWritePulseLength ({OverWritePulseLength}s) larger than  TimeSimulation ({self._TimeSimulation})s')
+            elif OverWritePulseLength<self._TimeSimulation:
+                print(f'OverWritePulseLength ({OverWritePulseLength}s) smaller than  TimeSimulation ({self._TimeSimulation})s')
+            self._TimeSimulation=OverWritePulseLength
+        
         self._TimeSimulation=np.floor(self._TimeSimulation/self._TemporalStep)*self._TemporalStep
         
         TimeVector=np.arange(0.0,self._TimeSimulation,self._TemporalStep)
@@ -1286,7 +1299,8 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         print('PPP, Subsampling, PPP for sensors ', self._PPP,self._SensorSubSampling, self._PPP/self._SensorSubSampling)
         assert((self._PPP%self._SensorSubSampling)==0)
         nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') !='0':
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') !='0' and\
+           os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') =='0':
             print('BABELBRAIN_TSUS_EXVIVO capturing all time data')
             self._SensorStart=0 # 
         else:
