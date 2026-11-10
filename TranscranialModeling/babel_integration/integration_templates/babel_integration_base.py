@@ -381,13 +381,15 @@ class BabelFTD_Simulations_BASE(object):
                 bPETRA=self._bPETRA,
                 AIRMASK=self._AIRMASK)
 
+        if len(self._BenchmarkTestFile)>0:
+            InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
+
         #we only adjust Qcorrection for skull material, not for soft tissue
         if self._bWaterOnly:
             QCorrArr =1.0
         elif self._bForceHomogenousMedium:
             QCorrArr = np.ones(2)
         elif len(self._BenchmarkTestFile)>0:
-            InputDataBenchmark=ReadFromH5py(self._BenchmarkTestFile)
             assert(len(InputDataBenchmark['Materials'])==len(np.unique(InputDataBenchmark['MaterialMap'])))
             if 'QCorrArr' not in InputDataBenchmark:
                 QCorrArr = np.ones(len(InputDataBenchmark['Materials']))
@@ -446,7 +448,7 @@ class BabelFTD_Simulations_BASE(object):
                                            self._HomogenousMediumValues['ShearSoS'],
                                            self._HomogenousMediumValues['LongAtt'],
                                            self._HomogenousMediumValues['ShearAtt']) 
-        elif len(self._BenchmarkTestFile) > 0 and not self._bWaterOnly:
+        elif len(self._BenchmarkTestFile) > 0:
             print('Forcing using benchmark materials', InputDataBenchmark['Materials'])
             self._SIM_SETTINGS.ResetMaterial() #we remove the default water material
             for entry in InputDataBenchmark['Materials']:
@@ -455,6 +457,10 @@ class BabelFTD_Simulations_BASE(object):
                                            entry['ShearSoS'],
                                            entry['LongAtt'],
                                            entry['ShearAtt'])
+                if self._bWaterOnly:
+                    #if only water, we only add the first material
+                    print('Benchmark test with water only case: only one material')
+                    break
         elif self._CTFNAME is not None and not self._bWaterOnly:
             if 'BABEL_PYTEST_PAPER' in os.environ:
                 #we skin and Brain as water
@@ -1325,14 +1331,16 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
         #####
         if bForceHomogenousMedium:
             self._MaterialMap[:,:,:]=1
-        if len(BenchmarkTestFile)>0 and not bWaterOnly:
+        if len(BenchmarkTestFile)>0:
             print('self._MaterialMap.shape',self._MaterialMap.shape)
             print("InputDataBenchmark['MaterialMap'].shape",InputDataBenchmark['MaterialMap'].shape)
             
             assert(np.all(np.array(self._MaterialMap.shape)==np.array(InputDataBenchmark['MaterialMap'].shape)))
             assert(self._MaterialMap.dtype==InputDataBenchmark['MaterialMap'].dtype)
-            
-            self._MaterialMap=InputDataBenchmark['MaterialMap']
+            if not bWaterOnly:
+                self._MaterialMap=InputDataBenchmark['MaterialMap']
+            else:
+                self._MaterialMap=InputDataBenchmark['MaterialMap']*0 #pure water
             
         print('PPP, Duration simulation',np.round(1/self._Frequency/TemporalStep),self._TimeSimulation*1e6)
         
