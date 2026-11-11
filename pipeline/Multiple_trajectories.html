@@ -1,0 +1,2083 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Prospective modeling of transcranial focused ultrasound for neuromodulation">
+      
+      
+      
+        <link rel="canonical" href="https://proteusmrighifu.github.io/BabelBrain/pipeline/Multiple_trajectories.html">
+      
+      
+      
+        <link rel="prev" href="./BabelBrain.html">
+      
+      
+        <link rel="next" href="../Advanced/PlanTUS.html">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.74">
+    
+    
+      
+        <title>Multiple trajectories - BabelBrain</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      <header class="md-header md-header--shadow md-header--inline-tabs" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="BabelBrain" class="md-header__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title md-header__title--static">
+      <a href="./.." class="md-header__sitename">BabelBrain</a>
+    </div>
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../index.html" class="md-tabs__link">
+          
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation.html" class="md-tabs__link">
+        
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./pipeline.html" class="md-tabs__link">
+          
+  
+  Simulation pipeline
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Advanced/PlanTUS.html" class="md-tabs__link">
+        
+  
+  PlanTUS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Advanced/TransducerCalibration.html" class="md-tabs__link">
+        
+  
+  Tx calibration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../CustomTransducers/CustomTransducers.html" class="md-tabs__link">
+        
+  
+  Custom transducers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../server.html" class="md-tabs__link">
+        
+  
+  Client/Server mode
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Advanced/advanced.html" class="md-tabs__link">
+          
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../MRISequences/MRISequences.html" class="md-tabs__link">
+        
+  
+  MRI sequences
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../results/results.html" class="md-tabs__link">
+        
+  
+  Results files
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Coding/scripting.html" class="md-tabs__link">
+          
+  
+  Coding / API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Appendix/Appendix.html" class="md-tabs__link">
+        
+  
+  Appendix
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="BabelBrain" class="md-nav__button md-logo" aria-label="BabelBrain" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    BabelBrain
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ProteusMRIgHIFU/BabelBrain" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ProteusMRIgHIFU/BabelBrain
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Home
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../index.html#babelbrain" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">BabelBrain</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../index.html#citation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Citation</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../index.html#disclaimer" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Disclaimer</span></span></a>
+        <nav class="md-nav" aria-label="Disclaimer">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../index.html#licensing" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Licensing</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../presentations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Presentations
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../presentations.html#presentations" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Presentations</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../presentations.html#university-of-vienna-workshop-2026-04-07" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">University of Vienna Workshop - 2026-04-07</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../telemetry.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telemetry
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../telemetry.html#summary" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Summary</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#information-processed-locally-never-collected-by-us" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Information processed locally (never collected by us)</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#optional-telemetry-opt-in" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Optional telemetry (opt-in)</span></span></a>
+        <nav class="md-nav" aria-label="Optional telemetry (opt-in)">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../telemetry.html#what-we-do-not-collect-even-with-telemetry-enabled" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">What we do not collect, even with telemetry enabled</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#example-of-collected-data" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Example of collected data</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#how-telemetry-is-transmitted-and-stored" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">How telemetry is transmitted and stored</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#legal-basis-and-your-control" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Legal basis and your control</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#crash-and-error-reports" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Crash and error reports</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#changes-to-this-policy" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Changes to this policy</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../telemetry.html#contact" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Contact</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../installation.html#installation-and-running" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Installation and Running</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../installation.html#preliminary-requirements" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Preliminary requirements</span></span></a>
+        <nav class="md-nav" aria-label="Preliminary requirements">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../installation.html#os" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">OS</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../installation.html#gpu" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">GPU</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../installation.html#simnibs" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">SimNIBS</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../installation.html#navigation-planning-software" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Navigation-planning software</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../installation.html#standalone-application" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Standalone application</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../installation.html#manual-installation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Manual Installation</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../installation.html#running" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Running</span></span></a>
+        <nav class="md-nav" aria-label="Running">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../installation.html#standalone-application_1" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Standalone application</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../installation.html#manual-execution" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Manual execution</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../installation.html#building-standalone-application" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Building standalone application</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Simulation pipeline
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Simulation pipeline
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="./pipeline.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overall description
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="./pipeline.html#overall-workflow" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Overall workflow</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="./Preliminary_steps.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Preliminary steps
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="./Preliminary_steps.html#anatomical-imaging" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Anatomical Imaging</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./Preliminary_steps.html#pre-processing" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Pre-processing</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="./Planning.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planning
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="./Planning.html#acoustic-path-stl-helpers" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Acoustic path STL helpers</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./Planning.html#planning-with-3dslicer" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Planning with 3DSlicer</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./Planning.html#planning-with-brainsight" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Planning with Brainsight</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="./BabelBrain.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  BabelBrain simulation
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="./BabelBrain.html#input-data" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Input data</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./BabelBrain.html#thermal-profile-protocol" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Thermal profile - protocol</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./BabelBrain.html#step-1-domain-generation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">STEP 1 - Domain generation</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="./BabelBrain.html#step-2-transcranial-ultrasound-simulation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">STEP 2 - Transcranial ultrasound simulation</span></span></a>
+        <nav class="md-nav" aria-label="STEP 2 - Transcranial ultrasound simulation">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#common-features-to-all-transducers" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Common features to all transducers</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#distance-of-the-maximal-depth" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Distance of the maximal depth</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#mechanical-corrections" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Mechanical corrections</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#modified-trajectory-very-important" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Modified trajectory - VERY IMPORTANT</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#transducers" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Transducers</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="./BabelBrain.html#apply-feasible-trajectory" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Apply Feasible Trajectory</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="./BabelBrain.html#step-3-thermal-simulation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">STEP 3 - Thermal simulation</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Multiple trajectories
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="Multiple_trajectories.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Multiple trajectories
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#combination-of-acoustic-fields-step-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Combination of acoustic fields - Step 2
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combination-of-intensity-and-thermal-fields-step-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Combination of intensity and thermal fields - Step 3
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Advanced/PlanTUS.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PlanTUS
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Advanced/PlanTUS.html#plantus-integration" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">PlanTUS integration</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Advanced/PlanTUS.html#requirements" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Requirements</span></span></a>
+        <nav class="md-nav" aria-label="Requirements">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Advanced/PlanTUS.html#execution-of-plantus" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Execution of PlanTUS</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Advanced/TransducerCalibration.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Tx calibration
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Advanced/TransducerCalibration.html#transducer-calibration" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Transducer calibration</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Advanced/TransducerCalibration.html#requirements" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Requirements</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Advanced/TransducerCalibration.html#procedure" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Procedure</span></span></a>
+        <nav class="md-nav" aria-label="Procedure">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Advanced/TransducerCalibration.html#identify-range-of-data" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Identify range of data</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/TransducerCalibration.html#prepare-yaml-file-with-input-information-for-calibration" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Prepare YAML file with input information for calibration</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/TransducerCalibration.html#run-transducer-calibration-in-babelbrain" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Run transducer calibration in BabelBrain</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/TransducerCalibration.html#important-notes" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Important notes</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../CustomTransducers/CustomTransducers.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Custom transducers
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#workflow" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Workflow</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#units-and-conventions" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Units and conventions</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#templates" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Templates</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#common-parameters" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Common parameters</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#type-specific-parameters" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Type-specific parameters</span></span></a>
+        <nav class="md-nav" aria-label="Type-specific parameters">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#simple-focused" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Simple Focused</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#flat-annular-array" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Flat Annular Array</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#focused-annular-array" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Focused Annular Array</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#flat-array-2d" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Flat Array 2D</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#focused-array" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Focused Array</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../CustomTransducers/CustomTransducers.html#optional-parameters" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Optional parameters</span></span></a>
+        <nav class="md-nav" aria-label="Optional parameters">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../CustomTransducers/CustomTransducers.html#plantus" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">PlanTUS</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../server.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Client/Server mode
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../server.html#server-mode" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Server mode</span></span></a>
+        <nav class="md-nav" aria-label="Server mode">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../server.html#starting-the-server" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Starting the server</span></span></a>
+              <nav class="md-nav" aria-label="Starting the server">
+                <ul class="md-nav__list">
+                  <li class="md-nav__item">
+                    <a href="../server.html#server-mode-options" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Server mode options</span></span></a>
+                  </li>
+                </ul>
+              </nav>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../server.html#client-configuration" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Client configuration</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../server.html#server-api" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Server API</span></span></a>
+        <nav class="md-nav" aria-label="Server API">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../server.html#configuration-is-client-owned-and-mandatory" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Configuration is client-owned and mandatory</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#jobspec" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">JobSpec</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#actions" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Actions</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#job-lifecycle" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Job lifecycle</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#client-examples" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Client examples</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../server.html#transport-security-tls" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Transport security (TLS)</span></span></a>
+        <nav class="md-nav" aria-label="Transport security (TLS)">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../server.html#recipe-a-a-self-signed-certificate-for-a-trusted-box-on-the-same-network" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Recipe A — a self-signed certificate for a trusted box on the same network</span></span></a>
+              <nav class="md-nav" aria-label="Recipe A — a self-signed certificate for a trusted box on the same network">
+                <ul class="md-nav__list">
+                  <li class="md-nav__item">
+                    <a href="../server.html#the-one-thing-that-must-be-right-the-servers-address-the-san" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">The one thing that must be right: the server&#x27;s address (the &quot;SAN&quot;)</span></span></a>
+                  </li>
+                  <li class="md-nav__item">
+                    <a href="../server.html#generate-the-key-certificate" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Generate the key + certificate</span></span></a>
+                  </li>
+                  <li class="md-nav__item">
+                    <a href="../server.html#start-the-server-with-tls" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Start the server with TLS</span></span></a>
+                  </li>
+                  <li class="md-nav__item">
+                    <a href="../server.html#configure-the-client-to-trust-it" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Configure the client to trust it</span></span></a>
+                  </li>
+                </ul>
+              </nav>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#reaching-a-remote-server-over-ssh" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Reaching a remote server over SSH</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../server.html#reverse-proxy-public-facing-servers" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Reverse proxy (public-facing servers)</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_8">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Advanced
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Advanced/advanced.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced options
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Advanced/advanced.html#advanced-features" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Advanced features</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Advanced/advanced.html#domain-generation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Domain Generation</span></span></a>
+        <nav class="md-nav" aria-label="Domain Generation">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#elastix-co-registration-optimizer" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Elastix co-registration Optimizer</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#proportion-of-trabecular-bone" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Proportion of trabecular bone</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#segment-white-matter-gray-matter-and-csf" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Segment white matter, gray matter and CSF</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#plantus-integration" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">PlanTUS integration</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#force-using-blender-for-constructive-solid-geometry" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Force using Blender for Constructive Solid Geometry</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#manual-subvolume" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Manual Subvolume</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#invert-zte" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Invert ZTE</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#generate-air-regions" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Generate air regions</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#petra-conversion-parameters" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">PETRA conversion parameters</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Advanced/advanced.html#linear-zte-and-petra-conversion-formulas" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Linear ZTE and PETRA conversion formulas</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Advanced/advanced.html#transcranial-ultrasound" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Transcranial Ultrasound</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../MRISequences/MRISequences.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MRI sequences
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../MRISequences/MRISequences.html#mri-sequences" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">MRI Sequences</span></span></a>
+        <nav class="md-nav" aria-label="MRI Sequences">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../MRISequences/MRISequences.html#basics" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Basics</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../MRISequences/MRISequences.html#zte-for-ge-scanners" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">ZTE for GE Scanners</span></span></a>
+              <nav class="md-nav" aria-label="ZTE for GE Scanners">
+                <ul class="md-nav__list">
+                  <li class="md-nav__item">
+                    <a href="../MRISequences/MRISequences.html#3dradial" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">3dradial</span></span></a>
+                  </li>
+                  <li class="md-nav__item">
+                    <a href="../MRISequences/MRISequences.html#ozteo" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">oZTEo</span></span></a>
+                  </li>
+                </ul>
+              </nav>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../MRISequences/MRISequences.html#petra-for-siemens-scanners" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">PETRA for Siemens Scanners</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../results/results.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Results files
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../results/results.html#results-files" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Results files</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../results/results.html#input-mask-in-nifti-format" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Input mask in Nifti format</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../results/results.html#acoustic-pressure-field-results-in-nifti-format" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Acoustic pressure field results in Nifti format</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../results/results.html#stl-files" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">STL files</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../results/results.html#thermal-and-intensity-maps" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Thermal and intensity maps:</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Coding / API
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_11">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Coding / API
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Coding/scripting.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scripting BabelBrain
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Coding/scripting.html#running-a-script" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Running a script</span></span></a>
+        <nav class="md-nav" aria-label="Running a script">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Coding/scripting.html#command-line-options" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Command-line options</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Coding/scripting.html#exit-codes" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Exit codes</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/scripting.html#the-scripting-api" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">The scripting API</span></span></a>
+        <nav class="md-nav" aria-label="The scripting API">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Coding/scripting.html#launch-selecting-inputs" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">launch() — selecting inputs</span></span></a>
+            </li>
+            <li class="md-nav__item">
+              <a href="../Coding/scripting.html#handling-pop-up-dialogs" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Handling pop-up dialogs</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/scripting.html#a-complete-example" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">A complete example</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/scripting.html#how-a-script-is-structured" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">How a script is structured</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Coding/operations.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scriptable operations
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Coding/operations.html#conventions" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Conventions</span></span></a>
+        <nav class="md-nav" aria-label="Conventions">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Coding/operations.html#multiple-trajectories" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Multiple trajectories</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/operations.html#step-1-planning-domain-generation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Step 1 — Planning / domain generation</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/operations.html#step-2-acoustic-simulation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Step 2 — Acoustic simulation</span></span></a>
+        <nav class="md-nav" aria-label="Step 2 — Acoustic simulation">
+          <ul class="md-nav__list">
+            <li class="md-nav__item">
+              <a href="../Coding/operations.html#reading-values-back" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Reading values back</span></span></a>
+            </li>
+          </ul>
+        </nav>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/operations.html#step-3-thermal-simulation" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Step 3 — Thermal simulation</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/operations.html#full-multi-step-example" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Full multi-step example</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Coding/advanced_config.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced configuration
+
+    
+  </span>
+  
+  
+
+      </a>
+
+  <nav class="md-nav md-nav--secondary md-nav--sibling-toc">
+    <ul class="md-nav__list">
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#when-to-set-a-parameter" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">When to set a parameter</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#resetting-to-defaults" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Resetting to defaults</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#domain-generation-step-1" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Domain generation (Step 1)</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#pseudo-ct-mapping-ct-zte-petra-step-1" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Pseudo-CT mapping — CT / ZTE / PETRA (Step 1)</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#simulation-thermal" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Simulation &amp; thermal</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#homogeneous-medium-verification-benchmarking" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Homogeneous medium (verification / benchmarking)</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#output-debugging" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">Output / debugging</span></span></a>
+      </li>
+      <li class="md-nav__item">
+        <a href="../Coding/advanced_config.html#external-tool-roots" class="md-nav__link"><span class="md-ellipsis"><span class="md-typeset">External-tool roots</span></span></a>
+      </li>
+    </ul>
+  </nav>
+
+
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    <li class="md-nav__item">
+      <a href="../Appendix/Appendix.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Appendix
+
+    
+  </span>
+  
+  
+
+      </a>
+
+
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="multiple-trajectories-multiple-devices">Multiple trajectories / multiple devices<a class="headerlink" href="#multiple-trajectories-multiple-devices" title="Permanent link">&para;</a></h1>
+<p><img src="Planning-21.png" height=300px></p>
+<p>Multiple trajectories can be defined at the planning stage with Brainsight (v2.6 and up), Localite and 3DSlicer. <strong>An important feature of this new mode is the capability to combine acoustic fields  of several trajectories to do planning of exposures with multiple devices turned on simultaneously</strong>. </p>
+<p>For example in Brainsight, just select more than one target before calling BabelBrain. </p>
+<p><img src="Planning-22.png" height=400px></p>
+<p>For 3DSlicer, there is no a native export format for multiple linear trasnformations, so the user must prepare manually a simple YAML file as the one below where paths to multiple linear transformations are indicated:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">T1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/Users/spichardo/Trajectories/T1.txt</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">T2</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/Users/spichardo/Trajectories/T2.txt</span>
+</code></pre></div>
+<p>Each dictionary string in the YAML file will be used as ID of each trajectory.</p>
+<p>Im general, doing planning with multiple trajectories is not different from with individual, excepting BabelBrain now allows combining the results of the trajectories for simultaneous operation. Each trajectory appears now as individual tabs in each of Steps 1 to 3, as shown below in Step 1:</p>
+<p><img src="Planning-23.png" height=450px></p>
+<h2 id="combination-of-acoustic-fields-step-2">Combination of acoustic fields - Step 2<a class="headerlink" href="#combination-of-acoustic-fields-step-2" title="Permanent link">&para;</a></h2>
+<p>In Step 2, once the individual simulations for each trajectory are completed, the "Combine Trajectories" buttons will be enabled:</p>
+<p><img src="Planning-24.png" height=330px></p>
+<p><strong>Important</strong>: Be sure of adjusting <code>Max. depth beyond target (mm)</code> field to extend the individual simulations to ensure the ultrasound beams from the different trajectories are correctly intersected.</p>
+<p>After executing the combine action, the merged acoustic fields will be shown.</p>
+<p><img src="Planning-25.png" height=400px></p>
+<p><strong>Important</strong>: The visualization of results at Step 2 assumes all trajectories have equal peak intensities. Individualized peak intensities are handled in Step 3.</p>
+<p>Please note that the combination of acoustic fields is actually quite fast to perform, as acoustic fields are always saved with phase information, so there is no need of heavy calculations to combine them. Just be sure each individual trajectory is simulated with enough depth, so all beams are properly intersected.</p>
+<h2 id="combination-of-intensity-and-thermal-fields-step-3">Combination of intensity and thermal fields - Step 3<a class="headerlink" href="#combination-of-intensity-and-thermal-fields-step-3" title="Permanent link">&para;</a></h2>
+<p>Thermal simulations are performed in Step 3 by selecting the required intensities per trajectory. Once completed, the  "Combine trajectories" button will be enabled. </p>
+<p><img src="Planning-26.png" height=400px></p>
+<p><strong>SUPER IMPORTANT</strong>: Before executing the combination of trajectories, be sure of adjusting to the desired intensities for each individual trajectory. Differently to the combinations of fields in step 2 (where it is assumed each field has the same peak intensity, and just for illustration purposes), in Step 3 each individual intensity field will be scaled to the selected intensity, and the thermal simulation will be fully executed for the volume enclosing all the trajectories, implying this action has a larger computational cost.  If adjustments are made to any of the intensities levels, it is <strong>critical</strong> to re-run the "Combine trajectories" action. The results of this action shows the combined intensity and thermal fields as shown below.</p>
+<p><img src="Planning-27.png" height=500px></p>
+<p>The combined results are locked to the selected intensities selected for each of the individual trajectories.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="./BabelBrain.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: BabelBrain simulation">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                BabelBrain simulation
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../Advanced/PlanTUS.html" class="md-footer__link md-footer__link--next" aria-label="Next: PlanTUS">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                PlanTUS
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.top","navigation.footer","toc.integrate","search.highlight","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d31f0ffa.min.js"></script>
+      
+        <script src="../javascripts/header-height.js"></script>
+      
+    
+  </body>
+</html>
