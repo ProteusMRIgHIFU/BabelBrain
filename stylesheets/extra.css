@@ -128,3 +128,17 @@
 .md-typeset .bb-dataframe table:not([class]) td:nth-child(3) {
   font-variant-numeric: tabular-nums;   /* align digits in the time column */
 }
+
+/* ------------------------------------------------------------------
+   Honour the HTML height attribute on images, e.g.
+   <img src="figure.png" height=150px>
+   The theme sets `.md-typeset img { height: auto }`, which overrides the
+   attribute (CSS beats presentational attributes). `revert-layer` drops
+   that rule so the attribute applies again; width follows the aspect
+   ratio. On narrow screens max-width:100% still caps the width, and
+   object-fit keeps the picture from being distorted in that case.
+   ------------------------------------------------------------------ */
+.md-typeset img[height] {
+  height: revert-layer;
+  object-fit: contain;
+}
