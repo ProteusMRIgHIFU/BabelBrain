@@ -227,27 +227,25 @@ class UninstallDialog(QDialog):
 
     def _show_result(self, report: uninstall_mod.PurgeReport):
         if report.elevation_denied:
-            QMessageBox.warning(
-                self, 'Uninstall incomplete',
+            self._warn_incomplete(
                 'Administrator privileges were declined, so the files installed '
-                'for all users are still on this computer.\n\n'
-                + '\n'.join(str(p) for p, _ in report.failed))
-            self._rescan()
+                'for all users are still on this computer.',
+                [str(p) for p, _ in report.failed])
             return
         if report.failed:
-            QMessageBox.warning(
-                self, 'Uninstall incomplete',
+            self._warn_incomplete(
                 'Some items could not be removed. If BabelBrain is still '
-                'running, quit it and try again.\n\n'
-                + '\n'.join(f'{p} — {why}' for p, why in report.failed))
-            self._rescan()
+                'running, quit it and try again.',
+                [f'{p} — {why}' for p, why in report.failed])
             return
 
         msg = 'BabelBrain has been removed from this computer.'
         if not self._settings_cb.isChecked():
             msg += ('\n\nYour settings and custom transducers were kept in '
                     f'{paths.config_dir()}.')
-        if report.self_delete_scheduled:
+        if report.self_removed:
+            msg += '\n\nThis uninstaller has also been removed.'
+        elif report.self_delete_scheduled:
             msg += '\n\nThis uninstaller deletes itself when you close this window.'
         elif report.self_left_behind:
             msg += ('\n\nTo finish, drag BabelBrain-Uninstaller from your '
@@ -255,6 +253,24 @@ class UninstallDialog(QDialog):
         QMessageBox.information(self, 'Uninstall complete', msg)
         self._completed = True
         self.accept()
+
+    def _warn_incomplete(self, summary: str, lines: list[str]):
+        '''Keep the box small whatever the error: a raw shell error can run to
+        one line per file and push the buttons off screen. The first few
+        items go in the text, the full list behind "Show Details…".'''
+        shown = lines[:5]
+        text = summary
+        if shown:
+            text += '\n\n' + '\n'.join(
+                line if len(line) <= 200 else line[:197] + '…' for line in shown)
+        if len(lines) > len(shown):
+            text += f'\n… and {len(lines) - len(shown)} more.'
+        box = QMessageBox(QMessageBox.Warning, 'Uninstall incomplete', text,
+                          QMessageBox.Ok, self)
+        if lines:
+            box.setDetailedText('\n'.join(lines))
+        box.exec()
+        self._rescan()
 
     def _rescan(self):
         self._uninstall_btn.setEnabled(False)

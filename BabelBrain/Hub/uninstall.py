@@ -107,6 +107,7 @@ class PurgeReport:
     elevation_denied: bool = False
     receipt_forgotten: bool = False
     self_delete_scheduled: bool = False
+    self_removed: bool = False         # deleted by the elevated batch
     self_left_behind: bool = False     # could not be made removable; user drags it to the Trash
 
     @property
@@ -201,9 +202,11 @@ def _settings_paths() -> list[Path]:
 def self_app() -> Path | None:
     '''The ``.app`` bundle this uninstaller is running from, if any.
 
-    It has to be deleted *last* and from outside this process (see
-    :func:`_schedule_self_delete`): removing a running PyInstaller bundle pulls
-    dylibs out from under it that may not be loaded yet.
+    It has to be deleted *last*: removing a running PyInstaller bundle pulls
+    out files it may still need (PyInstaller re-opens its archive by path on
+    every import). A user-owned bundle is deleted after exit by an unprivileged
+    watcher (:func:`_schedule_self_delete`); a root-owned one is deleted at the
+    very end of the elevated batch (:func:`_elevated_macos`).
     '''
     if not paths.IS_MAC or not getattr(sys, 'frozen', False):
         return None
@@ -336,21 +339,35 @@ def _elevated_macos(targets: list[Path], forget_receipt: bool,
                     me: Path | None) -> None:
     '''One authorization prompt for every root-owned leftover.
 
-    ``me`` (the running uninstaller) is not deleted here but handed back to the
-    user, so the unprivileged watcher can delete it once this process exits.'''
+    ``me`` (the running uninstaller) is deleted last, and only if everything
+    before it succeeded, so an incomplete uninstall keeps the uninstaller
+    around to retry.
+
+    It is deleted here, synchronously, because nothing else works:
+
+    * a background job started from ``do shell script ... with administrator
+      privileges`` is killed as soon as the elevated call returns;
+    * handing the bundle back to the user (``chown -R``) fails with
+      "Operation not permitted" even as root once the app is a notarized,
+      Gatekeeper-approved bundle: macOS App Management blocks *modifying*
+      such a bundle, while still allowing it to be deleted outright.
+
+    The caller must not import anything new afterwards (see :func:`self_app`).
+    '''
     from . import installer           # local import: installer imports us lazily too
 
-    parts = [f'/bin/rm -rf {shlex.quote(str(p))}' for p in targets]
+    parts = ['rc=0']
+    parts += [f'/bin/rm -rf {shlex.quote(str(p))} || rc=1' for p in targets]
     if forget_receipt:
         # A missing receipt must not fail the batch.
-        parts.append(f'/usr/sbin/pkgutil --forget {shlex.quote(PKG_IDENTIFIER)} || true')
+        parts.append(f'/usr/sbin/pkgutil --forget {shlex.quote(PKG_IDENTIFIER)} >/dev/null 2>&1 || true')
     if me is not None:
-        parts.append(f'/usr/sbin/chown -R {os.getuid()}:{os.getgid()} '
-                     f'{shlex.quote(str(me))}')
+        parts.append(f'if [ $rc -eq 0 ]; then /bin/rm -rf {shlex.quote(str(me))} || rc=1; fi')
+    parts.append('exit $rc')
     installer._run_elevated_macos(
         ' ; '.join(parts),
         'BabelBrain needs administrator privileges to finish removing itself.',
-        targets[0] if targets else Path('/Applications'), 'removed')
+        targets[0] if targets else (me or Path('/Applications')), 'removed')
 
 
 def _elevated_windows(targets: list[Path]) -> None:
@@ -371,16 +388,22 @@ def _run_elevated(report: PurgeReport, pending: list[Path], job) -> None:
 
     try:
         job()
+        error = ''
     except installer.ElevationDenied:
         report.elevation_denied = True
         report.failed.extend((p, 'administrator privileges declined') for p in pending)
         return
     except Exception as e:                      # noqa: BLE001 - surface anything
-        report.failed.extend((p, str(e)) for p in pending)
-        return
+        # Keep it short: the shell's stderr can run to one line per file.
+        lines = str(e).strip().splitlines()
+        error = lines[0] if lines else 'the elevated operation failed'
+        if len(lines) > 1:
+            error += f' (and {len(lines) - 1} more)'
+    # Judge each path by what is on disk, not by the batch's exit status: a
+    # failure on one item must not mark the others, already gone, as failed.
     for p in pending:
         if p.exists():
-            report.failed.append((p, 'could not be removed'))
+            report.failed.append((p, error or 'could not be removed'))
         else:
             report.removed.append(p)
 
@@ -392,9 +415,9 @@ def purge(include_settings: bool = False,
 
     Unprivileged removals happen first; whatever is left (root-owned stores and
     apps on macOS, a machine-wide store on Windows) is done in one elevated
-    batch. The running uninstaller bundle is always deleted last, from a
-    detached, unprivileged watcher process; if it is root-owned, the elevated
-    batch first hands it back to the user.
+    batch. The running uninstaller bundle is always deleted last: by that
+    elevated batch when it is root-owned (as the PKG installs it), otherwise by
+    a detached, unprivileged watcher once this process exits.
 
     ``allow_elevation=False`` is used by the Windows uninstaller, which must
     never pop a UAC prompt of its own: it reports what it could not remove
@@ -439,11 +462,10 @@ def purge(include_settings: bool = False,
                     report.receipt_forgotten = need_receipt
         if need_self and report.ok:
             # Only once everything else is gone: an incomplete uninstall must
-            # keep the uninstaller around to retry. Re-checked rather than
-            # assumed: the chown may have failed, and a non-admin cannot
-            # unlink anything in a root-owned /Applications even once the
-            # bundle is theirs.
-            if _user_can_remove(me):
+            # keep the uninstaller around to retry.
+            if not me.exists():
+                report.self_removed = True          # the elevated batch did it
+            elif _user_can_remove(me):
                 subprocess.Popen(['/bin/sh', '-c', _schedule_self_delete(me)],
                                  start_new_session=True)
                 report.self_delete_scheduled = True
