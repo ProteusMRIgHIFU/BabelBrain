@@ -9,10 +9,31 @@
   },
   "versions": [
     {
+      "version": "0.8.8",
+      "git_commit": "7aeccd3",
+      "channel": "stable",
+      "recommended": true,
+      "notes_url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/tag/v0.8.8",
+      "assets": {
+        "macos-arm64": {
+                "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/v0.8.8/BabelBrain-macOS-arm64-version.zip",
+                "sha256": "c30ca858bfba79cf063f38428958fd6c8a49386a017290e6f7cb1a379f3c98e8"
+              },
+        "macos-x64": {
+                "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/v0.8.8/BabelBrain-macOS-x64-version.zip",
+                "sha256": "414773500d3045ffc62fc006030a1a8d879733d661b4eb975a8ae4ac46d80fe6"
+              },
+        "windows-x64": { 
+                "url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/download/v0.8.8/BabelBrain-Windows-x64-version.zip", 
+                "sha256": "b9aab495affc24ba885adc92c10bc5fcf1b7773a5bf6799279cc0c59a507bf18" 
+              }
+      }
+    },
+    {
       "version": "0.8.1",
       "git_commit": "ca32b99",
       "channel": "stable",
-      "recommended": true,
+      "recommended": false,
       "notes_url": "https://github.com/ProteusMRIgHIFU/BabelBrain/releases/tag/v0.8.1",
       "assets": {
         "macos-arm64": {
