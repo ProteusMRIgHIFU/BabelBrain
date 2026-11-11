@@ -50,14 +50,15 @@ nav:
       - Preliminary steps: pipeline/Preliminary_steps.md
       - Planning: pipeline/Planning.md
       - BabelBrain simulation: pipeline/BabelBrain.md
-      - MRI sequences: MRISequences/MRISequences.md
-      - Results files: results/results.md
+      - Multiple trajectories: pipeline/Multiple_trajectories.md
   - PlanTUS: Advanced/PlanTUS.md
   - Tx calibration: Advanced/TransducerCalibration.md
   - Custom transducers: CustomTransducers/CustomTransducers.md
   - Client/Server mode: server.md
   - Advanced:
       - Advanced options: Advanced/advanced.md
+  - MRI sequences: MRISequences/MRISequences.md
+  - Results files: results/results.md
   - Coding / API:
       - Scripting BabelBrain: Coding/scripting.md
       - Scriptable operations: Coding/operations.md
