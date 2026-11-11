@@ -97,3 +97,4 @@ Alternatively, planning can also be performed with the proprietary software Brai
 4. **If using a version of Brainsight previous to 2.5.3**:  Export trajectory with "Export" function and select "Orientation (3 directions vectors)" and "NifTI:Scanner" as the coordinate system. Take note of the path. Suggestion: Select a directory in the same path where T1W or SimNIBS output is located. This step is not required if using Brainsight version 2.5.3 and up.
 
     <img src="Planning-19.png" height=250px>
+

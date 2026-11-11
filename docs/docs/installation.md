@@ -33,7 +33,7 @@ Ready-to-use applications (no need for Python installation) for macOS and Window
 
 For MacOS, open the DMG file and double-click on the package installer. 
 
-<img src="install1.png" height=300px>
+<img src="install1.png" height=200px>
 
 The first time you will use you may be prompted to authorize it to run and access directories. You may also need to authorize it in the Security settings of macOS.
 
