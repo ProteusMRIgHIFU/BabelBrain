@@ -1304,13 +1304,18 @@ elif self._bTightNarrowBeamDomain and "{0}" != "Z" :
 
         print('PPP, Subsampling, PPP for sensors ', self._PPP,self._SensorSubSampling, self._PPP/self._SensorSubSampling)
         assert((self._PPP%self._SensorSubSampling)==0)
-        nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
-        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') !='0' and\
-           os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') =='0':
-            print('BABELBRAIN_TSUS_EXVIVO capturing all time data')
-            self._SensorStart=0 # 
+       
+        if os.environ.get('BABELBRAIN_TSUS_EXVIVO','0') !='0' and os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') =='0':
+                print('BABELBRAIN_TSUS_EXVIVO capturing all time data')
+                self._SensorStart=0 #            
         else:
+            if os.environ.get('BABELBRAIN_TSUS_EXVIVO_LONGPULSE','0') !='0':
+                self._NumberCyclesToTrackAtEnd = 10
+                print(f'BABELBRAIN_TSUS_EXVIVO capturing {self._NumberCyclesToTrackAtEnd} cycles')
+            nStepsBack=int(self._NumberCyclesToTrackAtEnd*self._PPP)
             self._SensorStart=int((TimeVector.shape[0]-nStepsBack)/self._SensorSubSampling)
+            if self._SensorStart<0:
+                self._SensorStart=0
 
         self._SubAirRegions=None
         #we add the material map
