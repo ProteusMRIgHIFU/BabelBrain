@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox,
 from Localization import TR
 from Calibration.TxCalibration import RUN_FITTING_Process
 from Calibration.ViewResults import PlotViewerCalibration
+from Calibration.plot_preview import png_preview_path
 from ClockDialog import ClockDialog
 from PlanTUSViewer.RunPlanTUS import RUN_PLAN_TUS
 from Telemetry.TelemetryConsentDialog import (TELEMETRY_OFF,
@@ -352,6 +353,8 @@ class AdvancedOptions(QDialog):
                       glob(os.path.join(rootnamepath,'Plots-weight.pdf'))
         for f in files:
             os.remove(f)
+            if os.path.isfile(png_preview_path(f)):
+                os.remove(png_preview_path(f))
         
         self.RUN_FITTING_Parallel(self._TxConfig,
               self.ui.YAMLCalibrationLineEdit.text(),

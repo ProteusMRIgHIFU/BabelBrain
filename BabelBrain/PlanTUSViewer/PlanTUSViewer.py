@@ -1,6 +1,6 @@
 import sys
 import nibabel as nib
-import vtk
+from Utils import vtk_api as vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleTrackballCamera
 from PySide6.QtWidgets import (
@@ -11,7 +11,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 from Localization import TR
 import numpy as np
-from vtk.util import numpy_support
+from vtkmodules.util import numpy_support
 
 class GiftiViewer(QWidget):
     def __init__(self, gifti_files,selectedFunc=0,shared_camera=None, parent=None, callbackSync=None):

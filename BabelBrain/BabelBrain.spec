@@ -1,7 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files
-from PyInstaller import compat
-from os import listdir
 import platform
 from glob import glob
 import os
@@ -299,10 +297,10 @@ if "Darwin" in platform.system():  # For MAC systems
     itk_datas = collect_data_files("itk", include_py_files=True)
     datas += [x for x in itk_datas if "__pycache__" not in x[0]]
 
-    # VTK
+    # VTK: only the modules the code imports (see Utils/vtk_api.py); never
+    # vtkmodules.all, which drags in every VTK module -- see EXCLUDES below.
     hiddenimports += [
         "vtkmodules",
-        "vtkmodules.all",
         "vtkmodules.qt.QVTKRenderWindowInteractor",
         "vtkmodules.util",
         "vtkmodules.util.numpy_support",
@@ -316,15 +314,10 @@ if "Darwin" in platform.system():  # For MAC systems
     tmp_ret2 = collect_all("pydicom")
     hiddenimports += tmp_ret2[2]
 
-    # Histoprint and MKL
+    # Histoprint. (MKL used to be copied in here for Intel builds; numpy now
+    # uses OpenBLAS on every platform -- see check_no_mkl() below.)
     if "arm64" not in platform.platform():
         hiddenimports += ["histoprint"]
-        libdir = compat.base_prefix + "/lib"
-        mkllib = filter(lambda x: x.startswith("libmkl_"), listdir(libdir))
-        if mkllib != []:
-            print("MKL installed as part of numpy, importing that!")
-            binaries += map(lambda l: (libdir + "/" + l, "./"), mkllib)
-            print(binaries)
 
     # MLX
     if "arm64" in platform.platform():
@@ -411,6 +404,31 @@ else:  # For linux systems
 # Dependency Analysis
 # ==============================================================================
 
+# Packages that are installed in the build environments but must not ship.
+# Each one is either unused at run time or only reachable through an optional
+# import that is guarded with try/except.
+EXCLUDES = [
+    # `import vtk` == vtkmodules.all: every VTK module plus native deps
+    # (VTK-m/viskores, IOSS, CGNS, NetCDF, FFmpeg). BabelBrain imports VTK
+    # module by module through Utils/vtk_api.py; pyvista only names `vtk` in
+    # TYPE_CHECKING blocks and ImportError fallbacks that never run.
+    "vtk",
+    "vtkmodules.all",
+    # numba + llvmlite (~110 MB): the only user was a popcount in
+    # GPUVoxelize/Voxelize.py, now plain NumPy.
+    "numba",
+    "llvmlite",
+    # PyMuPDF (~45 MB): the calibration viewer shows PNG twins of the PDFs
+    # (Calibration/plot_preview.py) and imports fitz only as a fallback.
+    "fitz",
+    "pymupdf",
+    # scikit-learn: only an optional, guarded import inside scikit-image.
+    "sklearn",
+    # Tcl/Tk: matplotlib runs on QtAgg; nothing uses tkinter.
+    "tkinter",
+    "_tkinter",
+]
+
 print("\nPerforming Dependency Analysis:")
 a = Analysis(
     ["BabelBrain.py"],
@@ -421,16 +439,62 @@ a = Analysis(
     hookspath=[],
     hooksconfig={
         "matplotlib": {
-            "backends": ["TkAgg","Qt5Agg","AGG","PDF","PS","SVG","PGF"],  # collect multiple backends
+            # QtAgg for the GUI; Agg/PDF/PS/SVG/PGF for savefig()
+            "backends": ["QtAgg", "Agg", "PDF", "PS", "SVG", "PGF"],
         },
     },
     runtime_hooks=[],
-    excludes=[],
+    excludes=EXCLUDES,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+# ==============================================================================
+# Binary Pruning
+# ==============================================================================
+
+# CUDA math libraries. PyInstaller finds them as link-time dependencies of
+# CuPy's wrapper modules (cupy_backends/cuda/libs/cublas.pyd, cupy/cuda/cufft.pyd,
+# ...), but CuPy 13 imports those wrappers lazily, only when cupy.linalg,
+# cupy.fft, cupy.random, cupy.sparse or cupy.dot/matmul run on the GPU. Neither
+# BabelBrain (cupyx.scipy.ndimage label/binary_closing/median_filter/
+# affine_transform, RawModule kernels) nor BabelViscoFDTD (RawModule) calls any
+# of those, and the FDTD kernels need only NVRTC and the CUDA runtime. Together
+# these libraries are most of the size of the Windows installer.
+# Set BABELBRAIN_KEEP_CUDA_MATH_LIBS=1 to bundle them anyway.
+CUDA_MATH_LIBS = ("cublas", "cufft", "curand", "cusolver", "cusparse",
+                  "cutensor", "nccl", "cudnn")
+
+
+def is_cuda_math_lib(dest_name):
+    name = os.path.basename(dest_name).lower()
+    if name.endswith(".dll"):  # Windows: cublas64_13.dll, cublasLt64_13.dll, ...
+        stem = name
+    elif name.startswith("lib") and ".so" in name:  # Linux: libcublas.so.13, ...
+        stem = name[3:]
+    else:  # CuPy's own cublas.*.pyd / cublas.*.so wrapper modules stay
+        return False
+    return stem.startswith(CUDA_MATH_LIBS)
+
+
+if os.environ.get("BABELBRAIN_KEEP_CUDA_MATH_LIBS") != "1":
+    pruned = [b for b in a.binaries if is_cuda_math_lib(b[0])]
+    a.binaries = [b for b in a.binaries if not is_cuda_math_lib(b[0])]
+    print("\nPruned CUDA math libraries:\n" + "\n".join(b[0] for b in pruned))
+
+
+def check_no_mkl(toc):
+    """MKL is ~600 MB with all its CPU variants. The environments pin OpenBLAS;
+    if a solver change brings MKL back, say so loudly in the build log."""
+    mkl = [b[0] for b in toc if os.path.basename(b[0]).lower().startswith(("mkl_", "libmkl_"))]
+    if mkl:
+        print("\n" + "!" * 78 + "\nWARNING: MKL is being bundled (%d files). Pin libblas=*=*openblas "
+              "in the environment file.\n" % len(mkl) + "\n".join(mkl) + "\n" + "!" * 78)
+
+
+check_no_mkl(a.binaries)
 
 # ==============================================================================
 # Python Bytecode Packaging

@@ -58,7 +58,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QComboBox, QToolButton, QLineEdit, QTabWidget,
 )
 
-import vtk
+from Utils import vtk_api as vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from vtkmodules.util import numpy_support
 

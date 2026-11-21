@@ -21,6 +21,7 @@ import scipy
 import SimpleITK as sitk
 from BabelViscoFDTD.H5pySimple import ReadFromH5pyStream
 from Calibration.ViewResults import PlotViewerCalibration
+from Calibration.plot_preview import save_figure_with_preview
 from linetimer import CodeTimer
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from nibabel import processing
@@ -489,7 +490,7 @@ def GeneratePseudoCTHistogram(pCT,CTfname,DistanceFromTop=80.0):
 
     f.tight_layout()
     basepath=os.path.split(CTfname)[0]
-    f.savefig(basepath+os.sep+'pCT_histogram.pdf',bbox_inches='tight')
+    save_figure_with_preview(f, basepath+os.sep+'pCT_histogram.pdf', bbox_inches='tight')
     plt.close('all')
 
 

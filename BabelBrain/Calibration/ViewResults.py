@@ -3,10 +3,11 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QPushButton,
     QSizePolicy, QApplication, QTabWidget, QDialog, QDialogButtonBox
 )
-from PySide6.QtGui import QPixmap, QImage
-from PySide6.QtCore import Qt, QPoint
-import fitz  # PyMuPDF
+from PySide6.QtGui import QPixmap, QImage, QDesktopServices
+from PySide6.QtCore import Qt, QPoint, QUrl
 import os
+
+from Calibration.plot_preview import png_preview_path
 
 
 # ---------------------------------------------------------------------
@@ -123,7 +124,12 @@ class ZoomableImagePanel(QWidget):
 # Tab widget for multiple images / PDFs
 # ---------------------------------------------------------------------
 class PlotViewerTabs(QWidget):
-    """Tab-based viewer supporting PNG and PDF (via PyMuPDF)."""
+    """Tab-based viewer for PNG plots.
+
+    A PDF is shown through its PNG twin (see save_figure_with_preview). Without
+    one, PyMuPDF renders it if installed (development environments); otherwise
+    the tab offers to open the PDF in the system viewer.
+    """
     def __init__(self, file_paths, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -133,30 +139,52 @@ class PlotViewerTabs(QWidget):
         layout.addWidget(self.tab_widget)
 
         for path in file_paths:
-            for page_index, pixmap in self._load_file_as_pixmaps(path):
+            try:
+                tab_name = f"{os.path.basename(path)}".split('.')[0].split('Plots-')[1]
+            except:
+                tab_name='Results'
+            pages = list(self._load_file_as_pixmaps(path))
+            if not pages:
+                self.tab_widget.addTab(self._open_externally_panel(path), tab_name)
+                continue
+            for page_index, pixmap in pages:
                 panel = ZoomableImagePanel(pixmap,0.2)
-                try:
-                    tab_name = f"{os.path.basename(path)}".split('.')[0].split('Plots-')[1]
-                except:
-                    tab_name='Results'
-                if page_index > 0:
-                    tab_name += f" (p{page_index+1})"
-                self.tab_widget.addTab(panel, tab_name)
-                
+                name = tab_name + (f" (p{page_index+1})" if page_index > 0 else "")
+                self.tab_widget.addTab(panel, name)
 
     def _load_file_as_pixmaps(self, path):
-        """Yield (page_index, QPixmap) pairs for image or PDF."""
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".pdf":
-            doc = fitz.open(path)
-            for i, page in enumerate(doc):
-                zoom = 4.0  
-                mat = fitz.Matrix(zoom, zoom)
-                pix = page.get_pixmap(matrix=mat, alpha=False)
-                qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
-                yield i, QPixmap.fromImage(qimg)
-        else:
+        """Yield (page_index, QPixmap) pairs; nothing if the file can't be shown."""
+        if os.path.splitext(path)[1].lower() != ".pdf":
             yield 0, QPixmap(path)
+            return
+        preview = png_preview_path(path)
+        if os.path.isfile(preview):
+            yield 0, QPixmap(preview)
+            return
+        try:
+            import fitz  # PyMuPDF; not bundled in the frozen app
+        except ImportError:
+            return
+        doc = fitz.open(path)
+        for i, page in enumerate(doc):
+            zoom = 4.0
+            mat = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            qimg = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format_RGB888)
+            yield i, QPixmap.fromImage(qimg.copy())  # copy: samples buffer is freed with pix
+
+    def _open_externally_panel(self, path):
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.addStretch()
+        label = QLabel(f"No preview available for\n{path}")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        button = QPushButton("Open PDF")
+        button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
+        layout.addWidget(button, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        return panel
 
 
 # ---------------------------------------------------------------------
@@ -195,7 +223,8 @@ class PlotViewerCalibration(QDialog):
         for i in range(self.viewer.tab_widget.count()):
             self.viewer.tab_widget.setCurrentIndex(i)
             panel = self.viewer.tab_widget.widget(i)
-            panel.resizeEvent(None)
+            if isinstance(panel, ZoomableImagePanel):
+                panel.resizeEvent(None)
             # panel.image_label.reset_scale()
         self.viewer.tab_widget.setCurrentIndex(0)
 

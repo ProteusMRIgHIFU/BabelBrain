@@ -26,7 +26,7 @@ import pandas as pd
 import pymeshfix
 import pyvista as pv
 import trimesh
-import vtk
+from Utils import vtk_api as vtk
 import yaml
 from histoprint import print_hist, text_hist
 from linetimer import CodeTimer

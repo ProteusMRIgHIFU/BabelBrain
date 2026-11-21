@@ -21,6 +21,7 @@ import time
 
 import traceback
 from skimage import metrics
+from Calibration.plot_preview import save_figure_with_preview
 
 
 def read_excel_range(file_path, range_str, sheet_name=0, **kwargs):
@@ -210,7 +211,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         f.supylabel('Pressure (a.u.)')
         f.suptitle('Comparison of corrected and uncorrected source - SSI = %3.2f (uncorrected) and %3.2f (corrected)' %(SSInow,SSIw),fontsize=14)
         f.tight_layout()
-        f.savefig(rootpath+'AcProfiles-%02i.pdf' % (n+1),bbox_inches='tight')
+        save_figure_with_preview(f, rootpath+'AcProfiles-%02i.pdf' % (n+1), bbox_inches='tight')
  
     def PlotWeight(ax,xd,norm,cmap):
         
@@ -286,7 +287,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
         axs[1].set_title('Optimized amplitude',fontsize=12)
 
 
-    plt.savefig(rootpath+'weight.pdf',bbox_inches='tight')
+    save_figure_with_preview(plt, rootpath+'weight.pdf', bbox_inches='tight')
 
     zf=np.array(df.index).astype(np.float32)*1e-3
     Step=1500/Frequency/6
@@ -394,7 +395,7 @@ def MakePlots(infname,x,A,Tx,Frequency,ZDim,Locations,CB,df,deviceName,RealWeigh
     AllFigs=PlotXZ(AcPlanes)
         
     for n,f in enumerate(AllFigs):
-        f.savefig(rootpath+'Acplanes-%02i.pdf' %(n+1),bbox_inches='tight')
+        save_figure_with_preview(f, rootpath+'Acplanes-%02i.pdf' %(n+1), bbox_inches='tight')
         
     AcPlanesReal=[]
     if RealWeight is not None:

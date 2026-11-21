@@ -3,7 +3,6 @@ import os
 import platform
 
 import numpy as np
-from numba import njit, prange
 
 try:
     from GPUUtils import (InitCUDA, InitMetal, InitMLX, InitOpenCL,
@@ -17,22 +16,33 @@ from Utils.paths import resource_path
 logger = logging.getLogger()
 
 
-@njit
-def checkVoxelInd(location, vtable):
-    int_location = location // 32
-    bit_pos = 31 - (location % 32)
-    if (vtable[int_location]) & (1 << bit_pos):
-        return True
-    return False
+def _popcount(words):
+    """Total number of set bits in a uint32 array."""
+    if hasattr(np, 'bitwise_count'):  # NumPy >= 2.0
+        return int(np.bitwise_count(words).sum(dtype=np.int64))
+    total = 0
+    chunk = 1 << 22  # bounds the 8x temporary of unpackbits
+    for start in range(0, words.size, chunk):
+        total += int(np.unpackbits(words[start:start + chunk].view(np.uint8)).sum(dtype=np.int64))
+    return total
 
-@njit(parallel=True)
-def calctotalpoints(gridsize,vtable):
-    y = np.zeros(1,np.int64)
-    total=np.prod(np.array(gridsize))
-    for i in prange(total):
-        if checkVoxelInd(i,vtable):
-            y += 1
-    return y
+
+def calctotalpoints(gridsize, vtable):
+    """Number of voxels set in the packed voxel table.
+
+    Voxel ``i`` is bit ``31 - i % 32`` of ``vtable[i // 32]`` (checkVoxelInd in
+    voxelize.cpp), so this is a population count over the first
+    ``prod(gridsize)`` bits. Done word-wise in NumPy; this used to be a numba
+    loop, and numba/llvmlite added ~110 MB to the frozen app for this alone.
+    """
+    words = np.ascontiguousarray(vtable).view(np.uint32).ravel()
+    total = int(np.prod(np.asarray(gridsize, dtype=np.int64)))
+    full, rem = divmod(total, 32)
+    count = _popcount(words[:full])
+    if rem:
+        # Voxels full*32 .. total-1 are the top `rem` bits of the next word
+        count += bin(int(words[full]) >> (32 - rem)).count('1')
+    return count
 
 def InitVoxelize(DeviceName='A6000',GPUBackend='OpenCL'):
     global queue 
@@ -249,7 +259,7 @@ def Voxelize(inputMesh,targetResolution=1333/500e3/6*0.75*1e3,GPUBackend='OpenCL
         vtable=np.array(vtable_gpu)
 
     # Create points array 
-    totalPoints=calctotalpoints((gx,gy,gz),vtable)[0]
+    totalPoints=calctotalpoints((gx,gy,gz),vtable)
     print('totalPoints',totalPoints)
     Points=np.zeros((totalPoints,3),np.float32)
 

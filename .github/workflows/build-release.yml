@@ -179,6 +179,18 @@ jobs:
           echo "BABEL_BUILD_ID=$BUILD_ID" >> "$GITHUB_ENV"
           echo "build_id=$BUILD_ID"
 
+      # Size breakdown of the frozen app (and, on Windows, DLL imports that the
+      # bundle no longer satisfies after BabelBrain.spec pruning). Report only;
+      # add --strict to fail the build on unresolved imports.
+      - name: Bundle size report
+        working-directory: BabelBrain
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            python ../Scripts/bundle_report.py dist/version/BabelBrain.app
+          else
+            python ../Scripts/bundle_report.py dist/version/BabelBrain
+          fi
+
       # --------------------------------------------------------------------
       # macOS signing/notarization. The VERSION app is signed + notarized +
       # stapled first (it becomes both the standalone -version.zip download and
