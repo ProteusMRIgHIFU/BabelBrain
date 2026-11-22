@@ -83,7 +83,6 @@ class BabelBaseTx(QWidget):
         self._formtype = step_2_form
         self._MainApp=MainApp
         self.DefaultConfig(tx_config_file)
-        self._DistanceFromSkin=np.nan
         self.load_ui()
 
     # ──────────────────────────────────────────────────────────────────────
@@ -197,7 +196,7 @@ class BabelBaseTx(QWidget):
             self._txTabs.setCurrentIndex(idx)
 
     def CalculateDistanceFromSkin(self):
-        if np.isnan(self._DistanceFromSkin):
+        if np.isnan(self.Widget._DistanceFromSkin):
             VoxelSize=self._MainApp._MaskNib[self._TrajectoryNumber].header.get_zooms()[0]
             TargetLocation =np.array(np.where(self._MainApp._FinalMask[self._TrajectoryNumber]==5.0)).flatten()
             LineOfSight=self._MainApp._FinalMask[self._TrajectoryNumber][TargetLocation[0],TargetLocation[1],:]
@@ -205,8 +204,8 @@ class BabelBaseTx(QWidget):
             DistanceFromSkin = (TargetLocation[2]-StartSkin)*VoxelSize
             self.Widget.DistanceSkinLabel.setText('%3.2f'%(DistanceFromSkin))
             self.Widget.DistanceSkinLabel.setProperty('UserData',DistanceFromSkin)
-            self._DistanceFromSkin=DistanceFromSkin
-        return self._DistanceFromSkin
+            self.Widget._DistanceFromSkin=DistanceFromSkin
+        return self.Widget._DistanceFromSkin
 
     def ExportStep2Results(self,Results):
         FocIJK=np.ones((4,1))

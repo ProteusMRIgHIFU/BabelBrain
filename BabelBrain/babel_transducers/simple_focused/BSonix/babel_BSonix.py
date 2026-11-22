@@ -40,7 +40,7 @@ class BSonix(SimpleFocusedTx):
         Diameter = self.Config[model]['TxDiam']*1e3
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)-self.Config[model]['AdjustDistanceSkin']*1e3
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
-        self._ZMaxSkin = np.round(ZMax,1)
+        self.Widget._ZMaxSkin = np.round(ZMax,1)
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
         self.UpdateDistanceLabels()
@@ -70,7 +70,7 @@ class BSonix(SimpleFocusedTx):
     def _PromptReuseOrRecalc(self):
         Skull=ReadFromH5py(self._FullSolName)
 
-        DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
+        DistanceSkin = self.Widget._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
         ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                 "TxMechanicalAdjustmentX=%3.2f\n" %(Skull['TxMechanicalAdjustmentX']*1e3)+

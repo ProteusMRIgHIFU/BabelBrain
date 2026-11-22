@@ -201,10 +201,9 @@ class BabelBasePhaseArray(BabelBaseTx):
         self.Widget.ZSteeringSpinBox.setEnabled(not bRefocus)
         
     def NotifyGeneratedMask(self):
-        self._DistanceFromSkin=np.nan
+        self.Widget._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         self.CalculateDistanceFromSkin()
-        self._UnmodifiedZMechanic = 0.0
         self.ZSteeringUpdate(0)
 
     @Slot()

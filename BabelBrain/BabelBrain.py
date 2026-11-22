@@ -1398,6 +1398,7 @@ class BabelBrain(QWidget):
         return hasattr(self,'_NiftiMergeAc')
 
     def UpdateAcousticTab(self):
+        self.AcSim._txTabs.setCurrentIndex(self._TrajectoryNumber)
         self.AcSim.NotifyGeneratedMask()
         #once UI elements are updated, we handle here special cases
         if self.Config['TrajectoryType']=='localite':

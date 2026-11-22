@@ -21,7 +21,7 @@ class SimpleFocusedTx(BabelBaseTx):
         super().__init__(parent,MainApp,tx_config_file,step_2_form)
         self.static_canvas=None
         self._bIgnoreUpdate=False
-        self._ZMaxSkin = 0.0 # maximum
+        #self._ZMaxSkin = 0.0 # maximum
 
     def _WirePanel(self):
         self.Widget.IsppaScrollBars = WidgetScrollBars(parent=self.Widget.IsppaScrollBars,MainApp=self)
@@ -34,17 +34,17 @@ class SimpleFocusedTx(BabelBaseTx):
         self.Widget.CalculateMechAdj.setEnabled(False)
 
     def NotifyGeneratedMask(self):
-        self._DistanceFromSkin=np.nan
+        self.Widget._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         self.CalculateDistanceFromSkin()
 
         self.UpdateLimits()
 
-        if self._ZMaxSkin >0:
-            self.Widget.SkinDistanceSpinBox.setValue(self._ZMaxSkin) # Tx aligned at the target
+        if self.Widget._ZMaxSkin >0:
+            self.Widget.SkinDistanceSpinBox.setValue(self.Widget._ZMaxSkin) # Tx aligned at the target
         else:
             self.Widget.SkinDistanceSpinBox.setValue(0.0) # Tx aligned at the skin
-        self._UnmodifiedZMechanic = 0.0
+
         
     
     @Slot()
@@ -70,7 +70,7 @@ class SimpleFocusedTx(BabelBaseTx):
         DOut=DistanceOutPlaneToFocus(FocalLength,Diameter)
         self.Widget.DistanceOutplaneLabel.setText('%3.1f' %(DOut))
         ZMax=DOut-self.Widget.DistanceSkinLabel.property('UserData')
-        self._ZMaxSkin = np.round(ZMax,1)
+        self.Widget._ZMaxSkin = np.round(ZMax,1)
         self.Widget.SkinDistanceSpinBox.setMaximum(self.Config['MaxDistanceToSkin'])
         self.Widget.SkinDistanceSpinBox.setMinimum(-self.Config['MaxNegativeDistance']) 
         self.UpdateDistanceLabels()
@@ -93,7 +93,7 @@ class SimpleFocusedTx(BabelBaseTx):
     def _PromptReuseOrRecalc(self):
         Skull=ReadFromH5py(self._FullSolName)
 
-        DistanceSkin = self._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
+        DistanceSkin = self.Widget._ZMaxSkin - Skull['TxMechanicalAdjustmentZ']*1e3
 
         ret = QMessageBox.question(self,'', "Acoustic sim files already exist with:.\n"+
                                 "FocalLength=%3.2f\n" %(Skull['FocalLength']*1e3)+
@@ -153,9 +153,9 @@ class RunAcousticSim(QObject):
         
         TxMechanicalAdjustmentX= self._mainApp.AcSim.Widget.XMechanicSpinBox.value()/1e3 #in m
         TxMechanicalAdjustmentY= self._mainApp.AcSim.Widget.YMechanicSpinBox.value()/1e3  #in m
-        TxMechanicalAdjustmentZ= (self._mainApp.AcSim._ZMaxSkin - self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value())/1e3  #in m
+        TxMechanicalAdjustmentZ= (self._mainApp.AcSim.Widget._ZMaxSkin - self._mainApp.AcSim.Widget.SkinDistanceSpinBox.value())/1e3  #in m
         ZIntoSkin =0.0
-        CurDistance=self._mainApp.AcSim._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
+        CurDistance=self._mainApp.AcSim.Widget._ZMaxSkin/1e3-TxMechanicalAdjustmentZ
         if CurDistance < 0:
             ZIntoSkin = np.abs(CurDistance)
 
