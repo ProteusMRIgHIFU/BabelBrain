@@ -63,7 +63,7 @@ class FlatArray2DTx(BabelBasePhaseArray):
             self.Widget.LabelTissueRemoved.setVisible(False)
 
     def NotifyGeneratedMask(self):
-        self._DistanceFromSkin=np.nan
+        self.Widget._DistanceFromSkin=np.nan
         self._SyncActiveTrajectoryFromMainApp()
         DistanceFromSkin = self.CalculateDistanceFromSkin()
         self.Widget.ZSteeringSpinBox.setValue(np.round(DistanceFromSkin,1))

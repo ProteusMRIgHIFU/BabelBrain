@@ -18,6 +18,10 @@ from GUIComponents.TxPanelBase import (
 
 
 class FocusedAnnularArrayTxForm(TxPanelBase):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._ZMaxSkin  = 0.0
+
     def _build_left_panel(self):
         frame, lay = self._make_left_frame()
 

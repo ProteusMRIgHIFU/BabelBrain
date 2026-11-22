@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+import numpy as np
 
 # ── Accent palette (kept in sync with MainForm.py / nifti_viewer.py) ──────
 from GUIComponents.AppStyle import (
@@ -201,6 +202,7 @@ class TxPanelBase(QWidget):
         self.setStyleSheet(_panel_qss(self))
         self._build()
         apply_native_spinbox_style(self)  # Windows: compact stacked spin arrows
+        self._DistanceFromSkin=np.nan
 
     # ── Construction ──────────────────────────────────────────────────────
     def _build(self):
