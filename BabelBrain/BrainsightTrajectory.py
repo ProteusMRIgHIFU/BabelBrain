@@ -80,7 +80,7 @@ class BrainsightTrajectory:
         Mat4 = traj.get_mat4(0)
         traj.set_location(0, Mat4[:3,3] - correction)   # mechanical correction
         traj.replace(1, NewMat4, name='T2')              # e.g. PlanTUS result
-        traj.set_metadata('Created by', 'BabelBrain 0.8.8')
+        traj.set_metadata('Created by', 'BabelBrain 0.8.9')
         traj.to_file(outfname)
     '''
 
