@@ -1,6 +1,6 @@
 # BabelBrain release notes
 ## 0.8.9 - Nov 23rd, 2026
-- **Fix**: Wrong distances skin to target when using a multiple trajectory input. The calculations of the last trajectory was being applied globally to estimate the distance skin to target and was making the transducer to be incorrectly placed in simulations for the first trajectory. This is a high-priority fix that now ensures this calculation is done individually per trajectory. 
+- **Fix**: Incorrect skin-to-target distances when using a multiple-trajectory input. The calculations of the last trajectory were being applied globally to estimate the distance from skin to target and were making the transducer incorrectly placed in simulations for the first trajectory. This is a high-priority fix that now ensures this calculation is done individually per trajectory. 
 
 ## 0.8.8 - Nov 11th, 2026
 - **New**: Client-server operation. BabelBrain can now run its calculations (Steps 1, 2 and 3) on a remote server while the GUI runs locally. This is useful when the local computer doesn't have a powerful GPU; for example, a laptop runs the neuronavigation while a workstation does the heavy lifting. Input files are sent to the server, and the results are sent back and shown in the local GUI as usual. The server accepts several client connections and uses TLS with a self-signed certificate for basic security. Remote servers can be configured and managed from the GUI. See [manual entry for details](https://proteusmrighifu.github.io/BabelBrain/server.html)
